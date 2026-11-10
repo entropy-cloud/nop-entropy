@@ -25,8 +25,38 @@ public class SessionLockRenewal {
     private final DefaultAgentEngineConfig config;
     private final java.util.concurrent.ConcurrentHashMap<String, AgentSessionLifecycle.CancelHandle> runningExecutions;
 
-    private ScheduledExecutorService lockRenewExecutor;
+    /**
+     * 3.1-MA-12 (plan 2555 裁定 B / C1-013) + 3.1-MA-16 (裁定 F): volatile —
+     * the setter is an assembly/startup operation; the volatile write
+     * publishes the executor to renewal scheduling on any thread.
+     */
+    private volatile ScheduledExecutorService lockRenewExecutor;
     private volatile boolean ownLockRenewExecutor;
+
+    /**
+     * 3.1-MA-16 (plan 2555 裁定 F): core size of the self-created renewal
+     * scheduler pool. A single-thread scheduler made one session's blocking
+     * JDBC renewal head-of-line-block every other session's renewal; the
+     * dedicated multi-thread pool lets concurrent renewals proceed. Config
+     * key: {@code nop.ai.agent.lock-renew-pool-size} (setter injection —
+     * module convention); must be {@code >= 1}, default 2.
+     */
+    private int lockRenewPoolSize = 2;
+
+    public int getLockRenewPoolSize() {
+        return lockRenewPoolSize;
+    }
+
+    public void setLockRenewPoolSize(int lockRenewPoolSize) {
+        if (lockRenewPoolSize <= 0) {
+            throw new NopAiAgentException("lockRenewPoolSize must be positive, got: "
+                    + lockRenewPoolSize);
+        }
+        // Startup-only: a pool already created keeps its size (see
+        // getLockRenewExecutor). Changing this after the first renewal is
+        // scheduled has no effect on the live pool.
+        this.lockRenewPoolSize = lockRenewPoolSize;
+    }
 
     public SessionLockRenewal(DefaultAgentEngineConfig config,
                               java.util.concurrent.ConcurrentHashMap<String, AgentSessionLifecycle.CancelHandle> runningExecutions) {
@@ -34,6 +64,12 @@ public class SessionLockRenewal {
         this.runningExecutions = runningExecutions;
     }
 
+    /**
+     * 3.1-MA-12/MA-16: setter override is a STARTUP-swap operation — active
+     * renewHandles scheduled on the previous executor are NOT migrated; they
+     * terminate with the old pool. Operate in a session-idle window; the
+     * close() path's own-shutdown semantics are unchanged.
+     */
     public void setLockRenewExecutor(ScheduledExecutorService lockRenewExecutor) {
         this.lockRenewExecutor = java.util.Objects.requireNonNull(lockRenewExecutor,
                 "lockRenewExecutor must not be null");
@@ -65,10 +101,15 @@ public class SessionLockRenewal {
         this.maxConsecutiveRenewalFailures = maxConsecutiveRenewalFailures;
     }
 
-    // ---- moved verbatim from DefaultAgentEngine (MA4.2-05 split) ----
+    // ---- moved from DefaultAgentEngine (MA4.2-05 split); pool form per
+    // 3.1-MA-16 (plan 2555 裁定 F): small dedicated MULTI-thread scheduled
+    // pool (configurable core, default 2) — never the shared globalTimer
+    // (the blocking JDBC renew body must not run on a shared timer), and no
+    // longer a single thread (one session's slow renewal must not
+    // head-of-line-block other sessions' renewals).
     synchronized ScheduledExecutorService getLockRenewExecutor() {
         if (lockRenewExecutor == null) {
-            lockRenewExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            lockRenewExecutor = Executors.newScheduledThreadPool(lockRenewPoolSize, r -> {
                 Thread t = new Thread(r, "nop-ai-agent-lock-renew");
                 t.setDaemon(true);
                 return t;

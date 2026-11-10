@@ -113,7 +113,9 @@ public class CallAgentExecutor implements IToolExecutor {
 
     private static final long DEFAULT_TIMEOUT_MS = 60_000L;
 
-    private int maxDelegationDepth = DEFAULT_MAX_DELEGATION_DEPTH;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field. The executor is a singleton shared across sessions; the
+    // depth setter must publish to concurrent call-agent readers.
+    private volatile int maxDelegationDepth = DEFAULT_MAX_DELEGATION_DEPTH;
 
     /**
      * Plan 278 (AR-05): set the maximum delegation depth for call-agent

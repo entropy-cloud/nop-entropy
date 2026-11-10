@@ -104,6 +104,30 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
     private final DataSource dataSource;
     private final ITenantResolver tenantResolver;
 
+    /**
+     * 3.1-MA-16 (plan 2555 裁定 F): statement-level queryTimeout applied to
+     * the {@link #tryRenew} UPDATE, so a hung renewal statement cannot pin a
+     * renewal-pool thread indefinitely (the pool is sized small by design —
+     * one hung statement would otherwise head-of-line-block other sessions'
+     * renewals). Config key: {@code nop.ai.agent.takeover-renew-query-timeout}
+     * (seconds, setter injection per module convention); must be {@code >= 0}
+     * (0 = no statement timeout, the JDBC driver default). Default 5s.
+     */
+    private int takeoverRenewQueryTimeoutSec = 5;
+
+    public int getTakeoverRenewQueryTimeoutSec() {
+        return takeoverRenewQueryTimeoutSec;
+    }
+
+    public void setTakeoverRenewQueryTimeoutSec(int takeoverRenewQueryTimeoutSec) {
+        if (takeoverRenewQueryTimeoutSec < 0) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL,
+                    "DbSessionTakeoverLock: takeoverRenewQueryTimeoutSec must be >= 0 (got "
+                            + takeoverRenewQueryTimeoutSec + ")");
+        }
+        this.takeoverRenewQueryTimeoutSec = takeoverRenewQueryTimeoutSec;
+    }
+
     // ========================================================================
     // Lifecycle
     // ========================================================================
@@ -301,6 +325,13 @@ public class DbSessionTakeoverLock implements ISessionTakeoverLock {
         }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            // 3.1-MA-16 (裁定 F): bound the renewal statement so a stuck
+            // UPDATE surfaces as a counted renewal failure (existing
+            // SessionLockRenewal failure classification) instead of an
+            // indefinitely blocked pool thread.
+            if (takeoverRenewQueryTimeoutSec > 0) {
+                ps.setQueryTimeout(takeoverRenewQueryTimeoutSec);
+            }
             ps.setLong(1, expiresAt);
             ps.setLong(2, now);
             ps.setString(3, sessionId);

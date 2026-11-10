@@ -75,4 +75,11 @@ public interface AiCoreConfigs {
             + "两者皆空时 embedding 调用 fail-loud（无隐式 provider）")
     IConfigReference<String> CFG_AI_EMBEDDING_DEFAULT_LLM =
             varRef(s_loc, "nop.ai.embedding.default-llm", String.class, null);
+
+    @Description("聊天日志保留期（天），缺省 0 = 不清理（兼容默认，运维须自行管理磁盘包络）。"
+            + ">0 时 DefaultChatLogger 在写入路径上惰性删除早于 今天-保留期 的日期分区目录"
+            + "（布局 logDir/yyyy/MM-dd/，目录级删除），每日期至多全量扫描一次（once-per-date 节流）。"
+            + "清理为 best-effort，失败仅记日志，不影响日志写入主路径（3.1-MA-21，plan 2555 裁定 I）")
+    IConfigReference<Integer> CFG_AI_CHAT_LOG_RETENTION_DAYS =
+            varRef(s_loc, "nop.ai.chat-log.retention-days", Integer.class, 0);
 }

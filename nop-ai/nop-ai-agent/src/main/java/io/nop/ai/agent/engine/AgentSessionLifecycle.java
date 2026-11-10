@@ -268,6 +268,45 @@ public class AgentSessionLifecycle {
      * happens-before edge from supplyAsync-submission → task-execution
      * guarantees the worker sees the assigned value.
      */
+    /**
+     * 3.1-MA-J (plan 2555 裁定 J / C1-010): static null-ctx sentinel marker
+     * occupying {@code runningExecutions} during the cancelSession
+     * unregistered branch. The sentinel's {@code context} is {@code null} —
+     * real handles always carry a live context (the field stays {@code
+     * final}); any code path that must dereference {@code handle.context}
+     * is guarded by an identity check against this marker first.
+     */
+    static final CancelHandle CANCEL_SENTINEL = new CancelHandle(null, null);
+
+    /**
+     * 3.1-MA-J (plan 2555 裁定 J / C1-010): sentinel-loser consumption for
+     * the resume/wake/restore registration sites (and registerExecutionSlot).
+     * When a just-built execution's {@code putIfAbsent} loses to the
+     * sentinel, the loser consumes it via the TWO-ARG conditional remove
+     * (never the one-arg remove — that would delete a real handle after the
+     * sentinel winner finished and re-open the assembly window) and marks
+     * the just-built context cancel-requested so the execution
+     * self-terminates through the existing registered-cancel flow (its own
+     * lease is released by that execution's normal terminal finally).
+     *
+     * @return true when {@code existing} was the sentinel (caller must still
+     *         fail-fast the duplicate submission exactly as before)
+     */
+    boolean consumeCancelSentinel(String sessionId, CancelHandle existing, AgentExecutionContext ctx) {
+        if (existing != CANCEL_SENTINEL) {
+            return false;
+        }
+        if (runningExecutions.remove(sessionId, CANCEL_SENTINEL)) {
+            if (ctx != null) {
+                ctx.setCancelRequested(true);
+            }
+            LOG.info("nop.ai.agent.cancel-during-assembly: consumed cancel sentinel for "
+                    + "sessionId={} — the losing execution was marked cancel-requested and "
+                    + "will self-terminate via the registered-cancel flow", sessionId);
+        }
+        return true;
+    }
+
     static final class CancelHandle {
         final AgentExecutionContext context;
         volatile Thread thread;
@@ -455,6 +494,11 @@ public class AgentSessionLifecycle {
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
+                // 3.1-MA-J (plan 2555 裁定 J): losing to the cancel sentinel
+                // consumes it and marks the just-built ctx cancel-requested
+                // (execution self-terminates); the duplicate submission
+                // still fails fast with the unchanged error.
+                consumeCancelSentinel(sessionId, existing, ctx);
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "resumeSession failed: session already executing: sessionId=" + sessionId);
             }
             slotRegistered = true;
@@ -659,6 +703,11 @@ public class AgentSessionLifecycle {
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
+                // 3.1-MA-J (plan 2555 裁定 J): losing to the cancel sentinel
+                // consumes it and marks the just-built ctx cancel-requested
+                // (execution self-terminates); the duplicate submission
+                // still fails fast with the unchanged error.
+                consumeCancelSentinel(sessionId, existing, ctx);
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "wakeSession failed: session already executing: sessionId=" + sessionId);
             }
             slotRegistered = true;
@@ -1077,6 +1126,10 @@ public class AgentSessionLifecycle {
             }
             CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
+                // 3.1-MA-J (plan 2555 裁定 J): sentinel-consume on the
+                // just-built ctx (see consumeCancelSentinel) — the duplicate
+                // submission still fails fast with the unchanged error.
+                consumeCancelSentinel(sessionId, existing, handle.context);
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "restoreSession failed: session already executing: sessionId=" + sessionId);
             }
             slotRegistered = true;

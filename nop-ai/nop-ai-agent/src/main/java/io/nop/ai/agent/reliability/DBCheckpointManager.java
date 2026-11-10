@@ -293,6 +293,36 @@ public class DBCheckpointManager implements ICheckpointManager {
         }
     }
 
+    /**
+     * 3.1-MA-10 (plan 2555 裁定 A): per-session entry removal — mirrors
+     * {@code FileBackedCheckpointManager.remove}. The pre-fix behaviour was
+     * the interface no-op default: the {@code bySession} list, the
+     * {@code byWatermark} index entries AND the {@code loadedSessions}
+     * negative-cache marker all survived a terminal session, so the cache
+     * grew unbounded AND a re-created session with the same id was blocked
+     * from reloading (the negative cache answered "already loaded" with a
+     * stale empty list). All three per-session structures are removed
+     * together; the persisted DB rows are untouched (audit trail contract of
+     * {@link ICheckpointManager#remove}).
+     */
+    @Override
+    public void remove(String sessionId) {
+        if (sessionId == null) {
+            return;
+        }
+        List<Checkpoint> sessionCheckpoints = bySession.remove(sessionId);
+        if (sessionCheckpoints != null) {
+            synchronized (sessionCheckpoints) {
+                for (Checkpoint cp : sessionCheckpoints) {
+                    byWatermark.remove(cp.getWatermark());
+                }
+            }
+        }
+        // 3.1-MA-10: the negative-cache marker MUST be removed together with
+        // the session entries, otherwise ensureSessionLoaded never reloads.
+        loadedSessions.remove(sessionId);
+    }
+
     // ========================================================================
     // Internal: cache-miss DB loaders
     // ========================================================================

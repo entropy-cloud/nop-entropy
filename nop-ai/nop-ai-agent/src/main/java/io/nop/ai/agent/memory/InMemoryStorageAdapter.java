@@ -48,7 +48,8 @@ public class InMemoryStorageAdapter implements IStorageAdapter {
 
     private final Map<String, AiMemoryItem> items = new ConcurrentHashMap<>();
 
-    private ITenantResolver tenantResolver;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile ITenantResolver tenantResolver;
 
     public void setTenantResolver(ITenantResolver tenantResolver) {
         this.tenantResolver = tenantResolver;

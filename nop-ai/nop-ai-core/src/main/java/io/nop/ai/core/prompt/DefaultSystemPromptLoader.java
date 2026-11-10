@@ -8,7 +8,8 @@ import io.nop.core.resource.cache.ResourceLoadingCache;
 
 @SecureDefault
 public class DefaultSystemPromptLoader {
-    public static DefaultSystemPromptLoader _instance = new DefaultSystemPromptLoader();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003）：public 换装面 volatile 化——换装可见 + 安全发布
+    public static volatile DefaultSystemPromptLoader _instance = new DefaultSystemPromptLoader();
 
     private final ResourceLoadingCache<String> promptCache = new ResourceLoadingCache<>("system-prompt-cache",
             this::loadPrompt, null);

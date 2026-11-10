@@ -52,9 +52,12 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
     private final Set<String> targetTeamIds;
     private final TaskDispatchCoordinator dispatchCoordinator;
 
-    private IDaemonCoordinator daemonCoordinator = NoOpDaemonCoordinator.noOp();
-    private String daemonOwnerId = "scheduler-daemon-" + UUID.randomUUID();
-    private long scanLeaseMs = DEFAULT_SCAN_LEASE_MS;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile — runtime setters vs
+    // scan-thread readers need the HB edge; mixed-identity lease acquisition
+    // under unsafe publication is closed.
+    private volatile IDaemonCoordinator daemonCoordinator = NoOpDaemonCoordinator.noOp();
+    private volatile String daemonOwnerId = "scheduler-daemon-" + UUID.randomUUID();
+    private volatile long scanLeaseMs = DEFAULT_SCAN_LEASE_MS;
     private volatile Future<?> scheduleHandle;
 
 

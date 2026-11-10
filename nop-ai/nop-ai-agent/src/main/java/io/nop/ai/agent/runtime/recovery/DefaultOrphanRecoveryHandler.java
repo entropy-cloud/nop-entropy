@@ -91,6 +91,44 @@ public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
     private final ITenantResolver tenantResolver;
 
     /**
+     * 3.1-MA-18 (plan 2555 裁定 G): retry budget for RESUME. The pre-fix
+     * form fired restoreSession exactly once — a transient synchronous
+     * failure (takeover-lock conflict with an in-flight terminal cleanup,
+     * momentary store unavailability) permanently skipped the orphan until
+     * the next scan, and the scan loop offered no attempt accounting. The
+     * budget: at most {@link #resumeMaxAttempts} attempts with exponential
+     * backoff ({@code resumeBackoffBaseMs * 2^(attempt-1)} between attempts),
+     * each attempt observed via LOG.info, and a typed budget-exhausted
+     * escalation in the returned outcome message. Config keys (setter
+     * injection, module convention): {@code nop.ai.agent.orphan-resume-max-attempts},
+     * {@code nop.ai.agent.orphan-resume-backoff-base-ms}.
+     */
+    private int resumeMaxAttempts = 3;
+    private long resumeBackoffBaseMs = 200;
+
+    public int getResumeMaxAttempts() {
+        return resumeMaxAttempts;
+    }
+
+    public void setResumeMaxAttempts(int resumeMaxAttempts) {
+        if (resumeMaxAttempts <= 0) {
+            throw new IllegalArgumentException("resumeMaxAttempts must be positive, got: " + resumeMaxAttempts);
+        }
+        this.resumeMaxAttempts = resumeMaxAttempts;
+    }
+
+    public long getResumeBackoffBaseMs() {
+        return resumeBackoffBaseMs;
+    }
+
+    public void setResumeBackoffBaseMs(long resumeBackoffBaseMs) {
+        if (resumeBackoffBaseMs < 0) {
+            throw new IllegalArgumentException("resumeBackoffBaseMs must be >= 0, got: " + resumeBackoffBaseMs);
+        }
+        this.resumeBackoffBaseMs = resumeBackoffBaseMs;
+    }
+
+    /**
      * Create a handler with the given recovery mode. Uses the
      * backward-compatible {@link NullTenantResolver}.
      *
@@ -164,23 +202,53 @@ public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
      * recorded as a non-silent failed outcome.
      */
     private RecoveryOutcome handleResume(String sessionId) {
-        try {
-            // Fire-and-forget (design 裁定 1): do NOT .join() — the daemon
-            // scan loop must not block on a potentially long-running LLM
-            // restore. The takeover lock (tryAcquire inside restoreSession)
-            // guarantees no double-execution.
-            engine.restoreSession(sessionId, RECOVERY_APPROVER, RECOVERY_REASON);
-            return new RecoveryOutcome(sessionId, RecoveryMode.RESUME, true,
-                    "RESUME: restoreSession triggered (fire-and-forget)");
-        } catch (RuntimeException e) {
-            // Non-silent (Minimum Rules #24): capture the synchronous
-            // failure (e.g. tryAcquire conflict, session not found,
-            // terminal session) as a failed outcome with exception detail.
-            LOG.warn("DefaultOrphanRecoveryHandler: RESUME failed for sessionId={}",
-                    sessionId, e);
-            return new RecoveryOutcome(sessionId, RecoveryMode.RESUME, false,
-                    "RESUME failed: " + e.toString());
+        // 3.1-MA-18 (裁定 G): bounded retry with exponential backoff +
+        // per-attempt observation + budget-exhausted escalation. The
+        // restoreSession call stays fire-and-forget (design 裁定 1 — no
+        // .join()); only the SYNCHRONOUS failure face is retried here.
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= resumeMaxAttempts; attempt++) {
+            try {
+                // Fire-and-forget (design 裁定 1): do NOT .join() — the daemon
+                // scan loop must not block on a potentially long-running LLM
+                // restore. The takeover lock (tryAcquire inside restoreSession)
+                // guarantees no double-execution.
+                engine.restoreSession(sessionId, RECOVERY_APPROVER, RECOVERY_REASON);
+                if (attempt > 1) {
+                    LOG.info("DefaultOrphanRecoveryHandler: RESUME succeeded for sessionId={} on attempt {}/{}",
+                            sessionId, attempt, resumeMaxAttempts);
+                }
+                return new RecoveryOutcome(sessionId, RecoveryMode.RESUME, true,
+                        "RESUME: restoreSession triggered (fire-and-forget"
+                        + (attempt > 1 ? ", attempt=" + attempt : "") + ")");
+            } catch (RuntimeException e) {
+                // Non-silent (Minimum Rules #24): observe every failed attempt.
+                lastFailure = e;
+                LOG.warn("DefaultOrphanRecoveryHandler: RESUME attempt {}/{} failed for sessionId={}",
+                        attempt, resumeMaxAttempts, sessionId, e);
+                if (attempt < resumeMaxAttempts) {
+                    long backoffMs = resumeBackoffBaseMs * (1L << (attempt - 1));
+                    if (backoffMs > 0) {
+                        try {
+                            Thread.sleep(backoffMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            return new RecoveryOutcome(sessionId, RecoveryMode.RESUME, false,
+                                    "RESUME failed: interrupted during backoff after attempt "
+                                            + attempt + ": " + e.toString());
+                        }
+                    }
+                }
+            }
         }
+        // Budget exhausted — typed escalation (裁定 G), never a bare rethrow
+        // (one bad session must not abort the scan).
+        LOG.warn("nop.ai.agent.orphan-resume-budget-exhausted: RESUME retry budget exhausted for "
+                + "sessionId={} after {} attempts — escalating (outcome marked failed; "
+                + "the orphan stays for the next scan)", sessionId, resumeMaxAttempts, lastFailure);
+        return new RecoveryOutcome(sessionId, RecoveryMode.RESUME, false,
+                "RESUME failed: retry budget exhausted (" + resumeMaxAttempts
+                        + " attempts): " + lastFailure);
     }
 
     /**

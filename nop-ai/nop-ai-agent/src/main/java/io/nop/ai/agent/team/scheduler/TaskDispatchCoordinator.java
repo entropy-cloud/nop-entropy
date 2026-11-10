@@ -37,16 +37,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TaskDispatchCoordinator {
     private static final Logger LOG = LoggerFactory.getLogger(TeamTaskSchedulerDaemon.class);
 
-    private ITaskMemberRouter taskMemberRouter;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap fields.
+    private volatile ITaskMemberRouter taskMemberRouter;
     private final IAgentEngine agentEngine;
-    private IMemberSpawner memberSpawner;
+    private volatile IMemberSpawner memberSpawner;
     private final ITeamTaskStore taskStore;
     private final String daemonSessionId;
     private final long memberExecTimeoutMs;
     private final java.util.concurrent.ConcurrentLinkedQueue<java.util.concurrent.CompletableFuture<MemberDispatchOutcome>> inFlightDispatches =
             new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-    private Executor spawnStepExecutor;
+    private volatile Executor spawnStepExecutor;
     private ExecutorService ownedSpawnExecutor;
 
     public TaskDispatchCoordinator(IAgentEngine agentEngine,

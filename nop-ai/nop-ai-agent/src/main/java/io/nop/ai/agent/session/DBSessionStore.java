@@ -157,7 +157,7 @@ public class DBSessionStore implements ISessionStore {
     @Override
     public AgentSession getOrCreate(String sessionId, String agentName) {
         if (cacheEnabled()) {
-            AgentSession existing = sessions.get(sessionId);
+            AgentSession existing = sessions.get(scopedKey(sessionId));
             if (existing != null) {
                 return existing;
             }
@@ -181,7 +181,7 @@ public class DBSessionStore implements ISessionStore {
     @Override
     public AgentSession get(String sessionId) {
         if (cacheEnabled()) {
-            AgentSession cached = sessions.get(sessionId);
+            AgentSession cached = sessions.get(scopedKey(sessionId));
             if (cached != null) {
                 return cached;
             }
@@ -196,11 +196,18 @@ public class DBSessionStore implements ISessionStore {
 
     @Override
     public void remove(String sessionId) {
-        if (cacheEnabled()) {
-            sessions.remove(sessionId);
+        // 3.1-MA-10 (plan 2555 裁定 A): remove runs under the stable
+        // per-session lock and never strips the lock identity in-lock —
+        // serializes against save()/load publish paths; the lock entry is
+        // retired opportunistically AFTER release (releaseLockIfIdle).
+        Object lock = sessionLock(sessionId);
+        synchronized (lock) {
+            if (cacheEnabled()) {
+                sessions.remove(scopedKey(sessionId));
+            }
+            persistedStates.remove(scopedKey(sessionId));
         }
-        persistedStates.remove(sessionId);
-        sessionLocks.remove(sessionId);
+        releaseLockIfIdle(sessionId, lock);
         String tenant = currentTenant();
         String deleteSql = "DELETE FROM " + AiAgentSessionTable.TABLE_NAME
                 + " WHERE " + AiAgentSessionTable.COL_SESSION_ID + " = ?";
@@ -294,7 +301,7 @@ public class DBSessionStore implements ISessionStore {
                         registerPersistedState(loaded, loaded.getSessionId(), snapshot.getSnapshotVersion());
                         String sid = loaded.getSessionId();
                         if (cacheEnabled()) {
-                            AgentSession raced = sessions.putIfAbsent(sid, loaded);
+                            AgentSession raced = sessions.putIfAbsent(scopedKey(sid), loaded);
                             discovered.add(raced != null ? raced : loaded);
                         } else {
                             discovered.add(loaded);
@@ -339,19 +346,19 @@ public class DBSessionStore implements ISessionStore {
         String sessionId = session.getSessionId();
         Object lock = sessionLock(sessionId);
         synchronized (lock) {
-            SessionPersistenceState state = persistedStates.get(sessionId);
+            SessionPersistenceState state = persistedStates.get(scopedKey(sessionId));
             List<ChatMessage> current = session.getMessages();
 
             if (state != null && state.canAppend() && tryAppend(state, session, current)) {
                 if (cacheEnabled()) {
-                    sessions.put(sessionId, session);
+                    sessions.put(scopedKey(sessionId), session);
                 }
                 return;
             }
 
             fold(state, session, current);
             if (cacheEnabled()) {
-                sessions.put(sessionId, session);
+                sessions.put(scopedKey(sessionId), session);
             }
         }
     }
@@ -453,7 +460,7 @@ public class DBSessionStore implements ISessionStore {
         deleteJournalRows(session.getSessionId());
         SessionPersistenceState fresh = state != null ? state : new SessionPersistenceState();
         fresh.resetAfterFold(newVersion, current);
-        persistedStates.put(session.getSessionId(), fresh);
+        persistedStates.put(scopedKey(session.getSessionId()), fresh);
     }
 
     /**
@@ -570,12 +577,49 @@ public class DBSessionStore implements ISessionStore {
     // Internal helpers
     // ========================================================================
 
-    private AgentSession putIfAbsent(String sessionId, AgentSession session) {
-        return sessions.putIfAbsent(sessionId, session);
+    /**
+     * 3.1-MA-10 (plan 2555 裁定 A / C1-020): tenant composite key covering
+     * ALL three in-memory maps (sessions / persistedStates / sessionLocks).
+     * A raw sessionId key lets two tenants that reuse the same sessionId
+     * collide on the persisted-state bookkeeping and share one save lock
+     * (cross-tenant serialization + state clobbering); scoping every map key
+     * by the active tenant closes the collision surface. Only used while a
+     * tenant context is active; the no-tenant form is byte-identical to the
+     * historical raw key (zero regression). The {@code '\u001F'} unit
+     * separator cannot appear in tenant ids issued by the platform identity
+     * layer.
+     */
+    private String scopedKey(String sessionId) {
+        String tenant = currentTenant();
+        return tenant == null ? sessionId : tenant + '\u001F' + sessionId;
     }
 
+    private AgentSession putIfAbsent(String sessionId, AgentSession session) {
+        return sessions.putIfAbsent(scopedKey(sessionId), session);
+    }
+
+    /**
+     * 3.1-MA-10: lock entry resolution under the tenant-scoped keyspace. The
+     * entry is never stripped while a remove/load is in flight (identity
+     * strip = session-revival / cross-tenant lock-sharing surface); entries
+     * are only opportunistically removed (see {@link #releaseLockIfIdle}) —
+     * opportunistic, never a correctness dependency.
+     */
     private Object sessionLock(String sessionId) {
-        return sessionLocks.computeIfAbsent(sessionId, k -> new Object());
+        return sessionLocks.computeIfAbsent(scopedKey(sessionId), k -> new Object());
+    }
+
+    /**
+     * 3.1-MA-10 (裁定 A): opportunistic lock-entry retirement. Called AFTER
+     * the caller has released the monitor and only via the two-arg
+     * conditional {@code remove} (identity-checked): if another thread
+     * already fetched the same lock object the entry stays. Best-effort only
+     * — a missed retirement just leaves the entry for the next opportunity
+     * (bounded by active sessions; watch-only residual growth is admitted by
+     * the ruling).
+     */
+    private void releaseLockIfIdle(String sessionId, Object lock) {
+        sessionLocks.remove(scopedKey(sessionId), lock);
     }
 
     private AgentSession loadFromDb(String sessionId) {
@@ -627,6 +671,11 @@ public class DBSessionStore implements ISessionStore {
      * (fold-crash orphaned rows sit at the head), self-heals by folding the
      * replayed state — CLOB MERGE with a bumped version + journal row delete —
      * restoring the "CLOB == replayed state, journal empty" invariant.
+     *
+     * <p>3.1-MA-10 (plan 2555 裁定 A): BOTH publish branches put the
+     * persisted state inside the per-session lock domain — the lock-free
+     * non-heal put used to interleave with a concurrent remove and republish
+     * bookkeeping for a session that was being deleted.
      */
     private void registerPersistedState(AgentSession session, String sessionId, long snapshotVersion) {
         SessionPersistenceState state = new SessionPersistenceState();
@@ -664,15 +713,19 @@ public class DBSessionStore implements ISessionStore {
                 for (ChatMessage message : session.getMessages()) {
                     state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
                 }
-                persistedStates.put(sessionId, state);
+                persistedStates.put(scopedKey(sessionId), state);
             }
         } else {
-            state.snapshotVersion = snapshotVersion;
-            state.journalEntryCount = applied;
-            for (ChatMessage message : session.getMessages()) {
-                state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+            // 3.1-MA-10: non-heal publish moved into the same per-session
+            // lock domain as the heal branch and remove() (in-lock publish).
+            synchronized (sessionLock(sessionId)) {
+                state.snapshotVersion = snapshotVersion;
+                state.journalEntryCount = applied;
+                for (ChatMessage message : session.getMessages()) {
+                    state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+                }
+                persistedStates.put(scopedKey(sessionId), state);
             }
-            persistedStates.put(sessionId, state);
         }
     }
 

@@ -68,8 +68,16 @@ public class CalibratedTokenEstimator implements ITokenEstimator {
         return Math.round(base * factor);
     }
 
+    /**
+     * 3.1-MA-14 (plan 2555 裁定 D): the EMA update is a read-modify-write on
+     * {@code factor} — concurrent {@code record} calls used to interleave the
+     * read/compute/write steps and lose updates (the factor drifted toward
+     * whichever call wrote last instead of the true EMA). The method is
+     * synchronized so each update is atomic; {@link #getFactor()} keeps
+     * reading the {@code volatile} field lock-free.
+     */
     @Override
-    public void record(List<ChatMessage> messagesSent, int actualPromptTokens) {
+    public synchronized void record(List<ChatMessage> messagesSent, int actualPromptTokens) {
         if (actualPromptTokens <= 0) {
             return;
         }

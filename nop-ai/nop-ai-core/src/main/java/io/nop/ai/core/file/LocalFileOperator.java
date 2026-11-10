@@ -49,6 +49,11 @@ import static io.nop.commons.CommonErrors.ERR_FILE_WRITE_FAIL;
 public class LocalFileOperator implements IFileOperator {
     static final Logger LOG = LoggerFactory.getLogger(LocalFileOperator.class);
 
+    // 3.1-MA-20（plan 2555 裁定 H / R1-M3）：globGrep 的 maxFileCount 自弃点（原 :441 传 0
+    // = 无界）改为内部缺省上界；grep 每文件读取行数上界。超出即截断 + WARN。
+    static final int DEFAULT_GLOB_GREP_MAX_FILES = 1000;
+    static final int DEFAULT_GREP_MAX_LINES_PER_FILE = 10_000;
+
     private final File baseDir;
     private final IPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -99,22 +104,19 @@ public class LocalFileOperator implements IFileOperator {
             return FileContent.notFound(path);
         }
         try {
-            String content = FileHelper.readText(file, "UTF-8");
+            // 3.1-MA-20（plan 2555 裁定 H / R1-M3）：limit 语义下沉到读取面——有界读取
+            // 只触碰 [offset, offset+limit) 字符区间，不再整文件装载后 substring
             if (offset <= 0 && limit <= 0) {
+                String content = FileHelper.readText(file, "UTF-8");
                 return new FileContent(path, content);
-            } else {
-                if (offset >= content.length())
-                    return new FileContent(path, "", null);
-                if (limit <= 0)
-                    return new FileContent(path, content, null, offset, 0, false);
-
-                boolean hasMoreData = false;
-                if (offset + limit > content.length()) {
-                    limit = (int) (content.length() - offset);
-                }
-                content = content.substring((int) offset, (int) offset + limit);
-                return new FileContent(path, content, null, offset, limit, hasMoreData);
             }
+            if (offset >= file.length())
+                return new FileContent(path, "", null);
+            String content = BoundedFileReader.readText(file, offset, limit);
+            if (limit <= 0)
+                return new FileContent(path, content, null, offset, 0, false);
+            int readLimit = (int) Math.min(limit, content.length());
+            return new FileContent(path, content, null, offset, readLimit, false);
         } catch (Exception e) {
             LOG.warn("nop.ai.file.read-fail:path={},file={}", path, file);
             return FileContent.readError(path, ErrorMessageManager.instance().getRealCause(e).toString());
@@ -140,18 +142,24 @@ public class LocalFileOperator implements IFileOperator {
 
     @Override
     public List<String> readLines(String path, int startLines, int lineCount) {
-        List<String> allLines = readLines(path);
-        startLines = Math.max(0, startLines);
-        if (lineCount < 0) {
-            if (allLines.size() <= startLines)
-                return Collections.emptyList();
-            return allLines.subList(startLines, allLines.size());
+        // 3.1-MA-20（plan 2555 裁定 H / R1-M3）：分页读取行数上界下沉——流式跳过
+        // startLines 后至多读 lineCount 行，不再全量 readLines 后 subList
+        File file = resolveFile(path);
+        if (!file.exists()) {
+            throw new NopException(ERR_FILE_NOT_FOUND)
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
         }
-        lineCount = Math.min(allLines.size() - startLines, lineCount);
-        if (lineCount <= 0)
-            return Collections.emptyList();
-
-        return allLines.subList(startLines, startLines + lineCount);
+        int start = Math.max(0, startLines);
+        try {
+            if (lineCount == 0)
+                return Collections.emptyList();
+            return BoundedFileReader.readLines(file, start, lineCount);
+        } catch (Exception e) {
+            throw new NopException(ERR_FILE_READ_FAIL, e)
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
+        }
     }
 
     @Override
@@ -193,9 +201,12 @@ public class LocalFileOperator implements IFileOperator {
             if (file.isFile()) {
                 String relativePath = getRelativePath(file);
                 if (filter.test(relativePath)) {
-                    result.add(relativePath);
-                    if (maxFileCount > 0 && result.size() > maxFileCount)
+                    if (maxFileCount > 0 && result.size() >= maxFileCount) {
+                        // 3.1-MA-20（plan 2555 裁定 H）：命中上界截断 + WARN，不再返回 max+1 条
+                        LOG.warn("nop.ai.file.find-truncated:maxFileCount={},dir={}", maxFileCount, dir);
                         return FileVisitResult.TERMINATE;
+                    }
+                    result.add(relativePath);
                 }
             }
             return FileVisitResult.CONTINUE;
@@ -403,7 +414,9 @@ public class LocalFileOperator implements IFileOperator {
             }
 
             try {
-                List<String> lines = FileHelper.readLines(file, "UTF-8");
+                // 3.1-MA-20（plan 2555 裁定 H）：grep 每文件读取行数上界——逐行流式，
+                // 至多扫描 DEFAULT_GREP_MAX_LINES_PER_FILE 行，不再整文件 readLines
+                List<String> lines = BoundedFileReader.readLines(file, 0, DEFAULT_GREP_MAX_LINES_PER_FILE);
                 int fileMatches = 0;
 
                 for (int i = 0; i < lines.size(); i++) {
@@ -438,7 +451,9 @@ public class LocalFileOperator implements IFileOperator {
     public List<GrepResult> globGrep(String directory, String globPattern, String regex,
                                      boolean ignoreCase, int limitPerFile, int totalLimit) {
         // 先通过glob模式查找文件
-        List<String> filePaths = findFilesByGlob(directory, globPattern, 0); // 0表示无限制
+        // 3.1-MA-20（plan 2555 裁定 H）：原先传 0（无界自弃），改为内部缺省上界
+        // DEFAULT_GLOB_GREP_MAX_FILES，命中即截断 + WARN（findFilesByFilter 内）
+        List<String> filePaths = findFilesByGlob(directory, globPattern, DEFAULT_GLOB_GREP_MAX_FILES);
 
         // 然后在匹配的文件中执行grep搜索
         return grepFiles(filePaths, regex, ignoreCase, limitPerFile, totalLimit);

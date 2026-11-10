@@ -166,7 +166,8 @@ public class TeamTaskFlowOrchestrator {
      * {@code TeamTaskSchedulerDaemon.setMemberSpawner} and the other Layer 4
      * extension-point setter patterns). Reads go through the field directly.
      */
-    private IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
 
     /**
      * Pluggable per-task member router (plan 244 /
@@ -184,7 +185,8 @@ public class TeamTaskFlowOrchestrator {
      * {@link #setMemberSpawner} and the other Layer 4 extension-point
      * setter patterns). Reads go through the field directly.
      */
-    private ITaskMemberRouter taskMemberRouter = DefaultTaskMemberRouter.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile ITaskMemberRouter taskMemberRouter = DefaultTaskMemberRouter.noOp();
 
     /**
      * Dedicated executor for {@link SpawnMemberAgentTaskStep}'s supplyAsync
@@ -203,7 +205,8 @@ public class TeamTaskFlowOrchestrator {
      * ({@link #ownedSpawnExecutor}) sized to the spawn concurrency cap; that
      * owned pool is released by {@link #close()}.
      */
-    private Executor spawnStepExecutor;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile Executor spawnStepExecutor;
 
     /**
      * Tracks the spawn-step executor pool created by this orchestrator (when
@@ -222,7 +225,8 @@ public class TeamTaskFlowOrchestrator {
      * per-member {@code orTimeout} in {@link MemberFanOutDispatcher} and as
      * a daemon-level overall deadline on {@link #executeAsync}.
      */
-    private long memberExecTimeoutMs = DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile long memberExecTimeoutMs = DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
 
     public TeamTaskFlowOrchestrator(IAgentEngine agentEngine, ITeamTaskStore taskStore,
                                     ITeamManager teamManager) {

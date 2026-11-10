@@ -173,13 +173,26 @@ public class FileBackedSessionStore implements ISessionStore {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 3.1-MA-10 (plan 2555 裁定 A / CL-028/039/067): the whole critical
+     * section runs under the stable per-session lock and the lock entry is
+     * deliberately NOT removed (no lock-identity strip — a stripped identity
+     * let a concurrent {@code getOrCreate} publish a freshly-loaded session
+     * AFTER the delete, reviving a removed session). The publish side
+     * ({@link #loadPersisted}) re-validates the session file under the same
+     * lock, so load and remove are totally ordered per session: either the
+     * load publishes first and this remove then deletes it, or the remove
+     * deletes first and the load observes the missing file and declines to
+     * publish.
+     */
     @Override
     public void remove(String sessionId) {
         Object lock = sessionLock(sessionId);
         synchronized (lock) {
             sessions.remove(sessionId);
             persistedStates.remove(sessionId);
-            sessionLocks.remove(sessionId);
             Path sessionFile = sessionFilePath(sessionId);
             try {
                 // Journal first (plan 2295/WI14): the sidecar must not outlive
@@ -391,6 +404,13 @@ public class FileBackedSessionStore implements ISessionStore {
      * persisted state so the next save can append). Shared by
      * {@code getOrCreate}/{@code get}/{@code listAllSessions} — discovery
      * must return the same journal-extended state a later get() would.
+     *
+     * <p>3.1-MA-10 (plan 2555 裁定 A): the publish (persistedStates put) of
+     * BOTH branches runs inside the per-session lock domain, and the non-heal
+     * branch re-validates the session file under the lock before publishing.
+     * A concurrent {@link #remove} that won the race (file already deleted)
+     * makes the load decline to publish — the removed session is not revived
+     * through the lock-free put that used to sit here.
      */
     private AgentSession loadPersisted(String sessionId) {
         Path sessionFile = sessionFilePath(sessionId);
@@ -422,12 +442,21 @@ public class FileBackedSessionStore implements ISessionStore {
                 persistedStates.put(sessionId, state);
             }
         } else {
-            state.snapshotVersion = snapshot.getSnapshotVersion();
-            state.journalEntryCount = replay.applied;
-            for (ChatMessage message : persisted) {
-                state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+            synchronized (sessionLock(sessionId)) {
+                // 3.1-MA-10: in-lock re-validation — a concurrent remove may
+                // have deleted the file while the snapshot above was being
+                // read outside the lock. Declining to publish keeps the
+                // remove's decision authoritative (no session revival).
+                if (!Files.exists(sessionFile)) {
+                    return null;
+                }
+                state.snapshotVersion = snapshot.getSnapshotVersion();
+                state.journalEntryCount = replay.applied;
+                for (ChatMessage message : persisted) {
+                    state.prefixFingerprints.add(ChatMessageFingerprints.fingerprint(message));
+                }
+                persistedStates.put(sessionId, state);
             }
-            persistedStates.put(sessionId, state);
         }
         return session;
     }
@@ -547,6 +576,14 @@ public class FileBackedSessionStore implements ISessionStore {
         return existing;
     }
 
+    /**
+     * Per-session lock resolution. 3.1-MA-10 (plan 2555 裁定 A): the lock
+     * entry is NEVER removed while a remove/load is in flight — stripping the
+     * identity let a new {@code computeIfAbsent} mint a second monitor and
+     * de-serialize a concurrent remove against a load (session revival).
+     * Entries now persist for the store's lifetime (bounded by the set of
+     * sessionIds ever touched — watch-only residual growth, see class javadoc).
+     */
     private Object sessionLock(String sessionId) {
         return sessionLocks.computeIfAbsent(sessionId, k -> new Object());
     }

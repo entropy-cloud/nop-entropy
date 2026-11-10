@@ -291,6 +291,11 @@ public final class MemberFanOutDispatcher {
                                 // This chain runs on whatever thread completed the
                                 // last member future, which may have cleared its
                                 // tenant context (spawn worker's finally) — re-apply.
+                                // 3.1-MA-15 (plan 2555 裁定 E): save-restore —
+                                // the previous tenant value of this thread (a
+                                // pooled completion thread may carry one) is
+                                // restored instead of unconditionally cleared.
+                                String previousTenant = ThreadLocalTenantResolver.current();
                                 ThreadLocalTenantResolver.set(capturedTenant);
                                 try {
                                     // completeTask CAS binds the claim epoch
@@ -309,7 +314,7 @@ public final class MemberFanOutDispatcher {
                                     throwawayRecorder.markComplete(task.getTaskId());
                                     return MemberDispatchOutcome.completed();
                                 } finally {
-                                    ThreadLocalTenantResolver.clear();
+                                    ThreadLocalTenantResolver.set(previousTenant);
                                 }
                             });
                 })
@@ -400,12 +405,16 @@ public final class MemberFanOutDispatcher {
                 team, task, dispatchSessionId, target.getSpawnTarget(), memberExecTimeoutMs);
         CompletableFuture<MemberExecOutcome> spawned =
                 CompletableFuture.supplyAsync(() -> {
+                    // 3.1-MA-15 (plan 2555 裁定 E): save-restore the pooled
+                    // spawn worker's previous tenant value instead of an
+                    // unconditional clear.
+                    String previousTenant = ThreadLocalTenantResolver.current();
                     ThreadLocalTenantResolver.set(capturedTenant);
                     try {
                         return spawnAndInterpret(target, task, memberSpawner, spawnReq,
                                 spawnedSessionRegistrar);
                     } finally {
-                        ThreadLocalTenantResolver.clear();
+                        ThreadLocalTenantResolver.set(previousTenant);
                     }
                 }, spawnExecutor);
         return spawned.orTimeout(memberExecTimeoutMs, TimeUnit.MILLISECONDS);

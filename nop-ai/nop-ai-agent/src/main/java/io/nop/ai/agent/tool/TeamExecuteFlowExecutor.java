@@ -122,7 +122,8 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
      * spawner (e.g. {@link io.nop.ai.agent.team.DefaultMemberSpawner}) opts the
      * tool's per-invocation orchestrator into run-time auto-spawn.
      */
-    private IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
 
     /**
      * Plan 2519 (裁定③/C4-010): shared spawn executor owned by this TEE

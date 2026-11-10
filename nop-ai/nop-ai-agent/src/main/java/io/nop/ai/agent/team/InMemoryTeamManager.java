@@ -65,6 +65,17 @@ public final class InMemoryTeamManager implements ITeamManager {
 
     private final ConcurrentHashMap<String, Team> teams = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> sessionToTeamId = new ConcurrentHashMap<>();
+    /**
+     * 3.1-MA-14 (plan 2555 裁定 D): per-team serialization for the
+     * count→decide→bind compound. {@code members.compute} only locks the
+     * bin of the TARGET member key — two binders targeting DIFFERENT members
+     * of the same team run in disjoint CHM bins and would not exclude each
+     * other, so the quota re-check inside compute is not sufficient on its
+     * own. The per-team lock closes that gap for {@code bindMemberSession};
+     * addMember keeps its own size-snapshot face (dormant caller, audit
+     * C1-023 失效面枚举).
+     */
+    private final ConcurrentHashMap<String, Object> teamBindLocks = new ConcurrentHashMap<>();
 
     /**
      * Central quota-decision gateway (plan 234 / vision §5.2). Constructor-
@@ -264,33 +275,43 @@ public final class InMemoryTeamManager implements ITeamManager {
         @SuppressWarnings("unchecked")
         ConcurrentHashMap<String, TeamMember> members =
                 (ConcurrentHashMap<String, TeamMember>) team.getMembers();
-        // (the maxParallelMembers hint→enforced upgrade). "Parallel" = the
-        // number of concurrently bound (isBound()==true) members. If the
-        // target member is already bound, this is an idempotent rebind and
-        // the projected count does not increase (consistent with the auto-bind
-        // idempotent skip). Otherwise projectedCount = boundCount + 1; the
-        // limit is the team's per-team override spec.maxParallelMembers.
-        TeamMember target = members.get(memberName);
-        if (target != null) {
+        // 3.1-MA-14 (plan 2555 裁定 D / C1-023): the quota check now runs
+        // INSIDE the {@code members.compute} critical section (count →
+        // decide → bind in one atomic step), and the whole compound is
+        // serialized per-team by {@link #teamBindLocks} (compute's bin lock
+        // does not exclude binders targeting different members). The previous
+        // three-step check-then-act (boundCount snapshot → enforceQuota →
+        // compute) let K concurrent binders each pass the quota on a stale
+        // count and overshoot maxParallelMembers by up to K-1.
+        // {@code enforceQuota} is pure in-memory (a {@code checkConcurrent}
+        // decision + throw) — no IO/publishing may ever run inside a CHM
+        // compute body (design §5.7 锁内禁 IO).
+        boolean[] bound = {false};
+        // 3.1-MA-14 (plan 2555 裁定 D / C1-023): quota decision + bind inside
+        // one critical section, serialized per-team by teamBindLocks.
+        synchronized (teamBindLocks.computeIfAbsent(teamId, k -> new Object())) {
+        members.compute(memberName, (name, member) -> {
+            if (member == null) {
+                // member not found; leave map unchanged.
+                return null;
+            }
+            // "Parallel" = the number of concurrently bound (isBound()==true)
+            // members, recomputed under the compute + team-bind lock. If the
+            // target member is already bound, this is an idempotent rebind and
+            // the projected count does not increase (consistent with the
+            // auto-bind idempotent skip). Otherwise projectedCount =
+            // boundCount + 1; the limit is the team's per-team override
+            // spec.maxParallelMembers.
             int boundCount = 0;
             for (TeamMember m : members.values()) {
                 if (m.isBound()) {
                     boundCount++;
                 }
             }
-            int projectedCount = target.isBound() ? boundCount : boundCount + 1;
+            int projectedCount = member.isBound() ? boundCount : boundCount + 1;
             enforceQuota(QuotaDimension.TEAM_PARALLEL_BOUND_MEMBERS, teamId,
                     projectedCount, team.getSpec().getMaxParallelMembers(),
                     "bindMemberSession");
-        }
-        // Use compute on the member map to atomically: bind + clean up any
-        // prior session index entry + activate the team on first binding.
-        boolean[] bound = {false};
-        members.compute(memberName, (name, member) -> {
-            if (member == null) {
-                // member not found; leave map unchanged.
-                return null;
-            }
             // Clean up a prior session index entry if this member was
             // previously bound to a different session.
             String priorSession = member.getSessionId();
@@ -302,6 +323,7 @@ public final class InMemoryTeamManager implements ITeamManager {
             bound[0] = true;
             return member;
         });
+        }
         if (!bound[0]) {
             return false;
         }

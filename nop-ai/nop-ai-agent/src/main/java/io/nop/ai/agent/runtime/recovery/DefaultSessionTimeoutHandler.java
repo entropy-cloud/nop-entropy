@@ -125,6 +125,39 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
     private final ITenantResolver tenantResolver;
 
     /**
+     * 3.1-MA-18 (plan 2555 裁定 G): retry budget for LOCAL_CANCELLED (same
+     * shape as {@code DefaultOrphanRecoveryHandler} — attempt cap +
+     * exponential backoff + per-attempt observation + budget-exhausted
+     * escalation). Config keys (setter injection, module convention):
+     * {@code nop.ai.agent.timeout-cancel-max-attempts},
+     * {@code nop.ai.agent.timeout-cancel-backoff-base-ms}.
+     */
+    private int cancelMaxAttempts = 3;
+    private long cancelBackoffBaseMs = 200;
+
+    public int getCancelMaxAttempts() {
+        return cancelMaxAttempts;
+    }
+
+    public void setCancelMaxAttempts(int cancelMaxAttempts) {
+        if (cancelMaxAttempts <= 0) {
+            throw new IllegalArgumentException("cancelMaxAttempts must be positive, got: " + cancelMaxAttempts);
+        }
+        this.cancelMaxAttempts = cancelMaxAttempts;
+    }
+
+    public long getCancelBackoffBaseMs() {
+        return cancelBackoffBaseMs;
+    }
+
+    public void setCancelBackoffBaseMs(long cancelBackoffBaseMs) {
+        if (cancelBackoffBaseMs < 0) {
+            throw new IllegalArgumentException("cancelBackoffBaseMs must be >= 0, got: " + cancelBackoffBaseMs);
+        }
+        this.cancelBackoffBaseMs = cancelBackoffBaseMs;
+    }
+
+    /**
      * Create a timeout handler with the given configuration. Uses the
      * backward-compatible {@link NullTenantResolver}.
      */
@@ -218,22 +251,48 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
      * and recorded as a non-silent failed outcome.
      */
     private TimeoutOutcome localCancelled(String sessionId) {
-        try {
-            // forced=true = graceful + thread interrupt (plan 197).
-            // The returned future is intentionally not joined: the daemon
-            // scan loop must not block on cancel completion.
-            engine.cancelSession(sessionId, TIMEOUT_REASON, true);
-            return new TimeoutOutcome(sessionId, TimeoutAction.LOCAL_CANCELLED, true,
-                    "LOCAL_CANCELLED: engine.cancelSession(forced=true) invoked (terminal cancelled/forced_stopped)");
-        } catch (RuntimeException e) {
-            // Non-silent (Minimum Rules #24): capture the synchronous
-            // failure (e.g. session not found, already terminal) as a
-            // failed outcome with exception detail.
-            LOG.warn("DefaultSessionTimeoutHandler: LOCAL_CANCELLED cancelSession threw for sessionId={}",
-                    sessionId, e);
-            return new TimeoutOutcome(sessionId, TimeoutAction.LOCAL_CANCELLED, false,
-                    "LOCAL_CANCELLED failed: " + e.toString());
+        // 3.1-MA-18 (裁定 G): bounded retry with exponential backoff + typed
+        // budget-exhausted escalation. The cancelSession future stays
+        // fire-and-forget; only the synchronous failure face is retried.
+        RuntimeException lastFailure = null;
+        for (int attempt = 1; attempt <= cancelMaxAttempts; attempt++) {
+            try {
+                // forced=true = graceful + thread interrupt (plan 197).
+                // The returned future is intentionally not joined: the daemon
+                // scan loop must not block on cancel completion.
+                engine.cancelSession(sessionId, TIMEOUT_REASON, true);
+                if (attempt > 1) {
+                    LOG.info("DefaultSessionTimeoutHandler: LOCAL_CANCELLED succeeded for sessionId={} on attempt {}/{}",
+                            sessionId, attempt, cancelMaxAttempts);
+                }
+                return new TimeoutOutcome(sessionId, TimeoutAction.LOCAL_CANCELLED, true,
+                        "LOCAL_CANCELLED: engine.cancelSession(forced=true) invoked (terminal cancelled/forced_stopped"
+                        + (attempt > 1 ? ", attempt=" + attempt : "") + ")");
+            } catch (RuntimeException e) {
+                // Non-silent (Minimum Rules #24): observe every failed attempt.
+                lastFailure = e;
+                LOG.warn("DefaultSessionTimeoutHandler: LOCAL_CANCELLED attempt {}/{} failed for sessionId={}",
+                        attempt, cancelMaxAttempts, sessionId, e);
+                if (attempt < cancelMaxAttempts) {
+                    long backoffMs = cancelBackoffBaseMs * (1L << (attempt - 1));
+                    if (backoffMs > 0) {
+                        try {
+                            Thread.sleep(backoffMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            return new TimeoutOutcome(sessionId, TimeoutAction.LOCAL_CANCELLED, false,
+                                    "LOCAL_CANCELLED failed: interrupted during backoff after attempt "
+                                            + attempt + ": " + e.toString());
+                        }
+                    }
+                }
+            }
         }
+        LOG.warn("nop.ai.agent.timeout-cancel-budget-exhausted: LOCAL_CANCELLED retry budget exhausted for "
+                + "sessionId={} after {} attempts — escalating", sessionId, cancelMaxAttempts, lastFailure);
+        return new TimeoutOutcome(sessionId, TimeoutAction.LOCAL_CANCELLED, false,
+                "LOCAL_CANCELLED failed: retry budget exhausted (" + cancelMaxAttempts
+                        + " attempts): " + lastFailure);
     }
 
     /**

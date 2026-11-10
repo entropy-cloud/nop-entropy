@@ -137,18 +137,20 @@ public class DBMessageService implements IMessageService, AutoCloseable {
     private volatile boolean started = false;
     private volatile boolean closed = false;
 
-    private long pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
-    private int maxBatch = DEFAULT_MAX_BATCH;
-    private long staleClaimTimeoutMs = DEFAULT_STALE_CLAIM_TIMEOUT_MS;
-    private long sweepIntervalMs = DEFAULT_SWEEP_INTERVAL_MS;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile — the four config setters are public runtime API
+    // while the poller/sweep/delivery threads read these fields bare.
+    private volatile long pollIntervalMs = DEFAULT_POLL_INTERVAL_MS;
+    private volatile int maxBatch = DEFAULT_MAX_BATCH;
+    private volatile long staleClaimTimeoutMs = DEFAULT_STALE_CLAIM_TIMEOUT_MS;
+    private volatile long sweepIntervalMs = DEFAULT_SWEEP_INTERVAL_MS;
     /**
      * Plan 2519 (裁定⑨/b): per-message redelivery upper bound (poison-message
      * cap, audit C7-025). Counted per claim; a message exceeding the bound is
      * dead-lettered and ack-skipped instead of being requeued forever.
      */
-    private int maxRedeliveries = DEFAULT_MAX_REDELIVERIES;
-    private int deliveryThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
-    private int deliveryQueueCapacity = 100;
+    private volatile int maxRedeliveries = DEFAULT_MAX_REDELIVERIES;
+    private volatile int deliveryThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
+    private volatile int deliveryQueueCapacity = 100;
 
     /** Observability counters (design §3.11). */
     private final AtomicLong dlqDropCount = new AtomicLong();

@@ -31,7 +31,8 @@ public class AgentCallDelegate {
     private static final Logger LOG = LoggerFactory.getLogger(AgentCallDelegate.class);
     private final DefaultAgentEngine engine;
 
-    private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022) (C1-013 family): volatile runtime-swap field.
+    private volatile IAgentMessenger messenger = NoOpAgentMessenger.noOp();
     private volatile IMessageSubscription callAgentSubscription;
 
     public AgentCallDelegate(DefaultAgentEngine engine) {

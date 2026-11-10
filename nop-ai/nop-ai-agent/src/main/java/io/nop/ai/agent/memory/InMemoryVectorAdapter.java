@@ -45,7 +45,8 @@ public class InMemoryVectorAdapter implements IVectorAdapter {
 
     private final Map<String, double[]> index = new HashMap<>();
 
-    private ITenantResolver tenantResolver;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile ITenantResolver tenantResolver;
 
     public void setTenantResolver(ITenantResolver tenantResolver) {
         this.tenantResolver = tenantResolver;

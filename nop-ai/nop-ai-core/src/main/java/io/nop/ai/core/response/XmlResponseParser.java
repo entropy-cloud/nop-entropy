@@ -20,7 +20,8 @@ import java.util.Map;
 public class XmlResponseParser {
     static final Logger LOG = LoggerFactory.getLogger(XmlResponseParser.class);
 
-    private static XmlResponseParser s_instance = new XmlResponseParser();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003）：volatile 保证换装可见 + 安全发布
+    private static volatile XmlResponseParser s_instance = new XmlResponseParser();
 
     protected XmlResponseParser() {
     }

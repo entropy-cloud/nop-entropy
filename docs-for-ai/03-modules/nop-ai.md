@@ -166,6 +166,7 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | 配置键 | 默认值 | 语义 |
 |--------|--------|------|
 | `nop.ai.service.cache-ttl` | `0` | AiChat 响应缓存的过期时间（秒）。`0`=永不过期（兼容默认）。读取时惰性过期：缓存条目文件 mtime 超过 TTL 视为 miss 并删除，不主动清扫、不改缓存文件格式。接线于 `nopAiChatResponseCache` bean（`ai-defaults.beans.xml`） |
+| `nop.ai.chat-log.retention-days` | `0` | 聊天日志保留期（天）。`0`=不清理（兼容默认，磁盘包络由运维自行管理）。`>0` 时 `DefaultChatLogger` 在写入路径上惰性删除早于 今天-保留期 的日期分区目录（布局 `logDir/yyyy/MM-dd/`，目录级删除），每日期至多全量扫描一次（once-per-date 节流，避免每请求目录 IO）。清理 best-effort，失败仅 WARN（`nop.ai.chat-log.sweep-fail`），不影响日志写入主路径（3.1-MA-21，plan 2555 裁定 I） |
 | `nop.ai.service.log-message` | `false` | LLM 引擎执行时是否自动打印全部请求/响应消息。全局默认关闭（安全）；生效条件为「全局开启 且 单模型未显式关闭」——单模型可在 llm 配置中经 `logMessage="false"`（`setLogMessage`）覆盖关闭。凭据脱敏由 `DefaultChatLogger` 保证 |
 | `nop.ai.service.rate-limit-acquire-timeout` | `1000` | LLM 调用本地限流（llm.xml 配 `rateLimit` 时）的许可获取超时（毫秒）。超时未获许可抛 `ERR_AI_RATE_LIMITED`（携带 `httpStatus=429`，`LlmErrorClassifier` 判为 RATE_LIMITED 可重试）——替代旧的无限阻塞 `acquire()`，消除挂起风险（MA6.3-AR-6）。`0`=立即失败（fail-fast） |
 | `nop.ai.service.stream-total-timeout` | `600000`（10min） | LLM 流式调用的全程总期限（毫秒）。独立于 `read-timeout`（后者仅约束响应头到达）：provider 返回 200 后连接挂死时，聚合 future 在本期限内以 `ERR_AI_STREAM_TOTAL_TIMEOUT` 显式异常终态。`0` = 不启用总期限（不推荐）。watchdog 为 globalTimer 短任务（非自旋） |
@@ -174,6 +175,8 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | `nop.ai.service.stream-max-tool-calls` | `100` | LLM 流式聚合单次调用的 tool-call 条目数上界（按线上 itemIndex 键控的累加器）。超界 fail-fast `ERR_AI_STREAM_ACCUMULATION_EXCEEDED`。`0` = 不设上界（不推荐） |
 
 **限流扩展点（MA6.3-AR-6 裁定）**：`ChatServiceImpl` 每 provider 一个 in-memory token bucket（`DefaultRateLimiter`），无 tenant 身份来源。per-tenant 配额 = **文档化扩展点**：子类覆盖 `createRateLimiter(double)`（按需 per-tenant key 建 limiter）或 `checkRateLimit(...)`；跨 JVM 分布式限流 = **文档化扩展点**：替换 `IRateLimiter` 实现（接口已抽象 `tryAcquire` 语义）。旧 `DefaultAiChatService`（已随 plan 2414 删除）的同款限时 tryAcquire 对齐约定随之失效。
+
+**LocalFileOperator 读取限额（3.1-MA-20，plan 2555 裁定 H）**：`LocalFileOperator` 的读取面全部有界——readText 按 offset/limit 经模块内 `BoundedFileReader` helper 有界读取（不整文件装载）；分页 readLines 行数上界下沉；grepFiles 每文件扫描至多 10,000 行；globGrep 文件数内部缺省上界 1000（原传 0 无界自弃），命中即精确截断 + WARN（`nop.ai.file.find-truncated`）。`IFileOperator` 接口签名未变（接口化传递 maxFileCount 登记 successor 触发条款）。
 
 ## 流式调用取消/期限/交付语义契约（nop-ai-core，3.1-C3-001/C7-001/C7-002，plan 2505）
 
@@ -200,6 +203,17 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 **RAG 管线（K3，nop-ai-rag）**：`RagIngestService`（splitter→embed→store）、`RagSearchService`（embed query→search→重算 cosine score）、`RagSynthesizeService`（search→context→IChatService）三服务编排为完整摄取-检索-合成管线。经 `NopAiRagBizModel`（`@BizModel("/NopAiRag")`）暴露 `ingestDocument`/`search`/`synthesize` 三 action。v1 纯向量检索（hybrid 归 K8）；InMemoryVectorStore 缺省装配，生产 Delta 替换 PgVectorStore。synthesize 错误传播契约（3.4-C3-005，错误以成功交付族）：`RagSynthesizeService` 必检 `ChatResponse.isSuccess`——provider 错误响应 **fail-loud** 抛 `nop.err.ai.rag.synthesize-failed`（携 detail/errorCode/errorClassification/retryAfterMs 参数面，null 者不挂），禁折叠为空串成功交付；**判据只挂错误不挂空内容**——success 响应无 assistant 文本的合法空回答保留 `""` 返回（设计内行为，防过修）。code-analyzer 收集契约（3.4-C1-001）：`JavaSourceFileFinder.getAllJavaSourceFiles` 为函数式收集（per-module 局部 List + 终端合并）——禁止以共享可变 List 直连 `parallelStream` 副作用遍历（多模块仓并发 add 静默丢文件）。
 
 
+
+
+## Agent 会话/取消/续期并发契约（nop-ai-agent，3.1-MA-10/14/15/16/18/C1-010，plan 2555）
+
+- **会话存储锁纪律统一**：per-session 装载锁模板——装载期发布（persistedStates.put）收进 per-session 锁域；remove 不摘锁（锁身份不更换，会话复活面闭合；DB store 摘锁同约束），锁条目仅在空闲时机会性退休（按活跃 session 数缓增，watch-only）。`DBSessionStore` 租户复合键覆盖 sessions/persistedStates/sessionLocks 三映射（同 sessionId 跨租户互不串扰）。Checkpoint manager remove 为 per-session 条目移除并同步清 `loadedSessions` 负缓存。
+- **装配窗取消哨兵**：cancelSession 对未注册会话以 null-ctx 哨兵 `putIfAbsent` 原子占位——装配中的执行在注册点发现哨兵即消费（两参条件移除）并立即进入取消流程；装配窗取消意图不再静默丢失；二次取消幂等；入口→getOrCreate 残余窗与既有声明等宽（watch-only）。
+- **租户上下文 save-restore**：cancel/fork/fan-out 完成链捕获-恢复外层租户值（不再嵌套清除）；resumeSession 自带恢复语义（豁免）。
+- **配额与账本原子化**：bindMemberSession 配额判定在 per-team 锁 + compute 复合原子域内（compute 域内禁 IO/发布）；contribution registry 注册/注销全局全序；EMA 估计器 RMW 串行化。
+- **租约续期调度池**：`SessionLockRenewal` 使用小型专用多线程调度池（`nop.ai.agent.lock-renew-pool-size` 缺省 2）——阻塞 JDBC 续期不指向 globalTimer、无队头阻塞；executor 换装为启动期操作（运行中续期句柄不跨换装迁移）；接管锁续期语句带 queryTimeout（`nop.ai.agent.takeover-renew-query-timeout` 缺省 5s）。
+- **恢复链路预算**：orphan resume 与 localCancelled 重试带可配置 attempt 上界 + 指数退避 + 结果观测，预算耗尽类型化升级（`nop.ai.agent.resume-max-attempts`/`resume-backoff-base-ms`/`cancel-max-attempts`/`cancel-backoff-base-ms`）。
+- **运行期换装 volatile 纪律**：agentExecutor/lockRenewExecutor 及 C1-022 七组配置字段全部 volatile（换装可见性；旧池生命周期归 close() own 语义）。
 
 ## 工具配置（nop-ai-tools）
 
