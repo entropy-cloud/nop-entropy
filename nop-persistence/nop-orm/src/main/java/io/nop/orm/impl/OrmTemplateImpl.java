@@ -243,7 +243,30 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
      * （对齐 thenOnContext 出口泵语义）。降级路径：context 为 null 时内联执行（无 context 纪律可依赖，由裁定④
      * session 互斥兜底）；closed context 上 execute 抛出的异常不吞会话——裁定⑪兜底登记负责关闭。
      */
+    /**
+     * 2.3-C4-002（plan 2553 裁定 J，R1-Major-4 作用域限定）：flush 载体隔离可装配点——
+     * 注入 flushExecutor 后 finalize 任务（含 session.flush 的 JDBC I/O）投递至注入执行器；
+     * 缺省 null = 调用线程现行语义（零破坏）。作用域显式限定 runInNewSessionAsync finalize 路径
+     * ——用户直调 session.flush() 不在 seam 内（session/factory 无 OrmTemplate 依赖；全量接管
+     * 需 IPersistEnv 贯穿=watch-only，plan 2553 Deferred）。
+     */
+    private volatile java.util.concurrent.Executor flushExecutor;
+
+    public void setFlushExecutor(java.util.concurrent.Executor flushExecutor) {
+        this.flushExecutor = flushExecutor;
+    }
+
     private void dispatchSessionFinalize(IContext context, Runnable task) {
+        java.util.concurrent.Executor executor = this.flushExecutor;
+        if (executor != null) {
+            // 载体隔离档：finalize 整体（含 flush I/O）投递注入执行器
+            try {
+                executor.execute(task);
+            } catch (Throwable t) {
+                LOG.error("nop.orm.session-finalize-dispatch-fail", t);
+            }
+            return;
+        }
         if (context == null) {
             task.run();
             return;
@@ -259,7 +282,13 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     public <T> CompletionStage<T> runInSessionAsync(Function<IOrmSession, CompletionStage<T>> callback) {
         IOrmSession session = OrmSessionRegistry.instance().get(sessionFactory);
         if (session != null && session.isStateless() == stateless) {
-            return ContextProvider.thenOnContext(callback.apply(session));
+            // 2.3-C3-002（plan 2553 裁定 F）：异常契约与新会话分支对齐——同步抛出收敛为
+            // failed future（原裸调用会穿透给调用方，两分支行为不一致）
+            try {
+                return ContextProvider.thenOnContext(callback.apply(session));
+            } catch (Throwable t) {
+                return FutureHelper.reject(t);
+            }
         }
 
         return runInNewSessionAsync(callback);

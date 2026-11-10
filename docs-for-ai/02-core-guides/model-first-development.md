@@ -614,6 +614,20 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 全局实体/集合缓存（`useGlobalCache`）的 read-repair 回填带世代围栏：读库发起时快照世代，回填前经 fence CAS 相等性判定（readGen==fenceGen），evict 推进世代——**evict 之后任何迟到的 read-repair 回填一律放弃**，缓存中不会出现「缓存=旧值、DB=新值且不自愈」的无界驻留。世代语义（进程内 per-persister 单调 fence、版本化 value、非 DB 列/非时间戳）为单一权威设计，失效判据世代的后续演进须引用同一裁定，不得另建第二套世代语义。
 
+### 事务状态机与批队列契约（2.4 切片束 b，plan 2553）
+
+- **事务生命周期为 CAS 状态机**：`AbstractTransaction` 以 `AtomicReference<TxnState>`（NEW/OPEN/COMMITTING/COMMITTED/ROLLING_BACK/ROLLED_BACK/CLOSED）门控 open/commit/rollback/close——open 双开 fail-fast；**二次 commit = no-op-with-WARN**（监听器不二次通知）；`markRollbackOnly` 后 commit **自动走 rollback 语义 + WARN**（语义裁定：不再抛 `ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT`，依赖旧抛错行为的调用方须显式迁移）；`isTransactionOpened()` 为纯状态映射（仅 OPEN/COMMITTING 为 true）；commit 提交失败时终态尽力置 ROLLED_BACK 并透传异常。未 open（NEW）事务的 commit 保留既有可观测路径（`JdbcTransaction.doCommit` 对 null 连接 WARN 留痕 no-op）。
+- **事务监听器注册原子**：`addListener` 惰性 init 与去重收进事务监视器域，`listeners` volatile——并发注册不丢监听器。
+- **实体缓存 evict 事务级聚合**：同一事务内多次 evict 仅注册**一个聚合 listener**（`pendingEvictKeys` 并发集聚合 key，commit 后批量 removeAsync + 完成后自注销）——不存在每实体一监听器的 O(n²) 注册与 late-listener-lost 扩窗。
+- **批动作队列 swap-then-capture**：`BatchActionQueueImpl.flushAsync` 先置新空容器再捕获旧快照（三捕获槽：collectionActions/delayTasks/actionMap）——flush 窗口内新 enqueue 不落入被丢弃容器；装载队列重入 flush 以 pending 标记由当前 flush 完成尾循环重放（不静默丢弃装载项）。
+- **两阶段拓扑 flush 的同步完成契约**：`batchExecuteAsync` 返回的 future 在进入下一阶段前必须已完成，未完成即 `ERR_ORM_BATCH_FLUSH_ABORTED` fail-fast（带 entityName/phase）——异步持久化驱动不得假设阶段阻塞等待。
+- **动态模型锁外加载**：`LazyLoadOrmModel` 的 DB+codegen 加载移出模型映射锁——并发同 key 共享单次加载；加载体内回环 `getEntityModel`（同 key 或跨 key 环）fail-fast（`circular dynamic entity load detected`），provider 实现禁止在加载体内同步回环。
+- **模型换代延迟销毁**：`clearCache` 换代时旧 `LoadedOrmModel` 调 `close()`——零在途 session 即刻销毁、有在途 session 服务至末 session decRef 归零（`tryIncRefIfOpen` 拒新）。
+- **findAll 全量物化行数上界（可选档）**：`nop.dao.find-all-max-rows`（缺省 0=不设上界）——`ISqlExecutor.findAll` 抽取器级迭代期超限抛 `ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED`；`findAllByQuery` 对 limit>0 转 findPage 语义（不再静默丢弃 limit）。大结果集应使用 findPage/findFirst。
+- **查询缓存单条目行数上界（可选档）**：`nop.dao.query-cache-max-rows`（缺省 0=不设上界）——超限放弃缓存 + WARN；瞬态物化分配不设界（守卫约束持久缓存内存）。
+- **flush 载体隔离可装配点**：`OrmTemplateImpl.setFlushExecutor`（缺省 null=调用线程现行语义）——注入后 `runInNewSessionAsync` finalize 任务投递注入执行器；作用域仅 finalize 路径，用户直调 `session.flush()` 不在 seam 内。
+- **伪异步载体契约**：`JdbcEntityPersistDriver`/`JdbcCollectionPersistDriver`/`AbstractTransaction` 的 Async API 同步执行于调用线程，返回 future 仅作完成信号，调用方不得假设载体切换；`JdbcTransaction.getConnection` 懒取点可能落异步完成线程，池等待 >1s WARN 留痕。
+
 ## ORM 迁移编排并发契约
 
 ORM 阶段迁移编排（增量链作业、阶段状态机、迁移历史表）在多节点/并发运维操作下提供以下保证；实现锚点见 `../04-reference/source-anchors.md` 的 `PUBSUB-CC-001` 与 `ORM-ORCH-001`。

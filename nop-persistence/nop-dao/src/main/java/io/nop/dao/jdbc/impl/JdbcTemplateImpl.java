@@ -20,6 +20,7 @@ import io.nop.commons.text.CharacterCase;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoConfigs;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.AbstractSqlExecutor;
 import io.nop.dao.api.QuerySpaceEnv;
@@ -481,6 +482,18 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         DataSetCacheData cacheData = DataSetCacheHelper.toCacheData(ds);
         cacheData.setSql(sql.getText());
         cacheData.setRange(range);
+
+        // 2.3-C5-002（plan 2553 裁定 M）：单条目行数上界——超限放弃缓存（持久缓存内存有界；
+        // 瞬态物化分配不设界，声明见设计文档）。≤0 = 不设上界档。
+        Integer maxRows = DaoConfigs.CFG_DAO_QUERY_CACHE_MAX_ROWS.get();
+        if (maxRows != null && maxRows > 0 && cacheData.getRecords() != null
+                && cacheData.getRecords().size() > maxRows) {
+            LOG.info("nop.dao.query-cache-entry-too-large:cacheName={},rows={},maxRows={}",
+                    cacheRef.getCacheName(), cacheData.getRecords().size(), maxRows);
+            // 放弃缓存但结果集仍须可用：toCacheData 已消费 ds（行读尽），
+            // 必须从物化记录重建数据集返回（与 cache-hit 分支同构），否则调用方拿到空结果
+            return DataSetCacheHelper.toDataSet(cacheData, true);
+        }
 
         cache.put(cacheRef.getCacheKey(), cacheData);
 

@@ -60,13 +60,24 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         return connection;
     }
 
-    // 延迟获取连接
+    /**
+     * 延迟获取连接。
+     *
+     * <p>2.3-C4-003（plan 2553 裁定 K 声明面）：获取点线程语义声明——本方法可能在事务开启线程
+     * 或异步完成/context 排空线程（flush/commit 回调链）上首次触发，连接池等待会放大该线程的
+     * 停顿窗（R1 取证：懒取点 :65-83，2517-⑩ 已加 synchronized）。慢获取（>1s）以 WARN 留痕。
+     */
     @Override
     public Connection getConnection() {
         synchronized (this) {
             if (connection == null) {
                 LOG.trace("nop.dao.txn.fetch-connection:conn={}", this);
+                long beginNano = System.nanoTime();
                 connection = dataSource.get();
+                long elapsedMs = (System.nanoTime() - beginNano) / 1_000_000L;
+                if (elapsedMs > 1000L) {
+                    LOG.warn("nop.warn.dao.txn-connection-fetch-slow:txn={},elapsedMs={}", this, elapsedMs);
+                }
                 if (isTransactionOpened()) {
                     if (JdbcHelper.getAutoCommit(connection, dialect)) {
                         JdbcHelper.setAutoCommit(connection, false, dialect);

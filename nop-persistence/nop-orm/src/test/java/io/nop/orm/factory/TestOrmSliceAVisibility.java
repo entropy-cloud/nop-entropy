@@ -51,8 +51,9 @@ public class TestOrmSliceAVisibility {
                 "C1-007: afterFlushCallbacks must be volatile");
         String src = Files.readString(Paths.get(
                 "src/main/java/io/nop/orm/loader/OrmBatchLoadQueueImpl.java"));
-        // 捕获-清空同锁域 + 锁外任务体（变异红：裸读捕获或锁内 task.run 后红）
-        assertTrue(src.contains("synchronized (this) {\n                queue = this.loadQueue;"),
+        // 捕获-清空同锁域 + 锁外任务体（变异红：裸读捕获或锁内 task.run 后红）。
+        // plan 2553 C2-009 重放循环将捕获块抽入 flushLoadsOnce()（方法体一级缩进，锁域语义不变）
+        assertTrue(src.contains("synchronized (this) {\n            queue = this.loadQueue;"),
                 "flush capture-clear must be in synchronized domain");
         assertTrue(src.contains("synchronized (this) {\n            tasks = this.afterFlushCallbacks;"),
                 "invokeCallback capture must be lock-scoped with run outside");

@@ -212,4 +212,11 @@ public interface DaoErrors {
 
     ErrorCode ERR_DAO_INVALID_SQL_DATA_TYPE =
             define("nop.err.dao.invalid-sql-data-type", "非法的SQL数据类型：{sqlDataType}", ARG_SQL_DATA_TYPE);
+    // 2.3-C5-001/C5-005（plan 2553 裁定 L）：findAll 全量物化行数超上界
+    String ARG_ROW_COUNT = "rowCount";
+    String ARG_MAX_ROWS = "maxRows";
+
+    ErrorCode ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED = define("nop.err.dao.find-all-row-limit-exceeded",
+            "findAll 全量物化行数[{rowCount}]超过上界[{maxRows}]，请改用 findPage 或调高 nop.dao.find-all-max-rows",
+            ARG_ROW_COUNT, ARG_MAX_ROWS);
 }

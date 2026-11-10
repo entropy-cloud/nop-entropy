@@ -579,49 +579,71 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         }
     }
 
+    /**
+     * 2.3-C2-009（plan 2553 裁定 B）：重入 flush 不再静默 return——记录待 flush 标记，
+     * 由当前 flush 完成尾循环重放直至标记清零（重放期间新入队装载项由既有 do-while
+     * 捕获循环承载；递归重放本身由标记位天然抑制）。
+     */
+    final java.util.concurrent.atomic.AtomicBoolean pendingFlush = new java.util.concurrent.atomic.AtomicBoolean(false);
+
     @Override
     public void flush() {
-        // 避免递归执行导致死循环
-        if (this.flushing)
+        // 避免递归执行导致死循环（重入改记 replay 标记，不再静默丢弃装载项）
+        if (this.flushing) {
+            pendingFlush.set(true);
             return;
+        }
 
         this.flushing = true;
         try {
-            // 2.3-C1-007（plan 2552 裁定 E）：捕获-清空收进同一锁域——跨线程再入队（thenRun
-            // 回调线程 makeQueue/enqueueSelection）与 flush 线程之间原子交割。
-            // R1-Low-6 锁界：锁内仅捕获+装载发起+队列记账；DB I/O 在 FutureHelper.syncGet
-            // 处出锁等待不可行（syncGet 需阻塞）——本锁域覆盖捕获段与记账段，_flush* 发起在
-            // 锁内但 syncGet 阻塞点移出（见下方锁分段）。
-            LoadQueue queue;
-            synchronized (this) {
-                queue = this.loadQueue;
-                this.loadQueue = null;
-            }
-            if (queue != null) {
-                do {
-                    List<CompletionStage<?>> futures = new ArrayList<>();
-                    // 先加载集合，其中有可能已经包含了后续要加载的实体
-                    _flushCollection(queue, futures);
-                    _flushEntity(queue, futures);
-                    _flushFile(queue, futures);
-
-                    FutureHelper.syncGet(FutureHelper.waitAll(futures));
-
-                    // 必须在syncGet之后再捕获loadQueue：thenRun回调在future完成时才执行，
-                    // 若在syncGet之前捕获，异步驱动下回调新入队的装载项会滞留在loadQueue中导致循环提前退出
-                    synchronized (this) {
-                        queue = this.loadQueue;
-                        this.loadQueue = null;
-                    }
-                } while (queue != null);
-            }
-            invokeCallback();
+            boolean replay;
+            do {
+                flushLoadsOnce();
+                // 2.3-C2-009：重入标记清零并判定是否重放（getAndSet 原子消费，重入方只置位不等待）
+                replay = pendingFlush.getAndSet(false);
+            } while (replay);
         } finally {
             synchronized (this) {
                 this.afterFlushCallbacks = null;
             }
             this.flushing = false;
         }
+    }
+
+    /**
+     * 单轮装载排空（2552 C1-007 锁域结构原样保留——TestOrmSliceAVisibility pin_c 结构钉锚定
+     * {@code synchronized (this) { queue = this.loadQueue;}} 捕获-清空同锁域形态）。
+     */
+    private void flushLoadsOnce() {
+        // 2.3-C1-007（plan 2552 裁定 E）：捕获-清空收进同一锁域——跨线程再入队（thenRun
+        // 回调线程 makeQueue/enqueueSelection）与 flush 线程之间原子交割。
+        // R1-Low-6 锁界：锁内仅捕获+装载发起+队列记账；DB I/O 在 FutureHelper.syncGet
+        // 处出锁等待不可行（syncGet 需阻塞）——本锁域覆盖捕获段与记账段，_flush* 发起在
+        // 锁内但 syncGet 阻塞点移出（见下方锁分段）。
+        LoadQueue queue;
+        synchronized (this) {
+            queue = this.loadQueue;
+            this.loadQueue = null;
+        }
+        if (queue != null) {
+            do {
+                List<CompletionStage<?>> futures = new ArrayList<>();
+                // 先加载集合，其中有可能已经包含了后续要加载的实体
+                _flushCollection(queue, futures);
+                _flushEntity(queue, futures);
+                _flushFile(queue, futures);
+
+                FutureHelper.syncGet(FutureHelper.waitAll(futures));
+
+                // 必须在syncGet之后再捕获loadQueue：thenRun回调在future完成时才执行，
+                // 若在syncGet之前捕获，异步驱动下回调新入队的装载项会滞留在loadQueue中导致循环提前退出
+                synchronized (this) {
+                    queue = this.loadQueue;
+                    this.loadQueue = null;
+                }
+            } while (queue != null);
+        }
+        invokeCallback();
     }
 
     private void _flushFile(LoadQueue queue, List<CompletionStage<?>> futures) {

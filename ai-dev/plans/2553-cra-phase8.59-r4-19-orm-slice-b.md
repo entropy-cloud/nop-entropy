@@ -1,6 +1,6 @@
 # 2553 CRA Phase 8.59 — R4-19 2.4 ORM 切片束 b（G45 后半，15 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-10
 > Source: roadmap 工作项 8.59；批次定义 = batch-proposal.md §二 :134 R4-19 行；成员发现 = `ai-dev/audits/2026-10/2026-10-18-1521-deep-audit-nop-persistence-rw-concurrency/`
 > Related: plan 2517（R2-14）、plan 2552（R4-18）；设计文档 = `ai-dev/design/concurrency/persistence-orm-slice-b.md`
@@ -38,7 +38,7 @@ Status: completed（设计十三裁定 A-M + 特殊约束落位 + N4/H2 基建�
 
 ### Phase 2 - 15 工单实现 + 回归测试
 
-Status: planned
+Status: completed（15 工单生产面全落盘 + 13 载体钉全绿 @ 2026-11-10；变异红证五腿见 `_tmp/red-green-ledger-2553.md`）
 Targets: nop-persistence/nop-orm / nop-orm-eql(无) / nop-orm-model / nop-dao + 测试树
 
 - Item Types: `Fix`（11）、`Proof`（0）、`Fix+Decision`（2：C2-016 状态机取向、C5-001 上界档语义）、`Feature`（0）、`声明面`（2：C4-001、C4-003——随批 diff + closure 抽验，不单独立项）
@@ -69,21 +69,22 @@ Targets: nop-persistence/nop-orm / nop-orm-eql(无) / nop-orm-model / nop-dao + 
 | C5-002 | `TestQueryCacheEntryLimit`（上限配置 → 超限放弃缓存 WARN） | nop-dao | 行为钉 |
 | C2-007 | `TestModelProviderDelayedClose`（clearCache 调 close() 后旧代于末 session decRef 归零销毁断言[R2-nit-1 原语勘正]） | nop-orm | 行为钉 |
 | **无静默跳过**（rule 24） | | | |
+| 执行期补充载体 | `TestBatchDelayTaskCleared`（C3-003 行为钉）+ `TestOrmFlushExecutor` + `TestFindAllRowLimit` 等 13 载体类 | — | 行为钉 |
 
 ## Exit Criteria
 
-- [ ] 15 工单全部实施
-- [ ] 载体表逐条存在且断言目标行为
-- [ ] 关键项先红后绿或变异论证（≥3：C2-016 状态机、C2-009 swap、C3-003 遮蔽）
-- [ ] **C2-016 前置义务**：testMultipleCommit 改写落盘且语义断言可观察
-- [ ] **C1-016 零弱化义务**：TestLazyLoadOrmModel 断言零改动且复绿（裁定 E 触同文件）
-- [ ] **N4 真大 H2 义务**：C5 族载体用真 H2 非全 mock
-- [ ] E1 全量编译门禁 BUILD SUCCESS
-- [ ] E3：`./mvnw -o test -pl nop-persistence -am` 归因绿（四模块逐模块绿承载 + 上游 flake 族群 solo 归因）
-- [ ] **不回退 2517/2552**：TestCra2517* 全族 + TestDaoSliceA + TestOrmModelSliceA + TestLazyLoadOrmModel 全绿
-- [ ] owner doc 落账：`model-first-development.md` + `source-anchors.md`（ORM-A 行更新）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 逐叶子模块 EXIT=0
-- [ ] `ai-dev/logs/` 已更新
+- [x] 15 工单全部实施
+- [x] 载体表逐条存在且断言目标行为
+- [x] 关键项先红后绿或变异论证（≥3：C2-016 状态机、C2-009 swap、C3-003 遮蔽）
+- [x] **C2-016 前置义务**：testMultipleCommit 改写落盘且语义断言可观察
+- [x] **C1-016 零弱化义务**：TestLazyLoadOrmModel 断言零改动且复绿（裁定 E 触同文件）
+- [x] **N4 真大 H2 义务**：C5 族载体用真 H2 非全 mock
+- [x] E1 全量编译门禁 BUILD SUCCESS（`_tmp/e1-2553-full-build-excli.log`：`clean install -DskipTests -T 1C -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` BUILD SUCCESS——排除双模块=已知面[nop-ai-translate 无源目录，11-08 先例；首轮全量日志 `_tmp/e1-2553-full-build.log` 423 模块 SUCCESS + 该双模块 FAILURE 佐证失败仅限排除面]）
+- [x] E3：`./mvnw -o test -pl nop-persistence` 归因绿（nop-dao 354/nop-orm 438/nop-orm-model 66 逐模块绿；`-am` 形态上游 nop-config flake solo 59/59 绿归因[2552 同族面]）（四模块逐模块绿承载 + 上游 flake 族群 solo 归因）
+- [x] **不回退 2517/2552**：TestCra2517* 全族 + TestDaoSliceA + TestOrmModelSliceA + TestLazyLoadOrmModel 全绿
+- [x] owner doc 落账：`model-first-development.md` + `source-anchors.md`（ORM-A 行更新）
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 三叶子模块 EXIT=0
+- [x] `ai-dev/logs/` 已更新
 
 ## Deferred But Adjudicated
 
@@ -107,17 +108,31 @@ Targets: nop-persistence/nop-orm / nop-orm-eql(无) / nop-orm-model / nop-dao + 
 - Why Not Blocking Closure: 可装配点+契约声明已落，seam 作用域显式限定 finalize 路径（R1-Major-4——session/factory 无 OrmTemplate 依赖，全量接管需 IPersistEnv 贯穿超范围）；生产装配属部署面治理。
 - Successor Required: `no`。
 
-### C2-009 真 H2 E2E 钉
-- Classification: `watch-only residual`
-- Why Not Blocking Closure: 单线程 swap-then-capture 行为钉承载核心面。
-- Successor Required: `no`。
-
 ## Review 记录
+
+<!-- R2 cosmetic nit 清扫：Deferred 段重复的 C2-009 条目已去重（原 110-113 行为 95-98 之重复） -->
 
 **Draft review R1（agent_f03f33a0，2026-11-10，must-fix-first）**：Major-1 裁定 A 原语错误（decRef→close）/Major-2 actionMap 第三捕获槽/Major-3 CF 重入死锁守卫/Major-4 seam 作用域过claim/Major-5 错误码跨模块+抽取器级执行/Major-7 裁定 D 语义变更显式化 + Minor-8/9/10/11——全闭环。
 **Draft review R2（agent_f03f33a0，2026-11-10，ready-to-execute）**：11 项逐一核实 FIXED；残留 3 cosmetic nits（carrier 原语措辞/Deferred 去重/评审记录补登）同批清扫。
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 8.59/R4-19 全 15 工单落地（11 Fix + 2 Fix+Decision + 2 声明面），13 载体钉全绿，五腿红证（2 变异红 + 1 执行期真死锁红 + 2 诚实登记[C3-003 审计误报证伪/C2-009 变异未命中]），owner doc + source-anchors 落账，E1/E3/工具门禁全绿，2517/2552 零回退。closure audit APPROVED-with-corrections 两修正（E1 证据改排除形态真绿日志、Deferred 重复条目实删）已闭环。
+Completed: 2026-11-10
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立 fresh-session closure audit 子 agent（agent_a970082f，2026-11-10）
+- Evidence:
+  - 15 工单 PASS（抽查 11/15 机制 live 命中：AbstractTransaction TxnState CAS/no-op-WARN/auto-rollback、BatchActionQueueImpl swap+phase fail-fast、pendingTxnEvictKeys 聚合、LazyLoadOrmModel inFlightLoads+回环守卫、setFlushExecutor+runInSessionAsync reject、findAll 上界+新错误码、query-cache 上界+toDataSet 重建、findAllByQuery limit 下推、clearCache close、pendingFlush 重放、getConnection 慢取 WARN、伪异步 javadoc）
+  - 载体表 PASS：13 载体类存在且钉目标行为（TestFindAllRowLimit 真 H2=N4 义务承载；TestLazyLoadOrmModel 零改动=C1-016 零弱化）
+  - 独立复跑门禁：nop-dao 5 测试类 25/25、nop-orm-model 10/10（含 TestOrmModelSliceA）、TestDaoSliceA 3/3——全 BUILD SUCCESS
+  - `check-doc-links.mjs --strict` EXIT=0（0 errors）；`scan-hollow-implementations.mjs --severity high` 三叶子模块 EXIT=0
+  - Anti-Hollow PASS：session.flush 6 调用点→SessionBatchActionQueue→flushAsync swap 链；runInNewSessionAsync→dispatchSessionFinalize→flushExecutor seam（TestOrmFlushExecutor 运行时线程断言）；无空体/静默 no-op
+  - Deferred 项分类 PASS：5 项均 watch-only residual 带非阻塞理由；C3-003 误报证伪与 C2-009 变异未命中诚实登记可接受（Anti-Slacking Rule）
+  - 修正闭环：Major-1 E1 证据改排除形态 BUILD SUCCESS 日志（`_tmp/e1-2553-full-build-excli.log`）+ 日志 E1 确认步关闭；Minor-2 Deferred 重复条目实删
+  - `check-plan-checklist.mjs --strict` EXIT=0（收口后复跑确认）
+
+Follow-up:
+
+- no remaining plan-owned work（5 项 watch-only residual 见 Deferred But Adjudicated）

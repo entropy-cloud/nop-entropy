@@ -48,6 +48,12 @@ public class DefaultOrmModelProvider implements IOrmModelProvider {
         // plan 2517 R2-14 裁定②：interceptorCache.clear() 先于新模型赋值发布——
         // volatile 写作发布边，混合态单向化（唯一残留窗 = 旧模型 + 新 interceptor，横切回调非结构映射）
         this.interceptorCache.clear();
+        // 2.3-C2-007（plan 2553 裁定 A，R1-Major-1 原语勘正）：换代旧模型调 close()（provider
+        // 不持引用——decRef 会推负且永不销毁）；needClose 标记 + 末 session decRef 归零延迟销毁
+        //（2552 裁定 B 生命周期）。若有在途 session，旧模型服务至其结束（tryIncRefIfOpen 拒新）。
+        if (this.ormModel != null) {
+            this.ormModel.close();
+        }
         OrmModel ormModel = new OrmModelLoader().loadOrmModel(false);
         this.ormModel = new LoadedOrmModel(env, ormModel);
     }

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -54,9 +55,33 @@ public abstract class AbstractTransaction implements ITransaction {
     // 与注册线程跨线程读写（2517 裁定⑨已修 subTransactions/listeners 面；主状态字段本批收敛）
     private volatile boolean opened;
 
+    /**
+     * 2.3-C2-016（plan 2553 裁定 D，Fix+Decision）：事务状态机 CAS——open 双开 fail-fast、
+     * commit×rollbackOnly 窗口闭合、二次 commit no-op-with-WARN（原 testMultipleCommit 现状
+     * 容忍钉已改写为状态断言，且修复原 afterCommit 重置 rollbackOnly 导致的二次 commit
+     * 监听器重复通知潜在缺陷）。
+     * Fix+Decision 显式裁定（R1-Major-7）：①markRollbackOnly 后 commit 由抛
+     * ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT **改为自动走 rollback 语义 + WARN**（载体断言覆盖）；
+     * ②CAS 失败转移：doCommit/listener 异常时终态尽力置 ROLLED_BACK + 异常透传；
+     * ③isTransactionOpened() 映射 OPEN/COMMITTING=true（TransactionTemplateImpl 门控与
+     * commitSubTransactions 行为保持）。
+     */
+    private final AtomicReference<TxnState> state = new AtomicReference<>(TxnState.NEW);
+
+    enum TxnState { NEW, OPEN, COMMITTING, COMMITTED, ROLLING_BACK, ROLLED_BACK, CLOSED }
+
+    private void requireStateOpen() {
+        TxnState st = state.get();
+        if (st != TxnState.OPEN) {
+            throw newError(ERR_TXN_ALREADY_STARTED).param("state", st.name());
+        }
+    }
+
     // listener数量少、写少读多；commitAsync/rollbackAsync路径的listener回调发生在executor线程，
-    // 与注册线程并发时ArrayList扩容/遍历存在竞态，故用CopyOnWriteArrayList
-    private CopyOnWriteArrayList<ITransactionListener> listeners;
+    // 与注册线程并发时ArrayList扩容/遍历存在竞态，故用CopyOnWriteArrayList。
+    // 2.3-C2-014（plan 2553 裁定 C，R1-Minor-8）：volatile——invokeListener/getListeners 锁外读
+    // 首注册 stale-null 面消除（init 原子性由 addListener 的 synchronized(this) 域承载）。
+    private volatile CopyOnWriteArrayList<ITransactionListener> listeners;
     private volatile boolean rollbackOnly;
     private volatile Throwable error;
 
@@ -74,7 +99,11 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     public boolean isTransactionOpened() {
-        return opened;
+        // 2.3-C2-016（R1-Major-7 ③）：纯状态映射——OPEN/COMMITTING 视为打开（TransactionTemplateImpl
+        // 门控与 commitSubTransactions :388 行为保持）；终态（COMMITTED/ROLLED_BACK/CLOSED）为 false
+        //（rollback-only commit 终态语义由 TestTransactionStateCas pin_b 承载）
+        TxnState st = state.get();
+        return st == TxnState.OPEN || st == TxnState.COMMITTING;
     }
 
     @Override
@@ -84,12 +113,16 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void addListener(ITransactionListener listener) {
-        if (listeners == null)
-            listeners = new CopyOnWriteArrayList<>();
-        if (!listeners.contains(listener)) {
-            listeners.add(listener);
-            if (listeners.size() > 1)
-                listeners.sort(ITransactionListener::compareTo);
+        // 2.3-C2-014（plan 2553 裁定 C）：惰性 init 收进与快照（:112-126 addSubTransaction）同一
+        // 监视器——原 check-then-act 两步创建在并发注册下可丢监听器。
+        synchronized (this) {
+            if (listeners == null)
+                listeners = new CopyOnWriteArrayList<>();
+            if (!listeners.contains(listener)) {
+                listeners.add(listener);
+                if (listeners.size() > 1)
+                    listeners.sort(ITransactionListener::compareTo);
+            }
         }
     }
 
@@ -185,6 +218,10 @@ public abstract class AbstractTransaction implements ITransaction {
     public void rollback(Throwable error) {
         LOG.info("nop.dao.txn.rollback:txn={}", this);
 
+        // 2.3-C2-016：状态门控——仅 OPEN 可进入 rollback
+        if (!state.compareAndSet(TxnState.OPEN, TxnState.ROLLING_BACK))
+            throw newError(ERR_TXN_ALREADY_STARTED).param("state", state.get().name());
+
         beforeRollback(error);
 
         Throwable ex = null;
@@ -199,6 +236,7 @@ public abstract class AbstractTransaction implements ITransaction {
 
         this.error = null;
         this.rollbackOnly = false;
+        state.set(TxnState.ROLLED_BACK);
 
         // ex为执行rollback过程中又发生的异常
         if (ex != null)
@@ -297,16 +335,41 @@ public abstract class AbstractTransaction implements ITransaction {
     public void commit() {
         LOG.debug("nop.dao.txn.begin-commit:txn={}", this);
 
+        // 2.3-C2-016（裁定 D）：二次 commit = no-op-with-WARN（原形态重复触发全部监听器——
+        // afterCommit 重置 rollbackOnly 的潜在缺陷一并消除）；非 OPEN/NEW/COMMITTED 状态 fail-fast。
+        // NEW 允许进入提交相位：2517 红⑩辅助钉（commitOnReleasedConnectionIsObservableNoOp）契约——
+        // 未 open 事务的 commit 走既有可观测路径（JdbcTransaction.doCommit null 早退 WARN 留痕），
+        // 不由状态机拒绝。
+        TxnState st = state.get();
+        if (st == TxnState.COMMITTED) {
+            LOG.warn("nop.warn.dao.txn-commit-after-committed:txn={},ignored=true", this);
+            return;
+        }
+        if (!state.compareAndSet(TxnState.OPEN, TxnState.COMMITTING)
+                && !state.compareAndSet(TxnState.NEW, TxnState.COMMITTING))
+            throw newError(ERR_TXN_ALREADY_STARTED).param("state", st.name());
+
+        // 2.3-C2-016（Fix+Decision ①）：markRollbackOnly 后 commit 由抛错改为自动 rollback 语义
+        //（用户可见语义变更——载体断言显式覆盖）
+        if (isRollbackOnly()) {
+            LOG.warn("nop.warn.dao.txn-commit-on-rollback-only:txn={},rolling-back=true", this);
+            state.set(TxnState.OPEN); // 回到 OPEN 供 rollback CAS（源自 NEW 的提交同此路径）
+            rollback(null);
+            return;
+        }
+
         beforeCommit();
         beforeCompletion();
         try {
             doCommit();
         } catch (Exception e) {
             // 提交失败也必须给监听器发送终态通知，否则metrics少计失败且监听器状态泄漏
+            state.set(TxnState.ROLLED_BACK); // 尽力终态（R1-Major-7 ②失败转移）
             afterCompletion(CompleteStatus.UNKNOWN);
             throw newError(ERR_TXN_COMMIT_FAIL).cause(e).forWrap();
         }
 
+        state.set(TxnState.COMMITTED);
         afterCommit();
         afterCompletion(CompleteStatus.COMMIT);
         LOG.debug("nop.dao.txn.after-commit:txn={}", this);
@@ -418,18 +481,24 @@ public abstract class AbstractTransaction implements ITransaction {
     public void open() {
         LOG.info("nop.dao.txn.open:txn={}", this);
 
-        if (opened)
+        if (opened || !state.compareAndSet(TxnState.NEW, TxnState.OPEN))
             throw newError(ERR_TXN_ALREADY_STARTED);
-        invokeOpenListener();
-        doOpen();
-        openSubTransactions();
-        opened = true;
+        try {
+            invokeOpenListener();
+            doOpen();
+            openSubTransactions();
+            opened = true;
+        } catch (Throwable e) {
+            state.set(TxnState.NEW); // 回滚启动失败：允许重试 open
+            throw e;
+        }
     }
 
     @Override
     public void close() {
         LOG.info("nop.dao.txn.close:txn={}", this);
 
+        state.set(TxnState.CLOSED);
         invokeCloseListener();
         closeSubTransactions();
         doClose();

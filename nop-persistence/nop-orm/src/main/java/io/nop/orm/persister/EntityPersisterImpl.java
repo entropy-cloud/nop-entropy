@@ -588,25 +588,53 @@ public class EntityPersisterImpl implements IEntityPersister {
         return new HashSet<>(entities);
     }
 
+    /**
+     * 2.3-C9-001（plan 2553 裁定 C）：事务级聚合 evict listener——原形态每实体注册一个匿名
+     * listener（contains×COW×每加必 sort = O(n²)）。首 evict 注册单聚合回调（pendingEvictKeys
+     * 并发集聚合 key），后续 evict 仅向 Set 追加；afterCompletion 自注销。错失窗口（commit 线程
+     * 消费 Set 后追加的 key）不劣于原 late-listener-lost 窗口，且由 genFence（2517-⑥）缓解。
+     */
+    private final java.util.concurrent.ConcurrentHashMap<ITransaction, java.util.Set<String>> pendingTxnEvictKeys =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     void evictGlobalCache(ShardSelection shard, final IOrmEntity entity) {
         if (!useGlobalCache)
             return;
 
         String querySpace = getQuerySpace(shard);
+        final String cacheKey = getCacheKey(entity);
 
         // plan 2517 R2-14 裁定⑥：evict 记失效世代——evict 后任何持有旧 readGen 的迟到回填 CAS 必败
-        genFence.invalidate(getCacheKey(entity));
+        genFence.invalidate(cacheKey);
 
-        if (env.txn().isTransactionOpened(querySpace)) {
-            this.env.txn().addTransactionListener(querySpace, new ITransactionListener() {
+        ITransaction txn = env.txn().isTransactionOpened(querySpace)
+                ? env.txn().getRegisteredTransaction(querySpace) : null;
+        if (txn == null) {
+            globalCache.removeAsync(cacheKey);
+            return;
+        }
+
+        java.util.Set<String> keys = pendingTxnEvictKeys.computeIfAbsent(txn, t -> {
+            java.util.Set<String> set = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            env.txn().addTransactionListener(querySpace, new ITransactionListener() {
                 @Override
-                public void onAfterCommit(ITransaction txn) {
-                    globalCache.removeAsync(getCacheKey(entity));
+                public void onAfterCommit(ITransaction committed) {
+                    for (String k : set) {
+                        globalCache.removeAsync(k);
+                    }
+                }
+
+                @Override
+                public void onAfterCompletion(ITransaction committed,
+                        io.nop.dao.txn.ITransactionListener.CompleteStatus status, Throwable error) {
+                    // COMMIT：onAfterCommit 已 evict，此处清理聚合状态；
+                    // ROLLBACK/UNKNOWN：缓存无需失效（未提交），仅清理。两路均防 txn key 泄漏。
+                    pendingTxnEvictKeys.remove(t);
                 }
             });
-        } else {
-            globalCache.removeAsync(getCacheKey(entity));
-        }
+            return set;
+        });
+        keys.add(cacheKey);
     }
 
     private String getCacheKey(IOrmEntity entity) {

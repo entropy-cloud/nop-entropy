@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -148,15 +149,67 @@ public class LazyLoadOrmModel implements ILazyLoadOrmModel {
             entityModel = entityModelMap.get(entityName);
             if (entityModel != null)
                 return entityModel;
-
-            entityModel = this.loadEntityModel(entityName);
-            if (entityModel == null)
-                return null;
-
-            putEntityModel(entityModel);
         }
-        return entityModel;
+
+        // 2.3-C2-018（plan 2553 裁定 E）：DB+codegen 加载移出 entityModelMap 同步块——原形态
+        // 锁内慢 I/O 串行化所有并发 getEntityModel。per-key CF 去重（并发同 key 共享单次加载）；
+        // 重入守卫（R1-Major-3）：ThreadLocal 在飞 key 集，IDynamicEntityModelProvider 加载体
+        // 回环 getEntityModel 时 fail-fast（否则 CF.join 自死锁无监视器可救）。
+        CompletableFuture<IEntityModel> loadFuture = inFlightLoads.computeIfAbsent(entityName, k -> {
+            try {
+                return CompletableFuture.supplyAsync(() -> {
+                    // 在飞 key 集记在执行加载的线程上（reentrant 守卫的判定域）
+                    IN_FLIGHT_KEYS.get().add(k);
+                    try {
+                        return loadEntityModel(k);
+                    } finally {
+                        IN_FLIGHT_KEYS.get().remove(k);
+                    }
+                });
+            } catch (Throwable t) {
+                inFlightLoads.remove(k);
+                throw t;
+            }
+        });
+        if (loadFuture != null && !IN_FLIGHT_KEYS.get().isEmpty()
+                && inFlightLoads.containsKey(entityName)) {
+            // 2.3-C2-018 重入守卫（执行期补强，R1-Major-3）：加载线程回环 getEntityModel 时
+            // computeIfAbsent 命中既有 future、mapping 守卫不触发——若放行将 CF.get 自等待
+            //（同 key 自死锁；跨 key 环 A→B→A 为跨线程等待环，同样无监视器可救）。
+            // 判定：当前线程自身在任一加载中（IN_FLIGHT_KEYS 非空）且请求 key 仍在飞 → 回环，
+            // fail-fast。执行期载体：TestLazyLoadConcurrentLoad pin_c。
+            throw new IllegalStateException("circular dynamic entity load detected: " + entityName);
+        }
+
+        IEntityModel loaded;
+        try {
+            loaded = loadFuture.get();
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw NopException.adapt(e.getCause());
+        } catch (java.lang.InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
+        } finally {
+            inFlightLoads.remove(entityName, loadFuture);
+        }
+        if (loaded == null)
+            return null;
+
+        synchronized (entityModelMap) {
+            // 重新进入锁域做 put + 短名预检（复用 2552 裁定 K 预检逻辑；putEntityModel 自身
+            // 重获锁，拓扑协议不破坏——putEntityModel 内部 synchronized(entityModelMap)）
+            putEntityModel(loaded);
+        }
+        return entityModelMap.get(entityName);
     }
+
+    /** 2.3-C2-018：per-key 在飞加载去重 */
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.CompletableFuture<IEntityModel>> inFlightLoads =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 2.3-C2-018 重入守卫：加载线程的在飞 key 集（fail-fast on 回环） */
+    private static final ThreadLocal<java.util.Set<String>> IN_FLIGHT_KEYS =
+            ThreadLocal.withInitial(java.util.HashSet::new);
 
     @Override
     public void addEntityModel(IEntityModel entityModel) {

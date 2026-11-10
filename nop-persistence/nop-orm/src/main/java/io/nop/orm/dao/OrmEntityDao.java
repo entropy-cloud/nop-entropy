@@ -679,6 +679,11 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
             }
 
             SQL sql = queryToSelectSql(query);
+            // 2.3-C5-005（plan 2553 裁定 L）：limit>0 不再静默丢弃——转 findPage 语义
+            //（offset/limit 下推给方言分页；limit<=0 保持 findAll 现行语义）
+            if (query.getLimit() > 0) {
+                return orm().findPage(sql, query.getOffset(), query.getLimit());
+            }
             return orm().findAll(sql);
         });
     }
