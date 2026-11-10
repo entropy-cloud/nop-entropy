@@ -243,21 +243,21 @@ public final class DocxCorpusBuilder {
                 + "</w:tblBorders></w:tblPr>"
                 + "<w:tblGrid><w:gridCol w:w=\"3000\"/><w:gridCol w:w=\"3000\"/><w:gridCol w:w=\"3000\"/></w:tblGrid>"
                 // row 1: horizontally merged cell (gridSpan=2) + normal cell
-                + "<w:tr><w:trHeight w:val=\"400\"/>"
+                + "<w:tr><w:trPr><w:trHeight w:val=\"400\" w:hRule=\"atLeast\"/></w:trPr>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"6000\" w:type=\"dxa\"/><w:gridSpan w:val=\"2\"/>"
                 + "<w:shd w:val=\"clear\" w:fill=\"DCE6F1\"/><w:vAlign w:val=\"center\"/></w:tcPr>"
                 + "<w:p>" + run("merged across", null) + "</w:p></w:tc>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\"/></w:tcPr>"
                 + "<w:p>" + run("r1c3", null) + "</w:p></w:tc></w:tr>"
                 // row 2/3: vertically merged first column (restart + continue)
-                + "<w:tr><w:trHeight w:val=\"360\"/>"
+                + "<w:tr><w:trPr><w:trHeight w:val=\"360\" w:hRule=\"atLeast\"/></w:trPr>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\"/><w:vMerge w:val=\"restart\"/></w:tcPr>"
                 + "<w:p>" + run("merged down", null) + "</w:p></w:tc>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\"/></w:tcPr>"
                 + "<w:p>" + run("r2c2", null) + "</w:p></w:tc>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\"/></w:tcPr>"
                 + "<w:p>" + run("r2c3", null) + "</w:p></w:tc></w:tr>"
-                + "<w:tr><w:trHeight w:val=\"360\"/>"
+                + "<w:tr><w:trPr><w:trHeight w:val=\"360\" w:hRule=\"atLeast\"/></w:trPr>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\"/><w:vMerge/></w:tcPr>"
                 + "<w:p/></w:tc>"
                 + "<w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\"/></w:tcPr>"
@@ -286,6 +286,17 @@ public final class DocxCorpusBuilder {
         asm.p(paragraph(null,
                 run("font+size+color", "<w:rFonts w:ascii=\"Arial\"/><w:sz w:val=\"36\"/>"
                         + "<w:color w:val=\"C00000\"/><w:b/>")));
+        asm.sectPr(PAGE_SETUP_PORTRAIT);
+        return asm.build();
+    }
+
+    /**
+     * 混合 run：单个 run 内 text → br → text（Word 软换行常见形态），
+     * 解析必须保留文本且对不可分派的 br 具名 skip。
+     */
+    public static byte[] mixedBreakDoc() {
+        Assembly asm = new Assembly();
+        asm.raw("<w:p><w:r><w:t>before break</w:t><w:br/><w:t>after break</w:t></w:r></w:p>");
         asm.sectPr(PAGE_SETUP_PORTRAIT);
         return asm.build();
     }

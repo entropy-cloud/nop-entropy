@@ -372,7 +372,21 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 4. **列表样式**：`WordListStyle{numFmt, lvlText, start, level, indent}` 独立叶子模型落 nop-office-model；引用点为 styles 容器第五子标签 `listStyle` + `OfficeListModel.styleId`（list.numId 保留为实例级编号绑定）。listStyle 同样支持 basedOn/default 并入统一 resolver。拒绝的替代：把列表样式塞进段落样式——列表语义可被多个列表块共享，段落样式承载会重复。
 5. **resolver 落位**：`OfficeStyleResolver` hand-written 落 nop-office-doc-model（消费 doc 模型中的 named styles），模型层不依赖运行时表达式引擎。
 
-## 15. 与 springreport 的分层对比结论
+## 15. docx 解析层决策
+
+解析器覆盖全结构时的定型决策（拒绝的替代方案一并记录）：
+
+1. **标题识别与 pStyle 引用**：`w:pStyle` 为 Heading1-9/Title 的段落解析为 OfficeTitleModel（titleLevel 1-9；Title→1）；pStyle 引用统一走 `paragraph.style.id`（WordParagraphStyle.id 承载 pStyleId，单一事实源），删除遗留的 `para.setType(pStyleId)` 赋值——type 是 xdef 块分派属性（值恒为标签名 p），写 pStyle id 会破坏 xdef round-trip。拒绝：pStyle 挂 type 字段（与分派冲突）；保持纯 p 让消费方判断（编辑器需要块级标题类型）。
+2. **列表聚合**：连续带 `w:numPr` 且相同 numId 的块级段落聚合为单个 OfficeListModel（item.level 取 ilvl），非 numPr 段落或 numId 变化即闭合；被聚合段落的块级模板 binding（c:for/c:if）迁移到 OfficeListTemplateModel，applyBlockTemplateBinding 扩展 OfficeListModel 分派。拒绝：每段独立 list 块（语义碎片化）。实现偏差登记：OfficeListTemplateModel 现仅 testExpr/visibleExpr 字段（无 loop 承载），c:if 迁移已落地，**c:for 的循环信息在列表块上暂无落点被丢弃**——需先扩 list 模板模型字段（successor WI4/WI7），当前解析对含 c:for 的列表段落不报错但不保留循环语义。
+3. **多节边界**：`w:p` pPr 内嵌 `w:sectPr` 为节结束标记；每个 sectPr 生成一个 OfficeDocPageModel（body 为该节累积块；末尾 body 级 sectPr 归最后一节）；各节 header/footerReference 独立解析；无 headerReference 时的 fallback 头文件扫描归属该节。
+4. **图片解析**：`w:drawing` inline/anchor → OfficeImageModel + doc.assets 既有 OfficeImageAsset（name=媒体部件名，data=部件字节，经 OfficePackage.getFile）；宽高 EMU→pt（÷12700）。缺关系/部件降级为占位 assetRef + 日志。
+5. **styles.xml**：新解析路径直接解析 styles.xml XNode（不经 WordStylesPart——其字段集不足以承载五类样式），段落样式→paragraphStyle、字符样式→runStyle、表格样式→tableStyle、编号→listStyle；basedOn/default 直映；run 级内联 rPr 覆盖命名样式（内联优先）。
+6. **容错口径**：缺失部件/关系→空结构 + 聚合 warn 日志（一次性汇总计数）；XML 结构损坏→DocxErrors 显式错误码；未知子元素→跳过计数。
+7. **块级批注**：out of scope（模型无承载字段需先扩 xdef，successor WI5）；表格批注（WordTableCell.comment）已覆盖表格面。
+8. **表格内联单元格样式（实现期裁定）**：tcPr 的 tcBorders（fallback tblBorders）/shd fill/vAlign 物化为 WordCellStyle，注册进 doc.styles（生成 id `__cell_t<tableIndex>_<row>_<col>`），cell.styleId 引用；vMerge continue 单元格不生成样式。边框 sz 为八分之一磅，weight 取 sz/8 四舍五入且下限 1。WordCellStyle 无横向对齐字段——tcPr 内 w:jc 跳过并登记 follow-up（WI5 扩模型时一并接线）。拒绝：cell 上挂内联 style 对象（WordTableCell 只有 styleId 字段，挂对象需扩 xdef）。
+9. **run 级 tab/br 分派（实现期裁定）**：run 仅含 w:tab 或 w:br（无 w:t）时分派为对应行内节点（tab/br）；整段仅含一个 page 型 br 的段落解析为 pageBreak 块；w:type 属性值写入 br.brType。
+10. **图片资产命名（实现期裁定）**：assetRef/asset.name 使用媒体部件在包内全路径（如 `word/media/image1.png`），ext 取扩展名，data 为部件字节；缺关系或部件时 assetRef 保留原值并记入聚合 skip 日志。styles.xml 段落命名样式的 run 字体不落模型（word-paragraph-style.xdef 无 font 属性），登记 follow-up；内联 rPr 与命名样式的优先级（P5 内联优先）由消费方经 OfficeStyleResolver 处理，解析产出保持内联样式对象与 style.id 引用分离。
+## 16. 与 springreport 的分层对比结论
 
 
 补充对 `springreport` 的实际实现分析后，可以把它的能力拆成三层：
@@ -381,7 +395,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 2. 模板配置层
 3. 产品化编辑层
 
-### 15.1 文档结构层
+### 16.1 文档结构层
 
 `springreport` 的 `DocTplSettings.header/footer/main` 本质上保存的是一组 JSON 块数据，而不是强类型文档对象模型。
 
@@ -398,7 +412,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 1. 当前 nop Word 模型对于 springreport 的基础文档结构表达已经基本够用
 2. 不需要为了对齐 springreport 再退回到“前端 JSON DTO 即最终模型”的做法
 
-### 15.2 模板配置层
+### 16.2 模板配置层
 
 这里需要修正一个表述：
 
@@ -426,7 +440,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 
 `paramMerge` 这类主要影响预览查询参数拼装的策略，更接近报表运行控制，可根据最终实现决定放在文档级 model 还是外层报表定义中，但不应退化成 springreport 式的散乱外部 JSON。
 
-### 15.3 产品化编辑层
+### 16.3 产品化编辑层
 
 `springreport` 前端还提供：
 
@@ -446,7 +460,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 
 混成一个问题。
 
-### 15.4 对当前 nop 方案的直接结论
+### 16.4 对当前 nop 方案的直接结论
 
 如果对比目标是 `springreport` 的基础 Word 文档结构表达：
 
@@ -457,7 +471,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 1. 当前 nop 还不完整
 2. 但短板主要在“模板语义尚未内嵌到模型”，而不是 Word 结构对象本身方向错了
 
-### 15.5 后续补充方向
+### 16.5 后续补充方向
 
 下一步如果继续补齐 springreport 风格能力，优先应补：
 

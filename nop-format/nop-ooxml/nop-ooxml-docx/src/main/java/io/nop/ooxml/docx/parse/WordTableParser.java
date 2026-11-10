@@ -14,8 +14,13 @@ import io.nop.ooxml.common.model.ImageUrlMapper;
 import io.nop.office.doc.model.WordTable;
 import io.nop.office.doc.model.WordTableCell;
 import io.nop.office.doc.model.WordTableRow;
+import io.nop.office.model.WordBorderStyle;
+import io.nop.office.model.WordCellStyle;
+import io.nop.office.model.constants.OfficeLineStyle;
+import io.nop.office.model.constants.OfficeVerticalAlignment;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /*
  <w:tbl>
@@ -60,6 +65,14 @@ public class WordTableParser {
     private ImageUrlMapper urlMapper;
     private boolean forMarkdown;
 
+    /**
+     * WI3: optional sink that receives inline cell styles (tcPr borders/shading/
+     * vAlign) generated as WordCellStyle entries. When null (legacy callers), cell
+     * style parsing is skipped entirely and behavior is unchanged.
+     */
+    private Consumer<WordCellStyle> cellStyleSink;
+    private String styleIdPrefix = "";
+
     public WordTableParser imageUrlMapper(ImageUrlMapper urlMapper) {
         this.urlMapper = urlMapper;
         return this;
@@ -70,15 +83,28 @@ public class WordTableParser {
         return this;
     }
 
+    public WordTableParser cellStyleSink(Consumer<WordCellStyle> cellStyleSink) {
+        this.cellStyleSink = cellStyleSink;
+        return this;
+    }
+
+    public WordTableParser styleIdPrefix(String styleIdPrefix) {
+        this.styleIdPrefix = styleIdPrefix == null ? "" : styleIdPrefix;
+        return this;
+    }
+
     public WordTable parseTable(XNode tblNode) {
         WordTable tbl = new WordTable();
+        XNode tblPr = tblNode.childByTag("w:tblPr");
+        XNode tblBorders = tblPr == null ? null : tblPr.childByTag("w:tblBorders");
+
         int i, n = tblNode.getChildCount();
         int rowIndex = 0;
         for (i = 0; i < n; i++) {
             XNode child = tblNode.child(i);
             String name = child.getTagName();
             if (name.equals("w:tr")) {
-                parseRow(rowIndex, child, tbl);
+                parseRow(rowIndex, child, tbl, tblBorders);
                 rowIndex++;
             }
         }
@@ -87,7 +113,7 @@ public class WordTableParser {
         return tbl;
     }
 
-    protected WordTableRow parseRow(int rowIndex, XNode node, WordTable tbl) {
+    protected WordTableRow parseRow(int rowIndex, XNode node, WordTable tbl, XNode tblBorders) {
         int i, n = node.getChildCount();
         int colIndex = 0;
         for (i = 0; i < n; i++) {
@@ -95,7 +121,7 @@ public class WordTableParser {
             String name = child.getTagName();
             if (name.equals("w:tc")) {
                 WordTableCell cell = new WordTableCell();
-                if (parseCell(child, cell)) {
+                if (parseCell(rowIndex, colIndex, child, cell, tblBorders)) {
                     tbl.setCell(rowIndex, colIndex, cell);
                 }
                 colIndex += cell.getMergeAcross() + 1;
@@ -131,8 +157,11 @@ public class WordTableParser {
         return WordXmlHelper.getText(node, forMarkdown, urlMapper);
     }
 
-    protected boolean parseCell(XNode node, WordTableCell cell) {
+    protected boolean parseCell(int rowIndex, int colIndex, XNode node, WordTableCell cell, XNode tblBorders) {
         XNode tcPrN = node.childByTag("w:tcPr");
+        if (cellStyleSink != null && tcPrN != null) {
+            parseCellStyle(rowIndex, colIndex, tcPrN, tblBorders, cell);
+        }
         if (tcPrN != null) {
 
             // 处理水平合并
@@ -158,9 +187,9 @@ public class WordTableParser {
                 int mergeDown = 0;
 
                 // 从下一行开始检查
-                int rowIndex = row.childIndex() + 1;
-                while (rowIndex < tblNode.getChildCount()) {
-                    XNode nextRow = tblNode.child(rowIndex);
+                int nextRowIndex = row.childIndex() + 1;
+                while (nextRowIndex < tblNode.getChildCount()) {
+                    XNode nextRow = tblNode.child(nextRowIndex);
 
                     // 确保下一行有足够的单元格
                     if (cellIndex >= nextRow.getChildCount()) {
@@ -190,7 +219,7 @@ public class WordTableParser {
                     }
 
                     mergeDown++;
-                    rowIndex++;
+                    nextRowIndex++;
                 }
 
                 cell.setMergeDown(mergeDown);
@@ -227,6 +256,100 @@ public class WordTableParser {
 
     protected double twipsToPoints(int twips) {
         return twips / 20.0;
+    }
+
+    /**
+     * WI3: inline tcPr cell formatting (tcBorders fallback tblBorders, shd fill,
+     * vAlign) is materialized as a WordCellStyle registered via cellStyleSink and
+     * referenced from cell.styleId. Note: w:jc horizontal alignment inside tcPr has
+     * no WordCellStyle field and is skipped (registered as follow-up).
+     */
+    protected void parseCellStyle(int rowIndex, int colIndex, XNode tcPrN, XNode tblBorders,
+                                  WordTableCell cell) {
+        XNode tcBorders = tcPrN.childByTag("w:tcBorders");
+        XNode borders = tcBorders != null ? tcBorders : tblBorders;
+
+        WordCellStyle style = new WordCellStyle();
+        style.setId("__cell_" + styleIdPrefix + "_" + rowIndex + "_" + colIndex);
+        style.setType("cellStyle");
+
+        boolean hasBorder = false;
+        if (borders != null) {
+            WordBorderStyle top = parseBorder(borders.childByTag("w:top"));
+            WordBorderStyle left = parseBorder(borders.childByTag("w:left"));
+            WordBorderStyle bottom = parseBorder(borders.childByTag("w:bottom"));
+            WordBorderStyle right = parseBorder(borders.childByTag("w:right"));
+            if (top != null) {
+                style.setTopBorder(top);
+                hasBorder = true;
+            }
+            if (left != null) {
+                style.setLeftBorder(left);
+                hasBorder = true;
+            }
+            if (bottom != null) {
+                style.setBottomBorder(bottom);
+                hasBorder = true;
+            }
+            if (right != null) {
+                style.setRightBorder(right);
+                hasBorder = true;
+            }
+        }
+
+        XNode shd = tcPrN.childByTag("w:shd");
+        boolean hasShading = false;
+        if (shd != null) {
+            String fill = shd.attrText("w:fill");
+            if (!StringHelper.isEmpty(fill) && !"auto".equalsIgnoreCase(fill)) {
+                style.setBackgroundColor(fill);
+                hasShading = true;
+            }
+        }
+
+        boolean hasVAlign = false;
+        XNode vAlign = tcPrN.childByTag("w:vAlign");
+        if (vAlign != null) {
+            OfficeVerticalAlignment align = OfficeVerticalAlignment.fromWmlText(vAlign.attrText("w:val"));
+            if (align != null) {
+                style.setVerticalAlign(align);
+                hasVAlign = true;
+            }
+        }
+
+        if (!hasBorder && !hasShading && !hasVAlign) {
+            return;
+        }
+
+        cell.setStyleId(style.getId());
+        cellStyleSink.accept(style);
+    }
+
+    protected WordBorderStyle parseBorder(XNode borderNode) {
+        if (borderNode == null) {
+            return null;
+        }
+        String val = borderNode.attrText("w:val");
+        if (StringHelper.isEmpty(val) || "none".equalsIgnoreCase(val) || "nil".equalsIgnoreCase(val)) {
+            return null;
+        }
+        OfficeLineStyle lineStyle = OfficeLineStyle.fromWmlText(val);
+        if (lineStyle == null) {
+            return null;
+        }
+        WordBorderStyle border = new WordBorderStyle();
+        border.setLocation(borderNode.getLocation());
+        border.setType(lineStyle);
+        Integer sz = borderNode.attrInt("w:sz");
+        if (sz != null) {
+            // OOXML border sz is in eighths of a point
+            border.setWeight(Math.max(1, (int) Math.round(sz / 8.0)));
+        }
+        String color = borderNode.attrText("w:color");
+        if (!StringHelper.isEmpty(color) && !"auto".equalsIgnoreCase(color)) {
+            border.setColor(color);
+        }
+        return border;
     }
 
     private String getVMerge(XNode tcPr) {

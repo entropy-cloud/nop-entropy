@@ -18,6 +18,16 @@ public interface DocxErrors {
     String ARG_LABEL = "label";
     String ARG_LINK_TARGET = "linkTarget";
     String ARG_LINK_NODE = "linkNode";
+    String ARG_PART_PATH = "partPath";
+
+    ErrorCode ERR_DOCX_PARSE_PACKAGE_INVALID = define("nop.err.ooxml.docx.parse-package-invalid",
+            "docx包损坏或不是有效的zip文件:{partPath}", ARG_PART_PATH);
+
+    ErrorCode ERR_DOCX_PARSE_PART_MISSING = define("nop.err.ooxml.docx.parse-part-missing",
+            "docx包缺少必需的部件:{partPath}", ARG_PART_PATH);
+
+    ErrorCode ERR_DOCX_PARSE_XML_INVALID = define("nop.err.ooxml.docx.parse-xml-invalid",
+            "docx部件XML结构损坏，无法解析:{partPath}", ARG_PART_PATH);
 
     ErrorCode ERR_DOCX_XPL_BEGIN_END_NOT_MATCH = define("nop.err.ooxml.docx.xpl-begin-end-not-match",
             "通过超链接标注的xpl标签[{tagName}]的起始部分和结束部分[{endTagName}]不匹配:{label}", ARG_TAG_NAME, ARG_END_TAG_NAME, ARG_LABEL);

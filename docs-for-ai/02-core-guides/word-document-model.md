@@ -32,23 +32,23 @@
 
 | 能力 | 状态 | 说明 |
 | --- | --- | --- |
-| 页面宽高/方向 | 解析+生成已支持；模型支持 page 级覆盖 | doc 级 `pgSz` 的 w/h/orient（解析取最后一个 `w:sectPr`）；page 级 width/height 字段模型已定稿、读写未接线 |
-| 页边距 | 模型已定稿，解析/生成未接线 | `OfficePageMargins`（page 级，twips 口径）；`pgMar` 解析与生成未实现 |
+| 页面宽高/方向 | 解析已支持（每节独立），生成已支持（doc 级单值） | 解析：每节 `w:sectPr` 的 pgSz → page 级 width/height/orientation，doc 级取首节值；生成：doc 级单值 |
+| 页边距 | 解析已支持，生成未接线 | `pgMar` → page 级 `OfficePageMargins`（twips→pt）；生成端未实现 |
 | 页眉/页脚 | 单节已支持 | 解析经 `w:headerReference`/`w:footerReference` 收集相关部件；生成仅写 `header1.xml`/`footer1.xml`，内容取 `pages.get(0)` |
-| 多节 section | 模型已定稿，读写未支持 | `pages` 列表 + page 级宽高/边距；解析只创建单个 page；生成只写首节 |
+| 多节 section | 解析已支持，生成未接线 | 每个 `w:sectPr` 一个 page（节边界=段落内嵌 sectPr）；生成只写首节 |
 | 块级：段落/表格 | 已支持 | doc.xdef body 八类块分派（p/table/title/list/image/hyperlink/separator/pageBreak）中的两类，解析/生成已接线 |
-| 块级：标题/列表/图片/超链接块/分隔线/分页 | 模型已定稿，解析/生成未接线 | `OfficeTitleModel`/`OfficeListModel`/`OfficeImageModel`/`OfficeHyperlinkModel`/`OfficeSeparatorModel`/`OfficePageBreakModel`（doc.xdef 八类块分派）；`parseBlocks` 只分派 `w:p`/`w:tbl`/`w:hyperlink`，hyperlink 仅解包为内部 runs |
+| 块级：标题/列表/图片/超链接块/分隔线/分页 | 解析已支持，生成未接线 | pStyle Heading1-9/Title→title 块；连续 numPr 聚合 list 块；独立图片段落→image 块（assets 承载媒体）；块级 hyperlink→hyperlink 块；pBdr 空段→separator；page-br 段→pageBreak。生成端未实现 |
 | 行内：文本 run | 已支持 | `OfficeRunModel.t` |
-| 行内：tab/br/hyperlink 独立类型 | 模型已定稿，解析/生成未接线 | `OfficeRun` 标记接口 + runs 包装节点分派 `OfficeTabModel`/`OfficeBreakModel`/`OfficeLinkModel`（递归嵌套 runs） |
-| 图片资产 | 模型已定稿，解析/生成未接线 | doc 级 `assets:OfficeImageAsset{name,ext,data}`（`base64-bytes`/ByteString） |
+| 行内：tab/br/hyperlink 独立类型 | 解析已支持，生成未接线（仅 text run） | `OfficeRun` 分派 tab/br（含 brType=page）/link（递归嵌套 runs） |
+| 图片资产 | 解析已支持，生成未接线 | `w:drawing` 关系→媒体部件字节入 doc 级 `assets:OfficeImageAsset`（base64-bytes/ByteString），assetRef=部件全路径 |
 | run 样式 | 部分已支持 | `WordRunStyle`（`OfficeFont` 粗/斜/删/下划线/上下标/字体/字号/颜色 + `highlightColor`）；上下标/删除线/字符间距等以 `OfficeFont`/`WordRunStyle` 字段为准 |
 | 段落样式 | 部分已支持 | `WordParagraphStyle`（`align`/`firstLineIndent`/`leftIndent`/行距/`titleLevel` 0-8 等） |
 | 表格：横纵合并/列宽/行高 | 已支持 | `WordTableCell.mergeAcross/mergeDown`、`WordTableColumnConfig`；行高经 `w:trHeight` 解析（`WordTableParser`）与生成（`OfficeDocXmlBuilder`） |
-| 表格：边框/底纹/单元格背景 | 未支持 | |
+| 表格：边框/底纹/单元格背景 | 解析已支持，生成未接线 | tcPr 边框（缺省回退 tblBorders）/底纹/vAlign → 内联 WordCellStyle 注册 doc.styles（id `__cell_t<n>_<r>_<c>`）+ cell.styleId 引用；tcPr 横向对齐未解析（模型无字段，follow-up） |
 | 图片/绘图/媒体部件 | 未支持 | |
 | 背景/水印 | 未支持 | |
 | 批注 | 部分 | `WordTableCell.comment` 承载单元格批注字符串 |
-| 命名样式/默认样式/基样式继承 | 模型已定稿，styles.xml 解析/生成未接线 | doc 级 `styles` 容器五类样式分派（run/paragraph/cell/table/list）；`basedOn` 链合并 + `default` 回退经 `OfficeStyleResolver`（样式往返测试覆盖）；`WordListStyle` 经 `OfficeListModel.styleId` 引用 |
+| 命名样式/默认样式/基样式继承 | 解析已支持（styles.xml→styles 容器），生成未接线 | 五类样式映射 + basedOn/default；内联 rPr 覆盖语义留给消费方经 `OfficeStyleResolver`；`WordListStyle` 经 `OfficeListModel.styleId` 引用；命名段落样式不落字体（WordParagraphStyle 无 font 字段，follow-up） |
 | 模板标注：`c:if`/`c:for` 段落标记 | 已支持 | 解析映射为 `testExpr`/loop 字段并含嵌套合并（`OfficeDocModelParser` test/for 表达式编译路径） |
 | 模板标注：`expr:`/`xpl:` 超链接 | 已支持 | `WordTemplateParser`/`WordHyperlinkTransformer` |
 | 模板标注：`xpt:table` 批注 | 经 `nop-report-docx` | `XptWordTemplateParser`/`XptWordTableParser` |

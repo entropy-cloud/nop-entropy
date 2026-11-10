@@ -54,12 +54,17 @@ public class TestOfficeDocModelParser extends BaseTestCase {
 
         assertNotNull(doc.getModel());
         assertNotNull(doc.getPages());
-        assertEquals(1, doc.getPages().size());
+        // WI3 multi-section semantics: test-tpl.docx contains a paragraph-embedded
+        // sectPr (section break) plus a trailing body-level sectPr, so it has two
+        // sections / pages. The previous expectation of 1 reflected the old parser
+        // defect that merged all sections into a single page.
+        assertEquals(2, doc.getPages().size());
 
         OfficeDocPageModel page = doc.getPages().get(0);
         assertFalse(page.getBody().isEmpty());
         assertTrue(page.getBody().stream().anyMatch(block -> block instanceof OfficeParagraphModel));
         assertTrue(page.getBody().stream().anyMatch(block -> block instanceof WordTable));
+        assertFalse(doc.getPages().get(1).getBody().isEmpty());
     }
 
     @Test
