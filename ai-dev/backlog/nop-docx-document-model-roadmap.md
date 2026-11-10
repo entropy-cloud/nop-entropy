@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-11-10（WI0–WI3 完成，plan 2515–2518；WI4–WI11 未启动）
+> Last updated: 2026-11-10（WI0–WI4 完成，plan 2515–2519；WI5–WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -47,7 +47,7 @@
 ### M2 — docx → 模型（解析）
 
 - [x] WI3 docx 解析完善：覆盖全块类型与 run 样式、列表编号、图片/关系/绘图锚点、超链接、表格（横纵合并/列宽/行高/边框/底纹/单元格对齐）、多节页眉页脚、页面设置与背景/水印、批注；对残缺/非标准 docx 容错。含解析单测 + 样本对版（Deliverable: 解析器完善 + 测试；deps: WI2；Item Type: Feature）
-- [ ] WI4 模板标注解析：docx 中 `if:`/`for:` 段落标记、`expr:`/`xpl:`/`tpl_expr:` 超链接、`xpt:table` 批注 → 内嵌 `model`（doc/page/paragraph/run/table/row/cell），与 `XplGenConfig`/`XptWordTemplateModel` 语义对齐。含标注解析单测（Deliverable: 模板标注 → 内嵌 model + 测试；deps: WI3；Item Type: Feature）
+- [x] WI4 模板标注解析：docx 中 `if:`/`for:` 段落标记、`expr:`/`xpl:`/`tpl_expr:` 超链接、`xpt:table` 批注 → 内嵌 `model`（doc/page/paragraph/run/table/row/cell），与 `XplGenConfig`/`XptWordTemplateModel` 语义对齐。含标注解析单测（Deliverable: 模板标注 → 内嵌 model + 测试；deps: WI3；Item Type: Feature）
 
 ### M3 — 模型 → docx（生成）
 

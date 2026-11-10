@@ -38,9 +38,11 @@
                     xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeBlock>">
                 <p id="!string" xdef:name="OfficeParagraphModel" xdef:bean-tag-prop="type">
                     <style xdef:ref="word-paragraph-style.xdef"/>
-                    <model xdef:name="OfficeParagraphTemplateModel">
+                    <model xdef:name="OfficeParagraphTemplateModel"
+                           loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
                         <testExpr>xpl-predicate</testExpr>
                         <visibleExpr>xpl</visibleExpr>
+                        <beginLoop>xpl</beginLoop>
                         <beforeRender>xpl</beforeRender>
                         <afterRender>xpl</afterRender>
                     </model>
@@ -84,9 +86,11 @@
                 <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
                 <title id="!string" xdef:name="OfficeTitleModel" xdef:bean-tag-prop="type">
                     <style xdef:ref="word-paragraph-style.xdef"/>
-                    <model xdef:name="OfficeTitleTemplateModel">
+                    <model xdef:name="OfficeTitleTemplateModel"
+                           loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
                         <testExpr>xpl-predicate</testExpr>
                         <visibleExpr>xpl</visibleExpr>
+                        <beginLoop>xpl</beginLoop>
                         <beforeRender>xpl</beforeRender>
                         <afterRender>xpl</afterRender>
                     </model>
@@ -100,9 +104,11 @@
                     </runs>
                 </title>
                 <list id="!string" xdef:name="OfficeListModel" xdef:bean-tag-prop="type" numId="string" styleId="string">
-                    <model xdef:name="OfficeListTemplateModel">
+                    <model xdef:name="OfficeListTemplateModel"
+                           loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
                         <testExpr>xpl-predicate</testExpr>
                         <visibleExpr>xpl</visibleExpr>
+                        <beginLoop>xpl</beginLoop>
                         <beforeRender>xpl</beforeRender>
                         <afterRender>xpl</afterRender>
                     </model>

@@ -32,7 +32,8 @@ public class TestDocxCorpusBuilder {
     private static final String[] ALL_SAMPLES = {
             "simpleDocument", "titleAndListDoc", "imageDoc", "hyperlinkDoc",
             "inlineTabBreakDoc", "pageBreakAndSeparatorDoc", "multiSectionDoc",
-            "mergedTableDoc", "fullRunStyleDoc", "pageSetupDoc", "backgroundWatermarkDoc"};
+            "mergedTableDoc", "fullRunStyleDoc", "pageSetupDoc", "backgroundWatermarkDoc",
+            "templateAnnotationDoc", "danglingCommentReferenceDoc"};
 
     @Test
     public void testDeterministicByteIdenticalOutput() {
@@ -67,6 +68,38 @@ public class TestDocxCorpusBuilder {
         assertRequiredCoreParts(parts, "backgroundWatermarkDoc");
         assertTrue(parts.contains("word/settings.xml") && parts.contains("word/header1.xml"),
                 "background sample needs settings + header (watermark) parts");
+
+        parts = partNames(build("templateAnnotationDoc"));
+        assertRequiredCoreParts(parts, "templateAnnotationDoc");
+        assertTrue(parts.contains("word/comments.xml") && parts.contains("word/numbering.xml"),
+                "annotation sample needs comments + numbering parts: " + parts);
+    }
+
+    @Test
+    public void testTemplateAnnotationPartsAreWired() throws Exception {
+        byte[] docx = build("templateAnnotationDoc");
+
+        // template hyperlinks mirror the real docx form: percent-encoded xpl:/expr:
+        // relationship targets with TargetMode="External"
+        String rels = partText(docx, "word/_rels/document.xml.rels");
+        assertTrue(rels.contains("Id=\"rIdIfBeg\" Type=\"" + DocxCorpusRelationships.HYPERLINK
+                + "\" Target=\"xpl:%3cc:if%20test=%22$%7bentity.active%7d%22%3e\" TargetMode=\"External\""),
+                "c:if begin marker relationship: " + rels);
+        assertTrue(rels.contains("Target=\"xpl:%3c/c:for%3e\" TargetMode=\"External\""),
+                "c:for end marker relationship: " + rels);
+        assertTrue(rels.contains("Target=\"expr:user.name\" TargetMode=\"External\""),
+                "expr relationship: " + rels);
+        assertTrue(rels.contains("Type=\"" + DocxCorpusRelationships.COMMENTS + "\" Target=\"comments.xml\""),
+                "comments relationship: " + rels);
+
+        String contentTypes = partText(docx, "[Content_Types].xml");
+        assertTrue(contentTypes.contains("<Override PartName=\"/word/comments.xml\" ContentType=\""
+                + "application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml\"/>"),
+                "comments content type override: " + contentTypes);
+
+        String comments = partText(docx, "word/comments.xml");
+        assertTrue(comments.contains("<w:comment w:id=\"0\"") && comments.contains("xpt:table"),
+                "comments part carries the xpt:table marker: " + comments);
     }
 
     @Test
@@ -92,6 +125,7 @@ public class TestDocxCorpusBuilder {
     static final class DocxCorpusRelationships {
         static final String IMAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
         static final String HYPERLINK = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink";
+        static final String COMMENTS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments";
     }
 
     private static byte[] build(String sample) {
@@ -123,6 +157,10 @@ public class TestDocxCorpusBuilder {
                 return DocxCorpusBuilder::pageSetupDoc;
             case "backgroundWatermarkDoc":
                 return DocxCorpusBuilder::backgroundWatermarkDoc;
+            case "templateAnnotationDoc":
+                return DocxCorpusBuilder::templateAnnotationDoc;
+            case "danglingCommentReferenceDoc":
+                return DocxCorpusBuilder::danglingCommentReferenceDoc;
             default:
                 throw new IllegalArgumentException("unknown sample: " + sample);
         }

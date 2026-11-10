@@ -32,6 +32,34 @@ public abstract class _OfficeListTemplateModel extends io.nop.core.resource.comp
     
     /**
      *  
+     * xml name: beginLoop
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _beginLoop ;
+    
+    /**
+     *  
+     * xml name: loopIndexName
+     * 
+     */
+    private java.lang.String _loopIndexName ;
+    
+    /**
+     *  
+     * xml name: loopItemsName
+     * 
+     */
+    private java.lang.String _loopItemsName ;
+    
+    /**
+     *  
+     * xml name: loopVarName
+     * 
+     */
+    private java.lang.String _loopVarName ;
+    
+    /**
+     *  
      * xml name: testExpr
      * 
      */
@@ -78,6 +106,82 @@ public abstract class _OfficeListTemplateModel extends io.nop.core.resource.comp
         checkAllowChange();
         
         this._beforeRender = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beginLoop
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBeginLoop(){
+      return _beginLoop;
+    }
+
+    
+    public void setBeginLoop(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._beginLoop = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: loopIndexName
+     *  
+     */
+    
+    public java.lang.String getLoopIndexName(){
+      return _loopIndexName;
+    }
+
+    
+    public void setLoopIndexName(java.lang.String value){
+        checkAllowChange();
+        
+        this._loopIndexName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: loopItemsName
+     *  
+     */
+    
+    public java.lang.String getLoopItemsName(){
+      return _loopItemsName;
+    }
+
+    
+    public void setLoopItemsName(java.lang.String value){
+        checkAllowChange();
+        
+        this._loopItemsName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: loopVarName
+     *  
+     */
+    
+    public java.lang.String getLoopVarName(){
+      return _loopVarName;
+    }
+
+    
+    public void setLoopVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._loopVarName = value;
            
     }
 
@@ -137,6 +241,10 @@ public abstract class _OfficeListTemplateModel extends io.nop.core.resource.comp
         
         out.putNotNull("afterRender",this.getAfterRender());
         out.putNotNull("beforeRender",this.getBeforeRender());
+        out.putNotNull("beginLoop",this.getBeginLoop());
+        out.putNotNull("loopIndexName",this.getLoopIndexName());
+        out.putNotNull("loopItemsName",this.getLoopItemsName());
+        out.putNotNull("loopVarName",this.getLoopVarName());
         out.putNotNull("testExpr",this.getTestExpr());
         out.putNotNull("visibleExpr",this.getVisibleExpr());
     }
@@ -152,6 +260,10 @@ public abstract class _OfficeListTemplateModel extends io.nop.core.resource.comp
         
         instance.setAfterRender(this.getAfterRender());
         instance.setBeforeRender(this.getBeforeRender());
+        instance.setBeginLoop(this.getBeginLoop());
+        instance.setLoopIndexName(this.getLoopIndexName());
+        instance.setLoopItemsName(this.getLoopItemsName());
+        instance.setLoopVarName(this.getLoopVarName());
         instance.setTestExpr(this.getTestExpr());
         instance.setVisibleExpr(this.getVisibleExpr());
     }

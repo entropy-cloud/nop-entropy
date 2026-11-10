@@ -49,9 +49,9 @@
 | 背景/水印 | 未支持 | |
 | 批注 | 部分 | `WordTableCell.comment` 承载单元格批注字符串 |
 | 命名样式/默认样式/基样式继承 | 解析已支持（styles.xml→styles 容器），生成未接线 | 五类样式映射 + basedOn/default；内联 rPr 覆盖语义留给消费方经 `OfficeStyleResolver`；`WordListStyle` 经 `OfficeListModel.styleId` 引用；命名段落样式不落字体（WordParagraphStyle 无 font 字段，follow-up） |
-| 模板标注：`c:if`/`c:for` 段落标记 | 已支持 | 解析映射为 `testExpr`/loop 字段并含嵌套合并（`OfficeDocModelParser` test/for 表达式编译路径） |
-| 模板标注：`expr:`/`xpl:` 超链接 | 已支持 | `WordTemplateParser`/`WordHyperlinkTransformer` |
-| 模板标注：`xpt:table` 批注 | 经 `nop-report-docx` | `XptWordTemplateParser`/`XptWordTableParser` |
+| 模板标注：`c:if`/`c:for` 块级标记 | 已支持 | `c:if`→testExpr（嵌套合并）；`c:for`→loopVarName/loopIndexName/loopItemsName + beginLoop（items 表达式），落 page/paragraph/title/list 的 model；列表项上的 c:for 聚合后表示重复整个列表块 |
+| 模板标注：`expr:`/`xpl:`/`tpl_expr:` 超链接 | 已支持 | `expr:`→run.model.valueExpr；`tpl_expr:`/`xpl:`→templateExpr；`linkExpr` 无标注形态（未使用） |
+| 模板标注：`xpt:table` 批注 | 识别已支持（顶层表） | 首行首单元格批注含标记 → `table.model.renderType="xpt"`；嵌套表在模型链路被拍平为文本不识别；批注其余文本不解析；展开仍经 `nop-report-docx` |
 | 生成端块分派 | 仅段落+表格 | `OfficeDocXmlBuilder.buildBlock` 只支持 `OfficeParagraphModel` + `WordTable` |
 | PDF 输出 | 无 | 模型→PDF 渲染器不存在；不经 Aspose/OnlyOffice |
 

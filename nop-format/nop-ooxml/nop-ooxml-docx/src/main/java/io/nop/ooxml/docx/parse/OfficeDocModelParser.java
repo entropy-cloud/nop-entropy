@@ -24,6 +24,7 @@ import io.nop.ooxml.common.model.OfficeRelationship;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.common.constants.TargetMode;
 import io.nop.ooxml.docx.DocxConstants;
+import io.nop.ooxml.docx.model.WordCommentsPart;
 import io.nop.ooxml.docx.model.WordHyperlink;
 import io.nop.ooxml.docx.model.WordOfficePackage;
 import io.nop.office.doc.model.OfficeBlock;
@@ -35,17 +36,20 @@ import io.nop.office.doc.model.OfficeHyperlinkModel;
 import io.nop.office.doc.model.OfficeImageAsset;
 import io.nop.office.doc.model.OfficeImageModel;
 import io.nop.office.doc.model.OfficeLinkModel;
+import io.nop.office.doc.model.OfficeListTemplateModel;
 import io.nop.office.doc.model.OfficeListItemModel;
 import io.nop.office.doc.model.OfficeListModel;
 import io.nop.office.doc.model.OfficePageBreakModel;
 import io.nop.office.doc.model.OfficePageMargins;
 import io.nop.office.doc.model.OfficeParagraphModel;
+import io.nop.office.doc.model.OfficeParagraphTemplateModel;
 import io.nop.office.doc.model.OfficeRun;
 import io.nop.office.doc.model.OfficeRunModel;
 import io.nop.office.doc.model.OfficeRunTemplateModel;
 import io.nop.office.doc.model.OfficeSeparatorModel;
 import io.nop.office.doc.model.OfficeTabModel;
 import io.nop.office.doc.model.OfficeTitleModel;
+import io.nop.office.doc.model.OfficeTitleTemplateModel;
 import io.nop.office.doc.model.WordTable;
 import io.nop.office.model.OfficeBorderStyle;
 import io.nop.office.model.OfficeFont;
@@ -448,6 +452,13 @@ public class OfficeDocModelParser {
                 tableParser.styleIdPrefix(tableTag);
                 tableParser.cellStyleSink(doc::addStyle);
             }
+            // WI4: xpt:table annotation detection needs the comments part; a package
+            // without comments.xml keeps getComments() == null and detection stays off
+            WordCommentsPart comments = pkg.getComments();
+            if (comments != null) {
+                tableParser.commentResolver(comments::getComment);
+                tableParser.skipSink(OfficeDocModelParser.this::recordSkip);
+            }
             WordTable table = tableParser.parseTable(tblNode);
             table.setLocation(tblNode.getLocation());
             table.setId("tbl" + (++tableIndex));
@@ -736,6 +747,9 @@ public class OfficeDocModelParser {
                     recordSkip("inline drawing outside a standalone image paragraph skipped: " + child.getLocation());
                     continue;
                 }
+                if (isCommentMarkerOnlyRun(child)) {
+                    continue;
+                }
                 runs.add(parseRun(child, null, config, cp, idBase, runIndex++));
             } else if ("w:tab".equals(tagName)) {
                 runs.add(parseTab(child, idBase, runIndex++));
@@ -745,11 +759,40 @@ public class OfficeDocModelParser {
                 int before = runs.size();
                 runs.addAll(parseHyperlinkRuns(child, links, config, cp, idBase, runIndex));
                 runIndex += runs.size() - before;
+            } else if (isCommentMarker(tagName)) {
+                // known ignorable inline annotation markers (WI4/T3): silently ignored
+                continue;
             } else if (!isStyleNode(tagName)) {
                 recordSkip("unknown inline element skipped: " + tagName);
             }
         }
         return runs;
+    }
+
+    /**
+     * WI4/T3: w:commentRangeStart / w:commentRangeEnd / w:commentReference are
+     * known annotation markers and never count as unknown inline elements.
+     */
+    protected boolean isCommentMarker(String tagName) {
+        return "w:commentRangeStart".equals(tagName) || "w:commentRangeEnd".equals(tagName)
+                || "w:commentReference".equals(tagName);
+    }
+
+    /**
+     * A run whose only content is annotation markers (no text/tab/br/drawing) adds
+     * no visible content; skip it instead of producing an empty text run.
+     */
+    protected boolean isCommentMarkerOnlyRun(XNode runNode) {
+        boolean hasMarker = false;
+        for (XNode child : runNode.getChildren()) {
+            String tagName = child.getTagName();
+            if (isCommentMarker(tagName)) {
+                hasMarker = true;
+            } else if (!"w:rPr".equals(tagName) && !"w:rPrChange".equals(tagName)) {
+                return false;
+            }
+        }
+        return hasMarker;
     }
 
     protected boolean isStyleNode(String tagName) {
@@ -1251,17 +1294,31 @@ public class OfficeDocModelParser {
 
         if (block instanceof OfficeParagraphModel) {
             OfficeParagraphModel para = (OfficeParagraphModel) block;
+            OfficeParagraphTemplateModel model = para.makeModel();
             if (binding.testExpr != null) {
-                para.makeModel().setTestExpr(binding.testExpr);
+                model.setTestExpr(binding.testExpr);
             }
             if (binding.visibleExpr != null) {
-                para.makeModel().setVisibleExpr(binding.visibleExpr);
+                model.setVisibleExpr(binding.visibleExpr);
             }
+            applyLoopBinding(model::setBeginLoop, model::setLoopVarName,
+                    model::setLoopIndexName, model::setLoopItemsName, binding);
             return;
         }
 
-        if (block instanceof WordTable && binding.testExpr != null) {
-            ((WordTable) block).makeModel().setTestExpr(binding.testExpr);
+        if (block instanceof WordTable) {
+            WordTable table = (WordTable) block;
+            if (binding.testExpr != null)
+                table.makeModel().setTestExpr(binding.testExpr);
+            // table template models carry no loop/visibleExpr fields: a c:for anchored on
+            // table rows is dropped here and must not vanish silently
+            if (binding.loopVarName != null || binding.loopIndexName != null
+                    || binding.loopItemsName != null || binding.beginLoop != null
+                    || binding.visibleExpr != null) {
+                recordSkip("c:for/visible binding anchored on a table row has no table-model fields; "
+                        + "loop/visibleExpr dropped (row-loop expansion is a nop-report-docx concern): "
+                        + table.getId());
+            }
         }
     }
 
@@ -1274,29 +1331,60 @@ public class OfficeDocModelParser {
             return;
         }
 
+        OfficeListTemplateModel model = list.makeModel();
         if (binding.testExpr != null) {
-            if (list.getModel() != null && list.getModel().getTestExpr() != null) {
-                list.makeModel().setTestExpr(list.getModel().getTestExpr().and(binding.testExpr));
+            if (model.getTestExpr() != null) {
+                model.setTestExpr(model.getTestExpr().and(binding.testExpr));
             } else {
-                list.makeModel().setTestExpr(binding.testExpr);
+                model.setTestExpr(binding.testExpr);
             }
         }
-        // OfficeListTemplateModel only carries testExpr/visibleExpr; c:for loop fields
-        // have no counterpart on the list model and stay on the aggregated items.
-        if (binding.visibleExpr != null && list.makeModel().getVisibleExpr() == null) {
-            list.makeModel().setVisibleExpr(binding.visibleExpr);
+        if (binding.visibleExpr != null && model.getVisibleExpr() == null) {
+            model.setVisibleExpr(binding.visibleExpr);
         }
+        applyLoopBinding(model::setBeginLoop, model::setLoopVarName,
+                model::setLoopIndexName, model::setLoopItemsName, binding);
     }
 
     protected void applyTitleTemplateBinding(OfficeTitleModel title, BlockTemplateBinding binding) {
         if (title == null || binding == null || binding.isEmpty()) {
             return;
         }
+        OfficeTitleTemplateModel model = title.makeModel();
         if (binding.testExpr != null) {
-            title.makeModel().setTestExpr(binding.testExpr);
+            model.setTestExpr(binding.testExpr);
         }
         if (binding.visibleExpr != null) {
-            title.makeModel().setVisibleExpr(binding.visibleExpr);
+            model.setVisibleExpr(binding.visibleExpr);
+        }
+        applyLoopBinding(model::setBeginLoop, model::setLoopVarName,
+                model::setLoopIndexName, model::setLoopItemsName, binding);
+    }
+
+    /**
+     * WI4/T1: migrates the loop fields of a block-level c:for binding onto the
+     * corresponding block template model (beginLoop is the value action compiled
+     * from a complex items expression; there is no endLoop on block bindings).
+     */
+    protected void applyLoopBinding(Consumer<IEvalAction> beginLoopSetter,
+                                    Consumer<String> loopVarSetter,
+                                    Consumer<String> loopIndexSetter,
+                                    Consumer<String> loopItemsSetter,
+                                    BlockTemplateBinding binding) {
+        if (binding == null) {
+            return;
+        }
+        if (binding.beginLoop != null) {
+            beginLoopSetter.accept(binding.beginLoop);
+        }
+        if (!StringHelper.isEmpty(binding.loopVarName)) {
+            loopVarSetter.accept(binding.loopVarName);
+        }
+        if (!StringHelper.isEmpty(binding.loopIndexName)) {
+            loopIndexSetter.accept(binding.loopIndexName);
+        }
+        if (!StringHelper.isEmpty(binding.loopItemsName)) {
+            loopItemsSetter.accept(binding.loopItemsName);
         }
     }
 

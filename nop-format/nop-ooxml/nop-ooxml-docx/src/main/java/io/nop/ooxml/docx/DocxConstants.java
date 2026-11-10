@@ -23,6 +23,13 @@ public interface DocxConstants extends OfficeConstants {
     String TAG_LINK_EXPR = "wml:LinkExpr";
     String TAG_PARAGRAPH_EXPR = "wml:ParagraphExpr";
 
+    /**
+     * WI4: comment annotation marker that flags a top-level table as an XPT
+     * template table (carried as table.model.renderType = "xpt"). The literal is
+     * owned by nop-ooxml-docx; nop-report-docx keeps its own identical constant.
+     */
+    String VAR_XPT_TABLE = "xpt:table";
+
     String TABLE_WML_CONFIG = "WmlConfig";
 
     String PATH_WORD_RELS = "word/_rels/document.xml.rels";

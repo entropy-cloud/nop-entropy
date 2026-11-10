@@ -11,6 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ooxml.common.model.ImageUrlMapper;
+import io.nop.ooxml.docx.DocxConstants;
 import io.nop.office.doc.model.WordTable;
 import io.nop.office.doc.model.WordTableCell;
 import io.nop.office.doc.model.WordTableRow;
@@ -21,6 +22,7 @@ import io.nop.office.model.constants.OfficeVerticalAlignment;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /*
  <w:tbl>
@@ -73,6 +75,19 @@ public class WordTableParser {
     private Consumer<WordCellStyle> cellStyleSink;
     private String styleIdPrefix = "";
 
+    /**
+     * WI4: optional comment resolver (comment id -> comment text). When null (legacy
+     * callers), xpt:table annotation detection is skipped entirely and behavior is
+     * unchanged (a package without a comments part degrades silently).
+     */
+    private Function<String, String> commentResolver;
+
+    /**
+     * WI4: optional sink that receives degradation skip details (e.g. a dangling
+     * commentReference that resolves to no comment). Mirrors {@link #cellStyleSink}.
+     */
+    private Consumer<String> skipSink;
+
     public WordTableParser imageUrlMapper(ImageUrlMapper urlMapper) {
         this.urlMapper = urlMapper;
         return this;
@@ -93,6 +108,16 @@ public class WordTableParser {
         return this;
     }
 
+    public WordTableParser commentResolver(Function<String, String> commentResolver) {
+        this.commentResolver = commentResolver;
+        return this;
+    }
+
+    public WordTableParser skipSink(Consumer<String> skipSink) {
+        this.skipSink = skipSink;
+        return this;
+    }
+
     public WordTable parseTable(XNode tblNode) {
         WordTable tbl = new WordTable();
         XNode tblPr = tblNode.childByTag("w:tblPr");
@@ -110,7 +135,63 @@ public class WordTableParser {
         }
 
         parseCols(tblNode, tbl);
+        applyTableAnnotation(tblNode, tbl);
         return tbl;
+    }
+
+    /**
+     * WI4/T2: the first row's first cell carrying a w:commentReference whose comment
+     * text contains the xpt:table marker flags this top-level table as an XPT
+     * template table (table.model.renderType = "xpt"). Comment markers nested inside
+     * a nested w:tbl of that cell do not count (nested tables have no model object
+     * to carry a marker). Without a comment resolver (no comments part) this degrades
+     * silently; only a present commentReference whose id resolves to no comment is
+     * reported via the skip sink.
+     */
+    protected void applyTableAnnotation(XNode tblNode, WordTable tbl) {
+        if (commentResolver == null) {
+            return;
+        }
+        XNode firstRow = tblNode.childByTag("w:tr");
+        XNode firstCell = firstRow == null ? null : firstRow.childByTag("w:tc");
+        if (firstCell == null) {
+            return;
+        }
+        String commentId = findAnchoredCommentId(firstCell);
+        if (commentId == null) {
+            return;
+        }
+        String comment = commentResolver.apply(commentId);
+        if (StringHelper.isEmpty(comment)) {
+            if (skipSink != null) {
+                skipSink.accept("table comment reference dangling (no matching comment): id=" + commentId);
+            }
+            return;
+        }
+        if (comment.contains(DocxConstants.VAR_XPT_TABLE)) {
+            tbl.makeModel().setRenderType("xpt");
+        }
+    }
+
+    /**
+     * Finds the w:commentReference id anchored in the first cell, ignoring markers
+     * that live inside a nested w:tbl of that cell.
+     */
+    protected String findAnchoredCommentId(XNode cellNode) {
+        XNode marker = cellNode.find(node -> {
+            if (!"w:commentReference".equals(node.getTagName())) {
+                return false;
+            }
+            // exclude markers anchored inside nested tables
+            for (XNode parent = node.getParent(); parent != null && parent != cellNode;
+                 parent = parent.getParent()) {
+                if ("w:tbl".equals(parent.getTagName())) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return marker == null ? null : marker.attrText("w:id");
     }
 
     protected WordTableRow parseRow(int rowIndex, XNode node, WordTable tbl, XNode tblBorders) {
