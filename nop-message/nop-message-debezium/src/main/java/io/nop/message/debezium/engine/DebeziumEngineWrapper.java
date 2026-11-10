@@ -54,6 +54,11 @@ public class DebeziumEngineWrapper {
      * previous listener for that name). The listener is invoked for EVERY
      * engine-terminal failure notification while registered; owners must deregister in
      * their cleanup path.
+     *
+     * <p>MA-10 (plan 2558 裁定 F): replacing a DIFFERENT live listener (previous instance
+     * still registered) emits a WARN — the generation observation face of the overwrite.
+     * The replace-takes-effect semantics is unchanged (R404: the double-registration guard
+     * upgrade belongs to the embedding task, zero API change).
      */
     public static void registerFailureListener(String connectorName, Consumer<Throwable> listener) {
         if (connectorName == null || connectorName.isEmpty()) {
@@ -64,16 +69,50 @@ public class DebeziumEngineWrapper {
             throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
                     .param("detail", "listener must not be null");
         }
-        FAILURE_LISTENERS.put(connectorName, listener);
+        Consumer<Throwable> previous = FAILURE_LISTENERS.put(connectorName, listener);
+        if (previous != null && previous != listener) {
+            LOG.warn("nop.message.debezium.failure-listener-replace:connector={} - a DIFFERENT "
+                    + "live listener was replaced (generation observation; the new listener "
+                    + "takes effect)", connectorName);
+        }
     }
 
     /**
-     * Removes the failure listener for the given connector name.
+     * Removes the failure listener for the given connector name (remove-by-name). The
+     * unconditionally-removing form: used by owners clearing their own slot and as the
+     * wrapper's stop-path fallback (MA-10: the wrapper cannot see the external owner's
+     * handle, so the stop fallback clears the connector's slot by name).
      */
     public static void unregisterFailureListener(String connectorName) {
         if (connectorName != null) {
             FAILURE_LISTENERS.remove(connectorName);
         }
+    }
+
+    /**
+     * MA-10 (plan 2558 裁定 F): two-arg conditional removal. The slot is only cleared when it
+     * still holds the CALLER's listener instance; removing a foreign handle (a different live
+     * listener registered by another owner) is rejected typed and the foreign listener stays
+     * registered. Removing from an empty slot is an idempotent no-op.
+     */
+    public static void unregisterFailureListener(String connectorName, Consumer<Throwable> listener) {
+        if (connectorName == null || connectorName.isEmpty()) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "connectorName must not be empty");
+        }
+        if (listener == null) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_CONFIG_INVALID)
+                    .param("detail", "listener must not be null");
+        }
+        Consumer<Throwable> current = FAILURE_LISTENERS.get(connectorName);
+        if (current == null) {
+            return;
+        }
+        if (current != listener) {
+            throw new NopException(DebeziumErrors.ERR_DEBEZIUM_LISTENER_FOREIGN_HANDLE)
+                    .param("connector", connectorName);
+        }
+        FAILURE_LISTENERS.remove(connectorName, listener);
     }
 
     /**
@@ -172,6 +211,9 @@ public class DebeziumEngineWrapper {
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
+    /** MA-09: set when the stop contract closed the engine — the worker-death quiet close is skipped then. */
+    private final AtomicBoolean engineClosedByStopContract = new AtomicBoolean(false);
+
     /** R5 CON-02: set synchronously in start(); stop() gates on this, not on the worker-observed flag. */
     private final AtomicBoolean startRequested = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
@@ -228,6 +270,13 @@ public class DebeziumEngineWrapper {
 
     /**
      * 启动引擎
+     *
+     * <p>MA-09 P3 (plan 2558 裁定 F 同文件顺带): a FAILED start resets {@code startRequested}
+     * so the wrapper is retryable (pre-fix the request flag stayed set and every later start()
+     * no-op'd behind the「already running」gate). A SUCCESSFUL start keeps the flag set:
+     * start-after-stop is a one-shot contract — once the stop contract completed
+     * ({@code stopped} latched), start() permanently no-ops; a restart requires a new wrapper
+     * (and, per the offset registry lifecycle contract, a fresh binding generation).
      */
     public synchronized void start() {
         if (running.get() || startRequested.get()) {
@@ -285,6 +334,9 @@ public class DebeziumEngineWrapper {
             if (latch != null) {
                 latch.countDown();
             }
+            // MA-09 P3: a failed start resets the request flag so the next start() is a
+            // retry, not a permanent no-op behind the「already running」gate
+            startRequested.set(false);
             throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_START_FAILED)
                     .param("connector", config.getName())
                     .cause(e);
@@ -406,7 +458,34 @@ public class DebeziumEngineWrapper {
         } finally {
             running.set(false);
             shutdownEngineCarrier();
+            // MA-09 P3 (plan 2558 裁定 F 同文件顺带): worker-death idempotent close — a
+            // best-effort, repeat-tolerant close of the engine body's resources on the
+            // natural/failure death paths (skipped when the stop contract already closed
+            // the engine, so the close-attempt pins see exactly the stop-contract attempts)
+            if (!engineClosedByStopContract.get()) {
+                closeEngineQuietly(engineRef);
+            }
             LOG.info("Debezium engine stopped: {}", config.getName());
+        }
+    }
+
+    /**
+     * MA-09 P3: single-attempt, fully-swallowed engine close for the worker-death path.
+     * Idempotent by tolerance: every rejection (STARTING_TASKS IllegalStateException, I/O
+     * failure, close on an already-closed engine) degrades to a WARN line — the terminal
+     * stop contract keeps its own typed retry path, this seam only guarantees that nobody
+     * dies BECAUSE of a close attempt on the death path.
+     */
+    private void closeEngineQuietly(
+            DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engineRef) {
+        if (engineRef == null) {
+            return;
+        }
+        try {
+            engineRef.close();
+        } catch (Throwable closeError) {
+            LOG.warn("Debezium engine quiet close rejected on the worker-death path "
+                    + "(idempotent tolerance): connector={}", config.getName(), closeError);
         }
     }
 
@@ -433,61 +512,108 @@ public class DebeziumEngineWrapper {
 
         LOG.info("Stopping Debezium engine: {}", config.getName());
 
-        // C3-014 ①: engine.close() may be rejected with IllegalStateException while the
-        // engine is still starting up (STARTING_TASKS window, debezium-embedded contract).
-        // Bounded retry until the window clears; exhaustion fails typed — never swallowed.
-        // The waits below still run (the engine may yet die); the typed failure surfaces
-        // after them and does NOT latch the one-shot.
-        NopException closeFailure = null;
+        // MA-03 (plan 2558 裁定 B): the stop contract body is wrapped so the offset-registry
+        // paired release and the failure-listener stop fallback run in the SINGLE release
+        // point — this method's finally — even when the termination verification failed or
+        // the close contract failed typed (anti-overwrite takes priority over conservative
+        // residency, registry-lifecycle-contract.md §3.5①). DebeziumMessageSource.stop()
+        // deliberately does NOT release (no double counting).
         try {
-            closeEngineWithRetry();
-        } catch (NopException e) {
-            closeFailure = e;
-        }
-
-        // 1.2-C4-004 (plan 2498 Phase 1): bounded termination budget on the dedicated
-        // carrier. engine.close() is only a cooperative async signal; awaiting the carrier
-        // with a bounded budget makes stop() wait for the engine body to actually finish,
-        // with no unbounded wait and no silent timeout.
-        ExecutorService carrier = this.engineExecutor;
-        if (carrier != null) {
-            carrier.shutdown();
+            // C3-014 ①: engine.close() may be rejected with IllegalStateException while the
+            // engine is still starting up (STARTING_TASKS window, debezium-embedded contract).
+            // Bounded retry until the window clears; exhaustion fails typed — never swallowed.
+            // The waits below still run (the engine may yet die); the typed failure surfaces
+            // after them and does NOT latch the one-shot.
+            NopException closeFailure = null;
             try {
-                if (!carrier.awaitTermination(STOP_TERMINATION_BUDGET_SECONDS, TimeUnit.SECONDS)) {
-                    LOG.warn("Debezium engine carrier did not terminate within {}s: connector={}",
-                            STOP_TERMINATION_BUDGET_SECONDS, config.getName());
+                closeEngineWithRetry();
+            } catch (NopException e) {
+                closeFailure = e;
+            }
+
+            // 1.2-C4-004 (plan 2498 Phase 1): bounded termination budget on the dedicated
+            // carrier. engine.close() is only a cooperative async signal; awaiting the carrier
+            // with a bounded budget makes stop() wait for the engine body to actually finish,
+            // with no unbounded wait and no silent timeout.
+            ExecutorService carrier = this.engineExecutor;
+            if (carrier != null) {
+                carrier.shutdown();
+                try {
+                    if (!carrier.awaitTermination(STOP_TERMINATION_BUDGET_SECONDS, TimeUnit.SECONDS)) {
+                        // MA-09 P3: quiesce join refinement — when the engine body already
+                        // exited (its finally shut the carrier down), a stuck join is only a
+                        // pool quiesce lag, not a live-engine hazard; the WARN wording
+                        // distinguishes the two situations.
+                        if (running.get()) {
+                            LOG.warn("Debezium engine carrier did not terminate within {}s and the "
+                                    + "engine body is still running: connector={}",
+                                    STOP_TERMINATION_BUDGET_SECONDS, config.getName());
+                        } else {
+                            LOG.warn("Debezium engine carrier join exceeded {}s after the engine "
+                                    + "body already exited (quiesce lag, no live-engine hazard): "
+                                    + "connector={}", STOP_TERMINATION_BUDGET_SECONDS, config.getName());
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    LOG.error("Interrupted while awaiting Debezium engine carrier termination: connector={}",
+                            config.getName(), e);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                LOG.error("Interrupted while awaiting Debezium engine carrier termination: connector={}",
-                        config.getName(), e);
             }
-        }
 
-        // C3-014 ⑤: bounded wait on the engine-body termination latch.
-        if (!awaitEngineTermination(terminationWaitMillis, TimeUnit.MILLISECONDS)) {
-            LOG.warn("Debezium engine body did not terminate within {}ms after close; escalating "
-                    + "to carrier shutdownNow: connector={}", terminationWaitMillis, config.getName());
-            // C3-014 ④: stuck-engine escalation (reserved by plan 2498 errata 4)
-            ExecutorService carrierNow = this.engineExecutor;
-            if (carrierNow != null) {
-                carrierNow.shutdownNow();
+            // C3-014 ⑤: bounded wait on the engine-body termination latch.
+            if (!awaitEngineTermination(terminationWaitMillis, TimeUnit.MILLISECONDS)) {
+                LOG.warn("Debezium engine body did not terminate within {}ms after close; escalating "
+                        + "to carrier shutdownNow: connector={}", terminationWaitMillis, config.getName());
+                // C3-014 ④: stuck-engine escalation (reserved by plan 2498 errata 4)
+                ExecutorService carrierNow = this.engineExecutor;
+                if (carrierNow != null) {
+                    carrierNow.shutdownNow();
+                }
+                if (!awaitEngineTermination(escalationWaitMillis, TimeUnit.MILLISECONDS)) {
+                    // rule 24: the residual ghost is DECLARED, never silent
+                    LOG.error("nop.message.debezium.engine-ghost-risk:connector={} - engine body did not "
+                            + "terminate within the stop budget; a ghost engine (live connector thread, "
+                            + "continuing offset writes) may persist until JVM exit", config.getName());
+                }
             }
-            if (!awaitEngineTermination(escalationWaitMillis, TimeUnit.MILLISECONDS)) {
-                // rule 24: the residual ghost is DECLARED, never silent
-                LOG.error("nop.message.debezium.engine-ghost-risk:connector={} - engine body did not "
-                        + "terminate within the stop budget; a ghost engine (live connector thread, "
-                        + "continuing offset writes) may persist until JVM exit", config.getName());
-            }
-        }
 
-        running.set(false);
-        if (closeFailure != null) {
-            // C3-014 ①: typed stop failure — NOT latched, so a later stop() may retry the
-            // close (retry coordination with the one-shot guard)
-            throw closeFailure;
+            running.set(false);
+            if (closeFailure != null) {
+                // C3-014 ①: typed stop failure — NOT latched, so a later stop() may retry the
+                // close (retry coordination with the one-shot guard)
+                throw closeFailure;
+            }
+            stopped.set(true);
+        } finally {
+            // MA-03 (plan 2558 裁定 B): stop-contract paired release of the offset registry
+            // bucket — the SINGLE release point (finally: termination-verification failure
+            // and typed close failure still release; a stuck ghost's old-generation bucket
+            // is split away so its writes land in an orphan map, never overwriting a new
+            // generation's recovery offsets).
+            releaseOffsetRegistryBucket();
+            // MA-10 (plan 2558 裁定 F): stop-path unregister fallback — the wrapper cannot
+            // see the external owner's listener handle, so the stop clears this connector's
+            // slot by name (owner-side later unregister is an idempotent no-op).
+            FAILURE_LISTENERS.remove(config.getName());
         }
-        stopped.set(true);
+    }
+
+    /**
+     * MA-03 paired release single point: resolves the connector identity of this wrapper's
+     * offset store (the registry key) and releases its registry bucket. A file-based or
+     * custom store without a registry entry releases nothing (no-op).
+     */
+    private void releaseOffsetRegistryBucket() {
+        OffsetBackingStore store = this.offsetStore;
+        if (store instanceof NopStreamOffsetBackingStore) {
+            NopStreamOffsetBackingStore.releaseConnector(
+                    ((NopStreamOffsetBackingStore) store).getConnectorName());
+        } else {
+            // non-registry offset storage: releasing by the connector name is a no-op
+            // unless a bucket for that name exists (then it is the generation's bucket)
+            NopStreamOffsetBackingStore.releaseConnector(config.getName());
+        }
     }
 
     /**
@@ -509,6 +635,10 @@ public class DebeziumEngineWrapper {
         while (true) {
             try {
                 engineRef.close();
+                // MA-09: the stop contract closed the engine — the worker-death quiet close
+                // must not fire a second attempt on the same engine (idempotency + the
+                // existing close-attempt pins see exactly the stop-contract attempts)
+                engineClosedByStopContract.set(true);
                 return;
             } catch (IllegalStateException e) {
                 if (System.currentTimeMillis() >= deadline) {

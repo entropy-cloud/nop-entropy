@@ -177,14 +177,16 @@ public class TestDebeziumEngineProperties {
 
     @Test
     void testProcessingThreadsPinned() {
+        // 4.1-MA-03（plan 2558 裁定 G / 钉①）：setup 走 config API（addExtraProperty），
+        // getter 之后是冻结视图——禁止经 getExtraProperties() 活 map 变更。
         DebeziumConfig config = newConfig("mysql");
-        config.getExtraProperties().put("record.processing.threads", "4");
+        config.addExtraProperty("record.processing.threads", "4");
         NopException err = assertThrows(NopException.class,
                 () -> DebeziumEngineConfig.buildProperties(config, true));
         assertTrue(String.valueOf(err.getParams().get("detail")).contains("single-writer"));
 
         DebeziumConfig ok = newConfig("mysql");
-        ok.getExtraProperties().put("record.processing.threads", "1");
+        ok.addExtraProperty("record.processing.threads", "1");
         assertEquals("1",
                 DebeziumEngineConfig.buildProperties(ok, true).getProperty("record.processing.threads"));
     }
@@ -204,7 +206,8 @@ public class TestDebeziumEngineProperties {
         DebeziumConfig config = newConfig("mysql");
         config.setSchemaHistoryStore("file");
         config.setSchemaHistoryPath("/tmp/cdc-reg03/schema-history.dat");
-        config.getExtraProperties().put("schema.history.internal.jdbc.password", "attacker");
+        // 4.1-MA-03（plan 2558 裁定 G / 钉①）：config API setup，禁止活 map 变更。
+        config.addExtraProperty("schema.history.internal.jdbc.password", "attacker");
 
         NopException e = assertThrows(NopException.class,
                 () -> DebeziumEngineConfig.buildProperties(config));
@@ -215,7 +218,8 @@ public class TestDebeziumEngineProperties {
     @Test
     void offsetStoragePrefixFamilyOverrideFailsLoud() {
         DebeziumConfig config = newConfig("mysql");
-        config.getExtraProperties().put("offset.storage.file.filename", "/tmp/evil-offsets");
+        // 4.1-MA-03（plan 2558 裁定 G / 钉①）：config API setup，禁止活 map 变更。
+        config.addExtraProperty("offset.storage.file.filename", "/tmp/evil-offsets");
 
         NopException e = assertThrows(NopException.class,
                 () -> DebeziumEngineConfig.buildProperties(config));

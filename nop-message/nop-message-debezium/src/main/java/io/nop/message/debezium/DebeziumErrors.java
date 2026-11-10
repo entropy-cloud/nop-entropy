@@ -38,4 +38,22 @@ public interface DebeziumErrors {
                     "Debezium connector name is required: unnamed connectors share the _default_ offset "
                             + "bucket and silently overwrite each other's offsets. Set DebeziumConfig.name "
                             + "(source function) or the WorkerConfig 'name' property (offset store).");
+
+    ErrorCode ERR_DEBEZIUM_OFFSET_STORE_LIVE_BINDING =
+            ErrorCode.define(PREFIX + "offset-store-live-binding",
+                    "Offset registry entry has live engine bindings and cannot be removed");
+
+    ErrorCode ERR_DEBEZIUM_OFFSET_STORE_ORPHANED =
+            ErrorCode.define(PREFIX + "offset-store-orphaned",
+                    "Offset registry entry was released by a stop contract; the holding instance is "
+                            + "orphaned and must not read or write offsets");
+
+    ErrorCode ERR_DEBEZIUM_OFFSET_RECOVERY_WINDOW_CLOSED =
+            ErrorCode.define(PREFIX + "offset-recovery-window-closed",
+                    "setOffsets is only legal inside the recovery declaration window "
+                            + "(after forConnector binding, before engine start)");
+
+    ErrorCode ERR_DEBEZIUM_LISTENER_FOREIGN_HANDLE =
+            ErrorCode.define(PREFIX + "listener-foreign-handle",
+                    "Refusing to remove a failure listener registered by another owner");
 }

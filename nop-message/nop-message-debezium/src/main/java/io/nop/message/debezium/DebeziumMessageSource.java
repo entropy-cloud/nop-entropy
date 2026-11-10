@@ -297,6 +297,10 @@ public class DebeziumMessageSource {
 
     /**
      * 停止消息源
+     *
+     * <p>MA-03 (plan 2558 裁定 B): this method deliberately does NOT release the offset
+     * registry bucket — the stop-contract paired release has a SINGLE point:
+     * {@code DebeziumEngineWrapper.stop()} (its finally). No double counting.
      */
     public synchronized void stop() {
         // MA-05 (C3-003 interleaving B): the stopped latch is set FIRST under the source

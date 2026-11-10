@@ -147,9 +147,13 @@ public class DebeziumConfig implements Serializable {
     private boolean includeSchemaChanges = false;
 
     /**
-     * 额外的配置属性
+     * 额外的配置属性（装配期专用——读侧经 {@link #getExtraProperties()} 返回冻结视图，
+     * 见 C1-012 / plan 2558 裁定 G）
      */
     private Map<String, String> extraProperties = new HashMap<>();
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(DebeziumConfig.class);
 
     // ============== Getters and Setters ==============
 
@@ -345,18 +349,61 @@ public class DebeziumConfig implements Serializable {
         this.includeSchemaChanges = includeSchemaChanges;
     }
 
+    /**
+     * Returns a <b>frozen view</b> of the extra properties (plan 2558 裁定 G / C1-012:
+     * {@code Map.copyOf} — immutable, per-call snapshot). Mutation attempts through this view
+     * throw {@code UnsupportedOperationException}; configuration setup must go through
+     * {@link #addExtraProperty(String, String)} / {@link #setExtraProperties(Map)}.
+     *
+     * <p><b>装配期专用（documented-only contract）</b>: extraProperties is an assembly-time
+     * configuration surface — the engine reads it once while building the connector
+     * properties. There is no lifecycle hook enforcing assembly-time-only writes; the freeze
+     * is the read-side view plus this declaration. Null values are skipped at the write
+     * entries ({@code Map.copyOf} rejects null values with NPE).
+     */
     public Map<String, String> getExtraProperties() {
-        return extraProperties;
+        Map<String, String> field = this.extraProperties;
+        return field == null ? Map.of() : Map.copyOf(field);
     }
 
     public void setExtraProperties(Map<String, String> extraProperties) {
-        this.extraProperties = extraProperties;
+        // copy into the internal HashMap (kept serializable for checkpoint persistence),
+        // skipping null values — the frozen getter view (Map.copyOf) rejects null values
+        if (extraProperties == null || extraProperties.isEmpty()) {
+            this.extraProperties = new HashMap<>();
+            return;
+        }
+        Map<String, String> copied = new HashMap<>();
+        for (Map.Entry<String, String> entry : extraProperties.entrySet()) {
+            if (entry.getKey() == null) {
+                LOG.warn("nop.message.debezium.config.extra-property-null-key - skipped");
+                continue;
+            }
+            if (entry.getValue() == null) {
+                LOG.warn("nop.message.debezium.config.extra-property-null-value:key={} - "
+                        + "null values are not representable in the frozen view; entry skipped",
+                        entry.getKey());
+                continue;
+            }
+            copied.put(entry.getKey(), entry.getValue());
+        }
+        this.extraProperties = copied;
     }
 
     /**
-     * 添加额外属性
+     * 添加额外属性（写 raw 字段——冻结仅作用于读侧视图，见 {@link #getExtraProperties()}）。
+     * null 值跳过并 WARN（冻结视图 {@code Map.copyOf} 不接受 null 值）。
      */
     public DebeziumConfig addExtraProperty(String key, String value) {
+        if (key == null) {
+            LOG.warn("nop.message.debezium.config.extra-property-null-key - skipped");
+            return this;
+        }
+        if (value == null) {
+            LOG.warn("nop.message.debezium.config.extra-property-null-value:key={} - "
+                    + "null values are not representable in the frozen view; entry skipped", key);
+            return this;
+        }
         this.extraProperties.put(key, value);
         return this;
     }
