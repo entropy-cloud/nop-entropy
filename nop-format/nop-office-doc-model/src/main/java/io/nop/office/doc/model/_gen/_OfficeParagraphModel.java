@@ -32,10 +32,10 @@ public abstract class _OfficeParagraphModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: r
+     * xml name: runs
      * 
      */
-    private KeyedList<io.nop.office.doc.model.OfficeRunModel> _runs = KeyedList.emptyList();
+    private KeyedList<io.nop.office.doc.model.OfficeRun> _runs = KeyedList.emptyList();
     
     /**
      *  
@@ -91,40 +91,22 @@ public abstract class _OfficeParagraphModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: r
+     * xml name: runs
      *  
      */
     
-    public java.util.List<io.nop.office.doc.model.OfficeRunModel> getRuns(){
+    public java.util.List<io.nop.office.doc.model.OfficeRun> getRuns(){
       return _runs;
     }
 
     
-    public void setRuns(java.util.List<io.nop.office.doc.model.OfficeRunModel> value){
+    public void setRuns(java.util.List<io.nop.office.doc.model.OfficeRun> value){
         checkAllowChange();
         
-        this._runs = KeyedList.fromList(value, io.nop.office.doc.model.OfficeRunModel::getId);
+        this._runs = KeyedList.fromList(value, io.nop.office.doc.model.OfficeRun::getId);
            
     }
 
-    
-    public io.nop.office.doc.model.OfficeRunModel getR(String name){
-        return this._runs.getByKey(name);
-    }
-
-    public boolean hasR(String name){
-        return this._runs.containsKey(name);
-    }
-
-    public void addR(io.nop.office.doc.model.OfficeRunModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.office.doc.model.OfficeRunModel> list = this.getRuns();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.office.doc.model.OfficeRunModel::getId);
-            setRuns(list);
-        }
-        list.add(item);
-    }
     
     public java.util.Set<String> keySet_runs(){
         return this._runs.keySet();

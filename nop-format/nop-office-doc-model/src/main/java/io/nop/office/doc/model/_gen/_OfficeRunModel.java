@@ -45,6 +45,13 @@ public abstract class _OfficeRunModel extends io.nop.core.resource.component.Abs
     private java.lang.String _t ;
     
     /**
+     *  
+     * xml name: 
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: id
      *  
@@ -120,6 +127,25 @@ public abstract class _OfficeRunModel extends io.nop.core.resource.component.Abs
     }
 
     
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -143,6 +169,7 @@ public abstract class _OfficeRunModel extends io.nop.core.resource.component.Abs
         out.putNotNull("model",this.getModel());
         out.putNotNull("style",this.getStyle());
         out.putNotNull("t",this.getT());
+        out.putNotNull("type",this.getType());
     }
 
     public OfficeRunModel cloneInstance(){
@@ -158,6 +185,7 @@ public abstract class _OfficeRunModel extends io.nop.core.resource.component.Abs
         instance.setModel(this.getModel());
         instance.setStyle(this.getStyle());
         instance.setT(this.getT());
+        instance.setType(this.getType());
     }
 
     protected OfficeRunModel newInstance(){

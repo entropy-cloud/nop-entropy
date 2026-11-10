@@ -2,8 +2,18 @@
      xdef:bean-package="io.nop.office.doc.model" xdef:check-ns="qr"
      xdef:name="OfficeDocModel" width="!double" height="!double">
 
+    <assets xdef:body-type="list" xdef:key-attr="name">
+        <asset name="!string" ext="string" xdef:name="OfficeImageAsset">
+            <data>base64-bytes</data>
+        </asset>
+    </assets>
+
     <pages xdef:body-type="list" xdef:key-attr="name">
-        <page name="!string" xdef:name="OfficeDocPageModel" orientation="string">
+        <page name="!string" xdef:name="OfficeDocPageModel" orientation="string" width="double" height="double">
+            <margins xdef:name="OfficePageMargins"
+                     top="!double=0" right="!double=0" bottom="!double=0" left="!double=0"
+                     header="!double=0" footer="!double=0" gutter="!double=0"/>
+
             <model xdef:name="OfficeDocPageTemplateModel"
                    loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
                 <testExpr>xpl-predicate</testExpr>
@@ -24,21 +34,110 @@
                         <beforeRender>xpl</beforeRender>
                         <afterRender>xpl</afterRender>
                     </model>
-                    <r id="!string" xdef:name="OfficeRunModel" xdef:unique-attr="id" xdef:bean-prop="runs">
-                        <style xdef:ref="word-run-style.xdef"/>
-                        <model xdef:name="OfficeRunTemplateModel">
-                            <testExpr>xpl-predicate</testExpr>
-                            <valueExpr>report-expr</valueExpr>
-                            <formatExpr>report-expr</formatExpr>
-                            <linkExpr>report-expr</linkExpr>
-                            <templateExpr>xpl</templateExpr>
-                            <beforeRender>xpl</beforeRender>
-                            <afterRender>xpl</afterRender>
-                        </model>
-                        <t>string</t>
-                    </r>
+                    <runs xdef:body-type="list" xdef:key-attr="id"
+                          xdef:bean-sub-type-prop="type"
+                          xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeRun&gt;">
+                        <r id="!string" xdef:name="OfficeRunModel" xdef:bean-tag-prop="type">
+                            <style xdef:ref="word-run-style.xdef"/>
+                            <model xdef:name="OfficeRunTemplateModel">
+                                <testExpr>xpl-predicate</testExpr>
+                                <valueExpr>report-expr</valueExpr>
+                                <formatExpr>report-expr</formatExpr>
+                                <linkExpr>report-expr</linkExpr>
+                                <templateExpr>xpl</templateExpr>
+                                <beforeRender>xpl</beforeRender>
+                                <afterRender>xpl</afterRender>
+                            </model>
+                            <t>string</t>
+                        </r>
+                        <tab id="!string" xdef:name="OfficeTabModel" xdef:bean-tag-prop="type"/>
+                        <br id="!string" xdef:name="OfficeBreakModel" xdef:bean-tag-prop="type" brType="string"/>
+                        <link id="!string" xdef:name="OfficeLinkModel" xdef:bean-tag-prop="type"
+                              href="string" anchor="string">
+                            <model xdef:name="OfficeLinkTemplateModel">
+                                <testExpr>xpl-predicate</testExpr>
+                                <linkExpr>report-expr</linkExpr>
+                                <beforeRender>xpl</beforeRender>
+                                <afterRender>xpl</afterRender>
+                            </model>
+                            <runs xdef:body-type="list" xdef:key-attr="id"
+                                  xdef:bean-sub-type-prop="type"
+                                  xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeRun&gt;">
+                                <r id="!string" xdef:ref="OfficeRunModel" xdef:bean-tag-prop="type"/>
+                                <tab id="!string" xdef:ref="OfficeTabModel" xdef:bean-tag-prop="type"/>
+                                <br id="!string" xdef:ref="OfficeBreakModel" xdef:bean-tag-prop="type"/>
+                                <link id="!string" xdef:ref="OfficeLinkModel" xdef:bean-tag-prop="type"/>
+                            </runs>
+                        </link>
+                    </runs>
                 </p>
                 <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
+                <title id="!string" xdef:name="OfficeTitleModel" xdef:bean-tag-prop="type">
+                    <style xdef:ref="word-paragraph-style.xdef"/>
+                    <model xdef:name="OfficeTitleTemplateModel">
+                        <testExpr>xpl-predicate</testExpr>
+                        <visibleExpr>xpl</visibleExpr>
+                        <beforeRender>xpl</beforeRender>
+                        <afterRender>xpl</afterRender>
+                    </model>
+                    <runs xdef:body-type="list" xdef:key-attr="id"
+                          xdef:bean-sub-type-prop="type"
+                          xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeRun&gt;">
+                        <r id="!string" xdef:ref="OfficeRunModel" xdef:bean-tag-prop="type"/>
+                        <tab id="!string" xdef:ref="OfficeTabModel" xdef:bean-tag-prop="type"/>
+                        <br id="!string" xdef:ref="OfficeBreakModel" xdef:bean-tag-prop="type"/>
+                        <link id="!string" xdef:ref="OfficeLinkModel" xdef:bean-tag-prop="type"/>
+                    </runs>
+                </title>
+                <list id="!string" xdef:name="OfficeListModel" xdef:bean-tag-prop="type" numId="string">
+                    <model xdef:name="OfficeListTemplateModel">
+                        <testExpr>xpl-predicate</testExpr>
+                        <visibleExpr>xpl</visibleExpr>
+                        <beforeRender>xpl</beforeRender>
+                        <afterRender>xpl</afterRender>
+                    </model>
+                    <items xdef:body-type="list" xdef:key-attr="id">
+                        <item id="!string" xdef:name="OfficeListItemModel" level="!int=0">
+                            <style xdef:ref="word-paragraph-style.xdef"/>
+                            <runs xdef:body-type="list" xdef:key-attr="id"
+                                  xdef:bean-sub-type-prop="type"
+                                  xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeRun&gt;">
+                                <r id="!string" xdef:ref="OfficeRunModel" xdef:bean-tag-prop="type"/>
+                                <tab id="!string" xdef:ref="OfficeTabModel" xdef:bean-tag-prop="type"/>
+                                <br id="!string" xdef:ref="OfficeBreakModel" xdef:bean-tag-prop="type"/>
+                                <link id="!string" xdef:ref="OfficeLinkModel" xdef:bean-tag-prop="type"/>
+                            </runs>
+                        </item>
+                    </items>
+                </list>
+                <image id="!string" xdef:name="OfficeImageModel" xdef:bean-tag-prop="type"
+                       assetRef="string" width="double" height="double">
+                    <model xdef:name="OfficeImageTemplateModel">
+                        <testExpr>xpl-predicate</testExpr>
+                        <dataExpr>report-expr</dataExpr>
+                        <beforeRender>xpl</beforeRender>
+                        <afterRender>xpl</afterRender>
+                    </model>
+                </image>
+                <hyperlink id="!string" xdef:name="OfficeHyperlinkModel" xdef:bean-tag-prop="type"
+                           href="string" anchor="string">
+                    <model xdef:name="OfficeHyperlinkTemplateModel">
+                        <testExpr>xpl-predicate</testExpr>
+                        <linkExpr>report-expr</linkExpr>
+                        <beforeRender>xpl</beforeRender>
+                        <afterRender>xpl</afterRender>
+                    </model>
+                    <runs xdef:body-type="list" xdef:key-attr="id"
+                          xdef:bean-sub-type-prop="type"
+                          xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeRun&gt;">
+                        <r id="!string" xdef:ref="OfficeRunModel" xdef:bean-tag-prop="type"/>
+                        <tab id="!string" xdef:ref="OfficeTabModel" xdef:bean-tag-prop="type"/>
+                        <br id="!string" xdef:ref="OfficeBreakModel" xdef:bean-tag-prop="type"/>
+                        <link id="!string" xdef:ref="OfficeLinkModel" xdef:bean-tag-prop="type"/>
+                    </runs>
+                </hyperlink>
+                <separator id="!string" xdef:name="OfficeSeparatorModel" xdef:bean-tag-prop="type"/>
+                <pageBreak id="!string" xdef:name="OfficePageBreakModel" xdef:bean-tag-prop="type"/>
             </header>
 
             <footer xdef:body-type="list"
@@ -46,6 +145,12 @@
                     xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeBlock>">
                 <p id="!string" xdef:ref="OfficeParagraphModel" xdef:bean-tag-prop="type"/>
                 <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
+                <title id="!string" xdef:ref="OfficeTitleModel" xdef:bean-tag-prop="type"/>
+                <list id="!string" xdef:ref="OfficeListModel" xdef:bean-tag-prop="type"/>
+                <image id="!string" xdef:ref="OfficeImageModel" xdef:bean-tag-prop="type"/>
+                <hyperlink id="!string" xdef:ref="OfficeHyperlinkModel" xdef:bean-tag-prop="type"/>
+                <separator id="!string" xdef:ref="OfficeSeparatorModel" xdef:bean-tag-prop="type"/>
+                <pageBreak id="!string" xdef:ref="OfficePageBreakModel" xdef:bean-tag-prop="type"/>
             </footer>
 
             <body xdef:body-type="list"
@@ -53,6 +158,12 @@
                   xdef:bean-body-type="List&lt;io.nop.office.doc.model.OfficeBlock>">
                 <p id="!string" xdef:ref="OfficeParagraphModel" xdef:bean-tag-prop="type"/>
                 <table id="!string" xdef:ref="word-table.xdef" xdef:bean-tag-prop="type"/>
+                <title id="!string" xdef:ref="OfficeTitleModel" xdef:bean-tag-prop="type"/>
+                <list id="!string" xdef:ref="OfficeListModel" xdef:bean-tag-prop="type"/>
+                <image id="!string" xdef:ref="OfficeImageModel" xdef:bean-tag-prop="type"/>
+                <hyperlink id="!string" xdef:ref="OfficeHyperlinkModel" xdef:bean-tag-prop="type"/>
+                <separator id="!string" xdef:ref="OfficeSeparatorModel" xdef:bean-tag-prop="type"/>
+                <pageBreak id="!string" xdef:ref="OfficePageBreakModel" xdef:bean-tag-prop="type"/>
             </body>
         </page>
     </pages>

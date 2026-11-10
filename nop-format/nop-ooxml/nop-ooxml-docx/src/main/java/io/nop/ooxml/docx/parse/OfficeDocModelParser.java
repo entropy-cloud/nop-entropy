@@ -216,18 +216,18 @@ public class OfficeDocModelParser {
         for (XNode child : paraNode.getChildren()) {
             String tagName = child.getTagName();
             if ("w:r".equals(tagName)) {
-                para.addR(parseRun(child, null, config, cp, para.getId(), runIndex++));
+                para.addRun(parseRun(child, null, config, cp, para.getId(), runIndex++));
             } else if ("w:hyperlink".equals(tagName)) {
                 WordHyperlink link = findLink(links, child);
                 if (link == null || link.getLinkType() == WordHyperlink.LinkType.link
                         || link.isXplBegin() || link.isXplEnd()) {
                     for (XNode runNode : child.getChildren()) {
                         if ("w:r".equals(runNode.getTagName())) {
-                            para.addR(parseRun(runNode, null, config, cp, para.getId(), runIndex++));
+                            para.addRun(parseRun(runNode, null, config, cp, para.getId(), runIndex++));
                         }
                     }
                 } else {
-                    para.addR(parseRun(link.getLinkNode().childByTag("w:r"), link, config, cp, para.getId(), runIndex++));
+                    para.addRun(parseRun(link.getLinkNode().childByTag("w:r"), link, config, cp, para.getId(), runIndex++));
                 }
             }
         }

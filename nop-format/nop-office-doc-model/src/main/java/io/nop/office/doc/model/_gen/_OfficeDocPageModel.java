@@ -39,6 +39,20 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: height
+     * 
+     */
+    private java.lang.Double _height ;
+    
+    /**
+     *  
+     * xml name: margins
+     * 
+     */
+    private io.nop.office.doc.model.OfficePageMargins _margins ;
+    
+    /**
+     *  
      * xml name: model
      * 
      */
@@ -57,6 +71,13 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
      * 
      */
     private java.lang.String _orientation ;
+    
+    /**
+     *  
+     * xml name: width
+     * 
+     */
+    private java.lang.Double _width ;
     
     /**
      * 
@@ -111,6 +132,44 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
         checkAllowChange();
         
         this._header = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: height
+     *  
+     */
+    
+    public java.lang.Double getHeight(){
+      return _height;
+    }
+
+    
+    public void setHeight(java.lang.Double value){
+        checkAllowChange();
+        
+        this._height = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: margins
+     *  
+     */
+    
+    public io.nop.office.doc.model.OfficePageMargins getMargins(){
+      return _margins;
+    }
+
+    
+    public void setMargins(io.nop.office.doc.model.OfficePageMargins value){
+        checkAllowChange();
+        
+        this._margins = value;
            
     }
 
@@ -172,6 +231,25 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
     }
 
     
+    /**
+     * 
+     * xml name: width
+     *  
+     */
+    
+    public java.lang.Double getWidth(){
+      return _width;
+    }
+
+    
+    public void setWidth(java.lang.Double value){
+        checkAllowChange();
+        
+        this._width = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -186,6 +264,8 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
             
            this._header = io.nop.api.core.util.FreezeHelper.deepFreeze(this._header);
             
+           this._margins = io.nop.api.core.util.FreezeHelper.deepFreeze(this._margins);
+            
            this._model = io.nop.api.core.util.FreezeHelper.deepFreeze(this._model);
             
         }
@@ -198,9 +278,12 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
         out.putNotNull("body",this.getBody());
         out.putNotNull("footer",this.getFooter());
         out.putNotNull("header",this.getHeader());
+        out.putNotNull("height",this.getHeight());
+        out.putNotNull("margins",this.getMargins());
         out.putNotNull("model",this.getModel());
         out.putNotNull("name",this.getName());
         out.putNotNull("orientation",this.getOrientation());
+        out.putNotNull("width",this.getWidth());
     }
 
     public OfficeDocPageModel cloneInstance(){
@@ -215,9 +298,12 @@ public abstract class _OfficeDocPageModel extends io.nop.core.resource.component
         instance.setBody(this.getBody());
         instance.setFooter(this.getFooter());
         instance.setHeader(this.getHeader());
+        instance.setHeight(this.getHeight());
+        instance.setMargins(this.getMargins());
         instance.setModel(this.getModel());
         instance.setName(this.getName());
         instance.setOrientation(this.getOrientation());
+        instance.setWidth(this.getWidth());
     }
 
     protected OfficeDocPageModel newInstance(){

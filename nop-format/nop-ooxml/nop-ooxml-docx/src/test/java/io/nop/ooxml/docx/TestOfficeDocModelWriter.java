@@ -12,6 +12,7 @@ import io.nop.office.doc.model.OfficeBlock;
 import io.nop.office.doc.model.OfficeDocModel;
 import io.nop.office.doc.model.OfficeDocPageModel;
 import io.nop.office.doc.model.OfficeParagraphModel;
+import io.nop.office.doc.model.OfficeRun;
 import io.nop.office.doc.model.OfficeRunModel;
 import io.nop.office.doc.model.WordTable;
 import io.nop.office.doc.model.WordTableCell;
@@ -65,7 +66,7 @@ public class TestOfficeDocModelWriter extends BaseTestCase {
         OfficeRunModel run = new OfficeRunModel();
         run.setId("p0-r0");
         run.setT("Hello World");
-        para.addR(run);
+        para.addRun(run);
 
         XNode node = builder.buildParagraph(para);
         assertEquals("w:p", node.getTagName());
@@ -92,7 +93,7 @@ public class TestOfficeDocModelWriter extends BaseTestCase {
         OfficeRunModel run = new OfficeRunModel();
         run.setId("p0-r0");
         run.setT("Centered");
-        para.addR(run);
+        para.addRun(run);
 
         XNode node = builder.buildParagraph(para);
         XNode pPr = node.childByTag("w:pPr");
@@ -396,7 +397,7 @@ public class TestOfficeDocModelWriter extends BaseTestCase {
         OfficeRunModel run = new OfficeRunModel();
         run.setId("p0-r0");
         run.setT("Hello World");
-        para.addR(run);
+        para.addRun(run);
         page.getBody().add(para);
 
         WordTable table = new WordTable();
@@ -455,7 +456,7 @@ public class TestOfficeDocModelWriter extends BaseTestCase {
         OfficeRunModel run = new OfficeRunModel();
         run.setId("p0-r0");
         run.setT("No style");
-        para.addR(run);
+        para.addRun(run);
 
         XNode pNode = builder.buildParagraph(para);
         assertNull(pNode.childByTag("w:pPr"));
@@ -514,9 +515,9 @@ public class TestOfficeDocModelWriter extends BaseTestCase {
         if (para.getRuns() == null || para.getRuns().isEmpty())
             return "";
         StringBuilder sb = new StringBuilder();
-        for (OfficeRunModel run : para.getRuns()) {
-            if (run.getT() != null) {
-                sb.append(run.getT());
+        for (OfficeRun run : para.getRuns()) {
+            if (run instanceof OfficeRunModel && ((OfficeRunModel) run).getT() != null) {
+                sb.append(((OfficeRunModel) run).getT());
             }
         }
         return sb.toString();

@@ -32,14 +32,15 @@
 
 | 能力 | 状态 | 说明 |
 | --- | --- | --- |
-| 页面宽高/方向 | 解析+生成已支持 | `pgSz` 的 w/h/orient；解析取最后一个 `w:sectPr` |
-| 页边距 | 未支持 | `pgMar` 解析与生成均未实现 |
+| 页面宽高/方向 | 解析+生成已支持；模型支持 page 级覆盖 | doc 级 `pgSz` 的 w/h/orient（解析取最后一个 `w:sectPr`）；page 级 width/height 字段模型已定稿、读写未接线 |
+| 页边距 | 模型已定稿，解析/生成未接线 | `OfficePageMargins`（page 级，twips 口径）；`pgMar` 解析与生成未实现 |
 | 页眉/页脚 | 单节已支持 | 解析经 `w:headerReference`/`w:footerReference` 收集相关部件；生成仅写 `header1.xml`/`footer1.xml`，内容取 `pages.get(0)` |
-| 多节 section | 模型有 `pages` 列表，读写未支持 | 解析只创建单个 page；生成只写首节 |
-| 块级：段落/表格 | 已支持 | `doc.xdef` body 仅允许 `<p>`/`<table>` |
-| 块级：标题/列表/图片/超链接块/分隔线/分页 | 未支持 | `parseBlocks` 只分派 `w:p`/`w:tbl`/`w:hyperlink`，hyperlink 仅解包为内部 runs |
+| 多节 section | 模型已定稿，读写未支持 | `pages` 列表 + page 级宽高/边距；解析只创建单个 page；生成只写首节 |
+| 块级：段落/表格 | 已支持 | doc.xdef body 八类块分派（p/table/title/list/image/hyperlink/separator/pageBreak）中的两类，解析/生成已接线 |
+| 块级：标题/列表/图片/超链接块/分隔线/分页 | 模型已定稿，解析/生成未接线 | `OfficeTitleModel`/`OfficeListModel`/`OfficeImageModel`/`OfficeHyperlinkModel`/`OfficeSeparatorModel`/`OfficePageBreakModel`（doc.xdef 八类块分派）；`parseBlocks` 只分派 `w:p`/`w:tbl`/`w:hyperlink`，hyperlink 仅解包为内部 runs |
 | 行内：文本 run | 已支持 | `OfficeRunModel.t` |
-| 行内：tab/br/hyperlink 独立类型 | 未支持 | |
+| 行内：tab/br/hyperlink 独立类型 | 模型已定稿，解析/生成未接线 | `OfficeRun` 标记接口 + runs 包装节点分派 `OfficeTabModel`/`OfficeBreakModel`/`OfficeLinkModel`（递归嵌套 runs） |
+| 图片资产 | 模型已定稿，解析/生成未接线 | doc 级 `assets:OfficeImageAsset{name,ext,data}`（`base64-bytes`/ByteString） |
 | run 样式 | 部分已支持 | `WordRunStyle`（`OfficeFont` + `highlightColor` + id/name）；上下标/删除线/字符间距等以 `OfficeFont`/`WordRunStyle` 字段为准 |
 | 段落样式 | 部分已支持 | `WordParagraphStyle`（`align`/`firstLineIndent`/`leftIndent`/行距/标题级别等以字段为准） |
 | 表格：横纵合并/列宽/行高 | 已支持 | `WordTableCell.mergeAcross/mergeDown`、`WordTableColumnConfig`；行高经 `w:trHeight` 解析（`WordTableParser`）与生成（`OfficeDocXmlBuilder`） |

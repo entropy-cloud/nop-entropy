@@ -13,6 +13,7 @@ import io.nop.office.doc.model.OfficeBlock;
 import io.nop.office.doc.model.OfficeDocModel;
 import io.nop.office.doc.model.OfficeDocPageModel;
 import io.nop.office.doc.model.OfficeParagraphModel;
+import io.nop.office.doc.model.OfficeRun;
 import io.nop.office.doc.model.OfficeRunModel;
 import io.nop.office.doc.model.WordTable;
 import io.nop.office.doc.model.WordTableCell;
@@ -123,7 +124,7 @@ public class OfficeDocXmlBuilder {
         }
 
         if (para.getRuns() != null) {
-            for (OfficeRunModel run : para.getRuns()) {
+            for (OfficeRun run : para.getRuns()) {
                 pNode.appendChild(buildRun(run));
             }
         }
@@ -161,19 +162,25 @@ public class OfficeDocXmlBuilder {
 
     // ---- run -------------------------------------------------------------
 
-    public XNode buildRun(OfficeRunModel run) {
+    public XNode buildRun(OfficeRun run) {
+        if (!(run instanceof OfficeRunModel)) {
+            //WI1 typed run models (tab/br/link) generation is wired with docx generation completion; fail fast, no silent skip
+            throw new UnsupportedOperationException(
+                    "not yet implemented: buildRun for " + run.getClass().getName());
+        }
+        OfficeRunModel textRun = (OfficeRunModel) run;
         XNode rNode = XNode.make("w:r");
 
-        if (run.getStyle() != null) {
-            XNode rPr = buildRunStyle(run.getStyle());
+        if (textRun.getStyle() != null) {
+            XNode rPr = buildRunStyle(textRun.getStyle());
             if (rPr != null && rPr.getChildCount() > 0) {
                 rNode.appendChild(rPr);
             }
         }
 
-        if (run.getT() != null) {
+        if (textRun.getT() != null) {
             XNode t = rNode.makeChild("w:t");
-            t.content(run.getT());
+            t.content(textRun.getT());
             t.setAttr("xml:space", "preserve");
         }
 

@@ -2,7 +2,7 @@ package io.nop.office.doc.model;
 
 import io.nop.office.doc.model._gen._OfficeRunModel;
 
-public class OfficeRunModel extends _OfficeRunModel {
+public class OfficeRunModel extends _OfficeRunModel implements OfficeRun {
     public OfficeRunTemplateModel makeModel() {
         OfficeRunTemplateModel model = getModel();
         if (model == null) {

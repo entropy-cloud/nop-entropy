@@ -18,6 +18,13 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: assets
+     * 
+     */
+    private KeyedList<io.nop.office.doc.model.OfficeImageAsset> _assets = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: height
      * 
      */
@@ -43,6 +50,51 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
      * 
      */
     private double _width ;
+    
+    /**
+     * 
+     * xml name: assets
+     *  
+     */
+    
+    public java.util.List<io.nop.office.doc.model.OfficeImageAsset> getAssets(){
+      return _assets;
+    }
+
+    
+    public void setAssets(java.util.List<io.nop.office.doc.model.OfficeImageAsset> value){
+        checkAllowChange();
+        
+        this._assets = KeyedList.fromList(value, io.nop.office.doc.model.OfficeImageAsset::getName);
+           
+    }
+
+    
+    public io.nop.office.doc.model.OfficeImageAsset getAsset(String name){
+        return this._assets.getByKey(name);
+    }
+
+    public boolean hasAsset(String name){
+        return this._assets.containsKey(name);
+    }
+
+    public void addAsset(io.nop.office.doc.model.OfficeImageAsset item) {
+        checkAllowChange();
+        java.util.List<io.nop.office.doc.model.OfficeImageAsset> list = this.getAssets();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.office.doc.model.OfficeImageAsset::getName);
+            setAssets(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_assets(){
+        return this._assets.keySet();
+    }
+
+    public boolean hasAssets(){
+        return !this._assets.isEmpty();
+    }
     
     /**
      * 
@@ -154,6 +206,8 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._assets = io.nop.api.core.util.FreezeHelper.deepFreeze(this._assets);
+            
            this._model = io.nop.api.core.util.FreezeHelper.deepFreeze(this._model);
             
            this._pages = io.nop.api.core.util.FreezeHelper.deepFreeze(this._pages);
@@ -165,6 +219,7 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("assets",this.getAssets());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("model",this.getModel());
         out.putNotNull("pages",this.getPages());
@@ -180,6 +235,7 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     protected void copyTo(OfficeDocModel instance){
         super.copyTo(instance);
         
+        instance.setAssets(this.getAssets());
         instance.setHeight(this.getHeight());
         instance.setModel(this.getModel());
         instance.setPages(this.getPages());
