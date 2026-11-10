@@ -154,15 +154,19 @@ public class TestLocalConsumeFailure_C8_002 {
     }
 
     @Test
-    void redeliveryThreadFailureAlsoDispatchesCallback_C8_002() {
+    void redeliveryThreadFailureAlsoDispatchesCallback_C8_002() throws Exception {
         LocalMessageService service = new LocalMessageService();
-        // synchronous scheduler: the deferred task runs inline on the sender thread
+        // synchronous scheduler: the deferred task runs inline on the sender thread. The
+        // due-delivery handler itself is enqueued onto the bounded delivery work queue
+        // (4.1-MA-04, plan 2558 裁定 C), so the failure surfaces asynchronously — the pin
+        // awaits the callback instead of asserting inline.
         ScheduledExecutorService syncScheduler = mock(ScheduledExecutorService.class);
         doAnswer(inv -> {
             ((Runnable) inv.getArgument(0)).run();
             return mock(ScheduledFuture.class);
         }).when(syncScheduler).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
         service.setRedeliveryExecutorForTest(syncScheduler);
+        service.setRedeliverMinIntervalMs(0);
 
         List<ConsumeFailure> failures = new CopyOnWriteArrayList<>();
         IMessageConsumer consumer = new IMessageConsumer() {
@@ -186,6 +190,10 @@ public class TestLocalConsumeFailure_C8_002 {
 
         assertDoesNotThrow(() -> service.send("t-redeliver", "deferred-msg", null));
 
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (failures.size() < 1 && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
         assertEquals(1, failures.size(),
                 "a failure on the deferred-redelivery path must dispatch the first-layer "
                         + "callback too (the redelivery thread must not die silently)");
