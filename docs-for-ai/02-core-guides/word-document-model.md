@@ -32,27 +32,26 @@
 
 | 能力 | 状态 | 说明 |
 | --- | --- | --- |
-| 页面宽高/方向 | 解析已支持（每节独立），生成已支持（doc 级单值） | 解析：每节 `w:sectPr` 的 pgSz → page 级 width/height/orientation，doc 级取首节值；生成：doc 级单值 |
-| 页边距 | 解析已支持，生成未接线 | `pgMar` → page 级 `OfficePageMargins`（twips→pt）；生成端未实现 |
-| 页眉/页脚 | 单节已支持 | 解析经 `w:headerReference`/`w:footerReference` 收集相关部件；生成仅写 `header1.xml`/`footer1.xml`，内容取 `pages.get(0)` |
-| 多节 section | 解析已支持，生成未接线 | 每个 `w:sectPr` 一个 page（节边界=段落内嵌 sectPr）；生成只写首节 |
-| 块级：段落/表格 | 已支持 | doc.xdef body 八类块分派（p/table/title/list/image/hyperlink/separator/pageBreak）中的两类，解析/生成已接线 |
-| 块级：标题/列表/图片/超链接块/分隔线/分页 | 解析已支持，生成未接线 | pStyle Heading1-9/Title→title 块；连续 numPr 聚合 list 块；独立图片段落→image 块（assets 承载媒体）；块级 hyperlink→hyperlink 块；pBdr 空段→separator；page-br 段→pageBreak。生成端未实现 |
+| 页面宽高/方向 | 解析+生成已支持（每节独立） | 解析：每节 `w:sectPr` 的 pgSz → page 级 width/height/orientation，doc 级取首节值；生成：每节 sectPr 独立 pgSz/pgMar |
+| 页边距 | 解析+生成已支持 | `pgMar` → page 级 `OfficePageMargins`（twips→pt） |
+| 页眉/页脚 | 已支持（多节） | 每节经 headerReference/footerReference 独立解析与生成（headerN.xml/footerN.xml） |
+| 多节 section | 解析+生成已支持 | 每个 `w:sectPr` 一个 page（节边界=段落内嵌 sectPr）；生成每节独立 sectPr 与 headerN/footerN 部件 |
+| 块级：段落/表格 | 已支持 | 解析与生成均支持（doc.xdef body 八类块分派之二） |
+| 块级：标题/列表/图片/超链接块/分隔线/分页 | 解析+生成已支持 | pStyle Heading1-9/Title→title 块；连续 numPr 聚合 list 块；独立图片段落→image 块（assets 承载媒体）；块级 hyperlink→hyperlink 块；pBdr 空段→separator；page-br 段→pageBreak。|
 | 行内：文本 run | 已支持 | `OfficeRunModel.t` |
-| 行内：tab/br/hyperlink 独立类型 | 解析已支持，生成未接线（仅 text run） | `OfficeRun` 分派 tab/br（含 brType=page）/link（递归嵌套 runs） |
-| 图片资产 | 解析已支持，生成未接线 | `w:drawing` 关系→媒体部件字节入 doc 级 `assets:OfficeImageAsset`（base64-bytes/ByteString），assetRef=部件全路径 |
+| 行内：tab/br/hyperlink 独立类型 | 解析+生成已支持 | `OfficeRun` 分派 tab/br（含 brType=page）/link（递归嵌套 runs） |
+| 图片资产 | 解析+生成已支持 | `w:drawing` 关系→媒体部件字节入 doc 级 `assets:OfficeImageAsset`（base64-bytes/ByteString），assetRef=部件全路径 |
 | run 样式 | 部分已支持 | `WordRunStyle`（`OfficeFont` 粗/斜/删/下划线/上下标/字体/字号/颜色 + `highlightColor`）；上下标/删除线/字符间距等以 `OfficeFont`/`WordRunStyle` 字段为准 |
 | 段落样式 | 部分已支持 | `WordParagraphStyle`（`align`/`firstLineIndent`/`leftIndent`/行距/`titleLevel` 0-8 等） |
 | 表格：横纵合并/列宽/行高 | 已支持 | `WordTableCell.mergeAcross/mergeDown`、`WordTableColumnConfig`；行高经 `w:trHeight` 解析（`WordTableParser`）与生成（`OfficeDocXmlBuilder`） |
-| 表格：边框/底纹/单元格背景 | 解析已支持，生成未接线 | tcPr 边框（缺省回退 tblBorders）/底纹/vAlign → 内联 WordCellStyle 注册 doc.styles（id `__cell_t<n>_<r>_<c>`）+ cell.styleId 引用；tcPr 横向对齐未解析（模型无字段，follow-up） |
-| 图片/绘图/媒体部件 | 未支持 | |
-| 背景/水印 | 未支持 | |
+| 表格：边框/底纹/单元格背景 | 解析+生成已支持 | tcPr 边框（缺省回退 tblBorders）/底纹/vAlign → 内联 WordCellStyle 注册 doc.styles（id `__cell_t<n>_<r>_<c>`）+ cell.styleId 引用；tcPr 横向对齐未解析（模型无字段，follow-up） |
+| 背景/水印 | 背景已支持；水印仅解析保留 | doc 级 `background` 颜色（w:background + settings displayBackgroundShape）；水印为 header 内 VML，模型不承载原始形态，round-trip 不保真 |
 | 批注 | 部分 | `WordTableCell.comment` 承载单元格批注字符串 |
-| 命名样式/默认样式/基样式继承 | 解析已支持（styles.xml→styles 容器），生成未接线 | 五类样式映射 + basedOn/default；内联 rPr 覆盖语义留给消费方经 `OfficeStyleResolver`；`WordListStyle` 经 `OfficeListModel.styleId` 引用；命名段落样式不落字体（WordParagraphStyle 无 font 字段，follow-up） |
+| 命名样式/默认样式/基样式继承 | 解析+生成已支持（styles.xml↔styles 容器） | 五类样式映射 + basedOn/default；内联 rPr 覆盖语义留给消费方经 `OfficeStyleResolver`；`WordListStyle` 经 `OfficeListModel.styleId` 引用；命名段落样式不落字体（WordParagraphStyle 无 font 字段，follow-up） |
 | 模板标注：`c:if`/`c:for` 块级标记 | 已支持 | `c:if`→testExpr（嵌套合并）；`c:for`→loopVarName/loopIndexName/loopItemsName + beginLoop（items 表达式），落 page/paragraph/title/list 的 model；列表项上的 c:for 聚合后表示重复整个列表块 |
 | 模板标注：`expr:`/`xpl:`/`tpl_expr:` 超链接 | 已支持 | `expr:`→run.model.valueExpr；`tpl_expr:`/`xpl:`→templateExpr；`linkExpr` 无标注形态（未使用） |
 | 模板标注：`xpt:table` 批注 | 识别已支持（顶层表） | 首行首单元格批注含标记 → `table.model.renderType="xpt"`；嵌套表在模型链路被拍平为文本不识别；批注其余文本不解析；展开仍经 `nop-report-docx` |
-| 生成端块分派 | 仅段落+表格 | `OfficeDocXmlBuilder.buildBlock` 只支持 `OfficeParagraphModel` + `WordTable` |
+| 生成端块分派 | 八类块 + 四类行内 | 未识别的块类型显式报错（不输出空段落）；列表编号定义（numbering.xml）不合成，列表字形在生成文档中缺失 |
 | PDF 输出 | 无 | 模型→PDF 渲染器不存在；不经 Aspose/OnlyOffice |
 
 ## 5. docx 解析契约
@@ -64,10 +63,13 @@
 
 ## 6. docx 生成契约
 
-- 入口：`OfficeDocModelWriter` + `OfficeDocXmlBuilder`（`output/`），产出 `WordOfficePackage` → 标准 `.docx`。
-- 生成块分派当前仅支持段落与表格；run 样式/对齐/间距/字体/下划线/高亮、表格横纵合并/列宽、页面设置（宽高/方向）、单节页眉页脚已覆盖。
-- 扩展块类型（图片/列表/分页等）必须走 `docx-gen.xlib` 标签库扩展 + `buildBlock` 分派扩展，不绕开 builder。
-- round-trip 红线：任何读写改动以 `docx → 模型 → docx → 模型` 语义等价断言验收（文本/结构/样式关键属性一致，非字节一致）。
+- 入口：`OfficeDocModelWriter` + `OfficeDocXmlBuilder`（`output/`），从零组装 `WordOfficePackage` → 标准 `.docx`（含 styles/settings/媒体部件与完整 ContentTypes）。
+- 覆盖八类块、四类行内、run/段落全样式、表格边框/底纹/合并/行高、每节页面设置与页眉页脚、图片媒体部件、命名样式、背景。
+- 解析期合成的内联单元格样式（id 以 `__` 开头）生成时内联回 tcPr，不写入 styles.xml；该前缀保留，用户 styles.xml 使用会在解析时报错。
+- 未识别的块类型、缺失 asset 的图片引用等不可生成形态显式报错（`DocxErrors`），不输出空结构。
+- 图片部件保留解析时的部件路径（assetRef 即包内路径），不重编号。
+- 模板语义（model 上的表达式）与 `renderType` 不回写到 docx；列表编号定义不合成。
+- round-trip 红线：任何读写改动以 `docx → 模型 → docx → 模型` 语义等价断言验收（`TestDocxRoundTrip`，非字节一致）。已知不保真：水印 VML、块级批注、命名样式字体细节、与文字混排的图片。
 
 ## 7. 模板语义内嵌规则
 

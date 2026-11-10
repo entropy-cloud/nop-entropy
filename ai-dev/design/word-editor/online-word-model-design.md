@@ -394,7 +394,17 @@ docx 内模板标注解析为内嵌 model 时的定型决策（拒绝的替代�
 2. **xpt:table 模型化边界**：识别落 WordTableParser 层，表格首行首单元格的 commentReference 批注含标记即 `table.model.renderType="xpt"`；标记字面量在 docx 模块自有常量定义（不反向依赖报表模块）。仅顶层 WordTable 承载——单元格内嵌套表在模型链路被拍平为文本，无对象可挂标记。无 comments 部件时静默通过；仅 commentReference 悬空时记 skip。批注其余文本不解析。拒绝的替代：在解析期完成 XptTableModel 转换——那是统一出口/编译链路的职责。
 3. **超链接模板语义**：`expr:`→valueExpr、`tpl_expr:`/`xpl:`→templateExpr；`linkExpr` 无既有标注形态，不强行定义语义。批注相关内联标签（commentRangeStart/End、commentReference）为已知可忽略元素。
 
-## 17. 与 springreport 的分层对比结论
+## 17. docx 生成层决策
+
+生成端覆盖全部已建模能力时的定型决策（拒绝的替代方案一并记录）：
+
+1. **单元格样式生成口径**：解析期合成的内联样式（id `__cell_*`）生成时内联回 tcPr，不回写 styles.xml；命名样式 id 禁用 `__` 前缀（解析端校验，防撞名）。拒绝的替代：全部回写 styles.xml——污染命名样式空间。
+2. **round-trip 语义等价口径**：`docx→模型→docx→模型` 经类型化比较 helper（按块类型注册比较器）逐项断言，非字节等价；豁免清单显式登记（批注往返细节、非独立图片段落、水印 VML、命名样式字体细节、背景色值精度）。
+3. **多节生成**：每节 sectPr（节末段落 pPr 内嵌 + 末节 body 级）+ 每节独立 headerN/footerN 部件与 pgSz/pgMar——与解析的节边界语义对偶。
+4. **背景字段**：doc 级 background 颜色属性；生成 w:background + settings displayBackgroundShape（settings 部件从零新建）。
+5. **不可生成形态 fail-fast**：builder 对未识别块类型抛显式错误（替换返回空段落的静默行为）；text run 内 br/tab 形态生成端不合成（模型不含该形态，解析期已具名 skip）。
+
+## 18. 与 springreport 的分层对比结论
 
 
 补充对 `springreport` 的实际实现分析后，可以把它的能力拆成三层：
@@ -403,7 +413,7 @@ docx 内模板标注解析为内嵌 model 时的定型决策（拒绝的替代�
 2. 模板配置层
 3. 产品化编辑层
 
-### 17.1 文档结构层
+### 18.1 文档结构层
 
 `springreport` 的 `DocTplSettings.header/footer/main` 本质上保存的是一组 JSON 块数据，而不是强类型文档对象模型。
 
@@ -420,7 +430,7 @@ docx 内模板标注解析为内嵌 model 时的定型决策（拒绝的替代�
 1. 当前 nop Word 模型对于 springreport 的基础文档结构表达已经基本够用
 2. 不需要为了对齐 springreport 再退回到“前端 JSON DTO 即最终模型”的做法
 
-### 17.2 模板配置层
+### 18.2 模板配置层
 
 这里需要修正一个表述：
 
@@ -448,7 +458,7 @@ docx 内模板标注解析为内嵌 model 时的定型决策（拒绝的替代�
 
 `paramMerge` 这类主要影响预览查询参数拼装的策略，更接近报表运行控制，可根据最终实现决定放在文档级 model 还是外层报表定义中，但不应退化成 springreport 式的散乱外部 JSON。
 
-### 17.3 产品化编辑层
+### 18.3 产品化编辑层
 
 `springreport` 前端还提供：
 
@@ -468,7 +478,7 @@ docx 内模板标注解析为内嵌 model 时的定型决策（拒绝的替代�
 
 混成一个问题。
 
-### 17.4 对当前 nop 方案的直接结论
+### 18.4 对当前 nop 方案的直接结论
 
 如果对比目标是 `springreport` 的基础 Word 文档结构表达：
 
@@ -479,7 +489,7 @@ docx 内模板标注解析为内嵌 model 时的定型决策（拒绝的替代�
 1. 当前 nop 还不完整
 2. 但短板主要在“模板语义尚未内嵌到模型”，而不是 Word 结构对象本身方向错了
 
-### 17.5 后续补充方向
+### 18.5 后续补充方向
 
 下一步如果继续补齐 springreport 风格能力，优先应补：
 

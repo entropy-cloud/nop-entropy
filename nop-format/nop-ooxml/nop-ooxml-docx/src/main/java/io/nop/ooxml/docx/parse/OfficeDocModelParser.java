@@ -85,7 +85,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static io.nop.ooxml.docx.DocxErrors.ARG_END_TAG_NAME;
+import static io.nop.ooxml.docx.DocxErrors.ARG_STYLE_ID;
 import static io.nop.ooxml.docx.DocxErrors.ARG_LABEL;
+import static io.nop.ooxml.docx.DocxErrors.ERR_DOCX_PARSE_RESERVED_STYLE_ID;
 import static io.nop.ooxml.docx.DocxErrors.ARG_LINK_NODE;
 import static io.nop.ooxml.docx.DocxErrors.ARG_LINK_TARGET;
 import static io.nop.ooxml.docx.DocxErrors.ARG_PART_PATH;
@@ -160,6 +162,17 @@ public class OfficeDocModelParser {
             context.doc = doc;
 
             parseStyles(pkg, doc);
+
+            // G4/WI5: document-level background color (w:background element below the
+            // document root). The displayBackgroundShape flag in settings.xml only controls
+            // whether Word renders the background and is not modeled.
+            XNode backgroundNode = docNode.childByTag("w:background");
+            if (backgroundNode != null) {
+                String color = backgroundNode.attrText("w:color");
+                if (!StringHelper.isEmpty(color)) {
+                    doc.setBackground(color);
+                }
+            }
 
             List<DocSection> sections = splitSections(getBodyNode(docNode));
             if (sections.isEmpty()) {
@@ -1671,6 +1684,12 @@ public class OfficeDocModelParser {
             if (StringHelper.isEmpty(id)) {
                 recordSkip("style without styleId skipped: " + styleNode.getLocation());
                 continue;
+            }
+            // G1: the "__" prefix is reserved for parser-synthesized inline cell styles;
+            // a user styles.xml must not claim it or writer would inline user styles into tcPr
+            if (id.startsWith("__")) {
+                throw new NopException(ERR_DOCX_PARSE_RESERVED_STYLE_ID)
+                        .param(ARG_STYLE_ID, id);
             }
             OfficeStyle style = parseStyleDef(styleNode, type, id);
             if (style != null) {

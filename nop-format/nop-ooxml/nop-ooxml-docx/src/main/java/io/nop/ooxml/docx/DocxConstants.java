@@ -34,9 +34,20 @@ public interface DocxConstants extends OfficeConstants {
 
     String PATH_WORD_RELS = "word/_rels/document.xml.rels";
     String PATH_WORD_DOCUMENT = "word/document.xml";
+    String PATH_WORD_STYLES = "word/styles.xml";
+    String PATH_WORD_SETTINGS = "word/settings.xml";
 
     String PATH_PREFIX_HEADER = "word/header";
     String PATH_PREFIX_FOOTER = "word/footer";
+
+    // content types of the parts the OfficeDocModelWriter assembles itself
+    String CT_WML_DOCUMENT = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml";
+    String CT_WML_STYLES = "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml";
+    String CT_WML_SETTINGS = "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml";
+    String CT_WML_HEADER = "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml";
+    String CT_WML_FOOTER = "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml";
+
+    String NS_SETTINGS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings";
 
     String SRC_NAME = "src";
 

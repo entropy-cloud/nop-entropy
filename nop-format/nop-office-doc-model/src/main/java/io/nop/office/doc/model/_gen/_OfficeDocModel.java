@@ -25,6 +25,13 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: background
+     * 
+     */
+    private java.lang.String _background ;
+    
+    /**
+     *  
      * xml name: height
      * 
      */
@@ -102,6 +109,25 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     public boolean hasAssets(){
         return !this._assets.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: background
+     *  
+     */
+    
+    public java.lang.String getBackground(){
+      return _background;
+    }
+
+    
+    public void setBackground(java.lang.String value){
+        checkAllowChange();
+        
+        this._background = value;
+           
+    }
+
     
     /**
      * 
@@ -256,6 +282,7 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("assets",this.getAssets());
+        out.putNotNull("background",this.getBackground());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("model",this.getModel());
         out.putNotNull("pages",this.getPages());
@@ -273,6 +300,7 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setAssets(this.getAssets());
+        instance.setBackground(this.getBackground());
         instance.setHeight(this.getHeight());
         instance.setModel(this.getModel());
         instance.setPages(this.getPages());

@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-11-10（WI0–WI4 完成，plan 2515–2519；WI5–WI11 未启动）
+> Last updated: 2026-11-10（WI0–WI5 完成，plan 2515–2520；WI6–WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -51,7 +51,7 @@
 
 ### M3 — 模型 → docx（生成）
 
-- [ ] WI5 docx 生成完善：`OfficeDocModelWriter`/`OfficeDocXmlBuilder`/`docx-gen.xlib` 覆盖全部块类型与样式、多节页眉页脚、图片嵌入（关系/ContentTypes/媒体部件）、列表、分页/分隔线、水印；产物为可打开的标准 `.docx`。含 docx→模型→docx round-trip 语义等价测试（Deliverable: 生成器完善 + round-trip 测试；deps: WI2、WI3；Item Type: Feature）
+- [x] WI5 docx 生成完善：`OfficeDocModelWriter`/`OfficeDocXmlBuilder`/`docx-gen.xlib` 覆盖全部块类型与样式、多节页眉页脚、图片嵌入（关系/ContentTypes/媒体部件）、列表、分页/分隔线、水印；产物为可打开的标准 `.docx`。含 docx→模型→docx round-trip 语义等价测试（Deliverable: 生成器完善 + round-trip 测试；deps: WI2、WI3；Item Type: Feature）
 
 ### M4 — 模型 → PDF（生成）
 
@@ -71,8 +71,8 @@
 
 - [ ] WI11 端到端验收与文档收口：docx 语料 round-trip（docx→模型→docx 语义等价）+ 模型→PDF 视觉验收 + 模板动态填充/预览/导出端到端验收；更新 owner doc（模型能力矩阵、读写/生成契约、模板语义规则、已知限制）与 `docs-for-ai/INDEX.md` 路由、`01-repo-map/module-groups.md` 模块登记、`04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI10 完成或显式裁定；Item Type: Proof）
 
-- ★ **Milestone: 通用文档模型与样式定稿**（WI1–WI2 完成后勾选）
-- ★ **Milestone: docx 双向转换可用**（WI3–WI5 完成后勾选）
+- [x] ★ **Milestone: 通用文档模型与样式定稿**（WI1–WI2 完成后勾选）
+- [x] ★ **Milestone: docx 双向转换可用**（WI3–WI5 完成后勾选）
 - ★ **Milestone: Word 文档 PDF 输出可用**（WI6 完成后勾选）
 - ★ **Milestone: Word 模板动态展开可用**（WI7–WI8 完成后勾选）
 - ★ **Milestone: 统一出口与 springreport 能力对齐**（WI9–WI10 完成后勾选）

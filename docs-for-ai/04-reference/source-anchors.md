@@ -350,9 +350,9 @@
 | DUK-005 | `nop-dao`: `duckdb.dialect.xml`（+ selector/`ddl_duckdb.xlib`）+ `DialectManager` | duckdb 方言定义（50 函数净集、ST_* spatial 裁定、无锁）；方言修复改此文件（非生成物） |
 | WDM-001 | `docs-for-ai/02-core-guides/word-document-model.md` | Word 文档模型 owner doc：模型分层/能力矩阵/docx 解析与生成契约/模板语义内嵌规则/范围硬边界的单一事实源 |
 | WDM-002 | `nop-format/nop-office-doc-model/src/main/java/io/nop/office/doc/model/OfficeDocModel.java`（+ `OfficeDocPageModel`/`OfficeParagraphModel`/`OfficeRunModel`/`OfficeBlock`） | 文档结构模型族；块级用 `OfficeBlock` 标记接口 + doc.xdef `xdef:bean-tag-prop="type"` 标签分派；各节点 `makeModel()` 内嵌模板模型 |
-| WDM-003 | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/office/doc.xdef`（+ `word-table.xdef`/`word-*-style.xdef`/`font.xdef`） | 文档元模型；body 当前仅允许 `<p>`/`<table>`；模板语义内嵌 `model` 子节点的 schema 载体 |
-| WDM-004 | `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/parse/OfficeDocModelParser.java` | docx 解析入口：块分派 `w:p`/`w:tbl`/`w:hyperlink`；`w:sectPr` 收集页眉页脚引用与页面设置；`if:`/`for:` 标注编译为 testExpr/loop 内嵌 model |
-| WDM-005 | `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/output/OfficeDocModelWriter.java`（+ `OfficeDocXmlBuilder.java`） | docx 生成入口：块分派仅段落+表格；页面设置/单节页眉页脚/表格横纵合并/列宽已覆盖 |
+| WDM-003 | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/office/doc.xdef`（+ `word-table.xdef`/`word-*-style.xdef`/`font.xdef`） | 文档元模型：body 八类块分派、runs 包装节点四类行内、styles 容器五类样式、page 级页面设置、assets、background；模板语义内嵌 `model` 子节点的 schema 载体 |
+| WDM-004 | `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/parse/OfficeDocModelParser.java`（+ `WordTableParser.java`） | docx 解析入口：八类块/四类行内/多节（每 sectPr 一 page）/styles.xml/图片 assets/模板标注（c:if、c:for、expr:/xpl:/tpl_expr:、xpt:table）；降级项经 `getLastParseSkips()` 具名记录 |
+| WDM-005 | `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/output/OfficeDocModelWriter.java`（+ `OfficeDocXmlBuilder.java`） | docx 生成入口：八类块/四类行内/多节 sectPr 与 headerN/footerN/媒体部件/styles.xml/settings；不可生成形态显式报错；round-trip 验收见 `TestDocxRoundTrip` |
 | WDM-006 | `nop-format/nop-office-model/src/main/java/io/nop/office/model/WordRunStyle.java`（+ `WordParagraphStyle`/`WordCellStyle`/`WordTableStyle`/`OfficeFont`/`OfficeBorder`） | Word 样式四类与共享叶子模型（`io.nop.office.model`），独立于 ExcelStyle |
 
 ## 当 `docs-for-ai` 仍有歧义时
