@@ -1,6 +1,6 @@
 # 2564 CRA Phase 8.70 — R4-30 6.1 搜索/FFM/聚合束（4 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-12
 > Source: roadmap 工作项 8.70；批次定义 = cra-index.md :470 P2-G85 行；成员发现 = `ai-dev/audits/2026-10/2026-10-22-1400-deep-audit-nop-tools-parallel-concurrency/`；设计文档 = `../design/concurrency/tools-parallel-batch.md`（裁定 A-D + 勘正 4）
 > Related: plan 2488（审计立项 6.1）；CL-202 闭环至 W-14
@@ -42,7 +42,7 @@ Status: completed（设计裁定 A-D + fresh-session 取证 + 勘正 4）
 
 ### Phase 2 - 4 工单实现 + 回归测试
 
-Status: in progress
+Status: completed
 Targets: nop-tools/nop-rg + nop-tools/nop-find + nop-tools/nop-bytecode
 Item Types: `Fix`（4）
 
@@ -60,7 +60,7 @@ Exit Criteria:
 - [x] 先红后绿：C10-01 结构钉红证（实测 red "got modifiers=private"）+C10-03 行为红（链1 首错即抛还原 2 红；chmod 腿 assumeTrue 非 root+POSIX）+C10-02 条件红（通道腿修前红实测；单元腿 darwin 平台门 skip 留证——Linux 机重跑留证为 closure audit 复核项）；变异链 13 条全过（W-05×4 / W-03×3 / W-01×3 / W-14×3），逐链恢复 grep 断言命中——`_tmp/red-green-ledger-2564.md`
 - [x] W-05 九项失效面逐面兑现清单留证（设计裁定 C 表 9 项逐面落地；面 6 冻结豁免由 walker 穿透腿钉住）
 - [x] W-14 sha256 对照逐字保留（冻结钉 tampered/corruptManifest 双绿）+ openJar ≤1 断言（opens==1，修前形态 4）
-- [x] E3：四叶绿（rg-core 457 / rg-cli 196 / find-core 20 / bytecode 77，`-am` 全量一轮 0 fail）[R2-M2]；勘误：上游 nop-core TestResourceCacheInvalidationChain 3 失败=既有 mtime 粒度 flake（单测复跑绿、本批零触碰）
+- [x] E3：四叶绿（solo 口径 audit fresh 复跑=rg-core 69[2 skip]/rg-cli 31/find-core 59/bytecode 35 全 0 fail——closure audit Major-1 勘正原 -am 聚合记账错误；`-am` 全量一轮 0 fail；rg-core 2 skip 含本批 TruncationFault 单元腿 Linux 平台门[Minor-3 补记]）[R2-M2]；勘误：上游 nop-core TestResourceCacheInvalidationChain 3 失败=既有 mtime 粒度 flake（单测复跑绿、本批零触碰）
 - [x] E1 全量编译门禁 BUILD SUCCESS（`./mvnw clean install -DskipTests -T 1C`，benchmark/find-cli/rg-vector 编译级覆盖）
 - [x] 契约知识落 `source-anchors.md` 新锚点行（R4-30-A/B/C；缺口声明沿用设计 §七）+ nop-bytecode.md read-back 条目
 - [x] 工具门禁：check-doc-links --strict EXIT=0（1 既有 warning 非 error）；scan-hollow `--severity high` 四叶 EXIT=0
@@ -68,17 +68,17 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（4/4）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛
-- [ ] 行为/契约结果已达成
-- [ ] 必要 focused verification 已完成
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect
-- [ ] 受影响 owner docs 已同步（缺口声明+新锚点）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] Anti-Hollow Check：closure audit 验证调用链连通与无空壳
-- [ ] `./mvnw compile`（触达模块）
-- [ ] `./mvnw test`（逐模块）
-- [ ] 代码规范自查（imports 分组/无裸 RuntimeException）+ scan-hollow --severity high 通过（仓库无 checkstyle 插件——R1-m8 口径）
+- [x] 所有 in-scope confirmed live defects 已修复（4/4）
+- [x] 所有 in-scope confirmed contract drifts 已收敛
+- [x] 行为/契约结果已达成
+- [x] 必要 focused verification 已完成
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect
+- [x] 受影响 owner docs 已同步（缺口声明+新锚点）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] Anti-Hollow Check：closure audit 验证调用链连通与无空壳
+- [x] `./mvnw compile`（触达模块）
+- [x] `./mvnw test`（逐模块）
+- [x] 代码规范自查（imports 分组/无裸 RuntimeException）+ scan-hollow --severity high 通过（仓库无 checkstyle 插件——R1-m8 口径）
 
 ## Deferred But Adjudicated
 
@@ -93,6 +93,28 @@ Exit Criteria:
 
 **Draft review R2（fresh session，2026-11-12）**：0B+2M+3m——M-R2-1 W-03 两腿缺注入通道机制化（单元腿停在 reader 层验不到 coordinator 包装、变异链失配）→ 定死包私有 taskDecorator seam（默认恒等，测试注入装饰器确定性送 InternalError/RuntimeException 进任务边界）；M-R2-2 基线命令 -pl aggregator 不递归空转 → 勘正为逐叶 rg-core/rg-cli/find-core/bytecode -am+benchmark/find-cli/rg-vector 编译级归 E1；m-R2-3 NopRgMainTest:203 匿名类覆写面登记；m-R2-4 截断腿门控=JDK 版本门+POSIX（探测判定有 SIGBUS 风险不可用/Windows 映射句柄锁）；m-R2-5 task 级联合 record 留实现评审一句登记。R1 全部落位核验 PASS。两轮收敛无 Blocker，进入实施。
 
+
 ## Closure
 
-（待实施与 closure audit）
+Status Note: 8.70/R4-30 全 4 工单落地（W-05 SearchOutcome 部分成功语义+失效面 9 项逐面兑现+FindCoordinator shard 聚合/W-03 InternalError 包装+边界声明+两腿确定性载体/W-01 patternBytes 急切编码 final/W-14 jarOpener 注入+ClassByteSource 单开），13 链变异红证（`_tmp/red-green-ledger-2564.md`），C10-01~04 缺保护钉随本体，冻结面零回退（walker fail-fast/index 确定性/sha256 对照/testVectorStrategyExplicitlyFails），E3 solo 69/31/59/35 全绿+`-am` 全量绿+E1 BUILD SUCCESS+scan-hollow 四叶 EXIT=0，source-anchors 三锚点+nop-bytecode.md R4-30 条目落账。closure audit APPROVED-with-corrections（0B/1M/2m 全闭环）。
+Completed: 2026-11-12
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立 fresh-session closure audit（APPROVED-with-corrections）
+- Evidence:
+  - 四工单机制 live 取证逐条 PASS（锚点：SearchCommand:19/:53/:68-70、SearchCoordinator:120-127/:143-147/:166-169、MappedFileReader:21-25、NopRgMain:104-110、FindCoordinator:159-194、NopBytecodeMain:74-75/:154/:318-325）
+  - 载体测试存在且断言目标行为（六载体+语义迁移改写+冻结钉保持）
+  - 红绿账本抽验 3 链自洽（W-05 双 marker/W-14 计数含假绿探针勘误/W-03 通道链红 0）；darwin skip 负结果留证诚实（R27 Linux 机复核项登记）
+  - Anti-Hollow 三 seam 真被消费（jarOpener/taskDecorator/SearchOutcome.errors→exit 2）
+  - 提交 74cfb256ac 26 文件全在 scope
+  - **Major-1 勘正**：E3 计数 -am 聚合记账错误（find-core 20<59 矛盾）→ ledger/plan 改 solo 口径 69(2 skip)/31/59/35；**Minor-2** 账本 grep 行号漂移登记；**Minor-3** skip 数补记
+  - `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
+  - Deferred 分类诚实性 PASS
+
+Follow-up:
+
+- R27 双机形态：W-03 单元腿 Linux 机重跑留证（darwin 实测不 fault，负结果已在册）
+- nop-core TestResourceCacheInvalidationChain 既有 mtime 粒度 flake（非本批，另行登记）
+- JMH smoke 随 BG-5 排期；jcstress 沿 C10 建议不做
+
