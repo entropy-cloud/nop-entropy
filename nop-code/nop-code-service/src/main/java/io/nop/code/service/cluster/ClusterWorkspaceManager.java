@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
@@ -123,41 +124,30 @@ public class ClusterWorkspaceManager {
         gitWithCredential(workdir, null, args);
     }
 
+    // W-04 (plan 2565, facility F1): unified git process bridge seam — watchdog armed BEFORE
+    // the pipe-read phase at the bridge; repoLock structure and exception semantics unchanged.
+    // Package-visible for test hang-stub injection.
+    volatile io.nop.code.core.util.GitProcessRunner runner =
+            io.nop.code.core.util.GitProcessRunner.createDefault();
+
     /**
      * N6.5: credentials travel through the process environment (GIT_ASKPASS contract via
      * GIT_HTTP_LOWAUTH_X placeholders is avoided — we use the env-only channel so the
      * credential never appears in command-line arguments or logs).
      */
     private void gitWithCredential(Path workdir, GitCredentialResolver.GitCredential credential, String... args) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder();
-            java.util.List<String> command = new java.util.ArrayList<>();
-            command.add("git");
-            for (String arg : args) {
-                command.add(arg);
-            }
-            pb.command(command);
-            pb.directory(workdir.toFile());
-            if (credential != null) {
-                applyCredential(pb, credential);
-            }
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            boolean finished = process.waitFor(GIT_TIMEOUT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                throw new IllegalStateException("git command timed out");
-            }
-            if (process.exitValue() != 0) {
-                // note: output may contain git diagnostics — never the credential (env channel)
-                throw new IllegalStateException("git command failed (" + process.exitValue() + ")");
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("git command io failure", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("git command interrupted", e);
+        Map<String, String> extraEnv = new java.util.HashMap<>();
+        if (credential != null) {
+            extraEnv.putAll(credentialEnv(credential));
+        }
+        io.nop.code.core.util.GitProcessRunner.Result result =
+                runner.run(workdir, GIT_TIMEOUT_MILLIS, java.util.Arrays.asList(args), extraEnv);
+        if (result.isTimedOut()) {
+            throw new IllegalStateException("git command timed out");
+        }
+        if (result.getExitCode() == null || result.getExitCode() != 0) {
+            // note: output may contain git diagnostics — never the credential (env channel)
+            throw new IllegalStateException("git command failed (" + result.getExitCode() + ")");
         }
     }
 
@@ -166,42 +156,35 @@ public class ClusterWorkspaceManager {
      * 消费该约定），命令行参数与日志零泄漏。注意：环境变量通道本身对 git 是惰性的
      * （git 原生不读取 NOP_GIT_*），认证由部署方的 credential helper 消费。
      */
-    static void applyCredential(ProcessBuilder pb, GitCredentialResolver.GitCredential credential) {
-        pb.environment().put("NOP_GIT_USERNAME",
+    static Map<String, String> credentialEnv(GitCredentialResolver.GitCredential credential) {
+        Map<String, String> env = new java.util.HashMap<>();
+        env.put("NOP_GIT_USERNAME",
                 credential.getUsername() == null ? "" : credential.getUsername());
-        pb.environment().put("NOP_GIT_PASSWORD",
+        env.put("NOP_GIT_PASSWORD",
                 credential.getPassword() == null ? "" : credential.getPassword());
+        return env;
     }
 
-    private static String gitOutput(Path workdir, String... args) {
+    static void applyCredential(ProcessBuilder pb, GitCredentialResolver.GitCredential credential) {
+        pb.environment().putAll(credentialEnv(credential));
+    }
+
+    private String gitOutput(Path workdir, String... args) {
+        io.nop.code.core.util.GitProcessRunner.Result result;
         try {
-            ProcessBuilder pb = new ProcessBuilder();
-            java.util.List<String> command = new java.util.ArrayList<>();
-            command.add("git");
-            for (String arg : args) {
-                command.add(arg);
-            }
-            pb.command(command);
-            pb.directory(workdir.toFile());
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            boolean finished = process.waitFor(GIT_TIMEOUT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                throw new IllegalStateException("git command timed out: " + command);
-            }
-            if (process.exitValue() != 0) {
-                throw new IllegalStateException("git command failed (" + process.exitValue() + "): "
-                        + command + "\n" + output);
-            }
-            return output.trim();
-        } catch (IOException e) {
+            result = runner.run(workdir, GIT_TIMEOUT_MILLIS, java.util.Arrays.asList(args),
+                    java.util.Collections.emptyMap());
+        } catch (IllegalStateException e) {
             throw new IllegalStateException("git command io failure: " + String.join(" ", args), e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("git command interrupted", e);
         }
+        if (result.isTimedOut()) {
+            throw new IllegalStateException("git command timed out: git " + String.join(" ", args));
+        }
+        if (result.getExitCode() == null || result.getExitCode() != 0) {
+            throw new IllegalStateException("git command failed (" + result.getExitCode() + "): "
+                    + "git " + String.join(" ", args) + "\n" + result.getOutput());
+        }
+        return result.getOutput().trim();
     }
 
     public static class WorkspaceInfo {

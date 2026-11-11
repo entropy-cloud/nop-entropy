@@ -145,6 +145,49 @@ class CodeQueryService {
                 .collect(Collectors.toList());
     }
 
+    /** W-19 projection row: id/filePath/packageName only — no sourceCode CLOB carrier */
+    static final class FileRow {
+        final String id;
+        final String filePath;
+        final String packageName;
+
+        FileRow(String id, String filePath, String packageName) {
+            this.id = id;
+            this.filePath = filePath;
+            this.packageName = packageName;
+        }
+    }
+
+    /**
+     * W-19 (plan 2565, adjudication N / F2 form #3): projection variant of getFiles —
+     * selectFieldsByQuery over id/filePath/packageName only (same convention and rationale
+     * as getModuleDigest :289 / getPublicSurface :364). getFileTree is the consumer; the
+     * getFiles entity body stays frozen (its biz surface includes sourceCode).
+     */
+    List<FileRow> getFilesProjected(String indexId) {
+        if (daoProvider == null) return Collections.emptyList();
+        IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq("indexId", indexId));
+        query.setLimit(CodeIndexService.MAX_QUERY_RESULTS);
+        query.addField(QueryFieldBean.forField("id"));
+        query.addField(QueryFieldBean.forField("filePath"));
+        query.addField(QueryFieldBean.forField("packageName"));
+        // Projection: avoid loading CLOB sourceCode for a tree that only needs scalars
+        List<Map<String, Object>> rows = fileDao.selectFieldsByQuery(query);
+        warnIfCapped(rows.size(), CodeIndexService.MAX_QUERY_RESULTS, "getFilesProjected:" + indexId);
+        List<FileRow> result = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            Object id = row.get("id");
+            Object path = row.get("filePath");
+            Object pkg = row.get("packageName");
+            result.add(new FileRow(id != null ? id.toString() : null,
+                    path != null ? path.toString() : null,
+                    pkg != null ? pkg.toString() : null));
+        }
+        return result;
+    }
+
     CodeFileAnalysisResult getFile(String indexId, String filePath) {
         if (daoProvider == null) return null;
         IEntityDao<NopCodeFile> fileDao = daoProvider.daoFor(NopCodeFile.class);
@@ -219,8 +262,18 @@ class CodeQueryService {
         return outline;
     }
 
+    // W-18 seam (F2): instance field + package setter, default = compile-time constant
+    volatile int publicSurfaceCap = CodeIndexService.MAX_QUERY_RESULTS;
+
+    void setPublicSurfaceCapForTest(int cap) {
+        this.publicSurfaceCap = cap;
+    }
+
     List<FileTreeNode> getFileTree(String indexId) {
-        List<CodeFileAnalysisResult> files = getFiles(indexId);
+        // W-19 (plan 2565, adjudication N): projection variant — only id/filePath/packageName
+        // are consumed for tree building; loading full entities would drag the sourceCode CLOB
+        // into memory for every file (same rationale as getModuleDigest/getPublicSurface)
+        List<FileRow> files = getFilesProjected(indexId);
 
         FileTreeNode root = new FileTreeNode();
         root.setName("root");
@@ -230,8 +283,8 @@ class CodeQueryService {
         Map<String, FileTreeNode> nodeMap = new LinkedHashMap<>();
         nodeMap.put("", root);
 
-        for (CodeFileAnalysisResult file : files) {
-            String packageName = file.getPackageName();
+        for (FileRow file : files) {
+            String packageName = file.packageName;
             if (packageName == null || packageName.isEmpty()) {
                 packageName = "(default)";
             }
@@ -258,10 +311,10 @@ class CodeQueryService {
             }
 
             FileTreeNode fileNode = new FileTreeNode();
-            fileNode.setName(file.getFilePath() != null
-                    ? file.getFilePath().substring(file.getFilePath().lastIndexOf('/') + 1)
+            fileNode.setName(file.filePath != null
+                    ? file.filePath.substring(file.filePath.lastIndexOf('/') + 1)
                     : "unknown");
-            fileNode.setPath(file.getFilePath());
+            fileNode.setPath(file.filePath);
             fileNode.setType(FileTreeNodeType.FILE);
 
             FileTreeNode packageParent = nodeMap.get(packageName);
@@ -386,9 +439,15 @@ class CodeQueryService {
         symQuery.addFilter(FilterBeans.eq("indexId", indexId));
         symQuery.addFilter(FilterBeans.in("fileId", fileIds));
         symQuery.addFilter(FilterBeans.eq("accessModifier", "PUBLIC"));
+        // W-18 (plan 2565, adjudication M / F2): this was the only unbounded query in the file
+        // (17 query methods audited) — cap it like getFiles/findReferencedBy, with a seam
+        // (instance field + package setter, default = MAX_QUERY_RESULTS, zero diff)
+        symQuery.setLimit(publicSurfaceCap);
 
         List<PublicAPIDTO> result = new ArrayList<>();
-        for (NopCodeSymbol sym : symbolDao.findAllByQuery(symQuery)) {
+        List<NopCodeSymbol> publicSymbols = symbolDao.findAllByQuery(symQuery);
+        warnIfCapped(publicSymbols.size(), publicSurfaceCap, "getPublicSurface:symbols:" + indexId);
+        for (NopCodeSymbol sym : publicSymbols) {
             if (!allowedKinds.contains(sym.getKind())) continue;
 
             PublicAPIDTO dto = new PublicAPIDTO();

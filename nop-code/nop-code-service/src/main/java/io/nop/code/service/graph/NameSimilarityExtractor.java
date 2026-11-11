@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.nop.code.core.graph.CallGraph;
 import io.nop.code.core.graph.SymbolTable;
 import io.nop.code.core.model.CodeSymbol;
@@ -19,11 +22,32 @@ import io.nop.code.core.semantic.SemanticRelationType;
  * Extracts semantic edges based on symbol name similarity.
  * Symbols with similar names (normalized, Levenshtein/Jaccard) that are not
  * connected via calls/inheritance get a semantically_similar_to edge.
+ *
+ * W-13 (plan 2565, adjudication H / facility F2): output edges are capped at
+ * {@link #DEFAULT_MAX_EDGES} (aligned with the AnnotationPatternExtractor MAX_EDGES
+ * convention — the same-unit asymmetric-guard oracle). Reaching the cap truncates +
+ * structured WARN + observable flag. The cap is an instance field with a package setter
+ * (default = the compile-time constant, production zero diff).
  */
 public class NameSimilarityExtractor implements ISemanticEdgeExtractor {
 
+    private static final Logger LOG = LoggerFactory.getLogger(NameSimilarityExtractor.class);
+
     private static final double SIMILARITY_THRESHOLD = 0.7;
     private static final int MAX_SYMBOLS = 5000;
+    private static final int DEFAULT_MAX_EDGES = 50000;
+
+    private volatile int maxEdges = DEFAULT_MAX_EDGES;
+    private volatile boolean lastRunTruncated;
+
+    void setMaxEdgesForTest(int maxEdges) {
+        this.maxEdges = maxEdges;
+    }
+
+    /** observable truncation flag of the most recent extract() run (F2 form #1) */
+    boolean isLastRunTruncated() {
+        return lastRunTruncated;
+    }
 
     @Override
     public String getExtractorId() {
@@ -36,11 +60,13 @@ public class NameSimilarityExtractor implements ISemanticEdgeExtractor {
         if (symbols.size() > MAX_SYMBOLS) {
             symbols = symbols.subList(0, MAX_SYMBOLS);
         }
+        lastRunTruncated = false;
 
         Set<String> existingEdges = buildExistingEdgeSet(callGraph);
         List<CodeSemanticEdge> edges = new ArrayList<>();
         Set<String> seen = new HashSet<>();
 
+        outer:
         for (int i = 0; i < symbols.size(); i++) {
             String name1 = normalizeName(symbols.get(i).getName());
             if (name1 == null || name1.length() < 3) continue;
@@ -63,6 +89,14 @@ public class NameSimilarityExtractor implements ISemanticEdgeExtractor {
 
                 double similarity = jaccardSimilarity(name1, name2);
                 if (similarity >= SIMILARITY_THRESHOLD) {
+                    if (edges.size() >= maxEdges) {
+                        // W-13: O(N^2) output guard — truncate + WARN + flag (asymmetric
+                        // vs AnnotationPatternExtractor closed)
+                        LOG.warn("nop.code.extractor-edges-capped:extractor={},cap={},symbolCount={}",
+                                getExtractorId(), maxEdges, symbols.size());
+                        lastRunTruncated = true;
+                        break outer;
+                    }
                     seen.add(edgeKey);
 
                     CodeSemanticEdge edge = new CodeSemanticEdge();

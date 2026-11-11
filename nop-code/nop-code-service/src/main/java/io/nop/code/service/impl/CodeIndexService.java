@@ -69,6 +69,7 @@ import io.nop.code.dao.entity.NopCodeIndex;
 import io.nop.code.dao.entity.NopCodeInheritance;
 import io.nop.code.dao.entity.NopCodeGraphMetric;
 import io.nop.code.dao.entity.NopCodeSemanticEdge;
+import io.nop.code.dao.entity.NopCodeShardLedger;
 import io.nop.code.dao.entity.NopCodeSymbol;
 import io.nop.code.dao.entity.NopCodeUsage;
 import io.nop.code.flow.ChangeAnalysisResult;
@@ -113,6 +114,8 @@ public class CodeIndexService implements ICodeIndexService {
 
     static final int MAX_QUERY_RESULTS = 10000;
     private static final int BATCH_SIZE = 1000;
+    // W-13 (plan 2565): edge save batch size — matches the file/symbol BatchQueue(500) oracle
+    private static final int EDGE_SAVE_BATCH = 500;
 
     private final CodeCacheManager cacheManager = new CodeCacheManager();
     private CodeSearchService searchService;
@@ -449,13 +452,27 @@ public class CodeIndexService implements ICodeIndexService {
         cacheManager.invalidateAnalysisCache(indexId, flowDetector);
     }
 
+    /**
+     * W-12 (plan 2565, adjudication B): commit-point cache invalidation. Must be called as the
+     * FIRST statement inside a runInTransaction body — CodeIndexAfterCommit registers an
+     * afterCommit listener on the open transaction, so the invalidation executes only after
+     * commit (rollback keeps the cache intact). A no-transaction call site would throw
+     * ERR_TXN_NOT_IN_TRANSACTION (deliberate guard: a silent no-op registration is the
+     * pre-fix bug shape). The two reference sites that already invalidate inside the lock after
+     * their transaction (indexFile / triggerIncrementalIndex) are frozen and untouched.
+     */
+    private void invalidateAnalysisCacheAfterCommit(String indexId) {
+        CodeIndexAfterCommit.run(transactionTemplate,
+                "nop.code.invalidate-analysis-cache-after-commit:indexId=" + indexId,
+                () -> invalidateAnalysisCache(indexId));
+    }
+
     // ====== Indexing ======
 
     @Override
     public int indexDirectory(String indexId, String vfsPath, String filePattern) {
         checkWriteAccess(indexId);
         validatePath(vfsPath);
-        invalidateAnalysisCache(indexId);
         return withIndexLock(indexId, () -> {
             String resolvedPath = resolveVfsPath(vfsPath);
             validateLocalPath(indexId, resolvedPath);
@@ -468,8 +485,12 @@ public class CodeIndexService implements ICodeIndexService {
             ProjectAnalysisResult result = analyzer.analyzeProject(
                     VirtualFileSystem.instance(), resolvedPath, filePattern);
             final ProjectAnalysisResult finalResult = result;
-            return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
-                    ormTemplate.runInSession(session -> {
+            return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
+                // W-12: invalidate at commit point (registered inside the transaction; was
+                // previously outside the lock before withIndexLock — pre-commit invalidation
+                // let a stale rebuild backfill survive until CACHE_TTL_MS)
+                invalidateAnalysisCacheAfterCommit(indexId);
+                return ormTemplate.runInSession(session -> {
                         ensureIndexEntity(indexId, resolvedPath, session);
                         // Delete existing records for the files being re-indexed so a retry over the
                         // same directory is idempotent. Symbols/relational rows have non-deterministic
@@ -485,7 +506,8 @@ public class CodeIndexService implements ICodeIndexService {
                         graphMetricMaterializer.deleteByIndex(session, indexId);
                         persistInSession(indexId, resolvedPath, finalResult, session);
                         return finalResult.getFileResults().size();
-                    }));
+                    });
+            });
         });
     }
 
@@ -548,15 +570,17 @@ public class CodeIndexService implements ICodeIndexService {
                                                                List<String> relativePaths) {
         checkWriteAccess(indexId);
         validatePath(vfsPath);
-        invalidateAnalysisCache(indexId);
         io.nop.code.api.dto.IndexFileSetResult result = new io.nop.code.api.dto.IndexFileSetResult();
         if (relativePaths == null || relativePaths.isEmpty()) {
             return result;
         }
         IResourceLoader vfs = VirtualFileSystem.instance();
         return withIndexLock(indexId, () -> transactionTemplate.runInTransaction(null,
-                TransactionPropagation.REQUIRED, txn ->
-                        ormTemplate.runInSession(session -> {
+                TransactionPropagation.REQUIRED, txn -> {
+                    // W-12: invalidate at commit point (was previously outside the lock,
+                    // pre-commit — see indexDirectory)
+                    invalidateAnalysisCacheAfterCommit(indexId);
+                    return ormTemplate.runInSession(session -> {
                             ensureIndexEntity(indexId, vfsPath, session);
                             ensureSubServices();
                             graphMetricMaterializer.deleteByIndex(session, indexId);
@@ -606,7 +630,8 @@ public class CodeIndexService implements ICodeIndexService {
                             }
                             updateIndexStats(indexId);
                             return holder.get(0);
-                        })));
+                        });
+                }));
     }
 
     // ====== File Queries ======
@@ -956,34 +981,30 @@ public class CodeIndexService implements ICodeIndexService {
         return files;
     }
 
+    // W-04 (plan 2565, facility F1): unified git process bridge seam — watchdog armed BEFORE
+    // the pipe-read phase at the bridge, so a blocked read can no longer bypass the timeout.
+    // Package-visible for test hang-stub injection (TestGitCallSitesTimeout).
+    static volatile io.nop.code.core.util.GitProcessRunner gitRunner =
+            io.nop.code.core.util.GitProcessRunner.createDefault();
+
     private static String gitOutput(String workdir, String... gitArgs) {
+        io.nop.code.core.util.GitProcessRunner.Result result;
         try {
-            ProcessBuilder pb = new ProcessBuilder("git", "-C", workdir);
-            for (String arg : gitArgs) {
-                pb.command().add(arg);
-            }
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            String output;
-            try (var reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                output = reader.lines().collect(java.util.stream.Collectors.joining("\n"));
-            }
-            if (!process.waitFor(GIT_TIMEOUT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly();
-                throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir);
-            }
-            if (process.exitValue() != 0) {
-                throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO)
-                        .param(ARG_PATH, workdir + ": " + output);
-            }
-            return output;
-        } catch (java.io.IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+            result = gitRunner.run(java.nio.file.Path.of(workdir), GIT_TIMEOUT_MILLIS,
+                    java.util.Arrays.asList(gitArgs), java.util.Collections.emptyMap());
+        } catch (IllegalStateException e) {
             throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir).cause(e);
         }
+        // exception translation stays at the site: timeout maps to the existing
+        // ERR_CODE_REBUILD_NOT_GIT_REPO contract
+        if (result.isTimedOut()) {
+            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO).param(ARG_PATH, workdir);
+        }
+        if (result.getExitCode() == null || result.getExitCode() != 0) {
+            throw new NopException(ERR_CODE_REBUILD_NOT_GIT_REPO)
+                    .param(ARG_PATH, workdir + ": " + result.getOutput());
+        }
+        return result.getOutput();
     }
 
     @Override
@@ -998,8 +1019,6 @@ public class CodeIndexService implements ICodeIndexService {
     public void deleteIndex(String indexId) {
         checkWriteAccess(indexId);
         withIndexLock(indexId, () -> {
-            invalidateAnalysisCache(indexId);
-
             if (searchEngine != null) {
                 try {
                     searchEngine.removeTopic("nop-code-" + indexId);
@@ -1008,8 +1027,11 @@ public class CodeIndexService implements ICodeIndexService {
                 }
             }
 
-            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
-                    ormTemplate.runInSession(session -> {
+            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
+                // W-12: invalidate at commit point (was pre-transaction — a reader could rebuild
+                // from the not-yet-deleted snapshot and the stale cache survived until TTL)
+                invalidateAnalysisCacheAfterCommit(indexId);
+                return ormTemplate.runInSession(session -> {
                         deleteEntitiesPaged(session, NopCodeUsage.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeFlowMembership.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeFlow.class, "indexId", indexId);
@@ -1021,11 +1043,16 @@ public class CodeIndexService implements ICodeIndexService {
                         deleteEntitiesPaged(session, NopCodeDependency.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeSemanticEdge.class, "indexId", indexId);
                         deleteEntitiesPaged(session, NopCodeGraphMetric.class, "indexId", indexId);
+                        // W-06 (plan 2565, adjudication D): 12th entity — leftover shard-ledger
+                        // rows let completeShard of a rebuilt indexId hit stale COMPLETED rows
+                        // and finalizeIfAllCompleted early-publish the new index.
+                        deleteEntitiesPaged(session, NopCodeShardLedger.class, "indexId", indexId);
                         incrementalAffectedFilesMap.remove(indexId);
 
                         daoProvider.daoFor(NopCodeIndex.class).deleteEntityById(indexId);
                         return null;
-                    }));
+                    });
+            });
 
             indexLocks.remove(indexId);
         });
@@ -1297,8 +1324,10 @@ public class CodeIndexService implements ICodeIndexService {
                 resolveReanalyzedCalls(indexId, changedResults, reanalyzedSymbols, excludeFilePaths);
 
                 BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(BATCH_SIZE, batch -> {
+                    // W-16: one merged-table snapshot per batch (frequency F -> batch count)
+                    MergedTableContext ctx = new MergedTableContext();
                     for (CodeFileAnalysisResult result : batch) {
-                        persistSingleFileInSession(indexId, result, session);
+                        persistSingleFileInSession(indexId, result, session, ctx);
                     }
                     LOG.debug("Flushed batch of {} analysis results for index {}", batch.size(), indexId);
                 });
@@ -1396,25 +1425,37 @@ public class CodeIndexService implements ICodeIndexService {
 
         // Persist semantic edges
         if (result.getSemanticEdges() != null && !result.getSemanticEdges().isEmpty()) {
+            // W-13 (plan 2565, adjudication H / F2 form #2): batch save + flush + evict, same
+            // oracle as the file/symbol-side BatchQueue(500) above — a giant-transaction
+            // per-row save without flush bloated the persistence context O(edges).
+            BatchQueue<CodeSemanticEdge> edgeQueue = new BatchQueue<>(EDGE_SAVE_BATCH, batch -> {
+                for (CodeSemanticEdge edge : batch) {
+                    NopCodeSemanticEdge edgeEntity = (NopCodeSemanticEdge) ormTemplate.newEntity(
+                            NopCodeSemanticEdge.class.getName());
+                    edgeEntity.setId(edge.getId());
+                    edgeEntity.setIndexId(indexId);
+                    edgeEntity.setSourceSymbolId(edge.getSourceSymbolId());
+                    edgeEntity.setTargetSymbolId(edge.getTargetSymbolId());
+                    edgeEntity.setDirected(edge.isDirected());
+                    edgeEntity.setRelationType(fitColumn(NopCodeSemanticEdge.class.getName(), "relationType",
+                            edge.getRelationType() != null ? edge.getRelationType().name() : null));
+                    edgeEntity.setConfidence(edge.getConfidence() != null ? edge.getConfidence().getValue() : 0);
+                    edgeEntity.setConfidenceScore(edge.getConfidenceScore());
+                    edgeEntity.setRationale(fitColumn(NopCodeSemanticEdge.class.getName(), "rationale", edge.getRationale()));
+                    edgeEntity.setExtractorId(fitColumn(NopCodeSemanticEdge.class.getName(), "extractorId", edge.getExtractorId()));
+                    edgeEntity.setExtData(fitColumn(NopCodeSemanticEdge.class.getName(), "extData", edge.getExtData()));
+                    edgeEntity.setProvenance(fitColumn(NopCodeSemanticEdge.class.getName(), "provenance",
+                            edge.getProvenance() != null ? edge.getProvenance().name() : null));
+                    session.save(edgeEntity);
+                }
+                session.flush();
+                session.evictAll(NopCodeSemanticEdge.class.getName());
+                LOG.debug("nop.code.edge-save-batch-flushed:indexId={},batchSize={}", indexId, batch.size());
+            });
             for (CodeSemanticEdge edge : result.getSemanticEdges()) {
-                NopCodeSemanticEdge edgeEntity = (NopCodeSemanticEdge) ormTemplate.newEntity(
-                        NopCodeSemanticEdge.class.getName());
-                edgeEntity.setId(edge.getId());
-                edgeEntity.setIndexId(indexId);
-                edgeEntity.setSourceSymbolId(edge.getSourceSymbolId());
-                edgeEntity.setTargetSymbolId(edge.getTargetSymbolId());
-                edgeEntity.setDirected(edge.isDirected());
-                edgeEntity.setRelationType(fitColumn(NopCodeSemanticEdge.class.getName(), "relationType",
-                        edge.getRelationType() != null ? edge.getRelationType().name() : null));
-                edgeEntity.setConfidence(edge.getConfidence() != null ? edge.getConfidence().getValue() : 0);
-                edgeEntity.setConfidenceScore(edge.getConfidenceScore());
-                edgeEntity.setRationale(fitColumn(NopCodeSemanticEdge.class.getName(), "rationale", edge.getRationale()));
-                edgeEntity.setExtractorId(fitColumn(NopCodeSemanticEdge.class.getName(), "extractorId", edge.getExtractorId()));
-                edgeEntity.setExtData(fitColumn(NopCodeSemanticEdge.class.getName(), "extData", edge.getExtData()));
-                edgeEntity.setProvenance(fitColumn(NopCodeSemanticEdge.class.getName(), "provenance",
-                        edge.getProvenance() != null ? edge.getProvenance().name() : null));
-                session.save(edgeEntity);
+                edgeQueue.add(edge);
             }
+            edgeQueue.flush();
             LOG.info("Persisted {} semantic edges for index {}", result.getSemanticEdges().size(), indexId);
         }
 
@@ -1437,6 +1478,9 @@ public class CodeIndexService implements ICodeIndexService {
         Set<String> existingEdgeKeys = collectExistingEdgeKeys(result, indexId);
 
         int totalSynthesized = 0;
+        // W-13 (F2 form #2): chunked save with periodic flush+evict — same rationale as the
+        // semantic-edge BatchQueue above
+        int sinceFlush = 0;
         for (IHeuristicEdgeSynthesizer synthesizer : heuristicSynthesizers) {
             try {
                 List<CodeMethodCall> synthesized = synthesizer.synthesize(context);
@@ -1468,10 +1512,21 @@ public class CodeIndexService implements ICodeIndexService {
 
                     existingEdgeKeys.add(edgeKey);
                     totalSynthesized++;
+                    sinceFlush++;
+                    if (sinceFlush >= EDGE_SAVE_BATCH) {
+                        session.flush();
+                        session.evictAll(NopCodeCall.class.getName());
+                        LOG.debug("nop.code.edge-save-batch-flushed:indexId={},batchSize={}", indexId, sinceFlush);
+                        sinceFlush = 0;
+                    }
                 }
             } catch (Exception e) {
                 LOG.warn("Heuristic synthesizer {} failed, skipping", synthesizer.getSynthesizerId(), e);
             }
+        }
+        if (sinceFlush > 0) {
+            session.flush();
+            session.evictAll(NopCodeCall.class.getName());
         }
         if (totalSynthesized > 0) {
             LOG.info("Synthesized {} heuristic edges for index {}", totalSynthesized, indexId);
@@ -1682,6 +1737,60 @@ public class CodeIndexService implements ICodeIndexService {
 
     private void persistSingleFileInSession(String indexId, CodeFileAnalysisResult result,
                                             IOrmSession session) {
+        // single-file sites get a fresh context (snapshot per file — same as the pre-W-16 shape)
+        persistSingleFileInSession(indexId, result, session, new MergedTableContext());
+    }
+
+    /**
+     * W-16 (plan 2565, adjudication K; source anchor candidate CODEINDEX-RT-004): the merged
+     * global+file symbol table used by {@link #resolveQualifiedNamesToIds} is carried by a
+     * batch-level {@link MergedTableContext} — the global snapshot is built ONCE per batch
+     * (getAll defensive snapshot frequency drops from F to batch count) and then grows
+     * INCREMENTALLY as each file is processed (existence-check add, global-wins: a file
+     * symbol only fills a qualified-name gap and never overrides the global entry — the
+     * live semantics at the pre-fix merge site, preserved verbatim). Previous files of the
+     * same batch are visible to later files exactly as with the live per-file rebuild that
+     * read the published global table (R2-2 accumulation semantics).
+     */
+    class MergedTableContext {
+        private SymbolTable mergedTable;
+        long snapshotBuildCount;
+
+        SymbolTable table() {
+            return mergedTable;
+        }
+
+        /** builds the global snapshot once per context (per batch) */
+        void resetFromGlobalIfNeeded(SymbolTable globalTable) {
+            if (mergedTable != null) return;
+            SymbolTable fresh = new SymbolTable();
+            if (globalTable != null) {
+                for (CodeSymbol sym : globalTable.getAll()) {
+                    fresh.add(sym);
+                }
+            }
+            mergedTable = fresh;
+            snapshotBuildCount++;
+            lastBatchSnapshotBuilds++; // W-16 observability: cumulative across the run
+        }
+
+        /** global-wins fill-gap merge of one file's symbols (existence-check add) */
+        void mergeFileSymbols(SymbolTable fileSymbolTable) {
+            if (fileSymbolTable == null) return;
+            for (CodeSymbol sym : fileSymbolTable.getAll()) {
+                if (sym.getQualifiedName() != null
+                        && mergedTable.getByQualifiedName(sym.getQualifiedName()) == null) {
+                    mergedTable.add(sym);
+                }
+            }
+        }
+    }
+
+    /** W-16 observability: cumulative snapshot builds across the last incremental run */
+    volatile long lastBatchSnapshotBuilds;
+
+    private void persistSingleFileInSession(String indexId, CodeFileAnalysisResult result,
+                                            IOrmSession session, MergedTableContext ctx) {
         saveFileResultInSession(indexId, result, session);
         if (result.getSemanticEdges() != null && !result.getSemanticEdges().isEmpty()) {
             for (CodeSemanticEdge edge : result.getSemanticEdges()) {
@@ -1707,19 +1816,10 @@ public class CodeIndexService implements ICodeIndexService {
         SymbolTable fileSymbolTable = buildSymbolTableFromResult(result);
         SymbolTable globalTable = getOrRebuildSymbolTable(indexId);
         if (globalTable != null) {
-            SymbolTable mergedTable = new SymbolTable();
-            for (CodeSymbol sym : globalTable.getAll()) {
-                mergedTable.add(sym);
-            }
-            for (CodeSymbol sym : fileSymbolTable.getAll()) {
-                if (sym.getQualifiedName() != null) {
-                    CodeSymbol existing = mergedTable.getByQualifiedName(sym.getQualifiedName());
-                    if (existing == null) {
-                        mergedTable.add(sym);
-                    }
-                }
-            }
-            resolveQualifiedNamesToIds(indexId, mergedTable, session);
+            // W-16: batch-shared snapshot + global-wins fill-gap merge (semantics preserved)
+            ctx.resetFromGlobalIfNeeded(globalTable);
+            ctx.mergeFileSymbols(fileSymbolTable);
+            resolveQualifiedNamesToIds(indexId, ctx.table(), session);
             cacheManager.addToSymbolTableCache(indexId, fileSymbolTable);
         } else {
             resolveQualifiedNamesToIds(indexId, fileSymbolTable, session);
@@ -1904,6 +2004,13 @@ public class CodeIndexService implements ICodeIndexService {
 
             if (searchEngine != null) {
                 String topic = "nop-code-" + indexId;
+                // W-08 (plan 2565, adjudication G; R1-m2): docs are materialized BEFORE the
+                // commit-point registration — they are plain POJOs built from the analysis
+                // result, never ORM entities; the afterCommit callback must not touch the
+                // entity/session (session is closed by then). Best-effort projection boundary:
+                // a post-commit failure is a structured WARN only (CODEINDEX-RT-002); rollback
+                // no longer pollutes the engine.
+                List<SearchableDoc> docs = new ArrayList<>();
                 for (CodeSymbol sym : file.getSymbols()) {
                     SearchableDoc doc = new SearchableDoc();
                     doc.setId(sym.getId());
@@ -1928,12 +2035,21 @@ public class CodeIndexService implements ICodeIndexService {
                     }
                     doc.setTagSet(tagSet);
                     doc.setAutoGenerateEmbedding(true);
-                    try {
-                        searchEngine.addDoc(topic, doc);
-                    } catch (Exception e) {
-                        LOG.warn("Failed to sync symbol {} to search engine", sym.getId(), e);
-                    }
+                    docs.add(doc);
                 }
+                CodeIndexAfterCommit.run(transactionTemplate,
+                        "nop.code.search-sync-failed-after-commit:topic=" + topic
+                                + ":op=addDocs:file=" + file.getFilePath(),
+                        () -> {
+                            for (SearchableDoc doc : docs) {
+                                try {
+                                    searchEngine.addDoc(topic, doc);
+                                } catch (Exception e) {
+                                    LOG.warn("nop.code.search-sync-failed-after-commit: topic={} op=addDoc symbol={}",
+                                            topic, doc.getId(), e);
+                                }
+                            }
+                        });
             }
         }
 
@@ -2506,11 +2622,18 @@ public class CodeIndexService implements ICodeIndexService {
             List<String> symbolIds = findSymbolIdsByFileId(fileId);
 
             if (searchEngine != null && !symbolIds.isEmpty()) {
-                try {
-                    searchEngine.removeDocs(topic, symbolIds);
-                } catch (Exception e) {
-                    LOG.warn("Failed to remove search docs for file {}", filePath, e);
-                }
+                // W-08 (plan 2565, adjudication G; source anchor CODEINDEX-RT-002): search sync
+                // moved to the COMMIT point — a rollback no longer leaves the engine diverged
+                // from the DB. symbolIds is a pre-commit materialized POJO list (no entity /
+                // session access in the callback — lazy loading would blow up after session
+                // close, R1-m2). Failure after commit = best-effort projection gap, structured
+                // WARN only; self-healing stays with the next re-index /
+                // removeStaleSymbolDocsForFile pass.
+                List<String> syncedIds = symbolIds;
+                CodeIndexAfterCommit.run(transactionTemplate,
+                        "nop.code.search-sync-failed-after-commit:topic=" + topic
+                                + ":op=removeDocs:file=" + filePath,
+                        () -> searchEngine.removeDocs(topic, syncedIds));
             }
 
             deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
@@ -2522,6 +2645,13 @@ public class CodeIndexService implements ICodeIndexService {
             // via generateFileId(indexId, path).)
             deleteEntitiesByFilters(NopCodeDependency.class,
                     FilterBeans.and(FilterBeans.eq("sourceFilePath", filePath),
+                            FilterBeans.eq("indexId", indexId)));
+            // W-09 (plan 2565, adjudication F): symmetric target-side leg — Dependency edges
+            // from OTHER files point INTO this file via targetFilePath; deleting only the
+            // source side left dangling rows in other files' dependency graphs (computeAffectedFiles
+            // 2-hop amplification surface closed with this leg + W-07 exhaustive seeds).
+            deleteEntitiesByFilters(NopCodeDependency.class,
+                    FilterBeans.and(FilterBeans.eq("targetFilePath", filePath),
                             FilterBeans.eq("indexId", indexId)));
             deleteRelationalBySymbolIds(NopCodeAnnotationUsage.class, "annotatedSymbolId", symbolIds);
             deleteRelationalBySymbolIds(NopCodeInheritance.class, "subTypeId", symbolIds);
@@ -2577,14 +2707,38 @@ public class CodeIndexService implements ICodeIndexService {
         session.save(entity);
     }
 
+    // W-07 (plan 2565, adjudication E): pagination exhaustiveness seam — default equals
+    // MAX_QUERY_RESULTS (production zero diff); tests inject a low page size to prove the
+    // loop exhausts past the first page (F2 seam shape: instance field + package setter).
+    volatile int symbolIdPageSize = MAX_QUERY_RESULTS;
+
+    void setSymbolIdPageSizeForTest(int pageSize) {
+        this.symbolIdPageSize = pageSize;
+    }
+
     private List<String> findSymbolIdsByFileId(String fileId) {
         IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
-        QueryBean q = new QueryBean();
-        q.addFilter(FilterBeans.eq("fileId", fileId));
-        q.setLimit(MAX_QUERY_RESULTS);
-        return dao.findAllByQuery(q).stream()
-                .map(NopCodeSymbol::getId)
-                .collect(Collectors.toList());
+        // W-07: paginate to exhaustion (single setLimit(10000) page truncated the symbol set —
+        // the delete/stale-doc paths left residue for files with more symbols; aligns with the
+        // deleteEntitiesPaged / deleteRelationalBySymbolIds exhaustive-pagination convention).
+        List<String> result = new ArrayList<>();
+        long offset = 0;
+        while (true) {
+            QueryBean q = new QueryBean();
+            q.addFilter(FilterBeans.eq("fileId", fileId));
+            q.setOffset(offset);
+            q.setLimit(symbolIdPageSize);
+            List<NopCodeSymbol> batch = dao.findAllByQuery(q);
+            if (batch.isEmpty())
+                break;
+            for (NopCodeSymbol symbol : batch) {
+                result.add(symbol.getId());
+            }
+            if (batch.size() < symbolIdPageSize)
+                break;
+            offset += symbolIdPageSize;
+        }
+        return result;
     }
 
     private void removeStaleSymbolDocsForFile(String indexId, String fileId) {
@@ -2592,11 +2746,12 @@ public class CodeIndexService implements ICodeIndexService {
         List<String> oldSymbolIds = findSymbolIdsByFileId(fileId);
         if (oldSymbolIds.isEmpty()) return;
         String topic = "nop-code-" + indexId;
-        try {
-            searchEngine.removeDocs(topic, oldSymbolIds);
-        } catch (Exception e) {
-            LOG.warn("Failed to remove stale search docs for file id {}", fileId, e);
-        }
+        // W-08: commit-point sync (see deleteFileRecords — same adjudication G contract;
+        // oldSymbolIds is a materialized POJO list, callback never touches entities/session)
+        CodeIndexAfterCommit.run(transactionTemplate,
+                "nop.code.search-sync-failed-after-commit:topic=" + topic
+                        + ":op=removeStaleDocs:fileId=" + fileId,
+                () -> searchEngine.removeDocs(topic, oldSymbolIds));
     }
 
     private <T extends IDaoEntity> void deleteRelationalBySymbolIds(Class<T> entityClass, String field, List<String> symbolIds) {
@@ -2966,15 +3121,17 @@ public class CodeIndexService implements ICodeIndexService {
         // to the session that later deletes them. The other deleteFileRecords callers already wrap
         // in runInSession; this public entry point must too, otherwise it is unsafe standalone.
         withIndexLock(indexId, () -> {
-            invalidateAnalysisCache(indexId);
-            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
-                    ormTemplate.runInSession(session -> {
+            transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn -> {
+                // W-12: invalidate at commit point (was pre-transaction — see deleteIndex)
+                invalidateAnalysisCacheAfterCommit(indexId);
+                return ormTemplate.runInSession(session -> {
                         // Deleted files change content: materialized global metrics are stale
                         ensureSubServices();
                         graphMetricMaterializer.deleteByIndex(session, indexId);
                         deleteFileRecords(indexId, filePaths);
                         return null;
-                    }));
+                    });
+            });
         });
     }
 

@@ -344,6 +344,13 @@ class GraphMetricMaterializer {
         return row;
     }
 
+    // W-15 seam: insert-side slice size (F2: instance field + package setter, zero diff default)
+    volatile int insertBatchSize = DELETE_BATCH_SIZE;
+
+    void setInsertBatchSizeForTest(int size) {
+        this.insertBatchSize = size;
+    }
+
     private void replaceRows(String indexId, List<NopCodeGraphMetric> rows) {
         transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                 ormTemplate.runInSession(session -> {
@@ -364,8 +371,23 @@ class GraphMetricMaterializer {
                         if (batch.size() < DELETE_BATCH_SIZE)
                             break;
                     }
+                    // W-15 (plan 2565, adjudication J / F2 form #2): symmetric batching on
+                    // the insert side — slices of insertBatchSize saves + flush + clear per
+                    // slice (mirrors the delete side above; same session, equivalent risk).
+                    // Seam: instance field + package setter, default DELETE_BATCH_SIZE.
+                    int saved = 0;
                     for (NopCodeGraphMetric row : rows) {
                         dao.saveEntity(row);
+                        saved++;
+                        if (saved >= insertBatchSize) {
+                            session.flush();
+                            session.clear();
+                            saved = 0;
+                        }
+                    }
+                    if (saved > 0) {
+                        session.flush();
+                        session.clear();
                     }
                     return null;
                 }));

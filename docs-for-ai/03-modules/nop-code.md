@@ -189,3 +189,21 @@ The `column` column is nullable (`mandatory` not set, defaults to nullable). In 
 - **row5 有界陈旧性（triggerFullIndex 面）**：`triggerFullIndex` → `materializeGraphMetrics` 在门竞争下 skip 时，本次触发的重算不执行——陈旧指标保留至下一次索引变更（invalidate 删行后下一次读自愈重算）；与既有失败吞没语义同 blast radius。
 - **row6 最终一致收敛界（shard 发布面）**：`ShardBuildCoordinator` 发布路径（completeShard → finalizeIfAllCompleted → materialize）在门被占用时 skip：发布事务原子性不变（status 翻转照常提交），「published ⇒ fully scored」在该竞争窗口退化为**最终一致**——收敛上界 = 在途物化的剩余时长；在途物化失败时 = 失败冷却窗 + 下一次读触发。发布侧 skip 可观测（`reason=in-progress` WARN）。ShardBuildCoordinator 内既有代码注释（published 即 fully scored）零改动，本条为准。
 
+## 读路径/删除链/外部进程并发契约（plan 2565 R4-31 十四工单）
+
+裁定权威 = AI 开发记录区 concurrency 设计集 code-index-readpath-batch.md（按文档边界规则此处不直接链接）；实现锚点见 `../04-reference/source-anchors.md` 的 `CODEINDEX-RT-001`/`CODEINDEX-RT-002`/`CODEINDEX-RT-003`。
+
+**git 调用统一经 GitProcessRunner 超时桥（F1）**：全部 git 外部进程调用（CodeIndexService.gitOutput / ClusterWorkspaceManager.gitWithCredential+gitOutput / ChangeAnalyzer.parseGitDiff）统一委托 `nop-code-core` `io.nop.code.core.util.GitProcessRunner`——watchdog（daemon ScheduledExecutorService，`destroyForcibly` after timeout）**先于管道读取布防**（读阶段阻塞不再绕过超时），异常路径 finally 收尸；run/runLines 返回 Result（output+exitCode+timedOut），异常翻译留在站点（#1 timedOut→`ERR_CODE_REBUILD_NOT_GIT_REPO`、#2/#3 既有 IllegalStateException 文案、#4 timedOut→truncated 不抛）；凭据仅经 extraEnv 环境通道（NOP_GIT_*，零命令行零日志零异常消息）。**新增 git 调用必须经本桥**，禁止在站点内联 ProcessBuilder+waitFor（读后 waitFor = F5 形态缺陷）。
+
+**SymbolTable 并发契约（F3，CODEINDEX-RT-003）**：两索引 map 为 ConcurrentHashMap、`truncated` volatile——点读（getByQualifiedName/getById/size/isTruncated）与 findAllByQualifiedNamePrefix 无需外部同步（CHM 弱一致）；**判重必须用 `putIfAbsent(CodeSymbol)`**（get-then-add check-then-act 非原子，禁回退）；null qualifiedName/id 有守卫（CHM putIfAbsent(null,…) NPE）；**`getAll()` 保留 synchronized 防御快照为冻结契约**（WP-5 AR-155/158 强隔离，CHM 弱一致迭代不满足）。
+
+**失效点提交点语义（W-12）**：indexDirectory / indexFileSet / deleteIndex / batchDeleteFileRecords 四站点的分析缓存失效经 `CodeIndexAfterCommit.run` 在 **runInTransaction 事务体首行**注册、提交点执行——回滚不误杀、并发回填窗被提交点失效闭合；`CodeIndexAfterCommit` 无打开事务直调抛 `ERR_TXN_NOT_IN_TRANSACTION`（注册须在已开事务上，静默 no-op 即缺陷形态）；indexFile / triggerIncrementalIndex 两站点锁内事务后直调为正确对照，**冻结不改**。
+
+**搜索双写 afterCommit 边界声明（W-08，CODEINDEX-RT-002）**：搜索引擎是 DB 派生 **best-effort 投影**——addDoc / removeDocs / removeStaleSymbolDocsForFile 三站点的引擎写在提交点执行（回调携提交前物化 POJO，禁触 entity/session），回滚不再污染引擎；提交后写失败仅结构化 WARN（`nop.code.search-sync-failed-after-commit:topic=…`），发散自愈归下次重索引 / removeStaleSymbolDocsForFile，无对账路径；deleteIndex removeTopic（锁内事务外站点）不在本契约内。
+
+**删除链完备性（W-06/W-07/W-09）**：`deleteIndex` 事务体内 12 实体清理清单 = Usage/FlowMembership/Flow/AnnotationUsage/Inheritance/Call/Symbol/File/Dependency/SemanticEdge/GraphMetric/**NopCodeShardLedger**（残留 ledger 行会被重建 indexId 的 completeShard 击穿：旧行命中→finalize→旧 index not found 或早发布）；`findSymbolIdsByFileId` 分页穷尽（缝 `symbolIdPageSize`，缺省=MAX_QUERY_RESULTS）；`deleteFileRecords` 对 Dependency 双侧清理（sourceFilePath + **targetFilePath**，均 indexId scoping——P1-6.7-011 契约扩展至双侧）。
+
+**C5 上限缝惯例（F2，W-13~W-19）**：本模块「上限=常量单源 + 实例字段 + 包内 setter（缺省=编译期常量，生产零 diff）+ 截断 WARN + 可观测标志」为统一惯例，新增上限不得发明第二形态；巨事务内逐条 `session.save` 一律 BatchQueue(500) 或 chunk+flush+evict/clear（同方法既有范式为 oracle）；标量投影查询走 `selectFieldsByQuery`。落地成员：提取器输出 MAX_EDGES=50000×2、装配实体面 MAX_ASSEMBLY_SYMBOLS=10000（单源交叉引用 GraphMetricStore finder 行帽声明，不复制其值）、deps 缓存 MAX_CACHE_DEPENDENCIES=2×10⁵、publicSurfaceCap=MAX_QUERY_RESULTS、replaceRows 插入侧切片=DELETE_BATCH_SIZE、fileTree 投影变体 `getFilesProjected`（getFiles 实体本体冻结保留）。
+
+**组件边界条目（LlmEdgeCache，登记级）**：LlmEdgeCache 存在无界进程生命周期边界（merge-adjudication §五.4 预登记，W-23 归后续批次）——本批仅落边界声明，不做实现变更。
+

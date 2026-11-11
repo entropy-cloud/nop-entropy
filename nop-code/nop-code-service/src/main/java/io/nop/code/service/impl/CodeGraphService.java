@@ -70,6 +70,23 @@ class CodeGraphService {
      * 禁第二常量漂移源；与 BETWEENNESS_MAX_NODES 同族分立，配置化归 follow-up 候选）。
      */
     static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
+    // W-17 (plan 2565, adjudication L / F2; 2532 erratum-5 single-source duty): hard cap on the
+    // ASSEMBLY entity materialization surface. Independent semantic — this is the entity chunk
+    // load cap for graph DTO assembly, NOT the metric finder row cap; the finder row cap single
+    // source lives in GraphMetricStore.findByMetric javadoc (:50-56) and its VALUE is
+    // deliberately not copied here. Cross-reference only.
+    static final int DEFAULT_MAX_ASSEMBLY_SYMBOLS = 10000;
+    private volatile int maxAssemblySymbols = DEFAULT_MAX_ASSEMBLY_SYMBOLS;
+
+    void setMaxAssemblySymbolsForTest(int max) {
+        this.maxAssemblySymbols = max;
+    }
+
+    /** observable truncation flag of the last loadSymbolsByIds run (F2 form #1) */
+    volatile boolean lastAssemblyTruncated;
+
+    /** counting seam (R2-3): id-set size requested by the last loadSymbolsByIds call */
+    volatile int lastAssemblyRequestSize;
     private static final int BATCH_QUERY_LIMIT = 10000;
 
     private static final int SYMBOL_LOOKUP_CHUNK = 500;
@@ -260,12 +277,20 @@ class CodeGraphService {
             }
             Map<String, int[]> hubs = metricStore.loadHubs(indexId);
             int limit = topN > 0 ? topN : 20;
+            // W-17 (R1-B3/R2-3 re-adjudication): ONLY the :263 entryPoints input is trimmed to
+            // the topN window — the DTO output consumes entries within the limit. The sibling
+            // sites :148 (communities -> findDominantPackageByNames public labels) and :864
+            // (hubs -> bridge nodes reference ids outside the hub set) deliberately keep FULL
+            // input: truncating those would change public output (they are protected by the
+            // GraphMetricStore finder row cap + the hard cap below instead).
+            List<NopCodeGraphMetric> entryPointWindow = entryPoints.size() > limit
+                    ? entryPoints.subList(0, limit) : entryPoints;
             Map<String, NopCodeSymbol> symbolsById = loadSymbolsByIds(
-                    entryPoints.stream().map(NopCodeGraphMetric::getSymbolId).collect(Collectors.toSet()));
+                    entryPointWindow.stream().map(NopCodeGraphMetric::getSymbolId).collect(Collectors.toSet()));
 
             List<GodNodeDTO> godNodes = new ArrayList<>();
             List<String> isolatedSymbols = new ArrayList<>();
-            for (NopCodeGraphMetric row : entryPoints) {
+            for (NopCodeGraphMetric row : entryPointWindow) {
                 int[] degree = hubs.get(row.getSymbolId());
                 int inDeg = degree != null ? degree[1] : 0;
                 int outDeg = degree != null ? degree[2] : 0;
@@ -925,6 +950,16 @@ class CodeGraphService {
             return result;
         }
         List<String> ids = new ArrayList<>(symbolIds);
+        lastAssemblyRequestSize = ids.size();
+        if (ids.size() > maxAssemblySymbols) {
+            // W-17: assembly entity hard cap — truncate + WARN + flag
+            LOG.warn("nop.code.assembly-symbols-capped:indexCap={},requested={}",
+                    maxAssemblySymbols, ids.size());
+            ids = ids.subList(0, maxAssemblySymbols);
+            lastAssemblyTruncated = true;
+        } else {
+            lastAssemblyTruncated = false;
+        }
         IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
         for (int from = 0; from < ids.size(); from += SYMBOL_LOOKUP_CHUNK) {
             List<String> chunk = ids.subList(from, Math.min(from + SYMBOL_LOOKUP_CHUNK, ids.size()));

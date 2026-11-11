@@ -36,6 +36,15 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         this.flowDetector = flowDetector;
     }
 
+    // W-04 (plan 2565, facility F1): unified git process bridge seam — watchdog armed BEFORE
+    // the line-read phase at the bridge. Package-visible for test hang-stub injection.
+    volatile io.nop.code.core.util.GitProcessRunner gitRunner =
+            io.nop.code.core.util.GitProcessRunner.createDefault();
+
+    void setGitRunnerForTest(io.nop.code.core.util.GitProcessRunner runner) {
+        this.gitRunner = runner;
+    }
+
     private static final Pattern DIFF_HEADER_FILE = Pattern.compile("^\\+\\+\\+ b/(.+)$");
     private static final Pattern DIFF_HEADER_OLD_FILE = Pattern.compile("^--- a/(.+)$");
     private static final Pattern HUNK_HEADER = Pattern.compile("^@@ -(\\d+)(?:,(\\d+))? \\+(\\d+)(?:,(\\d+))? @@");
@@ -143,60 +152,52 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         }
 
         try {
-            ProcessBuilder pb = new ProcessBuilder(
-                    "git", "diff", baseline + ".." + target, "--unified=0");
-            if (workingDirectory != null && !workingDirectory.isEmpty()) {
-                pb.directory(new java.io.File(workingDirectory));
-            }
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            try {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                    String currentFile = null;
-                    String oldFilePath = null;
-                    boolean skipBinary = false;
-                    String line;
-
-                    while ((line = reader.readLine()) != null) {
+            DiffParserState parserState = new DiffParserState();
+            List<String> args = List.of("diff", baseline + ".." + target, "--unified=0");
+            java.nio.file.Path dir = (workingDirectory != null && !workingDirectory.isEmpty())
+                    ? java.nio.file.Path.of(workingDirectory) : null;
+            // W-04: delegate to the GitProcessRunner bridge — the watchdog (destroyForcibly
+            // after 30s) is armed BEFORE the line-read loop, so a blocked readLine can no
+            // longer bypass the timeout; reaping finally covers the error paths.
+            io.nop.code.core.util.GitProcessRunner.Result result2 =
+                    gitRunner.runLines(dir, 30_000L, args, java.util.Collections.emptyMap(), line -> {
                         if (line.startsWith("Binary files")) {
-                            skipBinary = true;
-                            continue;
+                            parserState.skipBinary = true;
+                            return;
                         }
 
                         Matcher fileMatcher = DIFF_HEADER_FILE.matcher(line);
                         if (fileMatcher.matches()) {
-                            currentFile = fileMatcher.group(1);
-                            skipBinary = false;
-                            continue;
+                            parserState.currentFile = fileMatcher.group(1);
+                            parserState.skipBinary = false;
+                            return;
                         }
 
                         Matcher oldFileMatcher = DIFF_HEADER_OLD_FILE.matcher(line);
                         if (oldFileMatcher.matches()) {
-                            oldFilePath = oldFileMatcher.group(1);
-                            continue;
+                            parserState.oldFilePath = oldFileMatcher.group(1);
+                            return;
                         }
 
                         Matcher renameFromMatcher = RENAME_HEADER.matcher(line);
                         if (renameFromMatcher.matches()) {
-                            oldFilePath = renameFromMatcher.group(1);
-                            continue;
+                            parserState.oldFilePath = renameFromMatcher.group(1);
+                            return;
                         }
 
                         Matcher renameToMatcher = RENAME_TO.matcher(line);
                         if (renameToMatcher.matches()) {
                             String newName = renameToMatcher.group(1);
-                            if (oldFilePath != null && result.containsKey(oldFilePath)) {
-                                List<LineRange> ranges = result.remove(oldFilePath);
+                            if (parserState.oldFilePath != null && result.containsKey(parserState.oldFilePath)) {
+                                List<LineRange> ranges = result.remove(parserState.oldFilePath);
                                 result.put(newName, ranges);
                             }
-                            currentFile = newName;
-                            continue;
+                            parserState.currentFile = newName;
+                            return;
                         }
 
-                        if (skipBinary || currentFile == null) {
-                            continue;
+                        if (parserState.skipBinary || parserState.currentFile == null) {
+                            return;
                         }
 
                         Matcher hunkMatcher = HUNK_HEADER.matcher(line);
@@ -205,37 +206,37 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
                             String countStr = hunkMatcher.group(4);
                             int count = (countStr != null && !countStr.isEmpty()) ? Integer.parseInt(countStr) : 1;
 
-                            result.computeIfAbsent(currentFile, k -> new ArrayList<>())
+                            result.computeIfAbsent(parserState.currentFile, k -> new ArrayList<>())
                                     .add(new LineRange(startLine, startLine + count - 1));
                         }
-                    }
-                }
+                    });
 
-                if (!process.waitFor(30, TimeUnit.SECONDS)) {
-                    LOG.warn("Git diff process timed out after 30 seconds for {}..{}", baseline, target);
-                    truncated = true;
-                } else if (process.exitValue() != 0) {
-                    // P1-6.7-009: a non-zero git exit (bad refs, not a repo, bad
-                    // working directory) means the diff is incomplete — surface it
-                    // instead of silently reporting "no changes".
-                    LOG.warn("Git diff exited with code {} for {}..{} (workingDirectory={}); "
-                                    + "diff may be incomplete",
-                            process.exitValue(), baseline, target, workingDirectory);
-                    truncated = true;
-                }
-            } finally {
-                process.destroyForcibly();
+            if (result2.isTimedOut()) {
+                LOG.warn("Git diff process timed out after 30 seconds for {}..{}", baseline, target);
+                truncated = true;
+            } else if (result2.getExitCode() == null || result2.getExitCode() != 0) {
+                // P1-6.7-009: a non-zero git exit (bad refs, not a repo, bad
+                // working directory) means the diff is incomplete — surface it
+                // instead of silently reporting "no changes".
+                LOG.warn("Git diff exited with code {} for {}..{} (workingDirectory={}); "
+                                + "diff may be incomplete",
+                        result2.getExitCode(), baseline, target, workingDirectory);
+                truncated = true;
             }
-        } catch (IOException e) {
+        } catch (IllegalStateException e) {
+            // bridge start/io failure: keep the pre-existing swallow-to-truncated semantics
             LOG.warn("Failed to parse git diff output; returning truncated result", e);
-            return new DiffResult(result, true);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOG.warn("Interrupted while parsing git diff output; returning truncated result", e);
             return new DiffResult(result, true);
         }
 
         return new DiffResult(result, truncated);
+    }
+
+    /** mutable parse state for the incremental line sink (parse contract unchanged) */
+    private static final class DiffParserState {
+        String currentFile;
+        String oldFilePath;
+        boolean skipBinary;
     }
 
     private List<CodeSymbol> findSymbolsByFile(SymbolTable symbolTable, String filePath) {
