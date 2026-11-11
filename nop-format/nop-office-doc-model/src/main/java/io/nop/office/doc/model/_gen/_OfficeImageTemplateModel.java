@@ -32,6 +32,22 @@ public abstract class _OfficeImageTemplateModel extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: chartBinding
+     * WI8 image binding (B1): chartBinding and codeBinding are
+     * mutually exclusive; default sizes encode B5 (chart 800x400,
+     * code 0 = service default / content-fit)
+     */
+    private io.nop.office.doc.model.OfficeChartBindingModel _chartBinding ;
+    
+    /**
+     *  
+     * xml name: codeBinding
+     * 
+     */
+    private io.nop.office.doc.model.OfficeCodeBindingModel _codeBinding ;
+    
+    /**
+     *  
      * xml name: dataExpr
      * 
      */
@@ -84,6 +100,46 @@ public abstract class _OfficeImageTemplateModel extends io.nop.core.resource.com
     
     /**
      * 
+     * xml name: chartBinding
+     *  WI8 image binding (B1): chartBinding and codeBinding are
+     * mutually exclusive; default sizes encode B5 (chart 800x400,
+     * code 0 = service default / content-fit)
+     */
+    
+    public io.nop.office.doc.model.OfficeChartBindingModel getChartBinding(){
+      return _chartBinding;
+    }
+
+    
+    public void setChartBinding(io.nop.office.doc.model.OfficeChartBindingModel value){
+        checkAllowChange();
+        
+        this._chartBinding = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: codeBinding
+     *  
+     */
+    
+    public io.nop.office.doc.model.OfficeCodeBindingModel getCodeBinding(){
+      return _codeBinding;
+    }
+
+    
+    public void setCodeBinding(io.nop.office.doc.model.OfficeCodeBindingModel value){
+        checkAllowChange();
+        
+        this._codeBinding = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: dataExpr
      *  
      */
@@ -128,6 +184,10 @@ public abstract class _OfficeImageTemplateModel extends io.nop.core.resource.com
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._chartBinding = io.nop.api.core.util.FreezeHelper.deepFreeze(this._chartBinding);
+            
+           this._codeBinding = io.nop.api.core.util.FreezeHelper.deepFreeze(this._codeBinding);
+            
         }
     }
 
@@ -137,6 +197,8 @@ public abstract class _OfficeImageTemplateModel extends io.nop.core.resource.com
         
         out.putNotNull("afterRender",this.getAfterRender());
         out.putNotNull("beforeRender",this.getBeforeRender());
+        out.putNotNull("chartBinding",this.getChartBinding());
+        out.putNotNull("codeBinding",this.getCodeBinding());
         out.putNotNull("dataExpr",this.getDataExpr());
         out.putNotNull("testExpr",this.getTestExpr());
     }
@@ -152,6 +214,8 @@ public abstract class _OfficeImageTemplateModel extends io.nop.core.resource.com
         
         instance.setAfterRender(this.getAfterRender());
         instance.setBeforeRender(this.getBeforeRender());
+        instance.setChartBinding(this.getChartBinding());
+        instance.setCodeBinding(this.getCodeBinding());
         instance.setDataExpr(this.getDataExpr());
         instance.setTestExpr(this.getTestExpr());
     }

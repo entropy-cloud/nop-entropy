@@ -133,6 +133,17 @@
                         <dataExpr>report-expr</dataExpr>
                         <beforeRender>xpl</beforeRender>
                         <afterRender>xpl</afterRender>
+                        <!-- WI8 image binding (B1): chartBinding and codeBinding are
+                             mutually exclusive; default sizes encode B5 (chart 800x400,
+                             code 0 = service default / content-fit) -->
+                        <chartBinding xdef:name="OfficeChartBindingModel"
+                                      width="!double=800" height="!double=400">
+                            <optionExpr>xpl</optionExpr>
+                        </chartBinding>
+                        <codeBinding xdef:name="OfficeCodeBindingModel"
+                                     codeType="!string" width="!double=0" height="!double=0">
+                            <codeExpr>xpl</codeExpr>
+                        </codeBinding>
                     </model>
                 </image>
                 <hyperlink id="!string" xdef:name="OfficeHyperlinkModel" xdef:bean-tag-prop="type"

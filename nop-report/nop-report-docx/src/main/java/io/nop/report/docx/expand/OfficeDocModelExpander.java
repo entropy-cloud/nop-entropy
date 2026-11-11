@@ -81,6 +81,12 @@ public class OfficeDocModelExpander {
     private static final String DEFAULT_TABLE_ID = "WordTable";
 
     private final XLangCompileTool cp;
+    /**
+     * WI8 (B2): image binding runs as an automatic post-processing phase at the
+     * tail of expand; a custom binder can be injected (e.g. for tests simulating
+     * a missing echarts classpath), null disables the binding phase.
+     */
+    private final DocImageBinder imageBinder;
 
     public OfficeDocModelExpander() {
         // E2: expansion-time compile context, same shape as
@@ -91,7 +97,12 @@ public class OfficeDocModelExpander {
     }
 
     public OfficeDocModelExpander(XLangCompileTool cp) {
+        this(cp, new DocImageBinder());
+    }
+
+    public OfficeDocModelExpander(XLangCompileTool cp, DocImageBinder imageBinder) {
         this.cp = cp;
+        this.imageBinder = imageBinder;
     }
 
     /**
@@ -137,6 +148,11 @@ public class OfficeDocModelExpander {
                 expandPage(page, childScope, outPages, usedPageNames);
             }
         }
+
+        // WI8 (B2): image binding post-processing at the tail of expand; images
+        // without a binding definition are untouched
+        if (imageBinder != null)
+            imageBinder.bind(result, scope);
         return result;
     }
 

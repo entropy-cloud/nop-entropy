@@ -26,6 +26,21 @@
             <artifactId>nop-ooxml-docx</artifactId>
         </dependency>
 
+        <!-- plan 2523 WI8 image binding (B3/B4): QR codes via IQrcodeService
+             (lightweight, compile); 1D code128 via in-module zxing Code128Writer
+             (version managed by the nop-dependencies BOM). nop-chart-echarts is
+             deliberately NOT a compile dependency - opt-in runtime class detection
+             keeps Word->PDF consumers free of GraalJS. -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>
@@ -43,6 +58,21 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-report-pdf</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- plan 2523 WI8：仅测试使用——图表绑定验收用真实 EChartsRenderer（GraalJS，
+             opt-in：compile 依赖面不含 nop-chart-echarts，见 B3） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-chart-echarts</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- plan 2523 WI8：仅测试使用——QR 绑定验收装配真实 ZxingQrcodeService bean -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-zxing</artifactId>
             <scope>test</scope>
         </dependency>
 

@@ -106,6 +106,14 @@
 - 边界：非 xpt 表格原样保留；模板位 cell model 按原坐标对位复制，展开新增行列不带 model；循环副本共享块实例（浅拷贝平台约定）；`deleteAllAfterConfigTable` 属生成期语义。
 - 展开失败（数据集缺失/非法标记）快速失败。
 
+## 11. 图片绑定契约
+
+- 绑定定义内嵌 image 模板模型：`chartBinding`（optionExpr/width/height）与 `codeBinding`（codeExpr/codeType: qr|code128/width/height）互斥，同时定义报错。
+- 入口：`io.nop.report.docx.expand.DocImageBinder.bind(doc, scope)`；`OfficeDocModelExpander.expand` 尾部自动执行绑定（可注入覆盖）。
+- 图表：echarts 渲染为 opt-in（运行时探测；绑定声明存在而依赖缺失时显式报错，不静默跳过）；二维码经 `IQrcodeService`；一维条码内置 code128 位阵绘制。
+- 产物注入文档 assets（`__gen-img-<n>` 生成物命名空间）并改写 assetRef；注入前物化 assets 副本，输入模板不被污染。
+- 缺失表达式/无效 codeType/渲染失败快速失败；无绑定定义的图片不触碰。
+
 ## 相关文档
 
 - `03-modules/nop-report.md`（报表侧 Word 表格路径的路由位）

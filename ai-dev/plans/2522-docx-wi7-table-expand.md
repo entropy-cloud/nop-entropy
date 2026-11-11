@@ -125,6 +125,13 @@ Exit Criteria:
 
 ## Deferred But Adjudicated
 
+### expand 结果与输入共享 assets 列表
+
+- Classification: `watch-only residual`（本计划实现时未发现；WI8 plan 2523 审查发现——绑定器注入会污染输入模板）
+- Why Not Blocking Closure: WI7 的出口链只读不注入 assets；缺口由 successor WI8 的 assets 副本策略修复（B2）。
+- Successor Required: `yes`
+- Successor Path: ai-dev/plans/2523-docx-wi8-image-binding.md（B2 assets 副本策略）。
+
 ### 循环副本的块实例共享
 
 - Classification: `watch-only residual`

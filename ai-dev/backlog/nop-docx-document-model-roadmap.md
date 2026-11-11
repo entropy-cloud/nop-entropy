@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-11-11（WI0–WI7 完成，plan 2515–2522；WI8–WI11 未启动）
+> Last updated: 2026-11-11（WI0–WI8 完成，plan 2515–2523；WI9–WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -60,7 +60,7 @@
 ### M5 — 模板动态展开
 
 - [x] WI7 动态表格与数据绑定展开：复用 `nop-report-docx`（`XptWordTableRenderer`/`WordTableToExcelTableTransformer`），实现 table/row/cell model 的纵向/横向/分组展开、分组小计、表达式求值；doc/page 级循环与生命周期钩子。含展开端到端测试（Deliverable: 动态展开 + 测试；deps: WI4、WI5；Item Type: Feature）
-- [ ] WI8 图表/二维码/条码占位替换：图片占位 + 绑定定义（`doc.model`/`table.model` 内嵌）+ 运行时替换；图表图片经 echarts 静态渲染 provider（依赖 `echarts-server-render-roadmap.md`），二维码/条码经现有扩展。含替换端到端测试（Deliverable: 占位替换 + 测试；deps: WI5 + 外部图表 provider；Item Type: Feature）
+- [x] WI8 图表/二维码/条码占位替换：图片占位 + 绑定定义（`doc.model`/`table.model` 内嵌）+ 运行时替换；图表图片经 echarts 静态渲染 provider（依赖 `echarts-server-render-roadmap.md`），二维码/条码经现有扩展。含替换端到端测试（Deliverable: 占位替换 + 测试；deps: WI5 + 外部图表 provider；Item Type: Feature）
 
 ### M6 — 统一出口与产品能力对齐
 
@@ -74,7 +74,7 @@
 - [x] ★ **Milestone: 通用文档模型与样式定稿**（WI1–WI2 完成后勾选）
 - [x] ★ **Milestone: docx 双向转换可用**（WI3–WI5 完成后勾选）
 - [x] ★ **Milestone: Word 文档 PDF 输出可用**（WI6 完成后勾选）
-- ★ **Milestone: Word 模板动态展开可用**（WI7–WI8 完成后勾选）
+- [x] ★ **Milestone: Word 模板动态展开可用**（WI7–WI8 完成后勾选）
 - ★ **Milestone: 统一出口与 springreport 能力对齐**（WI9–WI10 完成后勾选）
 - ★ **Milestone: 端到端验收通过**（WI0–WI11 全部完成后勾选）
 
