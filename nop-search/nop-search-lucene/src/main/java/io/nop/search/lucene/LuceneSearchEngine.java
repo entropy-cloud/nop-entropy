@@ -89,6 +89,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 // Optional embedding support via ITextEmbedding interface
@@ -131,11 +133,112 @@ public class LuceneSearchEngine implements ISearchEngine {
     public static final Set<String> STORED_ONLY_FIELDS = Set.of(FIELD_PATH);
 
     private Analyzer analyzer;
-    private final Map<String, Directory> indexDirs = new ConcurrentHashMap<>();
-    private final Map<String, IndexWriter> indexWriters = new ConcurrentHashMap<>();
-    private final Map<String, SearcherManager> searcherManagers = new ConcurrentHashMap<>();
+    // plan 2563 MA-01: package-private for same-package test visibility (explicit production change)
+    final Map<String, Directory> indexDirs = new ConcurrentHashMap<>();
+    final Map<String, IndexWriter> indexWriters = new ConcurrentHashMap<>();
+    final Map<String, SearcherManager> searcherManagers = new ConcurrentHashMap<>();
+    private final Map<String, TopicCoordination> topicCoordinations = new ConcurrentHashMap<>();
+    private volatile boolean destroyed = false;
+    private final Object evictionLock = new Object();
     private LuceneConfig config;
     private File rootPath;
+
+    /**
+     * Per-topic read/write coordination (plan 2563 MA-01 facility, single facility for the whole
+     * family C1-001/C1-002/C6-002/C6-003). Write domain: addDocs / removeDocs / removeTopic
+     * (rollback runs inside the same write-lock domain, so no read-upgrade-write deadlock).
+     * Read domain: the acquire..release spans of all public read paths - the read lock excludes
+     * removal, so an in-flight search can never observe AlreadyClosedException when
+     * removeTopic/rollback closes the SearcherManager.
+     */
+    static final class TopicCoordination {
+        final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        volatile long lastAccessNanos = System.nanoTime();
+
+        void touch() {
+            lastAccessNanos = System.nanoTime();
+        }
+    }
+
+    private TopicCoordination coordinationFor(String topic) {
+        return topicCoordinations.computeIfAbsent(topic, key -> new TopicCoordination());
+    }
+
+    private <T> T withReadLock(String topic, Supplier<T> action) {
+        TopicCoordination coordination = coordinationFor(topic);
+        coordination.touch();
+        coordination.lock.readLock().lock();
+        try {
+            return action.get();
+        } finally {
+            coordination.lock.readLock().unlock();
+        }
+    }
+
+    private <T> T withWriteLock(String topic, Supplier<T> action) {
+        TopicCoordination coordination = coordinationFor(topic);
+        coordination.touch();
+        coordination.lock.writeLock().lock();
+        try {
+            return action.get();
+        } finally {
+            coordination.lock.writeLock().unlock();
+        }
+    }
+
+    private void withWriteLock(String topic, Runnable action) {
+        withWriteLock(topic, () -> {
+            action.run();
+            return null;
+        });
+    }
+
+    /**
+     * Topic-capacity LRU eviction (plan 2563 MA-01): when {@link LuceneConfig#getMaxTopics()} is
+     * exceeded, the least recently used fully-formed topic is evicted by reusing the
+     * {@link #removeTopic(String)} three-stage close sequence. tryLock avoids eviction/remove
+     * lock-order deadlock with concurrent readers.
+     */
+    private void evictIfNeeded(String currentTopic) {
+        int maxTopics = config != null ? config.getMaxTopics() : 0;
+        if (maxTopics <= 0)
+            return;
+        if (indexDirs.size() <= maxTopics)
+            return;
+        synchronized (evictionLock) {
+            while (!destroyed && indexDirs.size() > maxTopics) {
+                TopicCoordination victim = null;
+                for (Map.Entry<String, TopicCoordination> entry : topicCoordinations.entrySet()) {
+                    if (entry.getKey().equals(currentTopic))
+                        continue;
+                    if (!indexDirs.containsKey(entry.getKey()))
+                        continue;
+                    if (victim == null || entry.getValue().lastAccessNanos < victim.lastAccessNanos)
+                        victim = entry.getValue();
+                }
+                if (victim == null)
+                    return;
+                if (!victim.lock.writeLock().tryLock())
+                    return;
+                try {
+                    String victimTopic = null;
+                    for (Map.Entry<String, TopicCoordination> entry : topicCoordinations.entrySet()) {
+                        if (entry.getValue() == victim) {
+                            victimTopic = entry.getKey();
+                            break;
+                        }
+                    }
+                    if (victimTopic == null)
+                        return;
+                    LOG.info("nop.search.evict-topic:topic={}", victimTopic);
+                    removeTopic(victimTopic);
+                    topicCoordinations.remove(victimTopic);
+                } finally {
+                    victim.lock.writeLock().unlock();
+                }
+            }
+        }
+    }
 
     /**
      * Optional embedding provider for generating vector embeddings.
@@ -167,6 +270,7 @@ public class LuceneSearchEngine implements ISearchEngine {
         if (config == null) {
             config = new LuceneConfig();
         }
+        this.destroyed = false;
 
         this.rootPath = FileHelper.resolveFile(config.getIndexDir());
         try {
@@ -178,6 +282,8 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     @PreDestroy
     public void destroy() {
+        // set the flag first: any concurrent computeIfAbsent must see it via the double-check
+        this.destroyed = true;
         // Close all searcher managers
         searcherManagers.values().forEach(manager -> {
             try {
@@ -261,22 +367,48 @@ public class LuceneSearchEngine implements ISearchEngine {
         Guard.checkArgument(isValidTopicName(topic), "invalid topic");
 
         String finalTopic = topic;
-        return indexDirs.computeIfAbsent(topic, key -> {
+        Directory dir = indexDirs.computeIfAbsent(topic, key -> {
             try {
                 rootPath.mkdirs();
                 Path topicPath = rootPath.toPath().resolve(key);
-                return FSDirectory.open(topicPath);
+                FSDirectory opened = FSDirectory.open(topicPath);
+                // double-check: destroy raced with creation - close and reject, do not leak
+                if (destroyed) {
+                    try {
+                        opened.close();
+                    } catch (IOException e) {
+                        // engine already destroyed: best-effort close, swallow with comment
+                    }
+                    throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL)
+                            .param(ARG_TOPIC, finalTopic)
+                            .param("reason", "engine destroyed");
+                }
+                return opened;
             } catch (IOException e) {
                 throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
                         .param(ARG_TOPIC, finalTopic);
             }
         });
+        coordinationFor(topic).touch();
+        evictIfNeeded(topic);
+        return dir;
     }
 
     protected SearcherManager getSearcherManager(String topic) {
         return searcherManagers.computeIfAbsent(topic, key -> {
             try {
                 IndexWriter writer = getIndexWriter(topic);
+                // double-check: destroy raced with creation - rollback and reject
+                if (destroyed) {
+                    try {
+                        writer.close();
+                    } catch (IOException e) {
+                        // engine already destroyed: best-effort close, swallow with comment
+                    }
+                    throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL)
+                            .param(ARG_TOPIC, topic)
+                            .param("reason", "engine destroyed");
+                }
                 return new SearcherManager(writer, true, true, null);
             } catch (IOException e) {
                 throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
@@ -292,7 +424,19 @@ public class LuceneSearchEngine implements ISearchEngine {
                 IndexWriterConfig writeConfig = new IndexWriterConfig(analyzer);
                 writeConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
                 writeConfig.setRAMBufferSizeMB(config.getRamBufferSizeMB());
-                return new IndexWriter(dir, writeConfig);
+                IndexWriter writer = new IndexWriter(dir, writeConfig);
+                // double-check: destroy raced with creation - rollback and reject
+                if (destroyed) {
+                    try {
+                        writer.close();
+                    } catch (IOException e) {
+                        // engine already destroyed: best-effort close, swallow with comment
+                    }
+                    throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL)
+                            .param(ARG_TOPIC, topic)
+                            .param("reason", "engine destroyed");
+                }
+                return writer;
             } catch (IOException e) {
                 throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
                         .param(ARG_TOPIC, topic);
@@ -302,11 +446,14 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     @Override
     public void refreshBlocking(String topic) {
-        try {
-            getSearcherManager(topic).maybeRefreshBlocking();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+        withReadLock(topic, () -> {
+            try {
+                getSearcherManager(topic).maybeRefreshBlocking();
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -317,25 +464,27 @@ public class LuceneSearchEngine implements ISearchEngine {
         // P1-4.4-S-05（plan 2394）：限定在指定 topic 内查找——docId 是相对路径的 md5，
         // 不同 topic 会产生相同 docId，跨 topic 遍历取第一个命中即数据串读（且 biz 层
         // 基于 topic 的访问校验被绕过）。
-        SearcherManager manager = getSearcherManager(topic);
-        try {
-            manager.maybeRefresh();
-            IndexSearcher searcher = manager.acquire();
+        return withReadLock(topic, () -> {
+            SearcherManager manager = getSearcherManager(topic);
             try {
-                Query query = new TermQuery(new Term(FIELD_ID, docId));
-                TopFieldDocs docs = searcher.search(query, 1, Sort.RELEVANCE);
-                if (docs.scoreDocs != null && docs.scoreDocs.length > 0) {
-                    int docNum = docs.scoreDocs[0].doc;
-                    Document luceneDoc = searcher.storedFields().document(docNum);
-                    return convertDocumentToSearchableDoc(luceneDoc);
+                manager.maybeRefresh();
+                IndexSearcher searcher = manager.acquire();
+                try {
+                    Query query = new TermQuery(new Term(FIELD_ID, docId));
+                    TopFieldDocs docs = searcher.search(query, 1, Sort.RELEVANCE);
+                    if (docs.scoreDocs != null && docs.scoreDocs.length > 0) {
+                        int docNum = docs.scoreDocs[0].doc;
+                        Document luceneDoc = searcher.storedFields().document(docNum);
+                        return convertDocumentToSearchableDoc(luceneDoc);
+                    }
+                } finally {
+                    manager.release(searcher);
                 }
-            } finally {
-                manager.release(searcher);
+            } catch (IOException e) {
+                throw NopException.adapt(e);
             }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
-        return null;
+            return null;
+        });
     }
 
     @Override
@@ -446,37 +595,39 @@ public class LuceneSearchEngine implements ISearchEngine {
             return docs;
         }
 
-        // 2. 反查所有包含任一 token 的文档，docId 去重
-        Set<Integer> foundDocIds = new LinkedHashSet<>();
-        SearcherManager manager = getSearcherManager(topic);
-        try {
-            manager.maybeRefresh();
-            IndexSearcher searcher = manager.acquire();
+        // 2. 反查所有包含任一 token 的文档，docId 去重（read lock span excludes removal）
+        return withReadLock(topic, () -> {
+            Set<Integer> foundDocIds = new LinkedHashSet<>();
+            SearcherManager manager = getSearcherManager(topic);
             try {
-                IndexReader reader = searcher.getIndexReader();
-                for (String token : tokens) {
-                    Terms terms = MultiTerms.getTerms(reader, field);
-                    if (terms == null) continue;
-                    TermsEnum termsEnum = terms.iterator();
-                    if (termsEnum.seekExact(new BytesRef(token))) {
-                        PostingsEnum postings = termsEnum.postings(null, PostingsEnum.NONE);
-                        int docId;
-                        while ((docId = postings.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
-                            foundDocIds.add(docId);
+                manager.maybeRefresh();
+                IndexSearcher searcher = manager.acquire();
+                try {
+                    IndexReader reader = searcher.getIndexReader();
+                    for (String token : tokens) {
+                        Terms terms = MultiTerms.getTerms(reader, field);
+                        if (terms == null) continue;
+                        TermsEnum termsEnum = terms.iterator();
+                        if (termsEnum.seekExact(new BytesRef(token))) {
+                            PostingsEnum postings = termsEnum.postings(null, PostingsEnum.NONE);
+                            int docId;
+                            while ((docId = postings.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
+                                foundDocIds.add(docId);
+                            }
                         }
                     }
+                    for (Integer docId : foundDocIds) {
+                        Document doc = reader.document(docId);
+                        docs.add(convertDocumentToSearchableDoc(doc));
+                    }
+                } finally {
+                    manager.release(searcher);
                 }
-                for (Integer docId : foundDocIds) {
-                    Document doc = reader.document(docId);
-                    docs.add(convertDocumentToSearchableDoc(doc));
-                }
-            } finally {
-                manager.release(searcher);
+            } catch (IOException e) {
+                throw NopException.adapt(e);
             }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
-        return docs;
+            return docs;
+        });
     }
 
     /**
@@ -507,35 +658,37 @@ public class LuceneSearchEngine implements ISearchEngine {
      * 纯文本搜索（原有逻辑）
      */
     protected SearchResponse textSearch(SearchRequest request) {
-        SearcherManager manager = getSearcherManager(request.getTopic());
-
-        try {
-            manager.maybeRefresh();
-            IndexSearcher searcher = manager.acquire();
+        return withReadLock(request.getTopic(), () -> {
+            SearcherManager manager = getSearcherManager(request.getTopic());
 
             try {
-                long beginTime = CoreMetrics.currentTimeMillis();
-                Query query = buildQuery(request);
+                manager.maybeRefresh();
+                IndexSearcher searcher = manager.acquire();
 
-                TopFieldDocs topDocs = searcher.search(query, request.getLimit(), Sort.RELEVANCE);
+                try {
+                    long beginTime = CoreMetrics.currentTimeMillis();
+                    Query query = buildQuery(request);
 
-                Highlighter highlighter = newHighligher(query, request);
+                    TopFieldDocs topDocs = searcher.search(query, request.getLimit(), Sort.RELEVANCE);
 
-                List<SearchHit> hits = processHits(searcher, topDocs, highlighter);
+                    Highlighter highlighter = newHighligher(query, request);
 
-                SearchResponse response = new SearchResponse();
-                response.setItems(hits);
-                response.setTotal(topDocs.totalHits.value);
-                response.setQuery(request.getQuery());
-                response.setLimit(request.getLimit());
-                response.setProcessTime(CoreMetrics.currentTimeMillis() - beginTime);
-                return response;
-            } finally {
-                manager.release(searcher);
+                    List<SearchHit> hits = processHits(searcher, topDocs, highlighter);
+
+                    SearchResponse response = new SearchResponse();
+                    response.setItems(hits);
+                    response.setTotal(topDocs.totalHits.value);
+                    response.setQuery(request.getQuery());
+                    response.setLimit(request.getLimit());
+                    response.setProcessTime(CoreMetrics.currentTimeMillis() - beginTime);
+                    return response;
+                } finally {
+                    manager.release(searcher);
+                }
+            } catch (IOException | InvalidTokenOffsetsException e) {
+                throw NopException.adapt(e);
             }
-        } catch (IOException | InvalidTokenOffsetsException e) {
-            throw NopException.adapt(e);
-        }
+        });
     }
 
     /**
@@ -545,7 +698,8 @@ public class LuceneSearchEngine implements ISearchEngine {
      * 纯向量搜索
      */
     protected SearchResponse vectorSearch(SearchRequest request) {
-        SearcherManager manager = getSearcherManager(request.getTopic());
+        return withReadLock(request.getTopic(), () -> {
+            SearcherManager manager = getSearcherManager(request.getTopic());
 
         try {
             manager.maybeRefresh();
@@ -612,9 +766,10 @@ public class LuceneSearchEngine implements ISearchEngine {
             } finally {
                 manager.release(searcher);
             }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+        });
     }
 
     /**
@@ -695,7 +850,8 @@ public class LuceneSearchEngine implements ISearchEngine {
      * 混合搜索（文本 + 向量，使用RRF融合）
      */
     protected SearchResponse hybridSearch(SearchRequest request) {
-        SearcherManager manager = getSearcherManager(request.getTopic());
+        return withReadLock(request.getTopic(), () -> {
+            SearcherManager manager = getSearcherManager(request.getTopic());
 
         try {
             manager.maybeRefresh();
@@ -747,9 +903,10 @@ public class LuceneSearchEngine implements ISearchEngine {
             } finally {
                 manager.release(searcher);
             }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+        });
     }
 
     /**
@@ -823,13 +980,16 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     @Override
     public void addDocs(String topic, List<SearchableDoc> docs) {
-        for (SearchableDoc doc : docs) {
-            LOG.info("nop.search.add-doc:docId={},path={}", doc.getId(), doc.getPath());
-        }
+        // write lock: serializes addDocs/removeDocs/removeTopic per topic; rollback in the
+        // catch below stays in the same write-lock domain (no read-upgrade-write deadlock)
+        withWriteLock(topic, () -> {
+            for (SearchableDoc doc : docs) {
+                LOG.info("nop.search.add-doc:docId={},path={}", doc.getId(), doc.getPath());
+            }
 
-        IndexWriter writer = getIndexWriter(topic);
+            IndexWriter writer = getIndexWriter(topic);
 
-        try {
+            try {
             // 先删除旧文档
             Term[] terms = docs.stream()
                     .map(doc -> new Term(FIELD_ID, doc.getId()))
@@ -850,11 +1010,12 @@ public class LuceneSearchEngine implements ISearchEngine {
                 manager.maybeRefresh();
             }
 
-            LOG.info("nop.search.bulk-update:topic={},count={}", topic, docs.size());
-        } catch (Exception e) {
-            rollback(topic, writer);
-            throw NopException.adapt(e);
-        }
+                LOG.info("nop.search.bulk-update:topic={},count={}", topic, docs.size());
+            } catch (Exception e) {
+                rollback(topic, writer);
+                throw NopException.adapt(e);
+            }
+        });
     }
 
 
@@ -1091,6 +1252,8 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     @Override
     public void removeDocs(String topic, List<String> ids) {
+        // write lock domain (see addDocs)
+        withWriteLock(topic, () -> {
         IndexWriter writer = getIndexWriter(topic);
 
         try {
@@ -1107,15 +1270,19 @@ public class LuceneSearchEngine implements ISearchEngine {
                 manager.maybeRefresh();
             }
 
-            LOG.info("nop.search.remove-docs:topic={},count={}", topic, ids.size());
-        } catch (Exception e) {
-            rollback(topic, writer);
-            throw NopException.adapt(e);
-        }
+                LOG.info("nop.search.remove-docs:topic={},count={}", topic, ids.size());
+            } catch (Exception e) {
+                rollback(topic, writer);
+                throw NopException.adapt(e);
+            }
+        });
     }
 
     @Override
     public void removeTopic(String topic) {
+        // write lock: the three-stage close sequence excludes in-flight read spans, so no
+        // AlreadyClosedException can escape to concurrent searches (C10-001 leg 2)
+        withWriteLock(topic, () -> {
         // 清理SearcherManager
         SearcherManager manager = searcherManagers.remove(topic);
         if (manager != null) {
@@ -1146,7 +1313,8 @@ public class LuceneSearchEngine implements ISearchEngine {
             }
         }
 
-        LOG.info("nop.search.remove-topic:topic={}", topic);
+            LOG.info("nop.search.remove-topic:topic={}", topic);
+        });
     }
 
     /**
@@ -1154,6 +1322,10 @@ public class LuceneSearchEngine implements ISearchEngine {
      * 不可再用。失败路径必须先把 writer/SearcherManager 从缓存 map 移除再 rollback，
      * 否则 getIndexWriter 持续返回已关闭 writer，单条坏文档即可永久打死整个 topic
      * （AlreadyClosedException 直到重启）。条目移除后下次访问按 computeIfAbsent 重建。
+     *
+     * <p>plan 2563 MA-01：本方法只能在 topic 写锁域内被调用（addDocs/removeDocs 的 catch
+     * 路径即处于写锁域内），自身不再取锁——避免 RW 锁读升级写自死锁，也保证三段移除
+     * 与在途读 span 互斥（dir 有意保留语义不变，S-04 冻结面）。
      */
     protected void rollback(String topic, IndexWriter writer) {
         SearcherManager manager = searcherManagers.remove(topic);

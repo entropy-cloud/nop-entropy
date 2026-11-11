@@ -36,6 +36,8 @@ nop.err.ai.rag.empty-document: Document {docId} is empty or blank
 nop.err.ai.rag.empty-query: Query text must not be blank
 nop.err.ai.rag.query-vector-required: Vector search requires query.vector (text->embedding
   conversion belongs to the RAG pipeline)
+nop.err.ai.rag.synthesize-failed: 'LLM provider returned an error response for RAG
+  synthesize: {detail}'
 nop.err.ai.service.http-error: LLM {llmName} call failed, HTTP status={httpStatus}
 nop.err.ai.service.invalid-response: The response returned by the LLM is invalid
 nop.err.ai.service.no-base-url: LLM {llmName} has no baseUrl configured
@@ -49,6 +51,17 @@ nop.err.ai.service.result-no-expected-part: 'The result returned by the LLM does
 nop.err.ai.session-id-empty: sessionId must not be null or empty (path-traversal guard)
 nop.err.ai.session-id-invalid: 'sessionId contains invalid characters; only [A-Za-z0-9_-]
   are allowed (path-traversal guard): sessionId={sessionId}'
+nop.err.ai.stream.accumulation-exceeded: 'LLM stream accumulation exceeded the configured
+  limit: {detail}'
+nop.err.ai.stream.buffer-overflow: 'LLM {llmName} stream buffer overflow: downstream
+  subscriber stalled, stream terminated fail-loud (no silent drop)'
+nop.err.ai.stream.idle-timeout: LLM {llmName} stream inactive for {timeout} ms (no
+  chunk within the inactivity budget)
+nop.err.ai.stream.termination-signal-missing: LLM {llmName} stream closed without
+  a termination signal (finishReason/DONE missing); truncated content is not delivered
+  as success, accumulatedChars={detail}
+nop.err.ai.stream.total-timeout: LLM {llmName} stream did not finish within the total
+  deadline (timeout={timeout} ms)
 nop.err.ai.tools.invalid-max-results: maxResults must be positive
 nop.err.ai.tools.invalid-project-name: projectName must be valid file directory name:{value}
 nop.err.ai.tools.invalid-stage: 'Invalid ThoughtStage: {value}'
@@ -130,6 +143,8 @@ nop.err.autotest.check-deleted-row-fail: 数据校验失败：数据表[{tableNa
 nop.err.autotest.check-match-fail: 执行结果不符合预期
 nop.err.autotest.check-output-fail: 输出结果[{fileName}]与录制的文件不匹配
 nop.err.autotest.check-sql-result-fail: 执行SQL验证失败：{sql}
+nop.err.autotest.executor-destroyed: 'MockScheduledExecutor is destroyed: task submission
+  is rejected and pending tasks are drained'
 nop.err.autotest.expect-error: 代码应该抛出异常，不应该执行到这里
 nop.err.autotest.no-dao-for-table: 没有找到数据库表[{tableName}]所对应的DAO对象
 nop.err.autotest.not-expect-data: 输出[{fileName}]不是期望的结果:expected={expected},output={output}
@@ -138,15 +153,24 @@ nop.err.autotest.row-no-id: 文件[{file}]中的数据行[{rowNumber}]没有id
 nop.err.autotest.snapshot-finished: 录制快照过程正常结束. 现在可以通过@NopTestConfig的snapshotTest属性来控制录制/校验快照数据
 nop.err.autotest.test-class-no-local-db-annotation: 测试方法[{testMethod}]要求使用localDb模式，因此在测试类[{testClass}]上必须增加@NopTestConfig(localDb=true)配置
 nop.err.autotest.unknown-file: 文件[{filePath}]不存在
+nop.err.batch.batch-size-invalid: 批处理loader收到的batchSize={batchSize}非法：必须大于0
 nop.err.batch.cancel-load: 批处理读取被取消
 nop.err.batch.cancel-process: 批处理执行被取消
+nop.err.batch.concurrency-exceeds-cap: 并发参数[{paramName}]的值[{paramValue}]超过装配期上界[{maxConcurrencyCap}]，任务不允许装配。如确需更高并发，请调大配置项nop.batch.max-concurrency-cap（同时需要评估平台共享cached池上界nop.commons.concurrent.cached-pool.maxPoolSize）
+nop.err.batch.dispatch-factor-invalid: 批处理dispatch流控参数[{paramName}]的值[{paramValue}]非法：必须>=1。loadBatchMultiplyFactor<=0会使队列容量退化为0导致挂死
+nop.err.batch.dispatch-load-batch-size-invalid: 批处理dispatch读取批大小[{loadBatchSize}]非法：loadBatchSize必须大于0，任务不允许装配。loadBatchSize<=0会使dispatch队列容量（capacity
+  = loadBatchSize × loadBatchMultiplyFactor，AsyncFetch缺省×30）退化为0，orm-reader全表单页加载将对Semaphore(0)永久阻塞，其他reader会静默产出空任务导致数据丢失
 nop.err.batch.input-mandatory-not-provided: 批处理任务的input参数{inputName}是必需的，但未提供
 nop.err.batch.invalid-history-store-bean: 批处理任务定义的historyStore的bean配置无效
+nop.err.batch.ledger-config-invalid: '批处理账本保留策略配置非法: {configKey}={configValue}'
 nop.err.batch.output-file-exists-on-recovery: 断点续传时输出文件已存在且非空，继续执行会截断丢失已完成记录的产出。请先转移或删除输出文件，或者更换输出路径
 nop.err.batch.persist-var-convert-type-fail: 状态变量[{varName}]的类型转换失败
 nop.err.batch.processing-items-not-empty: 任务完成时仍存在未处理完毕的记录，记录状态与实际处理进度不一致
 nop.err.batch.processor-is-null: 批处理任务的处理器配置不允许为null
 nop.err.batch.rate-limit-acquire-timeout: 在限流超时时间内未能获取到足够的许可，限流配置可能过低
+nop.err.batch.retry-max-count-negative: 批处理重试策略的maxRetryCount={value}非法：负值在底层RetryPolicy中语义为无限重试（与-1=禁用的惯例相反），装配期拒绝。如需禁止重试请不配置retryPolicy
+nop.err.batch.save-state-with-dispatcher-unsupported: 批处理任务同时配置saveState（断点续传）与dispatcher.fetchThreadCount>0是不支持的组合：fetchThreadCount={fetchThreadCount}。分区派发下load与consume在时间与线程上解耦，reader的chunk级压实回调（标记processingItems完成并推进completedIndex）无法附着到实际消费该批数据的chunk上下文，会导致completedIndex永不推进、任务必然以nop.err.batch.processing-items-not-empty失败。请改用concurrency（不配置dispatcher）或关闭saveState。
+nop.err.batch.skip-count-invalid: 批处理跳过策略的maxSkipCount={skipCount}非法：负值语义为不设上限（与-1=禁用的惯例相反）。如需不设上限请显式配置0
 nop.err.batch.task-consumer-for-tag-no-tagger: 批处理任务的consumer配置了forTag={consumerName}，但没有配置tagger，forTag无法生效
 nop.err.batch.task-exceed-start-limit: 批处理任务[{taskName}-{taskKey}]启动次数超过限制，不允许再次启动
 nop.err.batch.task-invalid-consumer: 批处理的consumer类型不合法
@@ -185,9 +209,14 @@ nop.err.commons.collections.can-not-transform-to-iterator: 不支持转化为Ite
 nop.err.commons.collections.iterator-eof: 迭代器已经到达尾部，不能继续移动
 nop.err.commons.collections.not-list: 类型为[{class}]的对象不能被转换为集合类型
 nop.err.commons.collections.not-support-stream: 不支持转化为Stream接口
+nop.err.commons.concurrent.cached-pool-saturated: cached线程池[{name}]的并发线程数已达上界[{maxPoolSize}]，任务提交被拒绝
+nop.err.commons.concurrent.invalid-thread-pool-param: 线程池[{name}]的参数[{paramName}]取值非法:{value}
 nop.err.commons.concurrent.queue-full: 队列已满
+nop.err.commons.concurrent.rate-limit-acquire-timeout: 限流许可等待超时（permits=[{permits}]，上界[{timeout}]毫秒）
 nop.err.commons.concurrent.rate-limiter-acquire-count-must-be-less-than-high-watermark: 尝试获取的资源数[{count}]必须比高水位值[{highWatermark}]小
 nop.err.commons.concurrent.stop-pooled-thread: 停止线程池中的线程
+nop.err.commons.concurrent.thread-pool-not-initialized: 线程池[{name}]尚未初始化，不能执行destroy
+nop.err.commons.concurrent.throttle-acquire-timeout: 节流许可等待超时（上界[{timeout}]毫秒）
 nop.err.commons.concurrent.unknown-thread-pool: 未知的线程池[{name}]
 nop.err.commons.file.acquire-lock-fail: 获取文件锁失败:{path}
 nop.err.commons.file.acquire-lock-timeout: 获取文件锁超时:{path}
@@ -269,6 +298,8 @@ nop.err.config.expr-unresolved: '配置表达式解析失败: 属性 ${property}
 nop.err.config.invalid-config-bean-name: 不合法的配置对象名:{configName}
 nop.err.config.missing-application-name: 缺少nop.application.name配置项
 nop.err.config.missing-bootstrap-file: 缺少配置文件:{resourcePath}
+nop.err.config.source-closed: 'Config source is closed: refresh connection rebuild
+  is not allowed after close()'
 nop.err.config.value-not-allow-list: 配置项[{configName}]的值不能是集合类型，只能是普通数据类型或者Map类型
 nop.err.config.value-type-not-same-as-defined: 配置值[{configName}]的类型[{valueType}]与定义类型[{defineType}]不一致
 nop.err.convert.no-converter-from-type-to-type: 没有从类型 {fromFileType} 转换到类型 {toFileType}
@@ -293,6 +324,10 @@ nop.err.core.component.not-allow-change: 模型对象已经被冻结，不允许
 nop.err.core.component.not-composite-component: 对象不是复合组件类型，不支持通过sub参数来获取子组件
 nop.err.core.component.parse-missing-resource: 待解析的资源文件不存在:{resourcePath}
 nop.err.core.component.resource-cache-return-null: 装载资源文件返回结果为空:{resourcePath}
+nop.err.core.component.resource-cache.load-circular-wait: 跨线程装载/编译等待形成循环依赖:{resourcePath},waitChain={depStack}
+nop.err.core.component.resource-cache.load-mtime-changed: 资源文件在装载期间修改时间持续变化，保守重载重试超限:{resourcePath}
+nop.err.core.component.resource-cache.load-reentrant-loop: 同一线程重入装载形成循环依赖:{resourcePath}
+nop.err.core.component.resource-cache.load-wait-timeout: 装载/编译等待超过有界上界:{resourcePath},waitChain={depStack}
 nop.err.core.component.undefined-component-model-transform: 组件模型[{modelType}]没有定义转换类型[{transform}]，无法转换到指定类型
 nop.err.core.component.unknown-component-file-type: 未知的组件文件类型:{fileType}
 nop.err.core.component.unknown-file-type-for-model-type: 模型[{modelType}]不支持文件类型[{fileType}]
@@ -539,6 +574,8 @@ nop.err.dao.dialect.invalid-sql-name: SQL名称不允许为空:{name}
 nop.err.dao.dialect.invalid-tpl-param: 非法的模板变量:{name},允许的变量为:{allowedNames}
 nop.err.dao.dialect.std-data-type-not-supported: 不支持的标准数据类型:{dataType},允许的数据类型为:{allowedTypes}
 nop.err.dao.dialect.tpl-param-no-arg: 模板变量的格式必须为name:arg
+nop.err.dao.find-all-row-limit-exceeded: findAll 全量物化行数[{rowCount}]超过上界[{maxRows}]，请改用
+  findPage 或调高 nop.dao.find-all-max-rows
 nop.err.dao.func-invalid-arg-count: 函数[{funcName}]的参数个数必须为{argCount}
 nop.err.dao.func-template-marker-out-of-range: 函数[{funcName}]的模板中数字参数索引{markerIndex}超过参数个数范围:{templateSource}
 nop.err.dao.func-too-few-args: 函数[{funcName}]的参数个数少于最小值{minArgCount}
@@ -575,6 +612,7 @@ nop.err.dao.txn.already-finished: 事务已经结束，不允许此操作
 nop.err.dao.txn.already-started: 事务已经启动，不允许重复启动
 nop.err.dao.txn.commit-fail: 事务提交失败
 nop.err.dao.txn.duplicate-sub-transaction: 不允许注册多个txnGroup相同的子事务:{txnGroup}
+nop.err.dao.txn.late-sub-transaction: 事务已进入提交/回滚阶段，不允许再注册子事务:{txnGroup}
 nop.err.dao.txn.not-allow-transaction: 不允许上下文环境中存在已经启动的事务
 nop.err.dao.txn.not-in-transaction: 要求上下文环境必须存在已经启动的事务:{querySpace}
 nop.err.dao.txn.not-registered: 上下文环境中没有注册的事务对象:{txn}
@@ -597,6 +635,7 @@ nop.err.eql.dml-prop-join-not-supported: update/delete语句中不支持属性�
 nop.err.eql.duplicate-table-alias: 数据源[{table1}]和[{table2}]的别名[{alias}]相同
 nop.err.eql.field-not-in-subquery: 查询语句的返回结果中没有包含字段:{fieldName}
 nop.err.eql.field-not-prop: 字段不是实体上的属性:{fieldName}
+nop.err.eql.frozen: 编译产物已冻结，禁止变更[{sqlName}]
 nop.err.eql.func-only-allow-in-window-expr: 函数[{funcName}]只允许在窗口表达式中使用
 nop.err.eql.func-too-few-args: 函数[{funcName}]的参数个数不足
 nop.err.eql.func-too-many-args: 函数[{funcName}]的参数个数过多
@@ -775,6 +814,7 @@ nop.err.graphql.sub-type-of-union-must-be-obj-type: Union类型的子类型必�
 nop.err.graphql.subscription.duplicate-operation: '重复的订阅操作: {operationId}'
 nop.err.graphql.subscription.invalid-topic: '无效的订阅主题格式: {topic}'
 nop.err.graphql.subscription.too-many: '活跃订阅数过多，无法注册: {operationId}'
+nop.err.graphql.tcc-no-bound-context: 异步调用TCC事务函数时当前线程没有绑定IContext，无法附着TCC事务信息（事务ID[{txnId}]）。TCC调用必须从持有请求context的线程发起
 nop.err.graphql.undefined-field: 对象[{objName}]上没有定义字段[{fieldName}]
 nop.err.graphql.undefined-field-arg: 对象[{objName}]的属性[{fieldName}]没有定义参数[{argName}]
 nop.err.graphql.undefined-object: 未定义的对象:{objName}
@@ -802,6 +842,8 @@ nop.err.http.init-ssl-fail: 初始化SSL失败
 nop.err.http.response-error: http响应错误:httpStatus={httpStatus}
 nop.err.http.response-format-not-expected: 返回的内容格式不符合预期
 nop.err.http.response-text-not-json: 返回的内容不是JSON格式
+nop.err.http.sse-demand-timeout: SSE subscriber demand wait exceeded the stall budget
+  (timeout={timeout} ms); subscription terminated
 nop.err.http.timeout: http请求超时
 nop.err.http.upload-input-file: 读取上传文件失败
 nop.err.imp.duplicate-sheet-alias: 发现重复的表单别名：别名'{alias}'同时被表单'{oldName}'和'{newName}'使用
@@ -817,9 +859,18 @@ nop.err.ioc.alias-conflict: bean的别名[{name}]已经被使用，无法重复�
 nop.err.ioc.aop-bean-no-bean-class: bean[{beanName}]设置了ioc:aop=true或者ioc:interceptor，则它必须具有class属性
 nop.err.ioc.aop-class-no-constructor: bean[{beanName}]对应的AOP代理类没有参数个数为{argCount}的构造函数
 nop.err.ioc.bean-aop-proxy-not-generated: bean[{beanName}]指定了interceptor，但没有生成对应的Aop代理类
+nop.err.ioc.bean-creation-circular-wait: 'Cross-thread creation wait for bean [{beanName}]
+  forms a cycle: {waitChain}'
+nop.err.ioc.bean-creation-wait-timeout: 'Timeout waiting for bean [{beanName}] creation
+  (configure nop.ioc.bean-init.wait-timeout to adjust): {waitChain}'
 nop.err.ioc.bean-depend-on-high-order-bean: bean[{beanName}]依赖的bean[{depend}]的优先级比自身的优先级高
 nop.err.ioc.bean-depends-graph-contains-loop: bean依赖关系不允许包含循环依赖。如果确实存在，可以在必要的地方配置节点上标注ioc:ignore-depends
+nop.err.ioc.bean-init-circular-wait: 'Cross-thread init wait for bean [{beanName}]
+  forms a cycle: {waitChain}'
 nop.err.ioc.bean-init-self-wait: bean[{beanName}]初始化过程中发生循环等待：当前线程正在等待自身的初始化阶段完成（同一线程重入或创建线程等待属性赋值）
+nop.err.ioc.bean-init-wait-timeout: 'Timeout waiting for bean [{beanName}] initialization
+  (configure nop.ioc.bean-init.wait-timeout to adjust): createThread={createThread},
+  initThread={initThread}, chain={waitChain}'
 nop.err.ioc.bean-order-constraint-violated: bean[{beanName}]的ioc:before/ioc:after顺序约束不能满足：目标bean[{depend}]的拓扑顺序违反声明
 nop.err.ioc.bean-scope-already-closed: scope[{beanScope}]已经被关闭
 nop.err.ioc.class-no-field: 静态字段[{staticField}]配置不正确，类[className]上不存在字段[{fieldName}]
@@ -856,6 +907,10 @@ nop.err.ioc.proxy-bean-type-not-interface: bean[{beanName}]标记了ioc:proxy=tr
 nop.err.ioc.ref-factory-bean-no-bean-type: 引用的factoryBean[{beanRef}]没有确定的beanType
 nop.err.ioc.scope-already-exists: scope[{scope}]已经存在
 nop.err.ioc.scope-not-opened: scope[{scope}]没有打开，不能访问其中的bean
+nop.err.ioc.start-join-timeout: Timeout waiting for concurrent startup of IoC container
+  [{containerId}] to finish. The startup graph is permanently pending or a startup
+  failure was not propagated. Configure nop.ioc.app-beans-container.start-join-timeout
+  to adjust the bound
 nop.err.ioc.unknown-bean-method: 类[{className}]上没有定义方法[{methodName}]
 nop.err.ioc.unknown-bean-prop: id为[{beanName}]的bean没有定义属性[{propName}]
 nop.err.ioc.unknown-bean-ref: 引用名[{beanRef}]没有指向已定义的bean
@@ -1126,6 +1181,7 @@ nop.err.rpc.no-handler: RPC服务没有找到合适的处理函数
 nop.err.rpc.not-allow-method-overload: 服务[{serviceName}]的方法[{serviceMethod}]不支持函数重载
 nop.err.rpc.not-allow-multiple-subscription: '不允许多次订阅消息主题: {topic}'
 nop.err.rpc.not-allowed-service-name: 不支持的服务:{serviceName}
+nop.err.rpc.poll-deadline-exceeded: 轮询状态在整体截止时间[{pollTimeout}]内未完成，轮询链终止
 nop.err.rpc.request-args-count-mismatch: 服务方法[{serviceMethod}]的请求参数个数不匹配
 nop.err.rpc.request-body-not-list: 请求对象的数据内容必须是列表类型
 nop.err.rpc.timeout: RPC调用超时
@@ -1153,7 +1209,9 @@ nop.err.shell.exec-command-timeout: 执行命令行程序超时:command={command
 nop.err.shell.invalid-task-name: Shell任务的名称不能包含特殊字符，必须能对应到文件系统中的脚本文件:{taskName}
 nop.err.shell.not-allow-change-file-perm: 不允许修改文件权限:{file}
 nop.err.socket.accept-fail: 网络连接失败
+nop.err.socket.concurrent-read: 网络连接正被其他线程读取
 nop.err.socket.connect-fail: 网络连接失败
+nop.err.socket.not-connected: 网络连接尚未建立
 nop.err.socket.read-fail: 网络读取数据失败
 nop.err.socket.read-timeout: 读取数据超时
 nop.err.socket.start-server-fail: 启动服务端失败
@@ -1165,15 +1223,21 @@ nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，�
 nop.err.task.cancelled: 任务已经被取消
 nop.err.task.crud-write-disabled: 实体[{bizObjName}]为引擎独占数据，禁止CRUD写操作[{action}]
 nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
+nop.err.task.executor-bean-invalid: executor bean[{executorBean}]的实际类型[{actualType}]不是
+  IThreadPoolExecutor
+nop.err.task.graph-enter-wait-overlap: 流程图[{graphStepName}]的步骤[{overlapStepNames}]同时被声明为
+  enterSteps 与等待步骤——双调度将导致步骤体重复执行，请修正模型
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
 nop.err.task.graph-step-no-enter-steps: 流程图[{stepName}]必须指定起始步骤
 nop.err.task.graph-step-no-exit-steps: 流程图[{stepName}]必须指定终止步骤
+nop.err.task.instance-already-running: 任务实例[{taskInstanceId}]正在执行中，并发重复执行已被拒绝
 nop.err.task.invalid-custom-type: 节点的扩展类型属性必须包含名字空间，例如customType='gpt:simple'
 nop.err.task.loop-step-invalid-loop-var: 循环步骤的循环变量设置不正确：begin={begin},end={end},step={step}
 nop.err.task.mandatory-input-not-allow-empty: 步骤[{stepPath}]的输入[{inputName}]不允许为空
 nop.err.task.nop-persist-state-store: 没有定义持久化任务状态存储
 nop.err.task.request-rate-exceed-limit: 访问速率超过限制：TPS={requestPerSecond}
+nop.err.task.state-save-conflict: 任务实例[{taskInstanceId}]的状态保存发生并发冲突
 nop.err.task.static-method-not-found: 类[{className}]中没有找到静态方法[{methodName}({argCount})]
 nop.err.task.step-config-invalid: 步骤[{stepName}]的配置属性[{attrName}]={attrValue}非法：{reason}
 nop.err.task.step-mandatory-output-is-empty: 步骤[{stepPath}]的输出[{output}]不允许为空
@@ -1543,6 +1607,7 @@ nop.err.xpl.xlib.tag-no-source-defined: 标签库没有定义内嵌的source实�
 nop.err.xpl.xlib.unknown-tag: 在标签库[{libPath}]中没有定义标签[{tagName}]
 nop.err.xpt.cell-expr-ds-name: '单元格展开表达式中必须具有ds定义，格式为^dsName!fieldName: {expr}'
 nop.err.xpt.cell-expr-result-not-one-cell: 表达式[{expr}]返回单元格个数为[{size}]，不是单个单元格
+nop.err.xpt.excel-read-row-count-exceed-limit: Excel表格[{sheetName}]的数据行数超过上限{maxCount}，可调大ExcelIOConfig.maxCountPerSheet或改用csv/jdbc读取
 nop.err.xpt.invalid-cell-range-expr: 非法的单元格区间表达式
 nop.err.xpt.invalid-ds-name: 非法的数据源名称
 nop.err.xpt.invalid-excel-formula: 非法的Excel公式:{source}

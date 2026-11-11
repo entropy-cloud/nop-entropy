@@ -66,6 +66,9 @@ public interface AutoTestErrors {
     ErrorCode ERR_AUTOTEST_CHECK_SQL_RESULT_FAIL = define("nop.err.autotest.check-sql-result-fail", "执行SQL验证失败：{sql}",
             ARG_SQL);
 
+    ErrorCode ERR_AUTOTEST_EXECUTOR_DESTROYED = define("nop.err.autotest.executor-destroyed",
+            "MockScheduledExecutor is destroyed: task submission is rejected and pending tasks are drained");
+
     ErrorCode ERR_AUTOTEST_TEST_CLASS_NO_LOCAL_DB_ANNOTATION = define(
             "nop.err.autotest.test-class-no-local-db-annotation",
             "测试方法[{testMethod}]要求使用localDb模式，因此在测试类[{testClass}]上必须增加@NopTestConfig(localDb=true)配置", ARG_TEST_METHOD,

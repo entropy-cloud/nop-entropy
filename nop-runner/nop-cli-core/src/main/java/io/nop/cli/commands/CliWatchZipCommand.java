@@ -24,8 +24,10 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @CommandLine.Command(name = "watch-zip", mixinStandardHelpOptions = true, 
     description = "Watch a directory for changes and automatically update the corresponding zip file")
@@ -45,6 +47,10 @@ public class CliWatchZipCommand implements Callable<Integer> {
     boolean recursive = true;
 
     private NioFileWatchService watchService;
+
+    // plan 2563 MA-03: in-flight serialization guard + dirty compensation flag
+    private final AtomicBoolean zipping = new AtomicBoolean(false);
+    private final AtomicBoolean zipDirty = new AtomicBoolean(false);
 
     @PostConstruct
     public void init() {
@@ -122,17 +128,75 @@ public class CliWatchZipCommand implements Callable<Integer> {
     }
 
     /**
-     * Schedule zip file update with debouncing
+     * Schedule zip file update with debouncing. Package-private: explicit test seam (plan 2563
+     * MA-03, adjudication C / R1-B1) - tests drive this unit directly with a wrapped
+     * IScheduledExecutor stand-in ({@code new RateLimitExecutorImpl(mock)}); the executor
+     * creation inside {@link #watchDirAndAutoZip} stays untouched.
      */
-    private void scheduleZipUpdate(IRateLimitExecutor executor, File dir, File zipFile) {
-        executor.debounce("refresh", debounceWait, () -> {
+    void scheduleZipUpdate(IRateLimitExecutor executor, File dir, File zipFile) {
+        executor.debounce("refresh", debounceWait,
+                () -> runZipUpdate(executor, dir, zipFile));
+    }
+
+    /**
+     * plan 2563 MA-03 (C10-005): in-flight serialization guard + dirty compensation. While one
+     * zip round is running, later debounce callbacks only set the dirty flag; the running round
+     * compensates once after finishing, so the last event is never lost and no two rounds ever
+     * write the target zip concurrently. The platform debounce "cancel without waiting for a
+     * submitted task" semantics (CL-005) are absorbed here at the consumer side.
+     */
+    private void runZipUpdate(IRateLimitExecutor executor, File dir, File zipFile) {
+        if (!zipping.compareAndSet(false, true)) {
+            // a round is already in flight: mark dirty, the running round compensates
+            zipDirty.set(true);
+            return;
+        }
+        try {
+            do {
+                zipDirty.set(false);
+                performZipUpdate(dir, zipFile);
+            } while (zipDirty.getAndSet(false));
+        } finally {
+            zipping.set(false);
+        }
+        // race window: an event may have set dirty between the loop exit and the flag release;
+        // reschedule once so the compensation itself is never lost
+        if (zipDirty.compareAndSet(true, false)) {
+            LOG.info("nop.zip-tool.zip-dirty-compensate");
+            executor.debounce("refresh", debounceWait,
+                    () -> runZipUpdate(executor, dir, zipFile));
+        }
+    }
+
+    /**
+     * plan 2563 MA-03 (C10-005 atomic leg): write to a same-directory tmp file and move it onto
+     * the target with ATOMIC_MOVE, so concurrent readers only ever see the complete old or the
+     * complete new zip (never a partially overwritten one). The platform-side
+     * IZipTool.zipDirTo temp+rename improvement stays out of scope here (nop-core untouched).
+     * Protected for test observability (slow-zip / concurrency stand-ins).
+     */
+    protected void performZipUpdate(File dir, File zipFile) {
+        Path target = zipFile.toPath();
+        Path tmp = target.resolveSibling(zipFile.getName() + ".tmp-" + java.util.UUID.randomUUID());
+        try {
             try {
                 LOG.info("nop.zip-tool.updating-zip: {} -> {}", dir.getAbsolutePath(), zipFile.getAbsolutePath());
-                ResourceHelper.zipDir(new FileResource(dir), new FileResource(zipFile), null);
+                ResourceHelper.zipDir(new FileResource(dir), new FileResource(tmp.toFile()), null);
+                Files.move(tmp, target,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 LOG.info("nop.zip-tool.zip-updated: {}", zipFile.getAbsolutePath());
             } catch (Exception e) {
                 LOG.error("nop.zip-tool.zip-update-failed: " + zipFile.getAbsolutePath(), e);
             }
-        });
+        } finally {
+            // never leave tmp residue behind on failure paths
+            try {
+                Files.deleteIfExists(tmp);
+            } catch (IOException e) {
+                // tmp cleanup is best-effort; the write itself already reported via LOG.error
+                LOG.debug("nop.zip-tool.zip-tmp-cleanup-failed: {}", tmp, e);
+            }
+        }
     }
 }

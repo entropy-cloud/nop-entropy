@@ -6,58 +6,61 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
+/**
+ * Manual-drive task record used by {@link MockScheduledExecutor}. The deadline is anchored in
+ * nanoseconds against the executor's virtual clock (real nanoTime base + advanced offset), so
+ * {@link #getDelay(TimeUnit)} decays as the virtual clock advances.
+ */
 public class MockTask implements Delayed {
     private final Callable<?> action;
-    private final long initialDelay;
-    private final long period;
+    private final long deadlineNanos;
+    private final LongSupplier clock;
     private final MockTaskKind taskKind;
-    private final CompletableFuture<?> promise;
+    private final CompletableFuture<Object> promise;
 
-    public MockTask(Callable<?> action, long initialDelay, long period, MockTaskKind taskKind,
-                    CompletableFuture<?> promise) {
+    public MockTask(Callable<?> action, long deadlineNanos, LongSupplier clock, MockTaskKind taskKind,
+                    CompletableFuture<Object> promise) {
         this.action = action;
-        this.initialDelay = initialDelay;
-        this.period = period;
+        this.deadlineNanos = deadlineNanos;
+        this.clock = clock;
         this.taskKind = taskKind;
         this.promise = promise;
     }
 
     @Override
     public long getDelay(TimeUnit unit) {
-        return unit.convert(initialDelay, TimeUnit.MILLISECONDS);
+        long remainingNanos = Math.max(0L, deadlineNanos - clock.getAsLong());
+        return unit.convert(remainingNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
     public int compareTo(Delayed o) {
-        return Long.compare(initialDelay, o.getDelay(TimeUnit.MILLISECONDS));
+        return Long.compare(getDelay(TimeUnit.NANOSECONDS), o.getDelay(TimeUnit.NANOSECONDS));
     }
 
     public Callable<?> getAction() {
         return action;
     }
 
+    public MockTaskKind getTaskKind() {
+        return taskKind;
+    }
+
+    public void completeExceptionally(Throwable err) {
+        promise.completeExceptionally(err);
+    }
+
     public Object call() {
         try {
             Object ret = action.call();
             if (taskKind == MockTaskKind.ONCE)
-                ((CompletableFuture<Object>) promise).complete(ret);
+                promise.complete(ret);
             return ret;
         } catch (Exception e) {
             promise.completeExceptionally(e);
             throw NopException.adapt(e);
         }
-    }
-
-    public long getInitialDelay() {
-        return initialDelay;
-    }
-
-    public long getPeriod() {
-        return period;
-    }
-
-    public MockTaskKind getTaskKind() {
-        return taskKind;
     }
 }

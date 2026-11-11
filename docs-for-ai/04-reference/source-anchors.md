@@ -466,6 +466,11 @@
 | DUK-004 | `nop-duckdb`: `NopDuckDbErrors`（10 错误码，8 个 bizFatal） | 错误码全集与 bizFatal/retry 联动口径（bizFatal 错误配置 `<retry>` 也不重试） |
 | DUK-005 | `nop-dao`: `duckdb.dialect.xml`（+ selector/`ddl_duckdb.xlib`）+ `DialectManager` | duckdb 方言定义（50 函数净集、ST_* spatial 裁定、无锁）；方言修复改此文件（非生成物） |
 
+| R4-29-A | `nop-search/nop-search-lucene/src/main/java/io/nop/search/lucene/LuceneSearchEngine.java`（三 CHM 协调设施：per-topic RW 锁读 span 六站点/addDocs·removeDocs·removeTopic 写域/rollback 同写锁域；`LuceneConfig.maxTopics` LRU 逐出复用 removeTopic；destroy 后 computeIfAbsent 双重校验 reject 复用 `ERR_LUCENE_OPEN_INDEX_FAIL`） | plan 2563 MA-01（C10-001/007）：写操作同 topic 串行、读 span 互斥 topic 关闭（在途 search 不见 AlreadyClosedException）、destroy 后访问 typed 拒绝；契约声明见 `ISearchEngine` javadoc（nop-search-api）；载体 `TestLuceneSearchEngineCoordination`（同包） |
+| R4-29-B | `nop-runner/nop-cli-core/src/main/java/io/nop/cli/commands/CliWatchCommand.java`（WatcherHandle + call() finally 无条件 null 守卫 `registration.cancel()` + locallyOwned `watcher.stop()` 保留；processEvents 包私有 + catch+LOG.error） | plan 2563 MA-02/I-C4-002（C10-004）：watch() 返回的 ICancellable 必须在每条退出路径 cancel（unwatch 只摘本调用 key，NioFileWatchService.unwatch 幂等）；注入（共享）实例禁止 stop（CL-011 footgun）；脚本失败 LOG.error 后吞掉、循环不死；载体 `TestCliWatchCommandLifecycle` + `TestCliDiffAndWatchFixes` 异常腿 |
+| R4-29-C | `nop-autotest/nop-autotest-core/src/main/java/io/nop/autotest/core/mock/MockScheduledExecutor.java` + `MockTask.java`（虚拟时钟 = nanoTime 基点 + `expireTasks(millis)` 偏移推进；`triggerNext` 手动驱动、任务体在替身监视器外执行；destroy 排空 completeExceptionally；错误码 `ERR_AUTOTEST_EXECUTOR_DESTROYED`） | plan 2563 MA-04（C10-003）边界声明：周期 kind 仅手动驱动单轮、不承担 IScheduledExecutor 周期绝缘/退避契约（无真实线程不能履约 R1-B2 裁定）；TimeUnit 忠实换算；载体 `TestMockScheduledExecutorContract` 五腿 |
+| R4-29-D | `nop-runner/nop-cli-core/src/main/java/io/nop/cli/commands/CliWatchZipCommand.java`（`scheduleZipUpdate` 包私有测试缝 + `zipping`/`zipDirty` in-flight 守卫 + `performZipUpdate` protected 同目录 tmp + `Files.move(ATOMIC_MOVE)`） | plan 2563 MA-03（C10-005）：zip 回调串行化（在跑置 dirty、跑完补偿一次）、并发读只见完整旧/新产物、无 tmp 残留；使用方守卫不依赖 CL-005 平台回流；载体 `TestCliWatchZipCommand` overlap/atomic 两腿 |
+
 ## 当 `docs-for-ai` 仍有歧义时
 
 1. 先回到这里找锚点。
