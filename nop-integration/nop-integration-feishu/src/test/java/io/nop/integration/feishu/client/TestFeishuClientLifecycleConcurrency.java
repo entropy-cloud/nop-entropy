@@ -1,5 +1,9 @@
 package io.nop.integration.feishu.client;
 
+import io.nop.integration.feishu.NopFeishuException;
+import io.nop.integration.feishu.codec.FeishuFrameType;
+import io.nop.integration.feishu.codec.FeishuPbCodec;
+import io.nop.integration.feishu.codec.FeishuStreamFrame;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -92,6 +98,17 @@ public class TestFeishuClientLifecycleConcurrency {
             IStreamListener l = listener;
             if (l != null)
                 l.onError(t);
+        }
+
+        void fireBinary(byte[] data) {
+            IStreamListener l = listener;
+            if (l != null)
+                l.onBinary(data);
+        }
+
+        /** stop 后由测试持有的僵尸回调引用（WS 回调线程视角：listener 武装早于 stop）。 */
+        IStreamListener listenerRef() {
+            return listener;
         }
     }
 
@@ -398,5 +415,111 @@ public class TestFeishuClientLifecycleConcurrency {
                         + " with connectCount=" + transport.connectCount.get());
         assertFalse(client.isConnected(),
                 "C6-021: late onOpen of a stale-generation connection must not mark connected");
+    }
+
+    /**
+     * 4.3-C1-010（plan 2560 裁定 L）停机窗口投递载体：WS 回调线程在 stop 之前武装、
+     * 在 stop 清空 handler 之后才投递 DATA 帧——缺陷形态下 handler 已为 null，
+     * onBinary 解引用 NPE 且 catch 内 handler.onError 二次 NPE 从回调线程逃逸
+     * （僵尸投递/NPE 链）。修复形态：快照读取 + stop 窗口帧直接丢弃，不抛不投递。
+     */
+    @Test
+    public void zombieDeliveryAfterStopDoesNotThrowOrDeliver() throws Exception {
+        AtomicInteger deliveries = new AtomicInteger();
+        AtomicInteger errors = new AtomicInteger();
+        IMessageHandler handler = new IMessageHandler() {
+            @Override
+            public void onMessage(FeishuInboundMessage message) {
+                deliveries.incrementAndGet();
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                errors.incrementAndGet();
+            }
+        };
+        client.start(creds(), handler);
+        assertTrue(client.isConnected(), "start must reach connected");
+
+        // 捕获僵尸回调引用（模拟 WS 回调线程已武装、迟于 stop 到达）
+        IStreamListener zombie = transport.listenerRef();
+        assertNotNull(zombie);
+        client.stop();
+
+        FeishuStreamFrame dataFrame = new FeishuStreamFrame(FeishuFrameType.DATA.getMethod(),
+                new java.util.LinkedHashMap<>(), "{\"msg_type\":\"text\"}".getBytes(
+                java.nio.charset.StandardCharsets.UTF_8), "req-1");
+        byte[] encoded = FeishuPbCodec.encode(dataFrame);
+
+        // 僵尸投递不得抛出（缺陷形态：NPE + catch 内二次 NPE 逃逸）
+        Runnable deliver = () -> zombie.onBinary(encoded);
+        Thread callbackThread = new Thread(deliver, "ws-callback-zombie");
+        java.util.concurrent.atomic.AtomicReference<Throwable> escaped = new java.util.concurrent.atomic.AtomicReference<>();
+        callbackThread.setUncaughtExceptionHandler((t, e) -> escaped.set(e));
+        callbackThread.start();
+        callbackThread.join(10_000);
+        assertFalse(callbackThread.isAlive(), "zombie delivery must finish promptly");
+        assertNull(escaped.get(),
+                "C1-010/裁定L: post-stop delivery on a stale WS callback must not throw"
+                        + " (defect: NPE chain out of the callback thread)");
+        assertEquals(0, deliveries.get(),
+                "C1-010/裁定L: post-stop delivery must not reach the (cleared) handler");
+        assertEquals(0, errors.get(), "no error callbacks after a clean stop");
+    }
+
+    /**
+     * 4.3-C1-011（plan 2560 裁定 M）restart×N 载体：owned scheduler 在 stop 期
+     * shutdownNow 后，缺陷形态下 start 复用已终止 scheduler——心跳排程被拒
+     * （RejectedExecutionException），半启动死态。修复形态：start 重建 owned
+     * scheduler，N 轮 start/stop 全部可达 connected。
+     */
+    @Test
+    public void restartNTimesWithOwnedScheduler() {
+        for (int round = 1; round <= 5; round++) {
+            FeishuClient owned = new FeishuClient(transport, httpApi, null);
+            owned.start(creds(), new IMessageHandler() {
+                @Override
+                public void onMessage(FeishuInboundMessage message) {
+                }
+
+                @Override
+                public void onError(Throwable error) {
+                }
+            });
+            assertTrue(owned.isConnected(),
+                    "C1-011/裁定M: round " + round + " start must reach connected"
+                            + " (defect: start after stop reuses the shutdown scheduler -> half-started dead state)");
+            owned.stop();
+        }
+    }
+
+    /**
+     * 4.3-C1-011（plan 2560 裁定 M）：外部注入 scheduler 生命周期不归本类管理——
+     * stop 后 start 显式 fail-fast（documented unsupported），而非半启动死态。
+     */
+    @Test
+    public void restartWithExternalSchedulerFailsFast() {
+        client.start(creds(), new IMessageHandler() {
+            @Override
+            public void onMessage(FeishuInboundMessage message) {
+            }
+
+            @Override
+            public void onError(Throwable error) {
+            }
+        });
+        client.stop();
+        org.junit.jupiter.api.Assertions.assertThrows(NopFeishuException.class,
+                () -> client.start(creds(), new IMessageHandler() {
+                    @Override
+                    public void onMessage(FeishuInboundMessage message) {
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                    }
+                }),
+                "C1-011/裁定M: restart with an externally injected scheduler must fail fast"
+                        + " (unsupported, documented)");
     }
 }

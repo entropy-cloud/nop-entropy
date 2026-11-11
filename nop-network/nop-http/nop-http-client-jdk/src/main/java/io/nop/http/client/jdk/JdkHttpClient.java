@@ -157,6 +157,14 @@ public class JdkHttpClient implements IHttpClient {
             executor.destroy();
             executor = null;
         }
+        // 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛清单补 HttpClient.close()
+        // （JDK 21+ HttpClient 实现 AutoCloseable）——终止 selector/连接池线程，
+        // 消除 stop 后客户端资源滞留面
+        HttpClient c = this.client;
+        if (c != null) {
+            c.close();
+            this.client = null;
+        }
     }
 
     @Override

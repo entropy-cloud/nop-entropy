@@ -38,6 +38,12 @@ class JdkFeishuHttpApi implements IFeishuHttpApi {
         this.baseUrl = baseUrl;
     }
 
+    /** 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛——释放自持 JDK HttpClient。 */
+    @Override
+    public void close() {
+        httpClient.close();
+    }
+
     @Override
     public StreamEndpoint getStreamEndpoint(String appId, String appSecret) {
         String body = "{\"app_id\":\"" + appId + "\",\"app_secret\":\"" + appSecret + "\"}";

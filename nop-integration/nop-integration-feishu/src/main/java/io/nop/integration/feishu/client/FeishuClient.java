@@ -63,8 +63,16 @@ public class FeishuClient {
 
     private final IStreamTransport transport;
     private final IFeishuHttpApi httpApi;
-    private final ScheduledExecutorService scheduler;
+    /**
+     * 4.3-C1-011（plan 2560 裁定 M）：scheduler 可换引用——owned scheduler 在 stop 期
+     * shutdownNow 后 start 重建，消除 stop→start 的半启动死态（旧 scheduler 已终止、
+     * 心跳/重连任务全部被拒）。外部注入 scheduler（ownsScheduler=false）不归本类管理，
+     * stop 后 start 显式 fail-fast（documented unsupported）。
+     */
+    private volatile ScheduledExecutorService scheduler;
     private final boolean ownsScheduler;
+    /** 裁定 M：scheduler 已被 stop 终止（owned 重建依据 / 外部注入 fail-fast 依据）。 */
+    private volatile boolean schedulerShutdown;
 
     private long heartbeatIntervalSeconds = DEFAULT_HEARTBEAT_SECONDS;
 
@@ -77,9 +85,11 @@ public class FeishuClient {
     // connection state
     private volatile boolean started = false;
     private volatile boolean connected = false;
-    private FeishuCredentials credentials;
-    private IMessageHandler handler;
-    private StreamEndpoint endpoint;
+    // 4.3-C1-010（plan 2560 裁定 L）：stop 期清空 + WS 回调线程并发读——volatile 化，
+    // 停机窗口的僵尸投递/NPE 链（回调线程读到半清空状态）消除
+    private volatile FeishuCredentials credentials;
+    private volatile IMessageHandler handler;
+    private volatile StreamEndpoint endpoint;
     private ScheduledFuture<?> heartbeatFuture;
     private final AtomicLong reconnectAttempt = new AtomicLong();
 
@@ -213,6 +223,18 @@ public class FeishuClient {
             LOG.debug("feishu-client already started, ignoring duplicate start");
             return;
         }
+        // 4.3-C1-011（plan 2560 裁定 M）：stop 后 start 的半启动死态消除——
+        // owned scheduler 已 shutdownNow 则重建；外部注入 scheduler 生命周期不归本类，
+        // stop→start 显式 fail-fast（documented unsupported）
+        if (schedulerShutdown) {
+            if (!ownsScheduler) {
+                throw new NopFeishuException(
+                        "FeishuClient.start: restart with an externally injected scheduler is not supported"
+                                + " (the scheduler lifecycle is not owned by this client; create a new client)");
+            }
+            this.scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory("feishu-client"));
+            this.schedulerShutdown = false;
+        }
         this.credentials = resolveEffectiveCredentials(credentials);
         registerUsageQuietly();
         this.handler = handler;
@@ -245,6 +267,16 @@ public class FeishuClient {
         }
         if (ownsScheduler) {
             scheduler.shutdownNow();
+        }
+        // 4.3-C1-011（plan 2560 裁定 M）：标记 scheduler 已终止——start 期据此重建
+        // （owned）或 fail-fast（外部注入）
+        this.schedulerShutdown = true;
+        // 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛清单补 httpApi close——
+        // 释放 JdkFeishuHttpApi 自持的 JDK HttpClient（default no-op 对假体无感）
+        try {
+            httpApi.close();
+        } catch (Exception e) {
+            LOG.debug("feishu-client http api close ignored error", e);
         }
         this.credentials = null;
         this.handler = null;
@@ -417,13 +449,21 @@ public class FeishuClient {
                 LOG.info("feishu-client onOpen for expired generation, ignoring");
                 return;
             }
+            // 4.3-C1-010（plan 2560 裁定 L）：WS 回调线程快照读取——stop 窗口内
+            // credentials/endpoint 已清空时不再解引用（NPE 链消除）
+            FeishuCredentials snapshotCredentials = credentials;
+            StreamEndpoint snapshotEndpoint = endpoint;
+            if (snapshotCredentials == null || snapshotEndpoint == null) {
+                LOG.info("feishu-client onOpen in stop window, ignoring");
+                return;
+            }
             connected = true;
             // send CONTROL connect handshake carrying app id + ticket
             try {
                 Map<String, String> headers = new LinkedHashMap<>();
                 headers.put("type", "connect");
-                String payload = "{\"app_id\":\"" + credentials.getAppId()
-                        + "\",\"ticket\":\"" + endpoint.getTicket() + "\"}";
+                String payload = "{\"app_id\":\"" + snapshotCredentials.getAppId()
+                        + "\",\"ticket\":\"" + snapshotEndpoint.getTicket() + "\"}";
                 FeishuStreamFrame handshake = new FeishuStreamFrame(FeishuFrameType.CONTROL.getMethod(),
                         headers, payload.getBytes(StandardCharsets.UTF_8), null);
                 transport.send(FeishuPbCodec.encode(handshake));
@@ -434,6 +474,13 @@ public class FeishuClient {
 
         @Override
         public void onBinary(byte[] data) {
+            // 4.3-C1-010（plan 2560 裁定 L）：WS 回调线程对 handler 快照读取——
+            // stop 清空后到达的帧直接丢弃，僵尸投递/NPE 链（catch 内 handler.onError
+            // 二次解引用 null）消除
+            IMessageHandler snapshotHandler = handler;
+            if (snapshotHandler == null) {
+                return;
+            }
             try {
                 FeishuStreamFrame frame = FeishuPbCodec.decode(data);
 
@@ -441,7 +488,7 @@ public class FeishuClient {
 
                     FeishuInboundMessage msg = toInbound(frame);
 
-                    handler.onMessage(msg);
+                    snapshotHandler.onMessage(msg);
 
                     // P1-6.8-004（plan 2392）：DATA 帧处理后按 wire 协议回 ACK——headers 原样复制
 
@@ -469,7 +516,7 @@ public class FeishuClient {
                     LOG.debug("feishu-client received CONTROL frame");
                 }
             } catch (Throwable t) {
-                handler.onError(t);
+                snapshotHandler.onError(t);
             }
         }
 
@@ -482,8 +529,9 @@ public class FeishuClient {
         @Override
         public void onError(Throwable error) {
             connected = false;
-            if (handler != null) {
-                handler.onError(error);
+            IMessageHandler snapshotHandler = handler;
+            if (snapshotHandler != null) {
+                snapshotHandler.onError(error);
             }
             scheduleReconnect();
         }

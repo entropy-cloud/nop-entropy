@@ -208,6 +208,13 @@ class JdkStreamTransport implements IStreamTransport {
             }
             this.webSocket = null;
         }
+        // 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛清单补 transport 自持 JDK
+        // HttpClient 的 close——此前 close 只关 WS，HttpClient selector 线程滞留
+        try {
+            this.httpClient.close();
+        } catch (Exception e) {
+            LOG.debug("feishu stream transport http client close ignored error", e);
+        }
         this.listener = null;
     }
 }

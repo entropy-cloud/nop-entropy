@@ -40,4 +40,11 @@ interface IFeishuHttpApi extends IFeishuOAuthApi {
      */
     int sendMessage(String accessToken, String receiveIdType, String receiveId,
                     String msgType, String content);
+
+    /**
+     * 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛清单 seam——实现释放自持的
+     * JDK HttpClient（selector 线程/连接池）。default no-op 保持既有假体零改写兼容。
+     */
+    default void close() {
+    }
 }
