@@ -15,6 +15,7 @@ java -cp "nop-tools/nop-bytecode/target/classes:nop-bytecode/target/test-classes
 - 输出：每行一条 finding——`[severity] ruleId class#method@insnIndex (ref) message`；`--json` 输出同序数组（字段：ruleId/severity/message/className/methodName/insnIndex/ref，结构与 nop-lint `Diagnostic` 对齐，位置为字节码坐标系而非源码行）。
 - 退出码（**report-only，与 nop-lint findings=1 哲学不同**）：`0` = 运行完成（有无 findings 均 0）；`2` = 失败（usage 错误 / 缺失输入 / 损坏产物 / 分析异常），fail-fast 不输出部分报告。分析层异常（含截断 class 深解析失败）经 `NopBytecodeException` 收口 + CLI `RuntimeException` 顺序兜底，一律归 `2`——不得逃逸为 `1`（R1.4 / plan 2367 收口；`1` 在 nop-lint 契约中是 violations）。升 hard gate 须独立 plan + 对照期误报数据。
 - 运行时限（R1.4 / plan 2367）：`--max-runtime-seconds <n>`（默认 600，合法域 ≥0，`0` = 立即超时）。deadline 检查在 `ForwardSolver.solve()` worklist 循环内——可中断单方法内 in-flight 的不收敛求解；超限以 `NopBytecodeException`（exit 2）终止。
+- read-back 单开契约（plan 2564 W-14）：分析读回阶段对每个 jar 输入经 `run(args, out, err, jarOpener)` 注入式 seam 至多打开 1 次 `JarFile`（per-input try-with-resources，镜像 `ClassArtifactCollector.collectJar` 正确形态；修前逐 artifact 重开为 O(entries×central-directory)）；目录输入逐文件 `readAllBytes` 不变；`readBytes` 的 sha256 collect/read-back TOCTOU 响亮对照逐字保留（冻结钉 `tamperedSha256BetweenCollectAndReadFailsLoudly`）。
 - 当前 ruleId：`nullflow/may-null-deref`（解引用前判空路径敏感分析，v1 降配口径：分支敏感仅 IFNULL/IFNONNULL；Wave 2 升级为全条件分支敏感）。豁免面：`Objects.requireNonNull` 系语义门控、守卫分支。
 
 ## 架构要点

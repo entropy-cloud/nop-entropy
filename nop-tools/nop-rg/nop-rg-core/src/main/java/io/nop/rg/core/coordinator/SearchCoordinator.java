@@ -14,7 +14,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +21,7 @@ import java.util.Map;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +60,12 @@ public class SearchCoordinator {
     private final boolean includeHidden;
     private final long chunkedThreshold;
 
+    /**
+     * 任务装饰 seam（plan 2564 W-05/W-03，R2-M1 定形）：包私有、默认恒等；测试注入装饰器
+     * 确定性向任务边界送 InternalError / RuntimeException，验 coordinator 包装与错误项转换。
+     */
+    Function<Callable<FileTaskOutcome>, Callable<FileTaskOutcome>> taskDecorator = Function.identity();
+
     public SearchCoordinator(int threads, boolean respectGitignore, boolean includeHidden) {
         this(threads, respectGitignore, includeHidden, DEFAULT_CHUNKED_THRESHOLD);
     }
@@ -80,9 +86,12 @@ public class SearchCoordinator {
     }
 
     /**
-     * 执行搜索；返回按相对路径排序的逐文件结果（仅含有命中的文件）。
+     * 执行搜索；返回部分成功语义的联合结果（plan 2564 W-05）：
+     * 单文件失败（I/O / FFM fault / 内存越界等）不弃全——失败文件归入
+     * {@link SearchOutcome#errors()} 错误项，其余文件照常聚合；walker fail-fast（已声明契约）
+     * 与 VECTOR 策略解析仍在 coordinator 级失败，异常路径保持不变。
      */
-    public Map<String, FileMatches> search(SearchCommand command) {
+    public SearchOutcome search(SearchCommand command) {
         Strategy strategy = command.strategy();
         GlobMatcher globs = GlobMatcher.of(command.getGlobs());
         List<Path> files = new ParallelFileWalker(command.getRoot(), threads, respectGitignore, includeHidden).walk();
@@ -99,37 +108,67 @@ public class SearchCoordinator {
         } else {
             prepared = null;
         }
-        List<Callable<AbstractMap.SimpleEntry<String, FileMatches>>> tasks = new ArrayList<>();
+        List<Callable<FileTaskOutcome>> tasks = new ArrayList<>();
         for (Path file : files) {
             String rel = command.getRoot().relativize(file).toString().replace('\\', '/');
             if (!globs.accept(rel)) {
                 continue;
             }
             PreparedFinder preparedRef = prepared;
-            tasks.add(() -> new AbstractMap.SimpleEntry<>(rel,
-                    searchFile(file, command, strategy, regexSearcher, preparedRef)));
+            // 任务边界单点 catch（W-05 失效面 1-4/8 统一覆盖；InternalError 腿为 W-03 包装点输入）；
+            // taskDecorator seam 应用于边界 try 之内——注入异常确定性进入任务边界（R2-M1）
+            tasks.add(() -> {
+                try {
+                    return taskDecorator.apply(() -> new FileTaskOutcome(rel,
+                            searchFile(file, command, strategy, regexSearcher, preparedRef), null)).call();
+                } catch (InternalError | RuntimeException e) {
+                    return new FileTaskOutcome(rel, null, toFileError(rel, e));
+                }
+            });
         }
 
         ExecutorService pool = new ForkJoinPool(Math.max(1, threads));
         try {
             Map<String, FileMatches> results = new TreeMap<>();
+            List<FileError> errors = new ArrayList<>();
             try {
-                for (Future<AbstractMap.SimpleEntry<String, FileMatches>> future : pool.invokeAll(tasks)) {
-                    AbstractMap.SimpleEntry<String, FileMatches> entry = future.get();
-                    if (entry.getValue() != null) {
-                        results.put(entry.getKey(), entry.getValue());
+                for (Future<FileTaskOutcome> future : pool.invokeAll(tasks)) {
+                    try {
+                        FileTaskOutcome outcome = future.get();
+                        if (outcome.error() != null) {
+                            errors.add(outcome.error());
+                        } else if (outcome.matches() != null) {
+                            results.put(outcome.relativePath(), outcome.matches());
+                        }
+                    } catch (ExecutionException e) {
+                        // 兜底腿（R1-m1）：任务边界 catch 之外仍逃逸的异常（如 decorator 层 Error）
+                        // 不再中断收集——错误聚合继续，已完成的文件结果照常保留
+                        errors.add(new FileError("", "search task failed: " + e.getCause()));
                     }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new NopRgException("search interrupted", e);
-            } catch (ExecutionException e) {
-                throw new NopRgException("search task failed", e.getCause());
             }
-            return results;
+            return new SearchOutcome(results, errors);
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    /**
+     * 任务边界异常 → 错误项（plan 2564 W-05/W-03）：RuntimeException/NopRgException 消息保留
+     * 原始异常上下文（裸 InternalError 常无消息——R1-m2，不经此腿）；InternalError（FFM 映射
+     * fault 的实测转换形态，W-03）在此补「search fault while scanning: &lt;rel&gt;」带路径包装，
+     * 使错误可见性回到「错误携带文件名」族内一致性（对照 stat/map 既有文案形态）。
+     */
+    private static FileError toFileError(String rel, Throwable e) {
+        if (e instanceof InternalError) {
+            NopRgException wrapped = new NopRgException("search fault while scanning: " + rel, e);
+            return new FileError(rel, wrapped.getMessage());
+        }
+        String message = e.getMessage() != null ? e.getMessage() : e.toString();
+        return new FileError(rel, message);
     }
 
     /**

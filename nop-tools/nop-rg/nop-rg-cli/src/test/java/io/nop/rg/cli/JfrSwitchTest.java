@@ -59,7 +59,7 @@ public class JfrSwitchTest {
                 do {
                     Map<String, FileMatches> results = coordinator.search(
                             new SearchCommand(corpus, "needle", SearchCoordinator.Strategy.LITERAL,
-                                    false, List.of(), 0));
+                                    false, List.of(), 0)).results();
                     if (results.isEmpty() && System.nanoTime() > deadline) {
                         break;
                     }

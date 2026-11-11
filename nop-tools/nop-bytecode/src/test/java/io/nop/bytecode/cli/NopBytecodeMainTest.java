@@ -14,7 +14,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -328,9 +330,49 @@ class NopBytecodeMainTest {
                 new PrintStream(out), new PrintStream(err));
         assertEquals(2, code);
         assertTrue(err.toString().contains("Broken.class"), err.toString());
-        // fail-fast: no partial report printed to stdout
+        // fail-fast: no partial report on failure
         assertEquals("", out.toString(StandardCharsets.UTF_8), "no partial report on failure");
     }
 
+    /**
+     * W-14 carrier (plan 2564, C10-04 pin P2-04): read-back opens each jar input at most once
+     * through the injected jarOpener (per-input single open, mirroring collectJar's correct
+     * shape), not once per artifact. Pre-fix behavior = N entries opens (O(entries ×
+     * central-directory) on fat jars) — red via mutation chain 1 (per-artifact open restored).
+     */
+    @Test
+    void readBackOpensEachJarAtMostOnce(@TempDir Path tmp) throws IOException {
+        // three class entries in one jar
+        Path dir = tmp.resolve("multi-classes");
+        String src1 = "package p;\npublic class A { static int go(String s) { return s.length(); } }\n";
+        String src2 = "package p;\npublic class B { static String go(String s) { return s.trim(); } }\n";
+        String src3 = "package p;\npublic class C { static int go(Integer i) { return i + 1; } }\n";
+        TestCompiler.compile("17", dir, "A.java", src1);
+        TestCompiler.compile("17", dir, "B.java", src2);
+        TestCompiler.compile("17", dir, "C.java", src3);
+        Path jar = tmp.resolve("multi.jar");
+        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(jar))) {
+            for (Path p : Files.walk(dir).filter(f -> f.toString().endsWith(".class")).toList()) {
+                out.putNextEntry(new JarEntry(dir.relativize(p).toString().replace(java.io.File.separatorChar, '/')));
+                out.write(Files.readAllBytes(p));
+            }
+        }
+        AtomicInteger opens = new AtomicInteger();
+        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+        ByteArrayOutputStream errBytes = new ByteArrayOutputStream();
+        int code = NopBytecodeMain.run(new String[]{jar.toString()},
+                new PrintStream(outBytes), new PrintStream(errBytes),
+                path -> {
+                    opens.incrementAndGet();
+                    try {
+                        return new JarFile(path.toFile());
+                    } catch (IOException e) {
+                        throw new NopBytecodeException("fixture open failed: " + e.getMessage(), e);
+                    }
+                });
+        assertEquals(0, code, errBytes.toString());
+        assertEquals(1, opens.get(),
+                "read-back must open each jar input exactly once through the opener, got " + opens.get());
+    }
 
 }

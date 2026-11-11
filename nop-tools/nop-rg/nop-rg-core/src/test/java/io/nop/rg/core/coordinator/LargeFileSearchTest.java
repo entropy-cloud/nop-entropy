@@ -113,13 +113,13 @@ public class LargeFileSearchTest {
             SearchCoordinator chunked = new SearchCoordinator(4, false, false);
             Map<String, FileMatches> chunkedResult =
                     chunked.search(new SearchCommand(tempDir, "needle",
-                            SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0));
+                            SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0)).results();
 
             // 整文件路径（threshold = MAX）
             SearchCoordinator whole = new SearchCoordinator(4, false, false, Long.MAX_VALUE);
             Map<String, FileMatches> wholeResult =
                     whole.search(new SearchCommand(tempDir, "needle",
-                            SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0));
+                            SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0)).results();
 
             List<Long> chunkedHits = collectHits(chunkedResult);
             List<Long> wholeHits = collectHits(wholeResult);
@@ -142,7 +142,7 @@ public class LargeFileSearchTest {
             SearchCoordinator chunked = new SearchCoordinator(2, false, false);
             Map<String, FileMatches> results =
                     chunked.search(new SearchCommand(tempDir, "BOUNDARY",
-                            SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
+                            SearchCoordinator.Strategy.LITERAL, false, List.of(), 0)).results();
             List<Long> hits = collectHits(results);
             // "BOUNDARY" 起点在 chunk 边界前 4 字节——主区间去重后恰好一次
             assertEquals(List.of(CHUNK_BOUNDARY - 4), hits);
@@ -158,8 +158,8 @@ public class LargeFileSearchTest {
             SearchCoordinator chunked = new SearchCoordinator(4, false, false);
             SearchCommand command = new SearchCommand(tempDir, "needle",
                     SearchCoordinator.Strategy.LITERAL, false, List.of("big.bin"), 0);
-            List<Long> first = collectHits(chunked.search(command));
-            List<Long> second = collectHits(chunked.search(command));
+            List<Long> first = collectHits(chunked.search(command).results());
+            List<Long> second = collectHits(chunked.search(command).results());
             assertEquals(first, second);
         } finally {
             Files.deleteIfExists(bigFile);

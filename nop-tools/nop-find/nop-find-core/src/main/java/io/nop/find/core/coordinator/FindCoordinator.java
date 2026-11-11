@@ -92,12 +92,19 @@ public class FindCoordinator {
         int k = Math.min(command.getLimit(), candidates.size());
         List<List<Candidate>> shards = shard(candidates, workerCount);
 
-        // 4) 每线程打分 + 线程局部 top-K
+        // 4) 每线程打分 + 线程局部 top-K（失败面 9，plan 2564 W-05：单 shard 失败不弃已完成
+        //    shard——全部 shard 跑完后若有错汇总抛出，含 shard 下标与候选区间上下文；
+        //    不引入 partial top-K：find 语义是 top-K 全序，部分 shard 缺席破坏「候选全量打分」
+        //    确定性契约（FindCommand javadoc index tie-break 冻结面））
         List<Callable<TopKCollector>> tasks = new ArrayList<>(workerCount);
-        for (List<Candidate> shard : shards) {
+        List<String> shardLabels = new ArrayList<>(workerCount);
+        for (int i = 0; i < shards.size(); i++) {
+            List<Candidate> shard = shards.get(i);
             tasks.add(() -> scoreShard(shard, scorer, k));
+            shardLabels.add("candidates [" + shard.get(0).index + ".."
+                    + shard.get(shard.size() - 1).index + "]");
         }
-        List<TopKCollector> collectors = invokeAll(tasks);
+        List<TopKCollector> collectors = invokeAll(tasks, shardLabels);
 
         // 5) 归并线程局部 collector（(score, index) 全序 → 结果与线程数无关）
         TopKCollector global = new TopKCollector(k);
@@ -109,7 +116,10 @@ public class FindCoordinator {
         return global.toMatches();
     }
 
-    private TopKCollector scoreShard(List<Candidate> shard, FuzzyFileScorer scorer, int k) {
+    /**
+     * 单 shard 打分（单一调用点；包私有供测试注入 shard 失败——W-05 失效面 9 载体）。
+     */
+    TopKCollector scoreShard(List<Candidate> shard, FuzzyFileScorer scorer, int k) {
         TopKCollector collector = new TopKCollector(k);
         boolean caseSensitive = scorer.isCaseSensitive();
         for (Candidate candidate : shard) {
@@ -141,16 +151,38 @@ public class FindCoordinator {
         return shards;
     }
 
-    private List<TopKCollector> invokeAll(List<Callable<TopKCollector>> tasks) {
+    /**
+     * shard 错误聚合（plan 2564 W-05 失效面 9）：收集循环不在首个失败 shard 处抛出——
+     * 全部 shard 跑完后再处置；若有错抛 {@link NopFindException} 汇总全部 shard 失败
+     * （含各 shard 下标与候选区间上下文，原始异常挂 suppressed），无错照常归并。
+     */
+    private List<TopKCollector> invokeAll(List<Callable<TopKCollector>> tasks, List<String> shardLabels) {
         ExecutorService pool = Executors.newFixedThreadPool(Math.max(1, threads));
         try {
             List<TopKCollector> results = new ArrayList<>(tasks.size());
-            for (Future<TopKCollector> future : pool.invokeAll(tasks)) {
+            List<NopFindException> shardFailures = new ArrayList<>();
+            List<Future<TopKCollector>> futures = pool.invokeAll(tasks);
+            for (int i = 0; i < futures.size(); i++) {
                 try {
-                    results.add(future.get());
+                    results.add(futures.get(i).get());
                 } catch (ExecutionException e) {
-                    throw new NopFindException("find shard failed", e.getCause());
+                    Throwable cause = e.getCause();
+                    String causeMessage = cause == null ? "unknown cause" : cause.toString();
+                    shardFailures.add(new NopFindException("find shard " + i + " ("
+                            + shardLabels.get(i) + ") failed: " + causeMessage,
+                            cause));
                 }
+            }
+            if (!shardFailures.isEmpty()) {
+                NopFindException aggregated = new NopFindException("find shards failed: "
+                        + shardFailures.size() + " of " + tasks.size() + " shards failed"
+                        + (shardFailures.size() == 1
+                                ? ": " + shardFailures.get(0).getMessage()
+                                : " (see suppressed exceptions for per-shard context)"));
+                for (NopFindException failure : shardFailures) {
+                    aggregated.addSuppressed(failure);
+                }
+                throw aggregated;
             }
             return results;
         } catch (InterruptedException e) {
@@ -175,7 +207,11 @@ public class FindCoordinator {
         return root.relativize(file).toString().replace('\\', '/');
     }
 
-    private static final class Candidate {
+    /**
+     * 候选项（包私有：测试经 {@code scoreShard} 覆写注入 shard 失败需引用其 relativePath
+     * ——W-05 失效面 9 载体注入通道）。
+     */
+    static final class Candidate {
         final int index;
         final String relativePath;
         final Path path;
