@@ -22,6 +22,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -156,8 +157,13 @@ public class TestMqttMessageRouting {
         recorder.clientId = "c1";
         recorder.connected = false;
         MqttConnection connection = new MqttConnection(newEndpoint(recorder), new NoopHandler());
-        NopException e = assertThrows(NopException.class, () -> connection.sendAsync("t", "m", null));
-        assertEquals("nop.err.mqtt.not-connected", e.getErrorCode());
+        // RP-1（plan 2560 裁定 H / 4.3-MA-14）：返回 CompletionStage 的方法不得同步抛——
+        // 断开连接时 sendAsync 必须返回 failed future（非 assertThrows 同步抛）
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> connection.sendAsync("t", "m", null).toCompletableFuture().get(5, TimeUnit.SECONDS));
+        assertTrue(e.getCause() instanceof NopException, "cause must be NopException");
+        NopException ne = (NopException) e.getCause();
+        assertEquals("nop.err.mqtt.not-connected", ne.getErrorCode());
     }
 
     @Test

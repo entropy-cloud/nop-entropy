@@ -57,6 +57,15 @@ public class MqttSessionManager {
         return sessions.get(clientId);
     }
 
+    /**
+     * MA-14/C6-028（4.3-MA-14 / plan 2560 裁定 G）：服务停止时清空 sessions 与
+     * subscriptions 两张表——stop→start 生命周期不得把上一轮会话/订阅带入新 listen。
+     */
+    public void clear() {
+        sessions.clear();
+        subscriptions.clear();
+    }
+
     public void subscribe(String clientId, List<String> filters) {
         if (filters == null || filters.isEmpty())
             return;

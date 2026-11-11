@@ -29,6 +29,7 @@ import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.NetHelper;
 import io.nop.netty.NopNettyConstants;
+import io.nop.netty.NopNettyErrors;
 import io.nop.netty.channel.INettyChannelInitializer;
 import io.nop.netty.config.NettyTcpServerConfig;
 import io.nop.netty.config.TrafficShapingConfig;
@@ -257,6 +258,17 @@ public class NettyTcpServer extends LifeCycleSupport {
         return sendToChannel(channel, msg, timeout);
     }
 
+    /**
+     * MA-15 同步抛统一包络（4.3-MA-14 / plan 2560 裁定 H）：返回 CompletableFuture 的
+     * 方法不得同步抛——无可用 channel 或管线上无 IRpcMessageHandler 时返回 failed future
+     * （ERR_NETTY_NO_AVAILABLE_CHANNEL / ERR_NETTY_NO_RPC_HANDLER）。
+     */
+    private CompletableFuture<Object> failedFuture(Throwable error) {
+        CompletableFuture<Object> ret = new CompletableFuture<>();
+        ret.completeExceptionally(error);
+        return ret;
+    }
+
     public Channel getChannelById(String channelId) {
         for (Channel channel : channelGroup) {
             if (channel.id().asLongText().equals(channelId)) {
@@ -267,12 +279,25 @@ public class NettyTcpServer extends LifeCycleSupport {
     }
 
     public CompletableFuture<Object> sendToAnyChannel(Object msg, int timeout) {
-        Channel channel = getAnyChannel();
+        Channel channel;
+        try {
+            channel = getAnyChannel();
+        } catch (NopException e) {
+            // MA-15（裁定 H）：无可用 channel 不再同步抛，返回 failed future
+            return failedFuture(e);
+        }
         return sendToChannel(channel, msg, timeout);
     }
 
     public CompletableFuture<Object> sendToFirstChannel(Object msg, int timeout) {
-        Channel channel = getFirstChannel();
+        Channel channel;
+        try {
+            channel = getFirstChannel();
+        } catch (NopException e) {
+            // MA-15（裁定 H）：getFirstChannel 空表同步抛（ERR_NETTY_NO_AVAILABLE_CHANNEL）
+            // 不再穿透 CompletionStage 契约，返回 failed future
+            return failedFuture(e);
+        }
         return sendToChannel(channel, msg, timeout);
     }
 
@@ -287,6 +312,13 @@ public class NettyTcpServer extends LifeCycleSupport {
     private CompletableFuture<Object> sendToChannel(Channel channel, Object msg, int timeout) {
         CompletableFuture<Object> ret = new CompletableFuture<>();
         IRpcMessageHandler handler = channel.pipeline().get(IRpcMessageHandler.class);
+        if (handler == null) {
+            // MA-15（裁定 H）NPE 面修复（:287-290）：纯推送型管线上无 IRpcMessageHandler
+            // 时原样 NPE 挂起调用方——显式 failed future
+            ret.completeExceptionally(new NopException(NopNettyErrors.ERR_NETTY_NO_RPC_HANDLER)
+                    .param(NopNettyErrors.ARG_ID, msg));
+            return ret;
+        }
         handler.send(msg, timeout, ret);
         return ret;
     }

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -120,10 +121,12 @@ public class TestMqttServerFix {
         recorder.connected = false;
         MqttConnection connection = new MqttConnection(newEndpoint(recorder), new NoopHandler());
         try {
-            // sendAsync 已实现：断开连接时显式失败（不再返回 null / 抛 UnsupportedOperation）
-            NopException e = assertThrows(NopException.class,
-                    () -> connection.sendAsync("topic", "msg", null));
-            assertEquals("nop.err.mqtt.not-connected", e.getErrorCode());
+            // RP-1（plan 2560 裁定 H / 4.3-MA-14）：返回 CompletionStage 的方法不得同步抛——
+            // 断开连接时 sendAsync 必须返回 failed future（非 assertThrows 同步抛）
+            ExecutionException e = assertThrows(ExecutionException.class,
+                    () -> connection.sendAsync("topic", "msg", null).toCompletableFuture().get(5, TimeUnit.SECONDS));
+            assertTrue(e.getCause() instanceof NopException, "cause must be NopException");
+            assertEquals("nop.err.mqtt.not-connected", ((NopException) e.getCause()).getErrorCode());
         } finally {
             connection.close();
         }
