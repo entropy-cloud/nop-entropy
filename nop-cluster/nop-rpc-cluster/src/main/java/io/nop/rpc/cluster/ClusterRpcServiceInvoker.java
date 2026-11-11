@@ -9,6 +9,8 @@ import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.chooser.IServerChooser;
+import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.cluster.lb.ILoadBalanceAdapter;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.AopRpcService;
@@ -29,6 +31,7 @@ public class ClusterRpcServiceInvoker implements IRpcServiceInvoker {
     private IScheduledExecutor timer;
     private int retryCount;
     private List<IRpcServiceInterceptor> interceptors;
+    private ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter;
 
     private Set<String> allowedServiceNames;
 
@@ -44,6 +47,15 @@ public class ClusterRpcServiceInvoker implements IRpcServiceInvoker {
     @Inject
     public void setClientProvider(IRpcClientInstanceProvider clientProvider) {
         this.clientProvider = clientProvider;
+    }
+
+    /**
+     * 4.2-C8-001（plan 2559 裁定 G(c) 装配）：与 ClusterRpcProxyFactoryBean 同型注入活跃计数 adapter
+     * （newBaseRpcService 构造 ClusterRpcClient 时透传 begin/end 挂接点）。
+     */
+    @Inject
+    public void setLoadBalanceAdapter(ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter) {
+        this.loadBalanceAdapter = loadBalanceAdapter;
     }
 
     public void setAllowedServiceNames(Set<String> allowedServiceNames) {
@@ -88,6 +100,7 @@ public class ClusterRpcServiceInvoker implements IRpcServiceInvoker {
     protected IRpcService newBaseRpcService(String serviceName) {
         ClusterRpcClient rpcService = new ClusterRpcClient(serviceName, serverChooser, clientProvider, timer);
         rpcService.setRetryCount(getRetryCount());
+        rpcService.setLoadBalanceAdapter(loadBalanceAdapter);
         return rpcService;
     }
 

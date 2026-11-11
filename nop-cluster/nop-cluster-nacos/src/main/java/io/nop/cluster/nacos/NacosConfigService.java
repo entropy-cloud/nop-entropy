@@ -50,7 +50,7 @@ import static io.nop.config.ConfigConstants.FILE_POSTFIX_YML;
 public class NacosConfigService implements IConfigService, IDynamicTextConfigLoader, IUpdatableConfigService {
     private static final Logger LOG = LoggerFactory.getLogger(NacosConfigService.class);
 
-    private ConfigService configService;
+    private volatile ConfigService configService;
     private String group;
     private long timeout = 5000;
 
@@ -142,9 +142,27 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
         }
     }
 
+    /**
+     * 4.2-C1-005（plan 2559 裁定 E）: this bean is an eager start() form — there is no
+     * lazy double-check to extend — so the bare-field uses are instead guarded against
+     * use-after-stop: stop() nulls the field, and any call landing after stop must be a
+     * typed rejection rather than an NPE / silent use of a half-shut client.
+     */
+    private ConfigService notStoppedConfigService() {
+        ConfigService service = this.configService;
+        if (service == null) {
+            throw new NopException(NacosErrors.ERR_CLUSTER_NACOS_CONFIG_SERVICE_STOPPED);
+        }
+        return service;
+    }
+
     @Override
     public ConfigInfo getConfigInfo(IConfigSource baseSource, String dataId, IConfigUpdateListener listener) {
         Guard.notNull(listener, "listener is null");
+
+        // 4.2-C1-005（plan 2559 裁定 E）: capture the client once — the remover lambda below
+        // previously re-read the bare field, racing stop() between null-check and removal
+        ConfigService configService = notStoppedConfigService();
 
         Listener nacosListener = new Listener() {
             @Override
@@ -161,8 +179,13 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
         try {
             String content = configService.getConfigAndSignListener(dataId, group, timeout, nacosListener);
             return new ConfigInfo(content, () -> {
-                if (configService != null)
+                try {
                     configService.removeListener(dataId, group, nacosListener);
+                } catch (Exception e) {
+                    // remover runs on cleanup paths (listener removal after stop/shutdown)
+                    // and must not mask the primary outcome
+                    LOG.warn("nop.err.config.nacos.remove-listener-fail", e);
+                }
             });
         } catch (NacosException e) {
             throw newError(e);
@@ -176,6 +199,8 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
 
     @Override
     public void publishConfig(String dataId, String group, String content) {
+        // 4.2-C1-005（plan 2559 裁定 E）: use-after-stop guard on the bare field use
+        ConfigService configService = notStoppedConfigService();
         ConfigType type = getConfigType(dataId);
         try {
             configService.publishConfig(dataId, group, content, type.getType());

@@ -1,10 +1,12 @@
 package io.nop.cluster.sentinel;
 
+import com.alibaba.csp.sentinel.node.ClusterNode;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.authority.AuthorityException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
+import com.alibaba.csp.sentinel.slots.clusterbuilder.ClusterBuilderSlot;
 import com.alibaba.csp.sentinel.slots.system.SystemBlockException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -19,9 +21,13 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -97,19 +103,36 @@ public class TestSentinelFlowControlRunner {
         assertSame(boom, thrown, "original stage exception must propagate unwrapped");
     }
 
-    /** 路径 4：task supplier 同步抛出——从 runAsync 同步裸抛同一异常（非 rejected future、不包装）。 */
+    /**
+     * 路径 4（反向钉#1，4.2-MA-05 plan 2559 裁定 B / C3-008 同 diff 改写）：
+     * task supplier 同步抛出——runAsync 不再裸抛，而是返回已完成 failed future
+     * （FutureHelper.reject），异常不包装；降级统计对称（C8-008）：traceEntry 计入
+     * 异常计数，发起线程 context 不残留。
+     */
     @Test
-    public void testSupplierSyncThrowPropagatesSynchronously() throws Exception {
+    public void testSupplierSyncThrowReturnsFailedFutureWithTraceCounted() throws Exception {
         RuntimeException boom = new IllegalArgumentException("supplier-sync-throw");
         AtomicBoolean called = new AtomicBoolean();
 
-        RuntimeException thrown = assertThrows(RuntimeException.class, () ->
-                runner.runAsync(entry("res-sync-throw"), () -> {
-                    called.set(true);
-                    throw boom;
-                }));
-        assertSame(boom, thrown, "supplier exception must propagate synchronously and unwrapped");
+        ClusterNode node = ClusterBuilderSlot.getClusterNode("res-sync-throw");
+        long exceptionsBefore = node == null ? 0 : node.totalException();
+
+        CompletionStage<String> ret = runner.runAsync(entry("res-sync-throw"), () -> {
+            called.set(true);
+            throw boom;
+        });
+
         assertTrue(called.get());
+        CompletableFuture<String> cf = ret.toCompletableFuture();
+        assertTrue(cf.isDone(), "sync-throw must return an already-completed failed future (FutureHelper.reject), not throw");
+        // 原异常经 failed future 传播且不包装（CompletionException 解包后同 identity）
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> FutureHelper.syncGet(cf));
+        assertSame(boom, thrown, "supplier exception must propagate via failed future, unwrapped");
+        // C8-008 统计对称：sync-throw 路径 traceEntry 计入异常计数
+        ClusterNode nodeAfter = ClusterBuilderSlot.getClusterNode("res-sync-throw");
+        assertNotNull(nodeAfter, "entry was created, cluster node must exist");
+        assertTrue(nodeAfter.totalException() > exceptionsBefore,
+                "sync-throw path must traceEntry the exception (degrade statistics symmetric)");
         assertNull(currentContext(), "sync-throw path must still release context via finally");
     }
 
@@ -136,6 +159,38 @@ public class TestSentinelFlowControlRunner {
                     "block must map to ERR_RPC_FLOW_CONTROL_BLOCK");
         }
         assertNull(currentContext(), "block path must release context via finally");
+    }
+
+    /**
+     * 路径 6（4.2-MA-05 plan 2559 裁定 B / C3-007）：task stage 永不完成——orTimeout
+     * 兜底使 returned future 在配置超时后异常完成（TimeoutException），entry 经兜底
+     * 回调 exit（curThreadNum 回落 0，非泄漏悬挂）。
+     */
+    @Test
+    public void testNeverCompletingStageTimesOutAndExitsEntry() throws Exception {
+        runner.setTaskTimeoutMillis(200);
+        ClusterNode node = ClusterBuilderSlot.getClusterNode("res-timeout-leak");
+        long threadsBefore = node == null ? 0 : node.curThreadNum();
+
+        CompletableFuture<String> never = new CompletableFuture<>();
+        CompletionStage<String> ret = runner.runAsync(entry("res-timeout-leak"), () -> never);
+
+        CompletableFuture<String> cf = ret.toCompletableFuture();
+        ExecutionException timeoutEx = assertThrows(ExecutionException.class, () -> cf.get(5, TimeUnit.SECONDS),
+                "never-completing task must be bounded by orTimeout fallback");
+        assertInstanceOf(TimeoutException.class, timeoutEx.getCause(),
+                "timeout fallback must complete the future with TimeoutException");
+        assertTrue(cf.isDone(), "returned future must complete by timeout fallback, not leak");
+
+        // 兜底 exit：entry 线程计数回落（修复前 entry 永不 exit）
+        ClusterNode nodeAfter = ClusterBuilderSlot.getClusterNode("res-timeout-leak");
+        assertNotNull(nodeAfter);
+        long expected = threadsBefore + 1;
+        org.junit.jupiter.api.Assertions.assertAll(
+                () -> assertTrue(nodeAfter.curThreadNum() <= expected, "thread count sanity"),
+                () -> assertEquals(0, nodeAfter.curThreadNum(),
+                        "entry must be exited by timeout fallback (curThreadNum back to 0)"));
+        assertNull(currentContext(), "timeout fallback must not retain initiator context");
     }
 
     /** newError 四态映射表（private，反射调用；R1.29 反射判别先例）。 */

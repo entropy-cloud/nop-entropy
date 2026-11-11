@@ -9,6 +9,8 @@ package io.nop.rpc.cluster;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.cluster.chooser.IServerChooser;
+import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.cluster.lb.ILoadBalanceAdapter;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.api.core.rpc.IRpcService;
@@ -21,6 +23,7 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     private IServerChooser<ApiRequest<?>> serverChooser;
     private IRpcClientInstanceProvider clientProvider;
     private IScheduledExecutor timer;
+    private ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter;
 
     @Inject
     public void setServerChooser(IServerChooser<ApiRequest<?>> serverChooser) {
@@ -30,6 +33,15 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     @Inject
     public void setClientProvider(IRpcClientInstanceProvider clientProvider) {
         this.clientProvider = clientProvider;
+    }
+
+    /**
+     * 4.2-C8-001（plan 2559 裁定 G(c) 装配）：活跃计数 adapter 注入（新 bean 引用
+     * nopServiceLoadBalanceAdapter），透传给 ClusterRpcClient 的 begin/end 挂接点。
+     */
+    @Inject
+    public void setLoadBalanceAdapter(ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter) {
+        this.loadBalanceAdapter = loadBalanceAdapter;
     }
 
     public void setTimer(IScheduledExecutor timer) {
@@ -48,6 +60,7 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
 
         ClusterRpcClient rpcService = new ClusterRpcClient(getServiceName(), serverChooser, clientProvider, timer);
         rpcService.setRetryCount(getRetryCount());
+        rpcService.setLoadBalanceAdapter(loadBalanceAdapter);
         setRpcService(rpcService);
         super.init();
     }

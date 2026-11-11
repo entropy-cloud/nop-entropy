@@ -8,6 +8,7 @@ import io.nop.api.core.rpc.IRpcService;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.cluster.lb.impl.ServiceLoadBalanceAdapter;
 import io.nop.commons.concurrent.executor.DefaultScheduledExecutor;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import org.junit.jupiter.api.AfterEach;
@@ -227,5 +228,138 @@ public class TestClusterRpcRetryTermination {
         assertEquals(ERR_CLUSTER_NO_AVAILABLE_SERVER_INSTANCE.getErrorCode(),
                 ((NopException) cause).getErrorCode(),
                 "null chosen instance must produce the typed no-available-server error");
+    }
+
+    /**
+     * 4.2-MA-09（plan 2559 裁定 D）：同步重试循环的防御性 null 守卫（与 async 半边同型）——
+     * chooser 返回 null 必须抛类型化 no-available-server 错误，不得以 provider 解引用 NPE 形态浮出。
+     */
+    @Test
+    public void syncNullChosenInstanceFailsTyped() {
+        NullChooser chooser = new NullChooser();
+        ClusterRpcClient client = new ClusterRpcClient("svc", chooser, new RecordingProvider(), timer);
+
+        NopException err = assertThrows(NopException.class,
+                () -> client.call("/rpc/test", request(), null),
+                "sync path: null chosen instance must fail typed");
+        assertEquals(ERR_CLUSTER_NO_AVAILABLE_SERVER_INSTANCE.getErrorCode(), err.getErrorCode(),
+                "sync path null guard must produce the typed no-available-server error");
+    }
+
+    /**
+     * 4.2-C8-001（plan 2559 裁定 G/R25-2）接线验证载体（rule 23）：真实调用路径上活跃计数
+     * 持有 1 → 调用终结后回落 0（sync 路径）。
+     */
+    @Test
+    public void activeCountWiringSyncCallFallsBackToZero() {
+        ServiceInstance inst = instance("i1");
+        ServiceLoadBalanceAdapter adapter = new ServiceLoadBalanceAdapter();
+
+        SingleSuccessRpcService rpc = new SingleSuccessRpcService(adapter, inst);
+        RecordingSingleProvider provider = new RecordingSingleProvider(rpc);
+
+        ClusterRpcClient client = new ClusterRpcClient("svc",
+                new FixedInstanceChooser(Arrays.asList(inst)), provider, timer);
+        client.setLoadBalanceAdapter(adapter);
+
+        assertEquals(0, adapter.getActiveCount(inst), "pre-call active count must be 0");
+        ApiResponse<?> ret = client.call("/rpc/test", request(), null);
+        assertNotNull(ret);
+        assertEquals(1, rpc.calls, "rpc service must have been invoked on the real call path");
+        assertEquals(0, adapter.getActiveCount(inst),
+                "C8-001: active count must fall back 1->0 after the sync call completes");
+    }
+
+    /**
+     * 4.2-C8-001（plan 2559 裁定 G/R25-2）接线验证载体（rule 23）：async 路径 whenComplete
+     * 终结后活跃计数回落 0。
+     */
+    @Test
+    public void activeCountWiringAsyncCallFallsBackToZero() throws Exception {
+        ServiceInstance inst = instance("i1");
+        ServiceLoadBalanceAdapter adapter = new ServiceLoadBalanceAdapter();
+
+        SingleSuccessRpcService rpc = new SingleSuccessRpcService(adapter, inst);
+        RecordingSingleProvider provider = new RecordingSingleProvider(rpc);
+
+        ClusterRpcClient client = new ClusterRpcClient("svc",
+                new FixedInstanceChooser(Arrays.asList(inst)), provider, timer);
+        client.setLoadBalanceAdapter(adapter);
+
+        ApiResponse<?> ret = client.callAsync("/rpc/test", request(), null)
+                .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        assertNotNull(ret);
+        assertEquals(1, rpc.calls);
+        assertEquals(0, adapter.getActiveCount(inst),
+                "C8-001: active count must fall back 1->0 after the async stage completes");
+    }
+
+    /** Chooser that always returns the fixed candidate list (real non-null choice). */
+    static class FixedInstanceChooser implements IServerChooser<ApiRequest<?>> {
+        final List<ServiceInstance> candidates;
+
+        FixedInstanceChooser(List<ServiceInstance> candidates) {
+            this.candidates = candidates;
+        }
+
+        @Override
+        public CompletionStage<List<ServiceInstance>> getServersAsync(String serviceName,
+                                                                      ApiRequest<?> request) {
+            return CompletableFuture.completedStage(candidates);
+        }
+
+        @Override
+        public List<ServiceInstance> getServers(String serviceName, ApiRequest<?> request) {
+            return candidates;
+        }
+
+        @Override
+        public ServiceInstance chooseFromCandidates(List<ServiceInstance> candidates,
+                                                    ApiRequest<?> request) {
+            return candidates.get(0);
+        }
+    }
+
+    /** Provider returning a fixed IRpcService. */
+    static class RecordingSingleProvider implements IRpcClientInstanceProvider {
+        final IRpcService service;
+
+        RecordingSingleProvider(IRpcService service) {
+            this.service = service;
+        }
+
+        @Override
+        public IRpcService getRpcClientInstance(ServiceInstance instance) {
+            return service;
+        }
+    }
+
+    /** Real call-path rpc service: asserts the in-flight active count is 1, then succeeds. */
+    static class SingleSuccessRpcService implements IRpcService {
+        final ServiceLoadBalanceAdapter adapter;
+        final ServiceInstance instance;
+        int calls;
+
+        SingleSuccessRpcService(ServiceLoadBalanceAdapter adapter, ServiceInstance instance) {
+            this.adapter = adapter;
+            this.instance = instance;
+        }
+
+        @Override
+        public CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request,
+                                                         ICancelToken cancelToken) {
+            calls++;
+            assertEquals(1, adapter.getActiveCount(instance),
+                    "C8-001 wiring: in-flight call must hold active count == 1");
+            return CompletableFuture.completedFuture(ApiResponse.buildSuccess("ok"));
+        }
+
+        @Override
+        public ApiResponse<?> call(String serviceMethod, ApiRequest<?> request, ICancelToken cancelToken) {
+            calls++;
+            assertEquals(1, adapter.getActiveCount(instance),
+                    "C8-001 wiring: in-flight call must hold active count == 1");
+            return ApiResponse.buildSuccess("ok");
+        }
     }
 }

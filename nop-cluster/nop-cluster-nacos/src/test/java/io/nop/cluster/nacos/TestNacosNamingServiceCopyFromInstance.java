@@ -42,4 +42,35 @@ public class TestNacosNamingServiceCopyFromInstance {
         assertEquals("DEFAULT_GROUP", ret.getGroupName());
         assertEquals("my-service", ret.getServiceName());
     }
+
+    /**
+     * 4.2-MA-08（plan 2559 裁定 C）：copyFromInstance :319 截断面——超出 int 范围的 weight
+     * 不得经窄化静默截断/环绕，必须显式饱和到 int 边界。
+     */
+    @Test
+    public void testCopyFromInstanceSaturatesOutOfRangeWeight() {
+        Instance huge = nacosInstance("svc");
+        huge.setWeight(6.0e9); // beyond Integer.MAX_VALUE
+        ServiceInstance ret = new ServiceInstance();
+        NacosNamingService.copyFromInstance(huge, ret);
+        assertEquals(Integer.MAX_VALUE, ret.getWeight(),
+                "MA-08/C: out-of-range weight must saturate, not silently truncate");
+
+        Instance tiny = nacosInstance("svc");
+        tiny.setWeight(-6.0e9); // beyond Integer.MIN_VALUE
+        ServiceInstance ret2 = new ServiceInstance();
+        NacosNamingService.copyFromInstance(tiny, ret2);
+        assertEquals(Integer.MIN_VALUE, ret2.getWeight(),
+                "MA-08/C: out-of-range negative weight must saturate, not silently wrap");
+    }
+
+    /** 常规范围内的 weight 原样拷贝，不受饱和逻辑影响。 */
+    @Test
+    public void testCopyFromInstanceKeepsInrangeWeight() {
+        Instance inst = nacosInstance("svc");
+        inst.setWeight(3.0);
+        ServiceInstance ret = new ServiceInstance();
+        NacosNamingService.copyFromInstance(inst, ret);
+        assertEquals(3, ret.getWeight());
+    }
 }

@@ -115,13 +115,18 @@ public class TestNacosInstanceRebuildAndSnapshotGuard {
                 "stale snapshot won — event-state guard missing");
     }
 
+    /**
+     * R2-18 zero-regression pin: reads the {@code instanceCache} field by NAME via
+     * reflection. Plan 2559 (裁定 F/A②) changed the field TYPE from ConcurrentHashMap to
+     * LocalCache (bounded LRU, destroy-on-remove) — the pin is adapted same-diff (field
+     * name unchanged, same lookup semantics), NOT weakened.
+     */
     private static ServiceInfo infoOf(NacosNamingService naming, String serviceName) throws Exception {
         java.lang.reflect.Field field = NacosNamingService.class.getDeclaredField("instanceCache");
         field.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        java.util.concurrent.ConcurrentHashMap<String, ServiceInfo> cache =
-                (java.util.concurrent.ConcurrentHashMap<String, ServiceInfo>) field.get(naming);
-        return cache.get(serviceName);
+        io.nop.commons.cache.LocalCache<String, ServiceInfo> cache =
+                (io.nop.commons.cache.LocalCache<String, ServiceInfo>) field.get(naming);
+        return cache.getIfPresent(serviceName);
     }
 
     /**

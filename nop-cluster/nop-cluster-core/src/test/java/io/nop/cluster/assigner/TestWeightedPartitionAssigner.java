@@ -10,9 +10,12 @@ package io.nop.cluster.assigner;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.cluster.discovery.ServiceInstance;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import ch.qos.logback.core.read.ListAppender;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -249,24 +252,52 @@ public class TestWeightedPartitionAssigner {
 
     @Test
     public void testZeroAndNegativeWeight() {
-        // 零权重和负权重应该使用默认权重
-        List<ServiceInstance> servers = List.of(
-                server("s1", 0),    // 使用默认权重 100
-                server("s2", -50),  // 使用默认权重 100
-                server("s3", 100)
-        );
-        IntRangeBean range = IntRangeBean.intRange(0, 300);
-        List<IntRangeBean> ranges = assigner.assignPartitions(range, servers);
+        // 4.2-MA-08（plan 2559 裁定 C/R25-1 零权重下限语义，反向钉#3 同 diff 改写）：
+        // 0/-50/100 一律按 max(1, weight) 下限参与分配 → 下限权重比 1:1:100（比例份额），
+        // 不再是「≤0 改写 100」的等分假保护。limit=300 时份额 = round(1/102*300)=3 / 3 / 尾段 294
+        // （沿用既有 subLimit==0→1 与尾段取满规则）。语义后果（R25-1 显式声明）：weight=0 摘流失效，
+        // 摘流须改用 enabled/healthy 等替代手段。
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(WeightedPartitionAssigner.class);
+        ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            List<ServiceInstance> servers = List.of(
+                    server("s1", 0),
+                    server("s2", -50),
+                    server("s3", 100)
+            );
+            IntRangeBean range = IntRangeBean.intRange(0, 300);
+            List<IntRangeBean> ranges = assigner.assignPartitions(range, servers);
 
-        assertEquals(3, ranges.size());
-        printRanges("3 servers, weights 0/-50/100", ranges);
+            assertEquals(3, ranges.size());
+            printRanges("3 servers, weights 0/-50/100 (floored 1:1:100)", ranges);
 
-        // 所有服务器应该各得 100
-        assertEquals(100, ranges.get(0).getLimit());
-        assertEquals(100, ranges.get(1).getLimit());
-        assertEquals(100, ranges.get(2).getLimit());
+            // 比例份额：下限权重 1:1:100 → 3 / 3 / 294（非各得 limit=100）
+            assertEquals(3, ranges.get(0).getLimit());
+            assertEquals(3, ranges.get(1).getLimit());
+            assertEquals(294, ranges.get(2).getLimit());
 
-        assertCoverage(ranges, range);
+            assertCoverage(ranges, range);
+
+            // R25-1 载体断言项：WARN 留痕原始值（0 与 -50）
+            boolean warnedZero = false;
+            boolean warnedNegative = false;
+            for (ch.qos.logback.classic.spi.ILoggingEvent event : appender.list) {
+                String msg = event.getFormattedMessage();
+                if (msg.contains("weight=0")) {
+                    warnedZero = true;
+                }
+                if (msg.contains("weight=-50")) {
+                    warnedNegative = true;
+                }
+            }
+            assertTrue(warnedZero, "R25-1: original weight=0 must be logged at WARN");
+            assertTrue(warnedNegative, "R25-1: original weight=-50 must be logged at WARN");
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     @Test

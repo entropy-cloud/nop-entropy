@@ -14,6 +14,7 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.cluster.lb.ILoadBalanceAdapter;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
@@ -44,6 +45,12 @@ public class ClusterRpcClient implements IRpcService {
      */
     private int retryCount;
 
+    /**
+     * 4.2-C8-001（plan 2559 裁定 G/R25-2）：活跃计数 adapter（可选；未注入时不计数）。
+     * begin/end 挂接点见 call/callAsync。
+     */
+    private ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter;
+
     public ClusterRpcClient(String serviceName, IServerChooser<ApiRequest<?>> serverChooser,
                             IRpcClientInstanceProvider clientProvider, IScheduledExecutor timer) {
         this.serviceName = serviceName;
@@ -54,6 +61,14 @@ public class ClusterRpcClient implements IRpcService {
 
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
+    }
+
+    public ILoadBalanceAdapter<ServiceInstance> getLoadBalanceAdapter() {
+        return loadBalanceAdapter;
+    }
+
+    public void setLoadBalanceAdapter(ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter) {
+        this.loadBalanceAdapter = loadBalanceAdapter;
     }
 
     @Override
@@ -83,9 +98,16 @@ public class ClusterRpcClient implements IRpcService {
                             future.completeExceptionally(newNoAvailableServerError(serviceName));
                             return;
                         }
+                        // 4.2-C8-001（plan 2559 裁定 G/R25-2）：活跃计数 begin/end——end 挂在
+                        // 返回 stage 的 whenComplete 上，complete/error/timeout/cancel 四条终结
+                        // 路径全部回落计数，防永久活跃泄漏
+                        if (loadBalanceAdapter != null)
+                            loadBalanceAdapter.begin(instance);
                         getRpcClient(instance, request).callAsync(serviceMethod, request, cancelToken)
                                 .whenComplete((ret, err) -> {
                                     try {
+                                        if (loadBalanceAdapter != null)
+                                            loadBalanceAdapter.end(instance);
                                         if (err == null) {
                                             future.complete(ret);
                                         } else {
@@ -129,6 +151,14 @@ public class ClusterRpcClient implements IRpcService {
         Exception error = null;
         for (int i = 0; i <= retryCount; i++) {
             ServiceInstance instance = serverChooser.chooseFromCandidates(instances, request);
+            // 4.2-MA-09（plan 2559 裁定 D）：同步重试循环的防御性 null 守卫（与 callAsync :80-83 同型）——
+            // chooser 返回 null 不得以 provider 解引用 NPE 形态浮出
+            if (instance == null) {
+                throw newNoAvailableServerError(serviceName);
+            }
+            // 4.2-C8-001（plan 2559 裁定 G/R25-2）：同步段 try/finally begin/end
+            if (loadBalanceAdapter != null)
+                loadBalanceAdapter.begin(instance);
             try {
                 return getRpcClient(instance, request).call(serviceMethod, request, cancelToken);
             } catch (Exception e) {
@@ -146,6 +176,10 @@ public class ClusterRpcClient implements IRpcService {
                     // 删除刚才出错的连接，然后重试
                     instances.remove(instance);
                 }
+            } finally {
+                // 成功 return / 异常重试 / break 终止各路径均回落活跃计数
+                if (loadBalanceAdapter != null)
+                    loadBalanceAdapter.end(instance);
             }
         }
         throw NopException.adapt(error);
