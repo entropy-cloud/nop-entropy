@@ -169,6 +169,11 @@ public class OkHttpClientImpl implements IHttpClient {
         long offset = retriedFromScratch ? 0 : sink.resolveOffset();
         if (offset > 0)
             request.header("range", "bytes=" + offset + "-");
+        else
+            // 4.3-C6-003（plan 2561 裁定 J）：offset=0 必须移除 range 头（对齐 Apache 实现）——
+            // 416 恢复重试经 copyRequest 继承了首发请求的 range 头，不移除则「整体重传」
+            // 仍带旧 Range 再次命中 416，恢复路径失效
+            request.removeHeader("range");
 
         Call call = newCall(request);
 

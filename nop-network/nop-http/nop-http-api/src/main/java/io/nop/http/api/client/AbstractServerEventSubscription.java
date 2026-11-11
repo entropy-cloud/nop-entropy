@@ -85,10 +85,17 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
     protected void onComplete() {
         if (completed)
             return;
-        completed = true;
-        // 流结束时仍可能有未派发的累积数据
+        // 流结束时仍可能有未派发的累积数据（completed 守卫在此之前判定，故先派发后置位）
         dispatchEvent();
-        subscriber.onComplete();
+        completed = true;
+        try {
+            subscriber.onComplete();
+        } finally {
+            // 4.3-C3-033（plan 2561 裁定 I）①：onComplete 即终态——cleanup 置位取消、唤醒
+            // 等待者并取消底层请求（jdk 叶经 cleanup 覆盖关闭底层 body 流）。原形态完成后
+            // 底层连接/请求不关闭，长连接 SSE 流自然结束时资源滞留。
+            cleanup(null);
+        }
     }
 
     private String getValue(String line, String prefix) {
@@ -114,6 +121,8 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
             String value = getValue(line, "data:");
             if ("[DONE]".equals(value)) {
                 dispatchEvent();
+                // 4.3-C3-033（plan 2561 裁定 I）③：[DONE] 是流终态标记——经 onComplete 走
+                // cleanup 取消底层请求（future.cancel + jdk 叶关闭 bodyIn），不再继续读流。
                 onComplete();
                 return;
             }
@@ -137,6 +146,9 @@ public abstract class AbstractServerEventSubscription implements Flow.Subscripti
     }
 
     private void dispatchEvent() {
+        // 4.3-C3-033（plan 2561 裁定 I）②：completed 守卫——终态后不再派发任何事件
+        if (completed)
+            return;
         if (data == null)
             return;
         boolean stalled = false;

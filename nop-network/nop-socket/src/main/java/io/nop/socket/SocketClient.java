@@ -27,17 +27,33 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 import static io.nop.socket.SocketErrors.ARG_HOST;
 import static io.nop.socket.SocketErrors.ARG_PORT;
+import static io.nop.socket.SocketErrors.ERR_SOCKET_CONCURRENT_READ;
 import static io.nop.socket.SocketErrors.ERR_SOCKET_CONNECT_FAIL;
+import static io.nop.socket.SocketErrors.ERR_SOCKET_NOT_CONNECTED;
 import static io.nop.socket.SocketErrors.ERR_SOCKET_READ_FAIL;
 import static io.nop.socket.SocketErrors.ERR_SOCKET_READ_TIMEOUT;
 import static io.nop.socket.SocketErrors.ERR_SOCKET_WRITE_FAIL;
 
+/**
+ * Socket 命令客户端。
+ *
+ * <h3>单读线程契约（4.3-C1-016，plan 2561 裁定 B）</h3>
+ *
+ * {@code headerBuf} 与底层 {@link InputStream} 为实例共享且非线程安全。
+ * {@link #call(BinaryCommand)}（调用线程）与 {@link #recv(Executor, Consumer)}
+ * 启动的 recv-loop（executor 线程）是同一连接上的两个读入口，通过
+ * {@code readerActive}（AtomicBoolean）互斥：任一时刻最多允许一个读线程在同一
+ * 连接上读帧，call 与 recv-loop 并发（或同一入口自身重入）将以
+ * {@link SocketErrors#ERR_SOCKET_CONCURRENT_READ} 拒绝。禁止绕开本守卫直接
+ * 共享同一 InputStream 交错读帧。
+ */
 public class SocketClient implements ICommandClient {
     static final Logger LOG = LoggerFactory.getLogger(SocketClient.class);
 
@@ -46,6 +62,9 @@ public class SocketClient implements ICommandClient {
     private OutputStream os;
     private ByteBuffer headerBuf = ByteBuffer.allocate(8);
     private volatile boolean closed;
+
+    // 4.3-C1-016（plan 2561 裁定 B）：call 与 recv-loop 双入口互斥守卫（共享 headerBuf/is 单读线程契约）
+    private final AtomicBoolean readerActive = new AtomicBoolean(false);
 
     private LongAdder sendCount = new LongAdder();
     private LongAdder recvCount = new LongAdder();
@@ -114,6 +133,15 @@ public class SocketClient implements ICommandClient {
         return connectFailCount.get();
     }
 
+    // 测试缝（4.3-C1-016 / 4.3-C3-026）：观察读守卫与 closed 终态
+    boolean isReaderActive() {
+        return readerActive.get();
+    }
+
+    boolean isClosed() {
+        return closed;
+    }
+
     public void setClientConfig(ClientConfig config) {
         this.config = config;
     }
@@ -136,14 +164,22 @@ public class SocketClient implements ICommandClient {
                     config.getPort());
         }
 
-        if (onChannelOpen != null)
-            onChannelOpen.run();
+        try {
+            if (onChannelOpen != null)
+                onChannelOpen.run();
 
-        if (config.getHeartbeatInterval() > 1) {
-            if (timer != null) {
-                heartbeatFuture = timer.scheduleWithFixedDelay(this::heartbeat, config.getHeartbeatInterval(),
-                        config.getHeartbeatInterval() / 2, TimeUnit.MILLISECONDS);
+            if (config.getHeartbeatInterval() > 1) {
+                if (timer != null) {
+                    heartbeatFuture = timer.scheduleWithFixedDelay(this::heartbeat, config.getHeartbeatInterval(),
+                            config.getHeartbeatInterval() / 2, TimeUnit.MILLISECONDS);
+                }
             }
+        } catch (RuntimeException e) {
+            // 4.3-C6-027（plan 2561 裁定 N）：回调段/心跳段异常必须回收连接并复位状态，
+            // 否则 Guard.checkState(socket==null) 锁死重试入口
+            IoHelper.safeCloseObject(socket);
+            cleanup();
+            throw e;
         }
     }
 
@@ -207,10 +243,17 @@ public class SocketClient implements ICommandClient {
 
     public void recv(Executor executor, Consumer<BinaryCommand> handler) {
         executor.execute(() -> {
+            // 4.3-C1-016（plan 2561 裁定 B）：recv-loop 入口同样受 readerActive 守卫约束
+            if (!readerActive.compareAndSet(false, true)) {
+                LOG.error("nop.socket.concurrent-recv-loop-rejected");
+                return;
+            }
             try {
                 doRecv(handler);
             } catch (Exception e) {
                 LOG.error("nop.socket.recv-fail", e);
+            } finally {
+                readerActive.set(false);
             }
 
             if (!closed) {
@@ -226,6 +269,12 @@ public class SocketClient implements ICommandClient {
                         });
                     }, config.getReconnectPolicy(), timer, null).thenRun(() -> {
                         recv(executor, handler);
+                    }).exceptionally(e -> {
+                        // 4.3-C3-026（plan 2561 裁定 H）：重连链终态处理器——重试彻底失败必须收口
+                        LOG.error("nop.socket.reconnect-fail-terminal", e);
+                        closed = true;
+                        cleanup();
+                        return null;
                     });
                 }
             }
@@ -234,18 +283,32 @@ public class SocketClient implements ICommandClient {
 
     private void doRecv(Consumer<BinaryCommand> handler) {
         while (!closed) {
+            // IO 异常路径：recv() 内部抛出 typed NopException，向上传播以触发重连
             BinaryCommand cmd = recv();
             if (cmd == null) {
                 break;
             }
-            handler.accept(cmd);
+            try {
+                handler.accept(cmd);
+            } catch (Exception e) {
+                // 4.3-C3-026（plan 2561 裁定 H）：业务回调异常与 IO 异常分流——回调失败不终止 recv 循环
+                LOG.error("nop.socket.recv-handler-fail", e);
+            }
         }
         LOG.info("socket.recv-exit");
     }
 
     public BinaryCommand call(BinaryCommand request) {
-        send(request, true);
-        return recv();
+        // 4.3-C1-016（plan 2561 裁定 B）：与 recv-loop 双入口互斥，共享 headerBuf/is 禁止并发读
+        if (!readerActive.compareAndSet(false, true))
+            throw new NopException(ERR_SOCKET_CONCURRENT_READ).param(ARG_HOST, config.getHost()).param(ARG_PORT,
+                    config.getPort());
+        try {
+            send(request, true);
+            return recv();
+        } finally {
+            readerActive.set(false);
+        }
     }
 
     public void send(BinaryCommand request, boolean flush) {
@@ -257,8 +320,9 @@ public class SocketClient implements ICommandClient {
         try {
             OutputStream os = getOutputStream();
             if (os == null) {
-                LOG.warn("nop.warn.socket.ignore-send-since-output-stream-is-null");
-                return;
+                // 4.3-C3-026（plan 2561 裁定 H）：未连接时静默丢弃改为 typed 异常
+                throw new NopException(ERR_SOCKET_NOT_CONNECTED).param(ARG_HOST, config.getHost()).param(ARG_PORT,
+                        config.getPort());
             }
 
             synchronized (os) {

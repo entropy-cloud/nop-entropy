@@ -26,6 +26,14 @@ import java.security.MessageDigest;
  * 下载落盘状态机：.part 续传状态、206 追加/200 截断、写入时同步计算 SHA-256/SHA-1、
  * 完成后摘要校验与原子改名。三个客户端实现共用，保证跨实现的 .part 布局与失败语义一致。
  * 协议契约见 ai-dev/design/nop-network/file-transfer-design.md
+ *
+ * <p>4.3-C6-013（plan 2561 裁定 M，残留语义声明）：<b>直写路径零回滚</b>——
+ * {@link #begin(int, String, long)} 的非文件形态/未启用续传分支
+ * {@code out = targetFile.getOutputStream()} 直接写目标文件本体，无 .part 临时名 +
+ * 原子改名中介。该路径上传输中途失败（IO 异常、校验失败、取消）已在目标文件留下
+ * <b>部分内容且无回滚/清理动作</b>（{@link #close()} 仅关流保留已写数据）；调用方若需
+ * 原子交付语义，必须自行写入临时文件后移动。此残留语义为本批显式声明，临时名重构
+ * 避让后续 C6-001(P0)/C3-005(P1) 下载链修复批（plan 2561 Non-Goals）。</p>
  */
 public class FileDownloadSink {
     private final IHttpOutputFile targetFile;
@@ -64,6 +72,11 @@ public class FileDownloadSink {
         return FileTransferHelper.partFileOf(target);
     }
 
+    /**
+     * 是否走 .part 续传落盘形态（目标为本地文件且启用续传）。返回 false 即<b>直写形态</b>：
+     * 数据直接写入 {@code targetFile.getOutputStream()}，不具备 .part 隔离与原子改名
+     * （4.3-C6-013 残留语义，见类注释）。
+     */
     public boolean isFileMode() {
         return targetFile.toFile() != null && options.isResume();
     }
@@ -123,6 +136,7 @@ public class FileDownloadSink {
             }
         } else {
             // 直连输出（无文件形态或未启用续传）：恒为整体写入
+            // 4.3-C6-013（plan 2561 裁定 M）：直写目标本体，无临时名中介——中途失败零回滚（见类注释）
             startOffset = 0;
             out = targetFile.getOutputStream();
         }
@@ -162,6 +176,10 @@ public class FileDownloadSink {
      * <p>C3-005（plan 2522，错误以成功交付族）：rename 无条件强制——校验来源缺失
      * （{@code expected == null}）仅豁免校验、不豁免落盘收尾；此前 null 分支直接返回，
      * 下载报成功而目标文件永不产生（.part 滞留）。</p>
+     *
+     * <p>4.3-C6-013（plan 2561 裁定 M，残留语义声明）：直写形态（{@code partFile == null}）
+     * 下本方法<b>只校验不回滚</b>——校验失败时无 .part 可删，已直写入目标的损坏内容
+     * 原样残留，仅以异常告知调用方；清理责任在调用方。</p>
      */
     public void verifyAndRename(FileTransferHelper.ExpectedChecksum expected) throws IOException {
         if (expected != null) {

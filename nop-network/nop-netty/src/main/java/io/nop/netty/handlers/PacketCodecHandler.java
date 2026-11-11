@@ -27,10 +27,20 @@ public class PacketCodecHandler extends ByteToMessageCodec<Object> {
     private final IPacketCodec<Object> codec;
     private final int maxFrameLength;
     private final int maxDecodeErrorCount;
+    /**
+     * 4.3-C3-023（plan 2561 裁定 F）：encode 吞噬分支已删除，本阈值不再参与判定——
+     * 仅为构造器签名兼容保留（调用方零改动）。
+     */
+    @SuppressWarnings("unused")
     private final int maxEncodeErrorCount;
 
     private int decodeErrorCount;
-    private int encodeErrorCount;
+
+    /**
+     * 4.3-C3-023（plan 2561 裁定 F）：结构化丢帧计数器——decode 吞噬（WARN）路径的单调累计，
+     * 供调用方/运维观测真实丢帧量（{@code decodeErrorCount} 是带成功清零的滑动计数，非累计）。
+     */
+    private volatile long droppedFrameCount;
 
     public PacketCodecHandler(IPacketCodec<?> codec, int maxFrameLength, int maxDecodeErrorCount, int maxEncodeErrorCount) {
         Guard.notNull(codec, "codec");
@@ -46,23 +56,20 @@ public class PacketCodecHandler extends ByteToMessageCodec<Object> {
         if (msg instanceof byte[]) {
             out.writeBytes((byte[]) msg);
         } else {
-            out.markWriterIndex();
-            try {
-                codec.encodeToBuf(msg, out);
-                // 如果成功则重置错误数为0
-                encodeErrorCount = 0;
-            } catch (RuntimeException e) {
-                LOG.error("nop.netty.encode-msg-fail", e);
-
-                encodeErrorCount++;
-
-                if (encodeErrorCount > maxEncodeErrorCount)
-                    throw e;
-
-                LOG.warn("nop.netty.warn.ignore-encode-msg-fail:errorCount={}", encodeErrorCount);
-                out.resetWriterIndex();
-            }
+            // 4.3-C3-023（plan 2561 裁定 F）：encode 异常直接上抛——MessageToByteEncoder 据
+            // 异常 fail 本次 write promise（不自动关 channel，由调用方/exceptionCaught 观察）。
+            // 原 markWriterIndex + resetWriterIndex + WARN 吞噬分支删除：encode 路径无 size 上限
+            // 判定（maxFrameLength 仅 decode 强制），且吞噬后调用方误认发送成功而 write 出
+            // 不完整帧——半帧静默投递比显式失败更危险。
+            codec.encodeToBuf(msg, out);
         }
+    }
+
+    /**
+     * 4.3-C3-023（plan 2561 裁定 F）：decode 吞噬路径的丢帧累计（单调，成功不清零）。
+     */
+    public long getDroppedFrameCount() {
+        return droppedFrameCount;
     }
 
     @Override
@@ -99,6 +106,9 @@ public class PacketCodecHandler extends ByteToMessageCodec<Object> {
             }
         } catch (RuntimeException e) {
             LOG.error("nop.netty.decode-msg-fail:frame={}", StringHelper.bytesToHex(ByteBufUtil.getBytes(frame)), e);
+
+            // 4.3-C3-023（plan 2561 裁定 F）：真实增量 = 结构化丢帧计数（WARN 吞噬现状保留）
+            droppedFrameCount++;
 
             decodeErrorCount++;
 

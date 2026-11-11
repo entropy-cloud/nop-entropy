@@ -142,7 +142,11 @@ public class SimpleRpcClient implements IRpcService, AutoCloseable {
         try {
             client.send(cmd, true);
         } catch (Exception e) {
-            future.completeExceptionally(e);
+            // 4.3-C3-009（plan 2561 裁定 E）：send 失败必须经 channelState.onFailure 完成
+            // waitFutures 中登记的 raw future（remove + completeExceptionally，对齐
+            // MessageRpcClient 先例）。原形态对 prepareSend 返回的 whenComplete 派生 future
+            // 直接 completeExceptionally，raw future 无人完成 → waitFutures 泄漏（只能等超时清理）。
+            channelState.onFailure(id, e);
         }
         return future;
     }

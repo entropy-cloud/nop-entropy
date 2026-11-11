@@ -169,6 +169,72 @@ public class TestSocketServerRestart {
         }
     }
 
+    @Test
+    public void testOldAcceptLoopExitsAfterRestart() throws Exception {
+        // 4.3-C1-019（plan 2561 裁定 D）：restart 后旧 accept 循环必须凭世代失配退出，
+        // 不得与新模式共享 stopped 单比特而继续抢占 accept
+        int port = io.nop.commons.util.NetHelper.findAvailableTcpPort();
+
+        // 测试缝：前两个提交（两次 start 的 run 循环）被扣住手动启动，其余（连接处理）直接起线程
+        java.util.List<Runnable> held = new java.util.ArrayList<>();
+        AtomicInteger seq = new AtomicInteger();
+        Executor gate = command -> {
+            if (held.size() < 2) {
+                held.add(command);
+                return;
+            }
+            Thread worker = new Thread(command, "gate-worker-" + seq.incrementAndGet());
+            worker.setDaemon(true);
+            worker.start();
+        };
+
+        SocketServer server = newEchoServer(port);
+        server.setExecutor(gate);
+        server.start(); // run(gen1) 被扣住
+        server.stop(); // gen1 作废
+        server.start(); // run(gen2) 被扣住
+
+        // 只放行旧 run 循环：它面对的是重启后的新 ServerSocket（世代已失配）
+        Thread oldLoop = new Thread(held.get(0), "old-accept-loop");
+        oldLoop.setDaemon(true);
+        oldLoop.start();
+        try {
+            SocketClient client = connect(port);
+            try {
+                BinaryCommand request = new BinaryCommand(client.getClientConfig().getMasks(), (short) 0x1,
+                        (short) 1, (short) 0, "old-loop-served");
+                assertEquals("old-loop-served", client.call(request).getDataAsString());
+            } finally {
+                client.close();
+            }
+
+            // 旧循环完成第一次 accept 分派后必须在 while 判定处按世代退出
+            long deadline = System.currentTimeMillis() + 5000;
+            while (oldLoop.isAlive()) {
+                if (System.currentTimeMillis() >= deadline)
+                    throw new AssertionError("old accept loop must exit after restart (per-start generation)");
+                ThreadHelperSleep.sleep(10);
+            }
+            assertTrue(!oldLoop.isAlive(), "old accept loop must be dead");
+
+            // 新世代循环接续服务
+            Thread newLoop = new Thread(held.get(1), "new-accept-loop");
+            newLoop.setDaemon(true);
+            newLoop.start();
+
+            SocketClient client2 = connect(port);
+            try {
+                BinaryCommand request2 = new BinaryCommand(client2.getClientConfig().getMasks(), (short) 0x1,
+                        (short) 1, (short) 0, "new-loop-served");
+                assertEquals("new-loop-served", client2.call(request2).getDataAsString());
+            } finally {
+                client2.close();
+            }
+        } finally {
+            server.stop();
+        }
+    }
+
     static class ThreadHelperSleep {
         static void sleep(long ms) {
             try {

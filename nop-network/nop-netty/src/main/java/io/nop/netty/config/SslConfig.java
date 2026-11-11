@@ -19,8 +19,12 @@ public class SslConfig {
 
     private String clientSslAlgorithm;
 
-    private SslContext clientSslContext;
-    private SslContext serverSslContext;
+    /**
+     * 4.3-C1-014（plan 2561 裁定 A）：惰性缓存字段 volatile——并发首装时其他线程的
+     * 早退读（{@code getClientSslContext()}）对锁内发布可见。
+     */
+    private volatile SslContext clientSslContext;
+    private volatile SslContext serverSslContext;
 
     public String getKeyStorePassword() {
         return keyStorePassword;

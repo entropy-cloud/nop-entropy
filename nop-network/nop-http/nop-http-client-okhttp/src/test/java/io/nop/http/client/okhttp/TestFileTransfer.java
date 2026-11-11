@@ -49,6 +49,8 @@ public class TestFileTransfer {
             FileTransferHelper.newDigest("SHA-256").digest(CONTENT));
 
     final List<String> observedRanges = new CopyOnWriteArrayList<>();
+    final List<String> observed416Ranges = new CopyOnWriteArrayList<>();
+    final java.util.concurrent.atomic.AtomicInteger fullRequestsOn416 = new java.util.concurrent.atomic.AtomicInteger();
     final AtomicReference<String> uploadSha256 = new AtomicReference<>();
     final AtomicReference<String> uploadContentType = new AtomicReference<>();
     final AtomicReference<String> uploadMethod = new AtomicReference<>();
@@ -82,6 +84,30 @@ public class TestFileTransfer {
                 exchange.getResponseHeaders().set("Content-Range",
                         "bytes " + from + "-" + (CONTENT.length - 1) + "/" + CONTENT.length);
             } else {
+                body = CONTENT;
+                status = 200;
+            }
+            exchange.sendResponseHeaders(status, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        // 4.3-C6-003（plan 2561 裁定 J）：带 Range 恒回 416、无 Range 回整体内容（模板 = Apache /file-416）
+        server.createContext("/file-416", exchange -> {
+            if (!"/file-416".equals(exchange.getRequestURI().getPath())) {
+                // HttpServer 上下文为前缀匹配：sidecar 探测（/file-416.sha256 等）不计入、回 404
+                exchange.sendResponseHeaders(404, -1);
+                exchange.close();
+                return;
+            }
+            String range = exchange.getRequestHeaders().getFirst("Range");
+            byte[] body;
+            int status;
+            if (range != null) {
+                observed416Ranges.add(range);
+                body = "range not satisfiable".getBytes(StandardCharsets.UTF_8);
+                status = 416;
+            } else {
+                fullRequestsOn416.incrementAndGet();
                 body = CONTENT;
                 status = 200;
             }
@@ -193,5 +219,30 @@ public class TestFileTransfer {
         assertTrue(found, "expected checksum mismatch, got: " + e);
         assertFalse(target.exists());
         assertFalse(FileTransferHelper.partFileOf(target).exists());
+    }
+
+    /**
+     * 4.3-C6-003（plan 2561 裁定 J）钉：416 恢复——本地 .part 比远端「新」时服务端回 416，
+     * 客户端删除 .part 后整体重传，重试请求必须已移除 range 头（模板 = Apache
+     * testDownload416RecoversByFullDownload）。
+     * 变异红形态：去掉 offset=0 时的 removeHeader("range") → 重试经 copyRequest 继承旧 range 头
+     * 再次命中 416 → 以 416 状态收场、目标文件不产生 → 红。
+     */
+    @Test
+    public void testDownload416RecoversByFullDownload() throws Exception {
+        File target = File.createTempFile("ok-dl-416", ".bin");
+        target.deleteOnExit();
+        assertTrue(target.delete());
+
+        Files.write(FileTransferHelper.partFileOf(target).toPath(), CONTENT); // 比远端还"新"
+
+        IHttpResponse response = client.downloadAsync(HttpRequest.get(url("/file-416")),
+                DefaultHttpOutputFile.create(target), null, null)
+                .toCompletableFuture().get(20, TimeUnit.SECONDS);
+        assertEquals(200, response.getHttpStatus(), "416 后必须以无 Range 的整体重传恢复");
+        assertArrayEquals(CONTENT, Files.readAllBytes(target.toPath()));
+        // 首发带续传 Range（命中 416），恢复重试不得再带 Range
+        assertEquals(List.of("bytes=" + CONTENT.length + "-"), observed416Ranges);
+        assertEquals(1, fullRequestsOn416.get(), "恢复重试恰好一次且不带 Range 头");
     }
 }

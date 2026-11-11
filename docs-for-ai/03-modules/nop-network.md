@@ -124,6 +124,35 @@ JDK 客户端的 `sendAsync(..., BodyHandlers.ofInputStream())` future 在**响�
 - **反压不可中断面收敛**：demand 等待有界化（基类 `waitForDemand` 预算 + 停滞终态）；apache SSE 事件投递经有界队列 + 专用 `nop-sse-dispatch` daemon 消费线程（HC5 I/O reactor 线程不再内联 wait）；jdk parse 循环可关闭化；残留长阻塞承载线程为 daemon 形态（挂死不阻断 JVM 退出）。
 - 测试锚点：`TestBodyPhaseCancel_C3_002`（6 条，raw socket/HttpServer 真实装配链）、`TestServerEventSubscriptionDemandTimeout_C6_004`、`TestApacheSseReactorDecouple_C6_004`、`TestJdkHttpClientCancelListenerCleanup_C3_012`（2499 注册面零回退）；消费面全链（聚合层 + 传输层双层预算）端到端见 `nop-ai.md` 流式契约节与 `TestStreamFullChainEndToEnd_C3_001`。
 
+
+## 交付同步抛契约与生命周期窗口（plan 2560 / 裁定 A-N）
+
+- **CompletionStage 入口不得同步抛**：全部返回 CompletionStage 的站点（RpcChannelState CLOSED/TOO_MANY、ClientContextRpcServiceInterceptor TIMEOUT_EXPIRED、RpcMessageSender INVALID_TOPIC、Enhancer token 校验、MqttConnection NOT_CONNECTED、MqttServerMessageService 未建 server、NettyTcpServer 无通道/NPE 面、ReflectiveRpcService NO_HANDLER）统一 failed-future 交付；`fetchServerEventFlow`（Flow.Publisher 入口）异常走 Publisher onError。调用方防御面（CancellableRpcClient/PollingRpcClient/RpcInvocationHandler）随批。
+- **OAuth token 注入**：EnhancedClient override 统一 `DelegateHttpClient.onRequestBegin`（四入口全盖）；token fetch 落分 provider 锁内、authTokens 监视器外（singleflight 保留）。
+- **MQTT server 注册配对**：AtomicBoolean CAS 注册标志 + 空列表两参真移除（不再借用 subscribers 空判）；扇出 per-conn try/catch。
+- **Netty 客户端 stop 世代守卫**：doStart 记录 startGeneration / doStop 递增 stopGeneration，四处检查点（doConnect/connectFuture 回调/重连调度/调度任务触发）失配即弃——post-stop 状态回 CREATED，世代为唯一复活闸门。
+- **Vertx MQTT server 生命周期**：bean 级 `setVertx` 注入（缺省回退 NopVertx.instance()）；doStart await listenFuture（失败关 server+typed 抛出）；doStop await close（带超时）+ sessionManager clear。
+- **JDK HttpClient 停机关闭**：`JdkHttpClient.stop`/`JdkStreamTransport`/`JdkFeishuHttpApi`（IFeishuHttpApi.close seam）停止期 close（selector 线程与连接池不跨启停累积）。
+- **Feishu 客户端停机窗口**：credentials/handler/endpoint volatile + WS 回调快照读取（僵尸投递/NPE 链消除）；owned scheduler stop 后 start 重建（外部注入 scheduler 重启 fail-fast）；bind ticket 原子摘除→exchange→失败回插（putIfAbsent 防 ABA——失败 exchange 可重试语义保留）。
+- **RPC monitor/通道**：checkFailCount AtomicInteger 原子 RMW + cancellable volatile；RpcChannelState.prepareSend 容量守卫与 put 同临界区。
+- **SimpleRpcClient 回调合并**：工厂先行配置回调不再被构造器覆写丢弃（prev 回调先行链）；回调字段 volatile。
+
+
+## 交付生命周期束 b 契约（plan 2561 / 裁定 A-N）
+
+- **SSL 惰性缓存**：`NettySslEngineFactory` synchronized 惰性块 + `SslConfig` 缓存字段 volatile（并发首装单实例）。
+- **SocketClient 单读线程契约**：headerBuf 实例共享——call 与 recv-loop 双入口经 `readerActive` 守卫互斥（并发读 typed 拒绝 `ERR_SOCKET_CONCURRENT_READ`；recv-loop 竞败终端退出为已声明 watch 面——下次 reconnect 重生）。
+- **SocketServer accept 世代**：doStart 分配 per-start 世代，doStop 作废——重启后旧 accept 循环凭世代失配退出，不误杀新循环。
+- **SocketClient connect/重连韧性**：connect 回调段+心跳段异常 → safeClose+cleanup 后重抛（重试入口不锁死）；重试链终态 exceptionally 处理器（LOG+closed 置位+onChannelClose）；send 未连接 typed 化；doRecv handler 异常与 IO 异常分流（回调失败不杀循环）。
+- **SimpleRpcClient send 失败**：catch 走 `channelState.onFailure(id, e)`——waitFutures raw future 恰好完成（泄漏面消除，含 timeout≤0 滞留）。
+- **SimpleRpcClientFactory 生命周期**：client 登记表 + destroy 逆序关闭兜底（容忍重复 close 回调；2523 世代令牌面保持）。
+- **PacketCodecHandler fail-loud**：encode 异常上抛（MessageToByteEncoder fail write promise，不自动关 channel）；decode 丢帧结构化计数器暴露。
+- **TencentEmailSender 类型化**：未知错误 `NopException.adapt` 上抛（对齐 JavaEmailSender 范式；显式分支保持）。MFA 调用方（MfaCodeSender/UserMfaSelfService）fail-closed 语义承接。
+- **SSE 终态隔离**：onComplete cleanup、dispatchEvent completed 守卫、`[DONE]` 取消底层请求、jdk ServerEventPublisher CancellationException 分流（取消不派假 onError）；2505 demand-timeout 行为零回退。
+- **Range 头移除**：`JdkHttpClient`/`OkHttpClientImpl` offset=0 时移除 range 头（416 恢复全下载，对齐 Apache；3.9 前案并轨消号）。
+- **FileDownloadSink 直写残留语义**：直写路径失败不回滚（已声明运维边界；临时名重构避让 C6-001(P0)/C3-005(P1) 下载链修复批）。
+- **映射注记消号**：C1-018（2523 已落回调先武装/会话先入表/CONNACK 尾置——确认钉）与 C6-012（2498 已落 poll deadline watchdog——注记消号）。
+
 ## 相关文档
 
 - `../02-core-guides/rpc-and-distributed-rpc.md`（RPC 分层调用模型，`/px/` 代理）

@@ -8,6 +8,7 @@
 package io.nop.integration.email.tencent;
 
 import com.tencentcloudapi.common.Credential;
+import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.ses.v20201002.SesClient;
 import com.tencentcloudapi.ses.v20201002.models.SendEmailRequest;
 import com.tencentcloudapi.ses.v20201002.models.SendEmailResponse;
@@ -27,9 +28,11 @@ import static io.nop.integration.api.IntegrationErrors.ERR_CREDENTIAL_FIELD_REQU
 import static io.nop.integration.api.IntegrationErrors.ERR_CREDENTIAL_PROVIDER_NOT_CONFIGURED;
 import static io.nop.integration.api.IntegrationErrors.ERR_CREDENTIAL_RESOLVE_FAILED;
 import static io.nop.integration.api.IntegrationErrors.ERR_CREDENTIAL_TYPE_MISMATCH;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -94,14 +97,18 @@ public class TestTencentEmailSenderCredential {
     /** 记录型 SesClient stub：捕获 SendEmail 请求（构造参数经 TestableSender 断言）。 */
     static class RecordingSesClient extends SesClient {
         SendEmailRequest lastRequest;
+        /** 非空时 SendEmail 抛出（C3-025 错误分支钉）。 */
+        TencentCloudSDKException error;
 
         RecordingSesClient() {
             super(new Credential("id", "key"), "ap-hongkong");
         }
 
         @Override
-        public SendEmailResponse SendEmail(SendEmailRequest request) {
+        public SendEmailResponse SendEmail(SendEmailRequest request) throws TencentCloudSDKException {
             this.lastRequest = request;
+            if (error != null)
+                throw error;
             return new SendEmailResponse();
         }
     }
@@ -110,11 +117,14 @@ public class TestTencentEmailSenderCredential {
     static class TestableSender extends TencentEmailSender {
         ResolvedCredential lastCredential;
         RecordingSesClient lastClient;
+        /** 非空时注入到构造出的 client（C3-025 错误分支钉）。 */
+        TencentCloudSDKException sendError;
 
         @Override
         protected SesClient createClient(ResolvedCredential credential) {
             lastCredential = credential;
             lastClient = new RecordingSesClient();
+            lastClient.error = sendError;
             return lastClient;
         }
     }
@@ -305,5 +315,50 @@ public class TestTencentEmailSenderCredential {
 
         sender.init(); // 不抛错
         assertEquals(1, provider.registerUsageCalls);
+    }
+
+    // ==================== 4.3-C3-025（plan 2561 裁定 G）：发送错误分支类型化 ====================
+
+    private static TestableSender staticSender(TencentCloudSDKException sendError) {
+        TestableSender sender = new TestableSender();
+        sender.setSecretId("static-id");
+        sender.setSecretKey("static-key");
+        sender.setRegion("static-region");
+        sender.sendError = sendError;
+        return sender;
+    }
+
+    /**
+     * 未知错误必须类型化上抛（NopException.adapt）。
+     * 变异红形态：恢复 LOG.error 静默吞噬 → sendEmail 正常返回 → assertThrows 红。
+     */
+    @Test
+    public void unknownSdkErrorIsRethrownAsTypedException() {
+        TencentCloudSDKException sdkError = new TencentCloudSDKException(
+                "internal failure", "req-1", "InternalError.Unknown");
+        TestableSender sender = staticSender(sdkError);
+
+        NopException ex = assertThrows(NopException.class, () -> sender.sendEmail(mail()),
+                "C3-025: 未知发送错误不得静默吞噬（调用方误认发送成功）");
+        assertNotNull(sender.lastClient.lastRequest, "错误来自真实的 SendEmail 调用点");
+        assertSame(sdkError, ex.getCause(), "原始 SDK 异常必须作为 cause 保留");
+    }
+
+    @Test
+    public void emailAddressIsNullBranchStaysSilent() {
+        TestableSender sender = staticSender(new TencentCloudSDKException(
+                "address is null", "req-2", "InvalidParameterValue.EmailAddressIsNULL"));
+
+        assertDoesNotThrow(() -> sender.sendEmail(mail()), "EmailAddressIsNULL 显式分支保留静默 return");
+        assertNotNull(sender.lastClient.lastRequest);
+    }
+
+    @Test
+    public void frequencyLimitBranchStaysWarnAndReturn() {
+        TestableSender sender = staticSender(new TencentCloudSDKException(
+                "too frequent", "req-3", "FailedOperation.FrequencyLimit"));
+
+        assertDoesNotThrow(() -> sender.sendEmail(mail()), "FrequencyLimit 显式分支保留 warn+return");
+        assertNotNull(sender.lastClient.lastRequest);
     }
 }

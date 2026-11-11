@@ -99,6 +99,17 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             CompletableFuture<?> promise = new CompletableFuture<>();
             future.whenComplete((response, ex) -> {
                 if (ex != null) {
+                    // 4.3-C3-033（plan 2561 裁定 I）④：取消不再派发假 onError——cleanup
+                    // （取消/停滞终态/[DONE] 终态）经 future.cancel 触发本回调，取消是调用方
+                    // 主动终态而非传输错误。JDK 侧取消形态两种都出现：裸 CancellationException
+                    // 或 CompletionException 包裹（sendAsync 内部链完成），故解开包裹判定；
+                    // isCancelled() 兜底覆盖「取消后到达的其他异常」——取消/终态后不再派发
+                    // 任何信号（与 body 阶段 {@code if (!isCancelled()) onError} 对齐）。
+                    // promise 仍须完结以保持 C3-012 取消监听器配对移除。
+                    if (isCancellation(ex) || isCancelled()) {
+                        promise.complete(null);
+                        return;
+                    }
                     promise.completeExceptionally(ex);
                     onError(wrapException(ex));
                     return;
@@ -189,6 +200,22 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
                 processLine(line);
             }
         }
+    }
+
+    /**
+     * 4.3-C3-033（plan 2561 裁定 I）④：判定异常是否为取消终态（裸 CancellationException 或
+     * 经 CompletionException/ExecutionException 包裹）。
+     */
+    static boolean isCancellation(Throwable ex) {
+        Throwable cur = ex;
+        while (cur != null) {
+            if (cur instanceof java.util.concurrent.CancellationException)
+                return true;
+            cur = (cur instanceof java.util.concurrent.CompletionException
+                    || cur instanceof java.util.concurrent.ExecutionException)
+                            ? cur.getCause() : null;
+        }
+        return false;
     }
 
     protected RuntimeException wrapException(Throwable exp) {

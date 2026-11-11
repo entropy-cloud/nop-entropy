@@ -28,4 +28,10 @@ public interface SocketErrors {
     ErrorCode ERR_SOCKET_WRITE_FAIL = define("nop.err.socket.write-fail", "网络写数据失败");
 
     ErrorCode ERR_SOCKET_READ_FAIL = define("nop.err.socket.read-fail", "网络读取数据失败");
+
+    // 4.3-C1-016（plan 2561 裁定 B）：单读线程契约违约（call 与 recv-loop 并发读同一连接）
+    ErrorCode ERR_SOCKET_CONCURRENT_READ = define("nop.err.socket.concurrent-read", "网络连接正被其他线程读取");
+
+    // 4.3-C3-026（plan 2561 裁定 H）：连接尚未建立时 send 的 typed 异常
+    ErrorCode ERR_SOCKET_NOT_CONNECTED = define("nop.err.socket.not-connected", "网络连接尚未建立");
 }
