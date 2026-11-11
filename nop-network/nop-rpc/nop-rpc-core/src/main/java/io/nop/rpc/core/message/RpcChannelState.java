@@ -78,33 +78,54 @@ public class RpcChannelState<S, R> implements IRpcChannelState<S, R> {
     }
 
     public CompletableFuture<R> prepareSend(Object id, S request, long timeout) {
-        if (closed) {
-            throw newError(ERR_RPC_CHANNEL_CLOSED);
-        }
-
-        if (waitFutures.size() >= maxWaitingRequests) {
-            throw newError(ERR_RPC_TOO_MANY_INFLIGHT_MESSAGES).param(ARG_MAX_WAIT_REQUESTS, maxWaitingRequests);
-        }
-
-        whenSend(id, request, timeout);
-
         CompletableFuture<R> future = new CompletableFuture<>();
-        CompletableFuture<R> oldFuture = waitFutures.put(id, future);
+        CompletableFuture<R> oldFuture;
+
+        // 4.3-C1-003+MA-15（plan 2560 裁定 J+H·同方法单 diff 非遮蔽）：
+        // [J] check-size-then-put TOCTOU 收敛为 waitFutures 监视器——closed 检查、容量检查与
+        // put 在同一临界区内原子完成（put 只在临界区内发生，size 判定串行化，容量不可被并发
+        // prepareSend 突破）；移除与 onReceive/onFailure/超时清理仍在锁外经 ConcurrentHashMap
+        // 进行，只减不增不破坏容量上界。
+        // [H] CLOSED / TOO_MANY 两处同步抛改为 failed future——「返回 CompletionStage 的方法
+        // 不得同步抛」契约统一包络。
+        synchronized (waitFutures) {
+            if (closed) {
+                return failedFuture(newError(ERR_RPC_CHANNEL_CLOSED));
+            }
+
+            if (waitFutures.size() >= maxWaitingRequests) {
+                return failedFuture(newError(ERR_RPC_TOO_MANY_INFLIGHT_MESSAGES)
+                        .param(ARG_MAX_WAIT_REQUESTS, maxWaitingRequests));
+            }
+
+            whenSend(id, request, timeout);
+
+            oldFuture = waitFutures.put(id, future);
+        }
 
         if (oldFuture != null) {
             LOG.info("nop.async.rpc.cancel-wait-future:messageId={}", id);
             oldFuture.cancel(false);
         }
 
-        future = scheduleTimeout(id, request, future, timeout);
+        CompletableFuture<R> result = scheduleTimeout(id, request, future, timeout);
 
+        // [H] 注册后再关闭的竞态面同样改为 failed future（原同步抛形态）：
+        // raw future 异常完成驱动 whenComplete 清理 waitFutures 登记项，result 同步镜像失败
         if (closed) {
-            NopException e = newError(ERR_RPC_CHANNEL_CLOSED);
-            future.completeExceptionally(e);
-            throw e;
+            future.completeExceptionally(newError(ERR_RPC_CHANNEL_CLOSED));
+            return result;
         }
 
-        return future;
+        return result;
+    }
+
+    // 4.3-MA-15（plan 2560 裁定 H）：拒绝面统一 failed-future 形态（返回类型为 CompletableFuture
+    // 的本方法不得同步抛，FutureHelper.reject 返回 ResolvedPromise 非本类型）
+    private CompletableFuture<R> failedFuture(NopException e) {
+        CompletableFuture<R> failed = new CompletableFuture<>();
+        failed.completeExceptionally(e);
+        return failed;
     }
 
     private CompletableFuture<R> scheduleTimeout(Object id, S request, CompletableFuture<R> future, long timeout) {

@@ -41,7 +41,15 @@ public class CancellableRpcClient implements IRpcService {
         // 为了便于取消，需要为消息定义一个唯一id
         String reqId = makeId(request);
 
-        CompletionStage<ApiResponse<?>> future = rpcService.callAsync(serviceMethod, request, cancelToken);
+        CompletionStage<ApiResponse<?>> future;
+        try {
+            future = rpcService.callAsync(serviceMethod, request, cancelToken);
+        } catch (Throwable e) {
+            // 4.3-MA-15（plan 2560 裁定 H·调用方防御面）：底层服务同步抛（如 failed-future
+            // 包络未覆盖的残留站点）不再直接穿透到本 CompletionStage 方法，防御性收敛为
+            // failed future 交付
+            return FutureHelper.reject(e);
+        }
         if (cancelToken == null)
             return future;
 

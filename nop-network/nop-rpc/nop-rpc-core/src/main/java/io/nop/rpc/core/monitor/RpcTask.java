@@ -10,20 +10,29 @@ package io.nop.rpc.core.monitor;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.rpc.IRpcService;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class RpcTask {
     private String taskId;
     private IRpcService rpcService;
     private ApiRequest<?> request;
     private String statusMethod;
     private String cancelMethod;
-    private int checkFailCount;
+    // 4.3-MA-13（plan 2560 裁定 F）：checkFailCount 为跨 monitor 轮次并发递增/清零的
+    // RMW 面（原 plain int 的 read-modify-write 丢失更新），改用 AtomicInteger 承载原子性
+    private final AtomicInteger checkFailCount = new AtomicInteger();
 
     public int getCheckFailCount() {
-        return checkFailCount;
+        return checkFailCount.get();
     }
 
     public void setCheckFailCount(int checkFailCount) {
-        this.checkFailCount = checkFailCount;
+        this.checkFailCount.set(checkFailCount);
+    }
+
+    // 4.3-MA-13（plan 2560 裁定 F）：原子 RMW 单点——失败计数递增不再经历 read-then-write 窗口
+    public int incrementCheckFailCount() {
+        return checkFailCount.incrementAndGet();
     }
 
     public String getTaskId() {

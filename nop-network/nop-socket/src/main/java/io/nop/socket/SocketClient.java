@@ -60,8 +60,9 @@ public class SocketClient implements ICommandClient {
 
     private AtomicInteger connectFailCount = new AtomicInteger();
 
-    private Runnable onChannelOpen;
-    private Runnable onChannelClose;
+    // 4.3-C1-005（plan 2560 裁定 K）：volatile——晚设置回调对连接事件线程可见
+    private volatile Runnable onChannelOpen;
+    private volatile Runnable onChannelClose;
 
     public void setTimer(IScheduledExecutor timer) {
         this.timer = timer;
@@ -73,6 +74,16 @@ public class SocketClient implements ICommandClient {
 
     public void setOnChannelClose(Runnable onClose) {
         this.onChannelClose = onClose;
+    }
+
+    @Override
+    public Runnable getOnChannelOpen() {
+        return onChannelOpen;
+    }
+
+    @Override
+    public Runnable getOnChannelClose() {
+        return onChannelClose;
     }
 
     public IScheduledExecutor getTimer() {

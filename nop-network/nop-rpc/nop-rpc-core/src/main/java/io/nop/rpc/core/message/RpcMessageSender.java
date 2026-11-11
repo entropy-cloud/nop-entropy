@@ -13,6 +13,7 @@ import io.nop.api.core.message.IMessageSender;
 import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiInvokeHelper;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.api.core.rpc.IRpcService;
 
@@ -43,14 +44,20 @@ public class RpcMessageSender implements IMessageSender {
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
         ApiRequest<?> request = (ApiRequest<?>) message;
-        IRpcService rpcService = getRpcService(topic);
+        try {
+            IRpcService rpcService = getRpcService(topic);
 
-        String action = ApiHeaders.getSvcAction(request);
-        if (StringHelper.isEmpty(action)) {
-            action = topic;
+            String action = ApiHeaders.getSvcAction(request);
+            if (StringHelper.isEmpty(action)) {
+                action = topic;
+            }
+            return rpcService.callAsync(action, request, options == null ? null : options.getCancelToken())
+                    .thenApply(ApiInvokeHelper::ignoreResult);
+        } catch (Throwable e) {
+            // 4.3-MA-15（plan 2560 裁定 H）：INVALID_TOPIC 同步抛改为 failed future——
+            // 「返回 CompletionStage 的方法不得同步抛」契约统一包络
+            return FutureHelper.reject(e);
         }
-        return rpcService.callAsync(action, request, options == null ? null : options.getCancelToken())
-                .thenApply(ApiInvokeHelper::ignoreResult);
     }
 
     private IRpcService getRpcService(String topic) {

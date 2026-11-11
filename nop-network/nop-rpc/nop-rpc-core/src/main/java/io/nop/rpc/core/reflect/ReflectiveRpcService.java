@@ -52,14 +52,17 @@ public class ReflectiveRpcService implements IRpcService {
             methods = classModel.getMethodsByName(serviceMethod);
 
         if (methods == null) {
-            throw new NopException(ERR_RPC_NO_HANDLER).param(ARG_SERVICE_NAME, serviceName)
-                    .param(ARG_SERVICE_METHOD, serviceMethod).param(ARG_CLASS_NAME, classModel.getClassName());
+            // 4.3-MA-15（plan 2560 裁定 H）：NO_HANDLER 同步抛改为 failed future——
+            // 「返回 CompletionStage 的方法不得同步抛」契约统一包络
+            return FutureHelper.reject(new NopException(ERR_RPC_NO_HANDLER).param(ARG_SERVICE_NAME, serviceName)
+                    .param(ARG_SERVICE_METHOD, serviceMethod).param(ARG_CLASS_NAME, classModel.getClassName()));
         }
 
         IFunctionModel method = methods.getUniqueMethod();
         if (method == null) {
-            throw new NopException(ERR_RPC_NOT_ALLOW_METHOD_OVERLOAD).param(ARG_SERVICE_NAME, serviceName)
-                    .param(ARG_SERVICE_METHOD, serviceMethod);
+            // 4.3-MA-15（plan 2560 裁定 H）：NOT_ALLOW_METHOD_OVERLOAD 同面同包络
+            return FutureHelper.reject(new NopException(ERR_RPC_NOT_ALLOW_METHOD_OVERLOAD)
+                    .param(ARG_SERVICE_NAME, serviceName).param(ARG_SERVICE_METHOD, serviceMethod));
         }
 
         String serviceName = ApiHeaders.getSvcName(request);

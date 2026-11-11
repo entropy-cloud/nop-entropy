@@ -42,8 +42,9 @@ public class SimpleRpcClient implements IRpcService, AutoCloseable {
     private final RpcChannelState<ApiRequest<?>, ApiResponse<?>> channelState;
     private final AtomicInteger seq = new AtomicInteger();
 
-    private Runnable onChannelOpen;
-    private Runnable onChannelClose;
+    // 4.3-C1-005（plan 2560 裁定 K）：volatile——晚设置回调对连接事件线程可见
+    private volatile Runnable onChannelOpen;
+    private volatile Runnable onChannelClose;
 
     public SimpleRpcClient(String serviceName, ICommandClient client,
                            Consumer<ApiResponse<?>> noticeReceiver, IScheduledExecutor timer) {
@@ -52,13 +53,21 @@ public class SimpleRpcClient implements IRpcService, AutoCloseable {
         this.noticeReceiver = noticeReceiver;
         channelState = new RpcChannelState<>(serviceName, timer);
 
+        // 4.3-C1-005（plan 2560 裁定 K）：工厂先行配置的回调不再被构造器覆写静默丢弃——
+        // 捕获前值合并（工厂回调先行，内部 channelState 回调后行）
+        Runnable prevOpen = client.getOnChannelOpen();
+        Runnable prevClose = client.getOnChannelClose();
         client.setOnChannelOpen(() -> {
+            if (prevOpen != null)
+                prevOpen.run();
             channelState.onChannelOpen();
             if (onChannelOpen != null)
                 onChannelOpen.run();
         });
 
         client.setOnChannelClose(() -> {
+            if (prevClose != null)
+                prevClose.run();
             channelState.onChannelClose(null);
             if (onChannelClose != null)
                 onChannelClose.run();

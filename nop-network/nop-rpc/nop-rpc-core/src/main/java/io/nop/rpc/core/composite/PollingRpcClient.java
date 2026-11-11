@@ -77,7 +77,15 @@ public class PollingRpcClient implements IRpcService {
     @Override
     public CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request,
                                                      ICancelToken cancelToken) {
-        return rpcService.callAsync(serviceMethod, request, cancelToken).thenCompose(ret -> {
+        // 4.3-MA-15（plan 2560 裁定 H·调用方防御面）：首跳 callAsync 同步抛防御性收敛为
+        // failed future（轮询链不再依赖底层不违反同步抛契约）
+        CompletionStage<ApiResponse<?>> first;
+        try {
+            first = rpcService.callAsync(serviceMethod, request, cancelToken);
+        } catch (Throwable e) {
+            return FutureHelper.reject(e);
+        }
+        return first.thenCompose(ret -> {
             ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
             if (!ret.isBizSuccess() || isCompleted(res)) {
                 return FutureHelper.success(res);
