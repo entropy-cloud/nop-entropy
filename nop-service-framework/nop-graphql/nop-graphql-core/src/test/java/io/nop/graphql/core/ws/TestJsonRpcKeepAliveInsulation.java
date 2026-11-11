@@ -33,6 +33,10 @@ import static org.junit.jupiter.api.Assertions.fail;
  * 消息序列化 RuntimeException / Error 逃逸任务体即杀 keepalive 链，僵尸 WebSocket 连接永不清扫。
  * 修复 = 站点侧 catch Throwable + 结构化观测日志（失败可见、不吞语义、不向外传播）。
  *
+ * <p>plan 2562 裁定 E（RP-2/RP-4 重定基线）：keepAliveSender 假装句柄（never-completing
+ * CF）已删除，unregisterKeepAlive 注册表逐出是唯一逐出路径——原「取消断言」重写为
+ * LIVE_HANDLERS 注册表逐出断言 + markReady 装配窗口断言（本文件后两节）。
+ *
  * <p>该站点所属载体（globalTimer 直挂 → DefaultScheduledExecutor.scheduleWithFixedDelay）已被
  * Phase 1 绝缘层改写；testGlobalTimerDirectScheduleWiringReachesInsulatedPath 从本消费方模块
  * 运行时验证该载体入口真实走到绝缘路径（任务体 Throwable → 观测 + 重臂 + future 失败终态）。
@@ -109,6 +113,9 @@ public class TestJsonRpcKeepAliveInsulation {
     public void testKeepAliveThrowableDoesNotPropagateAndChainContinues() {
         FailingWebSocketSession session = new FailingWebSocketSession();
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler((request, headers) -> null, session);
+        // 4.4-C4-002（plan 2562 裁定 E②）：装配完成入表（原构造即注册——新结构下模拟 endpoint
+        // 调 markReady；本测试聚焦绝缘语义，非装配窗口）
+        handler.markReady();
 
         try {
             // 第 1 轮：消息序列化 RuntimeException（审计指认的逃逸面）——不得抛出
@@ -133,12 +140,86 @@ public class TestJsonRpcKeepAliveInsulation {
             assertTrue(session.sentMessages.get(0).contains("\"method\":\"ping\""),
                     "recovered round must deliver the ping keepalive notification");
 
-            // 周期链参与未被失败取消（A5 收敛后为共享链注册句柄；站点内兜底不改写链存活语义）
-            assertFalse(handler.keepAliveSender.isCancelled(),
-                    "keepalive chain participation must not be cancelled by task body failures");
+            // RP-2（plan 2562 裁定 E 重写）：markReady 后会话在 LIVE_HANDLERS 注册表中参与
+            // keepalive 扫描；站点内失败不改写注册表参与语义（原 keepAliveSender 假装句柄
+            // 已删除——注册表逐出是唯一逐出路径）
+            assertTrue(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                    "marked-ready handler must stay registered in LIVE_HANDLERS despite task body failures");
         } finally {
             handler.onClose();
         }
+        // RP-2 逐出断言（重写）：onClose 必须把 handler 从注册表逐出（原钉断言的
+        // never-completing CF cancel 是空操作，钉面过时——新机制钉为注册表逐出）
+        assertFalse(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                "onClose must evict the handler from LIVE_HANDLERS (sole eviction path, plan 2562 裁定 E①)");
+    }
+
+    /**
+     * RP-4（plan 2562 裁定 E 重写）：异常路径逐出——onThrowable 必须把 handler 从
+     * LIVE_HANDLERS 注册表逐出（throwOnSend stub 可抛；取消断言改为「注册表逐出」断言）。
+     */
+    @Test
+    public void throwableEvictsHandlerFromLiveRegistry() {
+        FailingWebSocketSession session = new FailingWebSocketSession();
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler((request, headers) -> null, session);
+        handler.markReady();
+        assertTrue(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                "marked-ready handler must be registered before throwable");
+
+        handler.onThrowable(new RuntimeException("transport blew up"));
+
+        assertFalse(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                "onThrowable must evict the handler from LIVE_HANDLERS (RP-4 rewritten pin)");
+    }
+
+    /**
+     * RP-4（plan 2562 裁定 E②）装配窗口钉：构造期不入 LIVE_HANDLERS——半装配 session
+     * （extractor 未绑定窗）不参与 keepalive 扫描，ping 不再发往半装配会话；
+     * markReady 后入表；closed-before-ready 的会话永不入表（不留残余）。
+     */
+    @Test
+    public void assemblyWindowHandlerJoinsRegistryOnlyAfterMarkReady() {
+        FailingWebSocketSession session = new FailingWebSocketSession();
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler((request, headers) -> null, session);
+
+        try {
+            // 装配窗：未 markReady——不在注册表，keepalive 扫描轮不投递 ping
+            assertFalse(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                    "handler must not join LIVE_HANDLERS before markReady (assembly window)");
+            JsonRpcWebSocketHandler.sendKeepAliveToAll();
+            assertTrue(session.sentMessages.isEmpty(),
+                    "keepalive ping must not be sent to a half-assembled session"
+                            + " (extractor unbound window, plan 2562 裁定 E②)");
+
+            // 装配完成：markReady 后入表，下一扫描轮投递 ping
+            handler.markReady();
+            assertTrue(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                    "markReady must register the handler in LIVE_HANDLERS");
+            JsonRpcWebSocketHandler.sendKeepAliveToAll();
+            awaitUntil("ping must be delivered after markReady",
+                    () -> !session.sentMessages.isEmpty());
+            assertTrue(session.sentMessages.get(0).contains("\"method\":\"ping\""));
+        } finally {
+            handler.onClose();
+        }
+        assertFalse(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                "onClose must evict after the assembly window (no residual entry)");
+    }
+
+    /**
+     * RP-4（plan 2562 裁定 E②）closed-before-ready：会话在 markReady 前已关闭——
+     * markReady 不入注册表（装配未完成即关闭，不残留任何条目）。
+     */
+    @Test
+    public void closedBeforeReadyLeavesNothingInRegistry() {
+        FailingWebSocketSession session = new FailingWebSocketSession();
+        JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler((request, headers) -> null, session);
+        session.closed = true;
+
+        handler.markReady();
+
+        assertFalse(JsonRpcWebSocketHandler.LIVE_HANDLERS.contains(handler),
+                "closed-before-ready must not register the handler (leaves nothing to clean)");
     }
 
     /**

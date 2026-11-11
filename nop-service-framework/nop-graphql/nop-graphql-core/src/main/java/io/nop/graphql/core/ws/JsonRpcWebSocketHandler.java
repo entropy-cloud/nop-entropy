@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -63,7 +62,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * missed are evicted lazily by the scan itself (self-cleaning), so the registry cannot
      * leak.
      */
-    private static final Set<JsonRpcWebSocketHandler> LIVE_HANDLERS = ConcurrentHashMap.newKeySet();
+    // 4.4-C4-002（plan 2562 裁定 E）：包私有——RP-2/RP-4 钉（测试同包）直接断言注册表逐出
+    static final Set<JsonRpcWebSocketHandler> LIVE_HANDLERS = ConcurrentHashMap.newKeySet();
 
     /**
      * The single shared keepalive chain, armed once per JVM. Trigger = shared globalTimer
@@ -77,15 +77,6 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     protected final BiFunction<JsonRpcRequest, Map<String, Object>, Flow.Publisher<ApiResponse<?>>> executionService;
     protected final IWebSocketSession session;
     protected final Map<String, Flow.Subscriber<ApiResponse<?>>> activeOperations = new ConcurrentHashMap<>();
-
-    /**
-     * This session's participation handle in the shared keepalive chain (A5 convergence,
-     * plan 2498 Phase 3): the old per-connection globalTimer periodic task was replaced by
-     * one O(1) shared scan, so this future no longer is a timer task — it represents the
-     * session's registration in {@link #LIVE_HANDLERS} and is cancelled when the session
-     * leaves the chain.
-     */
-    protected final Future<?> keepAliveSender;
 
     /**
      * Per-session bounded, order-preserving send pump draining on the shared worker pool
@@ -155,7 +146,22 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         this.session = session;
         this.authHeaders = initialHeaders != null ? new ConcurrentHashMap<>(initialHeaders) : new ConcurrentHashMap<>();
         this.sendPump = new WebSocketSendPump(session, WebSocketSendPump.DEFAULT_CAPACITY);
-        this.keepAliveSender = registerKeepAlive(this);
+        // 4.4-C4-002（plan 2562 裁定 E②）：构造期只武装共享 keepalive 链、不入 LIVE_HANDLERS
+        //（半装配 session 不参与 keepalive 扫描）；装配完成由宿主 endpoint 调 markReady() 入表。
+        registerKeepAlive();
+    }
+
+    /**
+     * 4.4-C4-002（plan 2562 裁定 E②）：装配窗口收敛——构造期不入 {@link #LIVE_HANDLERS}
+     * （原构造即注册使 keepalive ping 可发往半装配 session：extractor 未绑定窗）。两宿主
+     * endpoint 在 onOpen 装配完成（extractor 注入 + message handler 注册）后调用本方法入表；
+     * closed-before-ready 的会话不入注册表（onClose 收口无需清扫多余条目）。
+     */
+    public void markReady() {
+        if (session.isClosed()) {
+            return;
+        }
+        LIVE_HANDLERS.add(this);
     }
 
     public void setMaxActiveOperations(int maxActiveOperations) {
@@ -215,8 +221,17 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * triggers only, the scan body and every send run on the shared worker pool. N
      * connections therefore add O(1) timer tasks, not N.
      */
-    private static Future<?> registerKeepAlive(JsonRpcWebSocketHandler handler) {
-        LIVE_HANDLERS.add(handler);
+    /**
+     * A5 keepalive fan-out convergence (plan 2498 Phase 3, finding 2.3-C8-001): arms
+     * the single shared keepalive chain once per JVM. The chain is
+     * {@code globalTimer().executeOn(globalWorker()).scheduleWithFixedDelay(...)} — timer
+     * triggers only, the scan body and every send run on the shared worker pool. N
+     * connections therefore add O(1) timer tasks, not N.
+     *
+     * <p>4.4-C4-002（plan 2562 裁定 E①）：不再返回「假装句柄」（never-completing CF）——
+     * {@link #unregisterKeepAlive()}（注册表逐出）保持为唯一逐出路径，无双形态。
+     */
+    private static void registerKeepAlive() {
         if (sharedKeepAliveChain == null) {
             synchronized (JsonRpcWebSocketHandler.class) {
                 if (sharedKeepAliveChain == null) {
@@ -227,8 +242,6 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 }
             }
         }
-        // registration handle: cancelled when the session leaves the chain (see unregisterKeepAlive)
-        return new CompletableFuture<Void>();
     }
 
     /**
@@ -239,12 +252,12 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         onClose();
     }
 
+    /**
+     * 4.4-C4-002（plan 2562 裁定 E①）：唯一逐出路径 = 注册表逐出（原 keepAliveSender
+     * cancel 是 never-completing CF 上的空操作，语义名不副实，已删除）。
+     */
     private void unregisterKeepAlive() {
         LIVE_HANDLERS.remove(this);
-        Future<?> handle = keepAliveSender;
-        if (handle != null) {
-            handle.cancel(false);
-        }
     }
 
     /**
@@ -267,11 +280,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         String id = request.getId();
 
         if (method == null) {
-            try {
-                sendError(id, JsonRpcWebSocketErrorCodes.INVALID_REQUEST, "Missing 'method' field");
-            } catch (IOException e) {
-                LOG.warn("nop.websocket.send-error-fail", e);
-            }
+            // 4.4-C1-003（plan 2562 裁定 D）：error 帧经 sendPump 出站（泵内消化 IOException）
+            sendError(id, JsonRpcWebSocketErrorCodes.INVALID_REQUEST, "Missing 'method' field");
             return;
         }
 
@@ -293,22 +303,41 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 default:
                     handleSubscription(request);
             }
-        } catch (IOException e) {
-            // 2.3-C3-006（plan 2550 裁定 D）分支三：IOException = 连接级故障（关连接语义）
-            LOG.warn("nop.websocket.on-message-error", e);
         } catch (Throwable e) {
-            // 分支三续：同步 RuntimeException 不穿透——按 keepAlive 绝缘同型（R1-01 契约）
-            // 结构化日志留痕，handler 与下一条消息存活，连接不因单条消息处理异常被杀。
+            // 2.3-C3-006（plan 2550 裁定 D）分支三 + 4.4-C1-003（plan 2562 裁定 D）：
+            // 消息线程出站已并入 sendPump（IOException 在泵内消化），同步异常不穿透——
+            // 按 keepAlive 绝缘同型（R1-01 契约）结构化日志留痕，handler 与下一条消息存活，
+            // 连接不因单条消息处理异常被杀。
             LOG.error("nop.err.websocket.on-message-fail:method={}", method, e);
         }
     }
 
-    private void handlePing(String id) throws IOException {
+    // 4.4-C1-003（plan 2562 裁定 D）：以下 pong/unsubscribe 确认/refresh 确认/error 帧均为
+    // 消息线程直发站点，统一并入会话 sendPump——控制帧与数据帧共享单 FIFO 泵（控制帧排序
+    // 在待发数据帧之后，显式声明可接受），消息线程不再执行阻塞 sendMessage。
+
+    private void handlePing(String id) {
         if (id != null) {
-            session.sendMessage(createSuccessResponse(id, Map.of("pong", true)));
+            sendControlFrame(createSuccessResponse(id, Map.of("pong", true)));
         } else {
-            session.sendMessage(createNotification("pong"));
+            sendControlFrame(createNotification("pong"));
         }
+    }
+
+    /**
+     * 4.4-C1-003（plan 2562 裁定 D）：控制帧统一经会话有界 sendPump 出站。仅供消息线程
+     * 直发站点使用；泵内调用方（SubscriptionSubscriber.onNext/onError、sendErrorFromGraphQL）
+     * 不得走此入口——再经 submit 会嵌套入队，且 submit 布尔返回的 DROP_NEWEST 丢弃是静默面
+     *（包私有直发 helper {@link #sendErrorDirect} 即该决策）。
+     */
+    private void sendControlFrame(String text) {
+        sendPump.submit(() -> {
+            try {
+                session.sendMessage(text);
+            } catch (IOException e) {
+                LOG.warn("nop.websocket.send-control-frame-fail", e);
+            }
+        });
     }
 
     private void handleSubscription(JsonRpcRequest request) throws IOException {
@@ -355,7 +384,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
 
         boolean cancelled = cancelOperation(subscriptionId);
         if (id != null) {
-            session.sendMessage(createSuccessResponse(id, Map.of("cancelled", cancelled)));
+            // 4.4-C1-003（plan 2562 裁定 D）：确认帧经 sendPump 出站
+            sendControlFrame(createSuccessResponse(id, Map.of("cancelled", cancelled)));
         }
     }
 
@@ -400,7 +430,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         }
 
         if (id != null) {
-            session.sendMessage(createSuccessResponse(id, Map.of("refreshed", true)));
+            // 4.4-C1-003（plan 2562 裁定 D）：确认帧经 sendPump 出站
+            sendControlFrame(createSuccessResponse(id, Map.of("refreshed", true)));
         }
     }
 
@@ -598,7 +629,21 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         }
     }
 
-    private void sendError(String id, int code, String message) throws IOException {
+    /**
+     * 4.4-C1-003（plan 2562 裁定 D）：onMessage/validSubscription 消息线程路径的 error 帧
+     * 经 sendPump 出站（原为消息线程阻塞直发）。
+     */
+    private void sendError(String id, int code, String message) {
+        sendControlFrame(createErrorResponse(id, code, message, null, null));
+    }
+
+    /**
+     * 4.4-C1-003（plan 2562 裁定 D）：泵内直发 helper（包私有，测试同包可断言直发语义）——
+     * 仅供已在 sendPump 消费线程上执行的调用方使用（SubscriptionSubscriber.onError、
+     * sendErrorFromGraphQL）。方法体级转换会嵌套入队，且 submit 布尔返回的 DROP_NEWEST
+     * 丢弃是静默面——包私有直发即裁定决策。
+     */
+    void sendErrorDirect(String id, int code, String message) throws IOException {
         session.sendMessage(createErrorResponse(id, code, message, null, null));
     }
 
@@ -711,7 +756,9 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
             // 错误帧经同一 sendPump 保持会话内顺序；发送失败按既有 warn 语义，不影响清理。
             sendPump.submit(() -> {
                 try {
-                    sendError(operationId, JsonRpcWebSocketErrorCodes.INTERNAL_ERROR,
+                    // 4.4-C1-003（plan 2562 裁定 D）：泵内消费线程——必须用直发 helper，
+                    // 不得再嵌套 submit（见 sendErrorDirect 注记）
+                    sendErrorDirect(operationId, JsonRpcWebSocketErrorCodes.INTERNAL_ERROR,
                             t.getMessage() == null ? t.toString() : t.getMessage());
                 } catch (Exception e) {
                     LOG.warn("nop.websocket.send-error-fail", e);

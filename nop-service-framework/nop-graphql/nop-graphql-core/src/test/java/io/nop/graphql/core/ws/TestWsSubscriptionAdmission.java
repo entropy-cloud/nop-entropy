@@ -92,9 +92,17 @@ public class TestWsSubscriptionAdmission extends BaseTestCase {
         handler.onMessage(req2);
 
         // 第二订阅被 per-connection 上界拒绝：会话收到 TOO_MANY_SUBSCRIPTIONS 错误帧
+        //（4.4-C1-003（plan 2562 裁定 D）：error 帧改经 sendPump 异步出站——断言改 await 适配时序）
         assertTrue(handler.getClass() != null);
-        boolean rejected = MockAdmissionSession_messages(handler).stream()
-                .anyMatch(m -> m.contains("Too many active subscriptions"));
+        long deadline = System.currentTimeMillis() + 30000;
+        boolean rejected = false;
+        while (System.currentTimeMillis() < deadline) {
+            rejected = MockAdmissionSession_messages(handler).stream()
+                    .anyMatch(m -> m.contains("Too many active subscriptions"));
+            if (rejected)
+                break;
+            Thread.sleep(10);
+        }
         assertTrue(rejected, "second subscription must be rejected at per-connection limit");
     }
 

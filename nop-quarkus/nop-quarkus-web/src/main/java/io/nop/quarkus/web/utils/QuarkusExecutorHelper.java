@@ -55,11 +55,17 @@ public class QuarkusExecutorHelper {
                 if (userContext != null) {
                     AuthMDCHelper.bindMDC(userContext);
                 }
+                // 4.4-MA-05（plan 2562 裁定 C）：context 线程上重设 g_serverContext TL——
+                // 任务（及 JsonRpcWebSocketEndpoint.extractInitialHeaders 这类消费方）经
+                // getHttpServerContext 读 IP/headers。set 必须与 finally remove 配对，否则
+                // event-loop 线程持有上一请求的 VertxHttpServerContext 跨请求泄漏（安全相关）。
+                g_serverContext.set(ctx);
                 try {
                     // C6-007（plan 2524，future 族第 5 例宿主侧，R21 族纪律）：task.get()
                     // 先求值入局部变量 + bindResult 移入 try + catch Throwable 终结返回 future
                     // ——task.get() 同步异常原样逃逸 lambda 后落入平台 flushTasks 吞异常通道
                     //（ContextTaskQueue :157-159 登记设计语义），调用方永久悬挂
+                    //（4.4-MA-05：2524 MA-02 语义冻结段零回退——仅外扩 TL set/remove 配对）
                     CompletionStage<T> stage;
                     try {
                         stage = task.get();
@@ -69,6 +75,9 @@ public class QuarkusExecutorHelper {
                     }
                 } finally {
                     AuthMDCHelper.unbindMDC();
+                    // 4.4-MA-05（plan 2562 裁定 C）：context 线程 TL 配对 remove——任务完成后
+                    // 该线程不得残留本请求的 server context
+                    g_serverContext.remove();
                 }
             });
             return future;

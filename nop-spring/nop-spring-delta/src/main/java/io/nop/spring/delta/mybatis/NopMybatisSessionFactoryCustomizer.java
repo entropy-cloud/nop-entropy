@@ -7,6 +7,8 @@
  */
 package io.nop.spring.delta.mybatis;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
@@ -23,11 +25,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.spring.delta.SpringDeltaErrors.ERR_SPRING_DELTA_CORE_NOT_INITIALIZED;
+
 @Service
 @ConditionalOnProperty(name = "nop.spring.delta.mybatis.enabled", matchIfMissing = true)
 public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBeanCustomizer {
     @Override
     public void customize(SqlSessionFactoryBean factoryBean) {
+
+        // 4.4-C4-004（plan 2562 裁定 G，F3 孪生）：预初始化守卫——未初始化时 typed 拒绝
+        // （rule 24 fail-fast 缺省）。同 NopBeansAutoConfiguration 的爆破半径登记。
+        if (!CoreInitialization.isInitialized()) {
+            throw new NopException(ERR_SPRING_DELTA_CORE_NOT_INITIALIZED);
+        }
 
         List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/mapper", ".mapper.xml");
 

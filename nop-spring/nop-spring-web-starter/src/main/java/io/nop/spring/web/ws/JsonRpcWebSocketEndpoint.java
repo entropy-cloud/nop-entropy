@@ -77,6 +77,10 @@ public class JsonRpcWebSocketEndpoint extends Endpoint {
         session.getUserProperties().put("graphql.handler", handler);
 
         session.addMessageHandler(String.class, handler::onMessage);
+
+        // 4.4-C4-002（plan 2562 裁定 E②）：装配完成（extractor 注入 + message handler 注册）
+        // 后才入 LIVE_HANDLERS——keepalive ping 不再发往半装配 session。
+        handler.markReady();
     }
 
     private ApiRequest<?> toApiRequest(JsonRpcRequest request) {
@@ -122,6 +126,7 @@ public class JsonRpcWebSocketEndpoint extends Endpoint {
                 }
             }
         } catch (Exception expected) {
+            // best-effort: client addr 仅用于诊断 header，取不到时静默降级（不阻断 WS 握手）
         }
 
         return headers;

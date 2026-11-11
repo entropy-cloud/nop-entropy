@@ -9,6 +9,7 @@ import io.agroal.api.configuration.supplier.AgroalDataSourceConfigurationSupplie
 import io.agroal.api.security.NamePrincipal;
 import io.agroal.api.security.SimplePassword;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.StringHelper;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Map;
 
 public class AgroalDataSourceFactory implements IDataSourceFactory {
@@ -32,7 +34,7 @@ public class AgroalDataSourceFactory implements IDataSourceFactory {
         AgroalDataSource dataSource = new io.agroal.pool.DataSource(dataSourceConfiguration.get());
 
         if (config.isMetricsEnabled()) {
-            exportMetrics(GlobalMeterRegistry.instance(), config.getName(), dataSource);
+            exportMetrics(GlobalMeterRegistry.instance(), config.getName(), dataSource.getMetrics());
         }
 
         return dataSource;
@@ -105,9 +107,42 @@ public class AgroalDataSourceFactory implements IDataSourceFactory {
 
     }
 
-    private void exportMetrics(MeterRegistry metricsFactory, String dataSourceName, AgroalDataSource dataSource) {
+    /**
+     * 4.4-C6-005（plan 2562 裁定 I）：热重载安全重绑——识别键 = meter name + {@code datasource}
+     * tag（确定性），重注册前先 remove 旧绑定，避免 Gauge 叠绑（Micrometer 对同名同 tag
+     * 重复注册会抛 IllegalArgumentException）。
+     */
+    static final List<String> AGROAL_METER_NAMES = List.of(
+            "agroal.active.count",
+            "agroal.available.count",
+            "agroal.max.used.count",
+            "agroal.awaiting.count",
+            "agroal.acquire.count",
+            "agroal.creation.count",
+            "agroal.leak.detection.count",
+            "agroal.destroy.count",
+            "agroal.flush.count",
+            "agroal.invalid.count",
+            "agroal.reap.count",
+            "agroal.blocking.time.average",
+            "agroal.blocking.time.max",
+            "agroal.blocking.time.total",
+            "agroal.creation.time.average",
+            "agroal.creation.time.max",
+            "agroal.creation.time.total");
+
+    void exportMetrics(MeterRegistry metricsFactory, String dataSourceName, AgroalDataSourceMetrics metrics) {
         String tagValue = StringHelper.isEmpty(dataSourceName) ? "default" : dataSourceName;
-        AgroalDataSourceMetrics metrics = dataSource.getMetrics();
+
+        // 4.4-C6-005（plan 2562 裁定 I）：判存移除旧绑定后再重注册，热重载不再叠绑
+
+        for (String meterName : AGROAL_METER_NAMES) {
+            Meter oldMeter = metricsFactory.find(meterName)
+                    .tag("datasource", tagValue).meter();
+            if (oldMeter != null) {
+                metricsFactory.remove(oldMeter);
+            }
+        }
 
         Gauge.builder("agroal.active.count", metrics::activeCount)
                 .description(
