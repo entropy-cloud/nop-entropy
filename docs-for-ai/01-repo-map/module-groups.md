@@ -66,10 +66,13 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 模块 | 用途 |
 |------|------|
 | `nop-sys/` | 序列号、数据字典、国际化、Maker-Checker 审批、分布式锁、事件队列 |
-| `nop-report/` | 报表引擎（Excel/PDF/DOCX；图表渲染经 `nop-chart-report` opt-in，见 `02-core-guides/chart-static-render.md`） |
+| `nop-report/` | 报表引擎（Excel/PDF/DOCX；图表渲染经 `nop-chart-report` opt-in，见 `02-core-guides/chart-static-render.md`；Word 文档展开/图片绑定/统一出口见 `02-core-guides/word-document-model.md`，PDF 渲染器在 nop-report-pdf 的 `io.nop.report.pdf.doc` 包） |
 | `nop-format/nop-canvas2d` | 纯 Java2D Canvas2D 语义实现（图表静态渲染的绘图底座） |
 | `nop-format/nop-chart-echarts` | ECharts 静态渲染引擎（GraalJS 执行官方 dist + Java2D shim） |
 | `nop-format/nop-chart-export` | 图表导出壳契约 + ChartModel→ECharts option 适配器（JFreeChart 已退役） |
+| `nop-format/nop-office-model` | Office 共享叶子模型（OfficeFont/Word 四类样式/边框/颜色/对齐枚举；Excel 与 Word 共用） |
+| `nop-format/nop-office-doc-model` | Word 文档结构模型（OfficeDocModel 八类块/行内/页面设置/assets/styles 容器；owner doc 见 `02-core-guides/word-document-model.md`） |
+| `nop-format/nop-ooxml/nop-ooxml-docx` | docx 包读写（解析/生成/round-trip；模板标注解析） |
 | `nop-report/nop-chart-report` | 可选报表图表接线（IChartImageProvider 实现，opt-in；缺席静默跳过） |
 | `nop-rule/` | 规则引擎（决策树/决策矩阵） |
 | `nop-batch/` | 批处理引擎（chunk 处理、断点续传） |
