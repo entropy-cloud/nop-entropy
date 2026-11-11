@@ -60,6 +60,32 @@ public class PulsarConsumerConfig {
      */
     private int maxConsumeAttempts = 10;
 
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：bounded wait on the handler-returned future at the
+     * Pulsar consume await points ({@code PulsarConsumeTask} single/batch paths). On
+     * timeout the message is negatively acknowledged with a WARN — a dedicated branch that
+     * does NOT participate in the {@link #maxConsumeAttempts} poison budget (a hung
+     * handler redelivers via nack indefinitely; explicitly accepted observable face). The
+     * wait object must be a {@code CompletableFuture}; any other {@code CompletionStage}
+     * form is a typed error ({@code ERR_PULSAR_CONSUME_AWAIT_NOT_ASYNC}).
+     *
+     * <p>Default reference value: keep at or below the effective {@link #ackTimeout}
+     * (broker-side unacked-redelivery guard, 0 = disabled) so a timed-out wait's nack
+     * reaches the broker before the ack-timeout clock would; tune the two together.
+     */
+    private long consumeAwaitTimeoutMs = 30000L;
+
+    // 4.1-C8-005（plan 2558 裁定 K，同键族 Pulsar 扩展）：reconsumeLater 预算弹跳。
+    /** Lower bound applied to a handler-requested reconsumeLater delay (default 1000ms). */
+    private long consumeLaterMinDelayMs = 1000L;
+
+    /**
+     * Budget of consecutive {@code ConsumeLater} rounds in one consume task. Over budget:
+     * loud WARN and the message is negatively acknowledged straight back to the broker
+     * (poll main path) instead of honoring another in-task delay sleep.
+     */
+    private int consumeLaterMaxDefers = 10;
+
     public int getAckTimeout() {
         return ackTimeout;
     }
@@ -115,5 +141,29 @@ public class PulsarConsumerConfig {
 
     public void setMaxConsumeAttempts(int maxConsumeAttempts) {
         this.maxConsumeAttempts = maxConsumeAttempts;
+    }
+
+    public long getConsumeAwaitTimeoutMs() {
+        return consumeAwaitTimeoutMs;
+    }
+
+    public void setConsumeAwaitTimeoutMs(long consumeAwaitTimeoutMs) {
+        this.consumeAwaitTimeoutMs = consumeAwaitTimeoutMs;
+    }
+
+    public long getConsumeLaterMinDelayMs() {
+        return consumeLaterMinDelayMs;
+    }
+
+    public void setConsumeLaterMinDelayMs(long consumeLaterMinDelayMs) {
+        this.consumeLaterMinDelayMs = consumeLaterMinDelayMs;
+    }
+
+    public int getConsumeLaterMaxDefers() {
+        return consumeLaterMaxDefers;
+    }
+
+    public void setConsumeLaterMaxDefers(int consumeLaterMaxDefers) {
+        this.consumeLaterMaxDefers = consumeLaterMaxDefers;
     }
 }

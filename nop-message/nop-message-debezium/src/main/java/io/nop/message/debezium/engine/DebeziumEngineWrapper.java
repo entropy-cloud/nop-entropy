@@ -462,7 +462,10 @@ public class DebeziumEngineWrapper {
             // best-effort, repeat-tolerant close of the engine body's resources on the
             // natural/failure death paths (skipped when the stop contract already closed
             // the engine, so the close-attempt pins see exactly the stop-contract attempts)
-            if (!engineClosedByStopContract.get()) {
+            // 2558 集成修正：stopRequested 时由 stop 契约独占关闭（quiet close 与 STARTING_TASKS
+            // 重试窗并发会在契约两次尝试之间夹入第三次 close，破坏 close-attempt 钉）——
+            // death-path quiet close 仅承载「无 stop 契约时的资源回收」语义
+            if (!engineClosedByStopContract.get() && !stopRequested.get()) {
                 closeEngineQuietly(engineRef);
             }
             LOG.info("Debezium engine stopped: {}", config.getName());

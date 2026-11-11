@@ -84,6 +84,42 @@ public class KafkaConsumerConfig {
      */
     private int maxConsumeAttempts = 10;
 
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：bounded wait on the handler-returned future at the
+     * consume await points ({@code KafkaConsumeTask} single/batch paths). A handler whose
+     * future never completes no longer wedges the poll thread past
+     * {@code max.poll.interval.ms} invisibly: on timeout the record is seeked back for
+     * redelivery with a WARN — a dedicated branch that does NOT participate in the
+     * {@link #maxConsumeAttempts} poison budget (a hung handler redelivers indefinitely;
+     * that observable face is explicitly accepted — DLQ budget is reserved for real
+     * handler failures). The wait object must be a {@code CompletableFuture}; any other
+     * {@code CompletionStage} form is a typed error
+     * ({@code ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC}), never a silent unbounded wait.
+     *
+     * <p>Default reference value: keep well below {@link #maxPollIntervalMs} (default
+     * 300000) so one timed-out wait + redelivery seek still fits the poll-interval budget;
+     * tune the three parameters together — see {@code max.block.ms} on the producer side
+     * (MA-07 三参数联动 declaration, {@code KafkaProducerConfig.maxBlockMs}).
+     */
+    private long consumeAwaitTimeoutMs = 60000L;
+
+    // 4.1-C8-005（plan 2558 裁定 K）：ConsumeLater 预算闭环 —— delay 下限与连续 defer 预算。
+    /**
+     * Lower bound applied to a handler-requested {@code ConsumeLater} delay (previously
+     * {@code max(delayMs, 0)}): a zero/negative requested delay would spin the poll loop
+     * on the same record with no broker breathing room. Default 1000ms.
+     */
+    private long consumeLaterMinDelayMs = 1000L;
+
+    /**
+     * Budget of consecutive {@code ConsumeLater} rounds in one consume task. Over budget:
+     * loud WARN and the redelivery loop exits back to the poll main path (the delay sleep
+     * is skipped) so a handler that defers forever cannot hold the partition in a private
+     * sleep loop. The counter resets on any round that finalizes a record without
+     * deferring.
+     */
+    private int consumeLaterMaxDefers = 10;
+
     public String getGroupId() {
         return groupId;
     }
@@ -186,5 +222,29 @@ public class KafkaConsumerConfig {
 
     public void setHeartbeatIntervalMs(int heartbeatIntervalMs) {
         this.heartbeatIntervalMs = heartbeatIntervalMs;
+    }
+
+    public long getConsumeAwaitTimeoutMs() {
+        return consumeAwaitTimeoutMs;
+    }
+
+    public void setConsumeAwaitTimeoutMs(long consumeAwaitTimeoutMs) {
+        this.consumeAwaitTimeoutMs = consumeAwaitTimeoutMs;
+    }
+
+    public long getConsumeLaterMinDelayMs() {
+        return consumeLaterMinDelayMs;
+    }
+
+    public void setConsumeLaterMinDelayMs(long consumeLaterMinDelayMs) {
+        this.consumeLaterMinDelayMs = consumeLaterMinDelayMs;
+    }
+
+    public int getConsumeLaterMaxDefers() {
+        return consumeLaterMaxDefers;
+    }
+
+    public void setConsumeLaterMaxDefers(int consumeLaterMaxDefers) {
+        this.consumeLaterMaxDefers = consumeLaterMaxDefers;
     }
 }

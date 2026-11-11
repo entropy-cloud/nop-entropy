@@ -8,6 +8,7 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
@@ -42,6 +43,13 @@ public class PulsarConsumeTask {
     static final long DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS = 30000L;
     static final int DEFAULT_MAX_CONSUME_ATTEMPTS = 10;
 
+    /** 4.1-MA-01（plan 2558 裁定 A）：默认有界等待，javadoc 参考值见 {@code PulsarConsumerConfig}. */
+    static final long DEFAULT_CONSUME_AWAIT_TIMEOUT_MS = 30000L;
+    /** 4.1-C8-005（plan 2558 裁定 K，同键族）：reconsumeLater delay 下限缺省。 */
+    static final long DEFAULT_CONSUME_LATER_MIN_DELAY_MS = 1000L;
+    /** 4.1-C8-005（plan 2558 裁定 K，同键族）：连续 defer 预算缺省。 */
+    static final int DEFAULT_CONSUME_LATER_MAX_DEFERS = 10;
+
     /**
      * Bounded wait per receive round (MSG-F-54, WI19): the run loop re-checks
      * {@code active} at least once per timeout even when no message arrives, so
@@ -59,6 +67,10 @@ public class PulsarConsumeTask {
     private final MessageSubscriptionConfig config;
     private final long consumeErrorBackoffMs;
     private long receiveTimeoutMs = DEFAULT_RECEIVE_TIMEOUT_MS;
+    // 4.1-MA-01（plan 2558 裁定 A）：handler 返回 future 的有界等待上限。
+    private long consumeAwaitTimeoutMs = DEFAULT_CONSUME_AWAIT_TIMEOUT_MS;
+    // 4.1-C8-005（plan 2558 裁定 K，同键族）：consecutive ConsumeLater rounds（consume-thread confined）。
+    private int consecutiveDefers;
 
     private volatile boolean active = false;
     // WI16: message-level failure context, filled by the inner catches before rethrow.
@@ -181,6 +193,86 @@ public class PulsarConsumeTask {
     }
 
     /**
+     * 4.1-MA-01（plan 2558 裁定 A）：wiring seam — the service resolves
+     * {@code PulsarConsumerConfig.consumeAwaitTimeoutMs} at subscribe time.
+     */
+    void setConsumeAwaitTimeoutMs(long consumeAwaitTimeoutMs) {
+        this.consumeAwaitTimeoutMs = consumeAwaitTimeoutMs;
+    }
+
+    // 4.1-C8-005 test seam: overrides the service-resolved budget (a mocked service
+    // otherwise resolves 0/0).
+    private long consumeLaterMinDelayOverride = -1L;
+    private int consumeLaterMaxDefersOverride = -1;
+
+    /** Test/wiring seam (4.1-C8-005，plan 2558 裁定 K 同键族): pin the defer budget. */
+    void setConsumeLaterBudgetForTest(long minDelayMs, int maxDefers) {
+        this.consumeLaterMinDelayOverride = minDelayMs;
+        this.consumeLaterMaxDefersOverride = maxDefers;
+    }
+
+    private long consumeLaterMinDelayMs() {
+        return consumeLaterMinDelayOverride >= 0
+                ? consumeLaterMinDelayOverride
+                : service.consumeLaterMinDelayMs();
+    }
+
+    private int consumeLaterMaxDefers() {
+        return consumeLaterMaxDefersOverride >= 0
+                ? consumeLaterMaxDefersOverride
+                : service.consumeLaterMaxDefers();
+    }
+
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：bounded wait on a handler-returned future (Kafka
+     * mirror of {@code KafkaConsumeTask.awaitConsumeResponse}). Plain (non-stage)
+     * responses pass through; a {@code CompletionStage} that cannot convert to a
+     * {@code CompletableFuture} is a typed error
+     * ({@code ERR_PULSAR_CONSUME_AWAIT_NOT_ASYNC}), never a silent unbounded wait.
+     *
+     * @throws ConsumeAwaitTimeoutException on timeout — the caller takes the dedicated
+     *         timeout branch (nack + WARN, attempt=0 semantics: never participates in
+     *         the maxConsumeAttempts/poison budget).
+     */
+    private Object awaitConsumeResponse(Object response) throws ConsumeAwaitTimeoutException {
+        if (!(response instanceof CompletionStage)) {
+            return response;
+        }
+        CompletableFuture<Object> cf;
+        try {
+            cf = ((CompletionStage<Object>) response).toCompletableFuture();
+        } catch (UnsupportedOperationException e) {
+            throw new NopException(PulsarErrors.ERR_PULSAR_CONSUME_AWAIT_NOT_ASYNC)
+                    .description("consume handler returned a CompletionStage that is not "
+                            + "a CompletableFuture; refusing an unbounded wait")
+                    .cause(e);
+        }
+        try {
+            return cf.get(consumeAwaitTimeoutMs, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException te) {
+            cf.cancel(false);
+            throw new ConsumeAwaitTimeoutException(consumeAwaitTimeoutMs, te);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new NopException(PulsarErrors.ERR_PULSAR_CONSUME_AWAIT_NOT_ASYNC)
+                    .description("interrupted while waiting for the consume handler future")
+                    .cause(e);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RuntimeException) {
+                throw (RuntimeException) e.getCause();
+            }
+            throw new IllegalStateException(e.getCause());
+        }
+    }
+
+    /** 4.1-MA-01（plan 2558 裁定 A）：dedicated timeout signal — NOT a poison-budget failure. */
+    private static final class ConsumeAwaitTimeoutException extends Exception {
+        ConsumeAwaitTimeoutException(long timeoutMs, Throwable cause) {
+            super("consume handler future did not complete within " + timeoutMs + "ms", cause);
+        }
+    }
+
+    /**
      * Bounded batch receive (MSG-F-54, WI19). Pulsar (2.8 through 4.0) has no batchReceive(timeout)
      * overload, so the task awaits {@link Consumer#batchReceiveAsync()} with a finite
      * timeout while RETAINING the pending future:
@@ -231,6 +323,20 @@ public class PulsarConsumeTask {
      * so the retry cap cannot be applied per record; the native
      * {@code deadLetterMaxRedeliverCount} policy covers Shared/Key_Shared subscriptions
      * (backend-semantics-design.md 3.3.2).
+     *
+     * <p>4.1-C3-005（plan 2558 裁定 I，CL-023 排序契约声明）：the per-message ordering
+     * contract is REPLY-FIRST-THEN-ACK — message i's reply sendAsync future is registered
+     * BEFORE its ackAsync future in the pipelined list, and both are awaited at the batch
+     * end. This is a REGISTRATION-order contract, not a strict happens-before guarantee:
+     * the two async operations may run concurrently on the client. A handler that must
+     * observe the reply durably before the ack removes redelivery duplication should not
+     * batch this subscription.
+     *
+     * <p>CL-023（重复应答声明）：the batch catch negatively acknowledges the WHOLE batch,
+     * including messages whose replies were already dispatched. At-least-once residue:
+     * those messages re-deliver and the handler answers AGAIN (duplicate replies are the
+     * declared cost of the whole-batch nack boundary — same residue class as the Kafka
+     * F-08 pre-break-point replies).
      */
     boolean batchConsume() throws Exception {
         Messages<Object> messages = receiveBatchBounded();
@@ -259,7 +365,25 @@ public class PulsarConsumeTask {
             // permanently unacked.
             int n = Math.min(responses.size(), messages.size());
             for (int i = 0; i < n; i++) {
-                Object response = FutureHelper.getResult(responses.get(i));
+                Object response;
+                try {
+                    response = awaitConsumeResponse(responses.get(i));
+                } catch (ConsumeAwaitTimeoutException te) {
+                    // 4.1-MA-01（plan 2558 裁定 A）：dedicated timeout branch — nack the
+                    // timed-out message and the undelivered tail, WARN, attempt=0 (never
+                    // the poison budget). Already-replied earlier messages keep their
+                    // acks; only the boundary onward redelivers (CL-023 residue halved).
+                    LOG.warn("nop.message.pulsar.consume-await-timeout:index={},timeoutMs={}",
+                            i, consumeAwaitTimeoutMs);
+                    while (true) {
+                        Message<Object> boundary = it.next();
+                        pulsarConsumer.negativeAcknowledge(boundary.getMessageId());
+                        if (!it.hasNext()) {
+                            break;
+                        }
+                    }
+                    return dispatched;
+                }
                 dispatched = true;
                 Message<Object> message = it.next();
                 if (response instanceof PartialCommit) {
@@ -285,8 +409,20 @@ public class PulsarConsumeTask {
                 } else if (response != null) {
                     if (response instanceof ConsumeLater) {
                         ConsumeLater later = (ConsumeLater) response;
-                        CompletionStage<?> future = pulsarConsumer.reconsumeLaterAsync(message, later.getDelay(), TimeUnit.MILLISECONDS);
-                        futures.add(future);
+                        // 4.1-C8-005（plan 2558 裁定 K，同键族）：delay floor + budget bounce —
+                        // over budget the message nacks straight back to the broker (poll
+                        // main path) instead of honoring another in-task delay.
+                        consecutiveDefers++;
+                        int maxDefers = consumeLaterMaxDefers();
+                        if (maxDefers > 0 && consecutiveDefers > maxDefers) {
+                            LOG.warn("nop.message.pulsar.consume-later-budget-exhausted:defers={},max={}",
+                                    consecutiveDefers, maxDefers);
+                            pulsarConsumer.negativeAcknowledge(message.getMessageId());
+                        } else {
+                            futures.add(pulsarConsumer.reconsumeLaterAsync(message,
+                                    Math.max(later.getDelay(), consumeLaterMinDelayMs()),
+                                    TimeUnit.MILLISECONDS));
+                        }
                     } else {
                         futures.add(context.sendAsync(getAckTopic(message.getTopicName()), response));
                         futures.add(ackAsync(context, message));
@@ -297,6 +433,11 @@ public class PulsarConsumeTask {
             }
             FutureHelper.syncGet(FutureHelper.waitAll(futures));
             context.commit();
+            // 4.1-C8-005: only a FINALIZING round resets the consecutive-defer budget —
+            // a deferred round must keep the count so the budget can actually trigger.
+            if (responses.stream().noneMatch(r -> r instanceof ConsumeLater)) {
+                consecutiveDefers = 0;
+            }
             // WI25 (F-16): deterministic arity-mismatch handling — the early-exit above is
             // exempt; a handler-contract breach is surfaced with a per-occurrence WARN and
             // at-least-once-safe fallbacks (extras dropped, unhandled tail nacked).
@@ -315,6 +456,9 @@ public class PulsarConsumeTask {
             return dispatched;
         } catch (Exception e) {
             LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
+            // 4.1-C3-005（plan 2558 裁定 I，CL-026）：clear ALL failure-context fields — a
+            // stale topic from a previous record must not leak into the next dispatch.
+            lastFailureTopic = null;
             lastFailureLocation = null;
             lastFailureMessage = null;
             pulsarConsumer.negativeAcknowledge(messages);
@@ -344,12 +488,32 @@ public class PulsarConsumeTask {
         ConsumeContext context = newConsumeContext();
         try {
             Object response = consumer.onMessage(message.getTopicName(), apiMessage, context);
-            response = FutureHelper.getResult(response);
+            try {
+                response = awaitConsumeResponse(response);
+            } catch (ConsumeAwaitTimeoutException te) {
+                // 4.1-MA-01（plan 2558 裁定 A）：dedicated timeout branch — nack + WARN,
+                // attempt=0 semantics (never the poison budget); the broker redelivers.
+                LOG.warn("nop.message.pulsar.consume-await-timeout:messageId={},timeoutMs={}",
+                        message.getMessageId(), consumeAwaitTimeoutMs);
+                pulsarConsumer.negativeAcknowledge(message.getMessageId());
+                return true;
+            }
             if (service.metrics != null) service.metrics.incrementConsumed();
 
             if (response instanceof ConsumeLater) {
                 ConsumeLater later = (ConsumeLater) response;
-                pulsarConsumer.reconsumeLater(message, later.getDelay(), TimeUnit.MILLISECONDS);
+                // 4.1-C8-005（plan 2558 裁定 K，同键族）：delay floor + budget bounce.
+                consecutiveDefers++;
+                int maxDefers = consumeLaterMaxDefers();
+                if (maxDefers > 0 && consecutiveDefers > maxDefers) {
+                    LOG.warn("nop.message.pulsar.consume-later-budget-exhausted:messageId={},defers={},max={}",
+                            message.getMessageId(), consecutiveDefers, maxDefers);
+                    pulsarConsumer.negativeAcknowledge(message.getMessageId());
+                } else {
+                    pulsarConsumer.reconsumeLater(message,
+                            Math.max(later.getDelay(), consumeLaterMinDelayMs()),
+                            TimeUnit.MILLISECONDS);
+                }
             } else if (response instanceof TerminateConsume) {
                 // D5(b-prime): acknowledged, no redelivery, no reply.
                 LOG.warn("nop.message.pulsar.terminate-consume:messageId={},reason={}",
@@ -370,6 +534,11 @@ public class PulsarConsumeTask {
             }
             // WI16: success resets the consecutive-failure counter for this location.
             failureAttempts.remove(String.valueOf(message.getMessageId()));
+            // 4.1-C8-005: only a FINALIZING round resets the consecutive-defer budget —
+            // a deferred round must keep the count so the budget can actually trigger.
+            if (!(response instanceof ConsumeLater)) {
+                consecutiveDefers = 0;
+            }
             context.commit();
             return true;
         } catch (Exception e) {
@@ -465,7 +634,8 @@ public class PulsarConsumeTask {
      * C3-009 (plan 2496 Phase 4): the guard and the parameter width cover Throwable, so
      * an Error escaping the loop barrier still reaches the user's failure callback.
      */
-    private void dispatchConsumeFailure(Throwable e) {
+    // Package-private test seam (CL-026 pin reads the failure context through it).
+    void dispatchConsumeFailure(Throwable e) {
         // WI21: clear ALL context fields together — a stale topic from a previous record
         // failure must not leak into a framework-level failure report.
         String topic = lastFailureTopic;

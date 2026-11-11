@@ -18,6 +18,7 @@ import java.util.concurrent.CyclicBarrier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -455,15 +456,30 @@ class TestPulsarServiceLifecycle {
         }
     }
 
+    /**
+     * C3-004（plan 2558 裁定 H，钉义务先改后修）：destroy 后 send 的契约为 failed-future
+     * 信封形态 —— {@code sendPulsarAsync} 全段（含 getProducer）try/catch，异常不再同步抛
+     * （旧断言为 sync assertThrows ERR_PULSAR_SERVICE_NOT_ACTIVE，反向钉#1 先改写为
+     * ERR_PULSAR_SEND_FAILED 信封 failed-future 形态；NOT_ACTIVE 残差分叉已登记 owner doc）。
+     */
     @Test
     void sendAfterDestroyIsTypedRejectedNotNpe() throws Exception {
         LifecycleTestService service = configuredService();
         service.init();
         service.destroy();
 
-        NopException e = assertThrows(NopException.class,
-                () -> service.sendAsync("t-after", "m", null));
-        assertEquals(PulsarErrors.ERR_PULSAR_SERVICE_NOT_ACTIVE.getErrorCode(), e.getErrorCode());
+        CompletableFuture<Void> future = service.sendAsync("t-after", "m", null)
+                .toCompletableFuture();
+        assertTrue(future.isCompletedExceptionally(),
+                "send after destroy must complete exceptionally, never throw synchronously");
+        Throwable cause = org.junit.jupiter.api.Assertions.assertThrows(
+                java.util.concurrent.CompletionException.class, future::join).getCause();
+        assertTrue(cause instanceof NopException,
+                "cause must be a NopException, got: " + cause);
+        assertEquals(PulsarErrors.ERR_PULSAR_SEND_FAILED.getErrorCode(),
+                ((NopException) cause).getErrorCode());
+        assertNotNull(cause.getCause(),
+                "the original NOT_ACTIVE NopException must be preserved as the envelope cause");
     }
 
     // ------------------------------------------------------------------

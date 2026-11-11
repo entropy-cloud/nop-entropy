@@ -8,6 +8,7 @@
 package io.nop.message.kafka;
 
 import io.nop.api.core.beans.ApiMessage;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
@@ -37,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 
@@ -66,12 +68,23 @@ public class KafkaConsumeTask {
     static final int DEFAULT_MAX_CONSUME_ATTEMPTS = 10;
     private static final long DEFAULT_POLL_TIMEOUT_MS = 1000L;
 
+    /** 4.1-MA-01（plan 2558 裁定 A）：默认有界等待，javadoc 参考值见 {@code KafkaConsumerConfig}. */
+    static final long DEFAULT_CONSUME_AWAIT_TIMEOUT_MS = 60000L;
+    /** 4.1-C8-005（plan 2558 裁定 K）：ConsumeLater delay 下限缺省。 */
+    static final long DEFAULT_CONSUME_LATER_MIN_DELAY_MS = 1000L;
+    /** 4.1-C8-005（plan 2558 裁定 K）：连续 defer 预算缺省。 */
+    static final int DEFAULT_CONSUME_LATER_MAX_DEFERS = 10;
+
     private final KafkaMessageService service;
     private ExecutorService executor;
     final Consumer<String, String> consumer;
     private final MessageSubscriptionConfig config;
     private final long consumeErrorBackoffMs;
     private long pollTimeoutMs;
+    // 4.1-MA-01（plan 2558 裁定 A）：handler 返回 future 的有界等待上限。
+    private long consumeAwaitTimeoutMs = DEFAULT_CONSUME_AWAIT_TIMEOUT_MS;
+    // 4.1-C8-005（plan 2558 裁定 K）：consecutive ConsumeLater rounds（consume-thread confined）。
+    private int consecutiveDefers;
 
     private volatile boolean active = false;
     /**
@@ -124,6 +137,68 @@ public class KafkaConsumeTask {
     void bindExecutor(ExecutorService executor, long pollTimeoutMs) {
         this.executor = executor;
         this.pollTimeoutMs = pollTimeoutMs;
+    }
+
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：wiring seam — the service resolves
+     * {@code KafkaConsumerConfig.consumeAwaitTimeoutMs} at subscribe time and pushes it
+     * onto the task (mirrors {@code setReceiveTimeoutMs} on the Pulsar side).
+     */
+    void setConsumeAwaitTimeoutMs(long consumeAwaitTimeoutMs) {
+        this.consumeAwaitTimeoutMs = consumeAwaitTimeoutMs;
+    }
+
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：bounded wait on a handler-returned future. A plain
+     * (non-stage) response is returned unchanged — the bounded-wait face only exists for
+     * {@code CompletionStage} returns. The stage must be convertible to a
+     * {@code CompletableFuture}: any other form is a typed error
+     * ({@code ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC}), never a silent unbounded wait.
+     *
+     * @throws ConsumeAwaitTimeoutException when the future does not complete within
+     *         {@code consumeAwaitTimeoutMs} — the caller takes the dedicated timeout
+     *         branch (seek-redeliver + WARN, attempt=0 semantics: this timeout never
+     *         participates in the maxConsumeAttempts/poison budget).
+     */
+    private Object awaitConsumeResponse(Object response) throws ConsumeAwaitTimeoutException {
+        if (!(response instanceof CompletionStage)) {
+            return response;
+        }
+        CompletableFuture<Object> cf;
+        try {
+            cf = ((CompletionStage<Object>) response).toCompletableFuture();
+        } catch (UnsupportedOperationException e) {
+            throw new NopException(KafkaErrors.ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC)
+                    .description("consume handler returned a CompletionStage that is not "
+                            + "a CompletableFuture; refusing an unbounded wait")
+                    .cause(e);
+        }
+        try {
+            return cf.get(consumeAwaitTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException te) {
+            // Do not leave the abandoned future running unobserved past this round.
+            cf.cancel(false);
+            throw new ConsumeAwaitTimeoutException(consumeAwaitTimeoutMs, te);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new NopException(KafkaErrors.ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC)
+                    .description("interrupted while waiting for the consume handler future")
+                    .cause(e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            // Handler-future failures keep the old getResult face: the cause surfaces
+            // through the per-record catch (attempt budget applies — real failure).
+            if (e.getCause() instanceof RuntimeException) {
+                throw (RuntimeException) e.getCause();
+            }
+            throw new IllegalStateException(e.getCause());
+        }
+    }
+
+    /** 4.1-MA-01（plan 2558 裁定 A）：dedicated timeout signal — NOT a poison-budget failure. */
+    private static final class ConsumeAwaitTimeoutException extends Exception {
+        ConsumeAwaitTimeoutException(long timeoutMs, Throwable cause) {
+            super("consume handler future did not complete within " + timeoutMs + "ms", cause);
+        }
     }
 
     /** WI22: the resolved backoff base (package-private for the wiring test). */
@@ -368,7 +443,20 @@ public class KafkaConsumeTask {
             ConsumeContext context = newConsumeContext();
             try {
                 Object response = consumerFn.onMessage(record.topic(), apiMessage, context);
-                response = FutureHelper.getResult(response);
+                try {
+                    response = awaitConsumeResponse(response);
+                } catch (ConsumeAwaitTimeoutException te) {
+                    // 4.1-MA-01（plan 2558 裁定 A）：dedicated timeout branch — seek back for
+                    // redelivery with attempt=0 semantics (the maxConsumeAttempts/poison
+                    // budget is reserved for real handler failures; a hung handler
+                    // redelivering forever is the explicitly accepted observable face).
+                    LOG.warn("nop.message.kafka.consume-await-timeout:topic={},offset={},timeoutMs={}",
+                            record.topic(), record.offset(), consumeAwaitTimeoutMs);
+                    consumer.seek(new TopicPartition(record.topic(), record.partition()),
+                            record.offset());
+                    // Skip the round commit — the seeked record must redeliver (F-08 form).
+                    return dispatched;
+                }
                 dispatched = true;
                 if (service.metrics != null) service.metrics.incrementConsumed();
 
@@ -435,6 +523,8 @@ public class KafkaConsumeTask {
 
         try {
             consumer.commitSync();
+            // 4.1-C8-005: a finalizing round resets the consecutive-defer budget.
+            consecutiveDefers = 0;
         } catch (Exception e) {
             LOG.error("nop.err.message.kafka.commit-fail", e);
         }
@@ -455,7 +545,17 @@ public class KafkaConsumeTask {
      * redelivery can only ever be LATER than requested, never earlier.
      */
     private void deferAfterBatch(long delayMs) {
-        long remaining = Math.max(delayMs, 0L);
+        // 4.1-C8-005（plan 2558 裁定 K）：ConsumeLater 预算闭环 —— delay 下限 + 连续 defer
+        // 预算。超预算：WARN 后跳过 sleep（交还 poll 主路径），不再困在私有 sleep 循环里。
+        consecutiveDefers++;
+        int maxDefers = service.consumeLaterMaxDefers();
+        if (maxDefers > 0 && consecutiveDefers > maxDefers) {
+            LOG.warn("nop.message.kafka.consume-later-budget-exhausted:defers={},max={} "
+                    + "- skipping the requested delay, returning to the poll main path",
+                    consecutiveDefers, maxDefers);
+            return;
+        }
+        long remaining = Math.max(delayMs, service.consumeLaterMinDelayMs());
         while (remaining > 0) {
             long slice = Math.min(remaining, 500L);
             try {
@@ -520,6 +620,18 @@ public class KafkaConsumeTask {
         // framework-grade — no attempt bump, no endpoint attribution to record 0).
         int progress = -1;
         boolean dispatched = false;
+        // 4.1-MA-07（plan 2558 裁定 E）：batch replies are pipelined via sendAsync and
+        // awaited once at the batch end (mirrors the Pulsar form) — the previous shape
+        // blocked the consume thread on one synchronous producer send PER MESSAGE.
+        //
+        // Consumer-thread boundedness (三参数联动 declaration): each in-flight reply holds
+        // a producer buffer slot for up to producer max.block.ms when the broker is slow;
+        // the batch-end waitAll plus the consumeAwaitTimeoutMs bound on handler futures
+        // caps the per-round occupancy. Keep max.block.ms BELOW maxPollIntervalMs (or
+        // dedicate a low-max.block.ms producer to the reply path) so a slow broker cannot
+        // hold the poll thread past the group kick threshold. See KafkaConsumerConfig
+        // javadoc and docs-for-ai/03-modules/nop-message.md.
+        List<CompletionStage<?>> replyFutures = new ArrayList<>();
         try {
             List<Object> responses = consumerFn.onMessageBatch(list, ctx);
             if (responses == null) {
@@ -528,7 +640,20 @@ public class KafkaConsumeTask {
             Map<TopicPartition, Long> committedBoundaries = new HashMap<>();
             for (int i = 0; i < responses.size() && i < recordList.size(); i++) {
                 progress = i;
-                Object response = FutureHelper.getResult(responses.get(i));
+                Object response;
+                try {
+                    response = awaitConsumeResponse(responses.get(i));
+                } catch (ConsumeAwaitTimeoutException te) {
+                    // 4.1-MA-01（plan 2558 裁定 A）：dedicated timeout branch, attempt=0 —
+                    // re-seek the deferring record; F-08 endpoint form: nothing in the
+                    // batch is committed, everything before it may re-deliver (reply
+                    // residue is the declared at-least-once face).
+                    LOG.warn("nop.message.kafka.consume-await-timeout:topic={},offset={},timeoutMs={}",
+                            recordList.get(i).topic(), recordList.get(i).offset(),
+                            consumeAwaitTimeoutMs);
+                    anyConsumeLaterSeek(recordList.get(i));
+                    return dispatched;
+                }
                 dispatched = true;
                 ConsumerRecord<String, String> record = recordList.get(i);
                 if (response instanceof PartialCommit) {
@@ -549,17 +674,23 @@ public class KafkaConsumeTask {
                     deferAfterBatch(((ConsumeLater) response).getDelay());
                     return dispatched;
                 } else if (response instanceof Acknowledge) {
-                    ctx.send(service.getAckTopic(record.topic()),
-                            ((Acknowledge) response).getReplyMessage());
+                    // 4.1-MA-07（plan 2558 裁定 E）：pipelined reply — see the batch javadoc.
+                    addReplyFuture(replyFutures, ctx.sendAsync(service.getAckTopic(record.topic()),
+                            ((Acknowledge) response).getReplyMessage(), null));
                 } else if (response != null) {
-                    ctx.send(service.getAckTopic(record.topic()), response);
+                    addReplyFuture(replyFutures, ctx.sendAsync(service.getAckTopic(record.topic()),
+                            response, null));
                 }
                 committedBoundaries.merge(new TopicPartition(record.topic(), record.partition()),
                         record.offset() + 1, Math::max);
             }
+            // 4.1-MA-07：批末统一等待所有 reply future（Pulsar 形态对齐）。
+            FutureHelper.syncGet(FutureHelper.waitAll(replyFutures));
             ctx.commit();
             commitConverged(committedBoundaries);
             rewindUndispatched(recordList, committedBoundaries);
+            // 4.1-C8-005: a finalizing round resets the consecutive-defer budget.
+            consecutiveDefers = 0;
             // WI25 (F-16): arity-mismatch WARNs after normal completion (the PartialCommit /
             // ConsumeLater early-exits above are explicit contract signals and exempt). The
             // unhandled tail is already re-polled by rewindUndispatched (at-least-once).
@@ -731,6 +862,17 @@ public class KafkaConsumeTask {
 
     private void anyConsumeLaterSeek(ConsumerRecord<String, String> record) {
         consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
+    }
+
+    /**
+     * 4.1-MA-07: collects one pipelined reply future. A null stage (allowed by the
+     * {@code IMessageConsumeContext} contract for void-reply backends) contributes no
+     * wait.
+     */
+    private static void addReplyFuture(List<CompletionStage<?>> futures, CompletionStage<Void> reply) {
+        if (reply != null) {
+            futures.add(reply);
+        }
     }
 
     private Map<TopicPartition, Long> boundariesAfter(Map<TopicPartition, Long> boundaries,

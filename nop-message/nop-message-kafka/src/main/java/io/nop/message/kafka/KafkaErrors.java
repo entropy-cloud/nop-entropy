@@ -38,4 +38,10 @@ public interface KafkaErrors {
     ErrorCode ERR_KAFKA_SEND_FAILED =
             ErrorCode.define(PREFIX + "send-failed",
                     "Kafka producer send failed");
+
+    // 4.1-MA-01（plan 2558 裁定 A）：handler 返回 CompletionStage 且 toCompletableFuture()
+    // 非法（非 CompletableFuture 形态）时消费等待点的 typed error —— 不静默降级为无界等待。
+    ErrorCode ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC =
+            ErrorCode.define(PREFIX + "consume-await-not-async",
+                    "consume handler returned a CompletionStage that is not a CompletableFuture");
 }
