@@ -65,7 +65,7 @@ public class XptWordTableParser extends WordTableParser {
     }
 
     @Override
-    protected boolean parseCell(XNode node, WordTableCell cell) {
+    protected boolean parseCell(int rowIndex, int colIndex, XNode node, WordTableCell cell, XNode tblBorders) {
         XNode ref = node.findByTag("w:commentReference");
         if (ref != null) {
             String id = ref.attrText("w:id");
@@ -75,12 +75,12 @@ public class XptWordTableParser extends WordTableParser {
             }
         }
         cell.prop_set(VAR_XPT_NODE, node);
-        return super.parseCell(node, cell);
+        return super.parseCell(rowIndex, colIndex, node, cell, tblBorders);
     }
 
     @Override
-    protected WordTableRow parseRow(int rowIndex, XNode node, WordTable tbl) {
-        WordTableRow row = super.parseRow(rowIndex, node, tbl);
+    protected WordTableRow parseRow(int rowIndex, XNode node, WordTable tbl, XNode tblBorders) {
+        WordTableRow row = super.parseRow(rowIndex, node, tbl, tblBorders);
         row.prop_set(VAR_XPT_NODE, node);
         return row;
     }

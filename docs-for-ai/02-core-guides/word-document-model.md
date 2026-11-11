@@ -50,7 +50,7 @@
 | 命名样式/默认样式/基样式继承 | 解析+生成已支持（styles.xml↔styles 容器） | 五类样式映射 + basedOn/default；内联 rPr 覆盖语义留给消费方经 `OfficeStyleResolver`；`WordListStyle` 经 `OfficeListModel.styleId` 引用；命名段落样式不落字体（WordParagraphStyle 无 font 字段，follow-up） |
 | 模板标注：`c:if`/`c:for` 块级标记 | 已支持 | `c:if`→testExpr（嵌套合并）；`c:for`→loopVarName/loopIndexName/loopItemsName + beginLoop（items 表达式），落 page/paragraph/title/list 的 model；列表项上的 c:for 聚合后表示重复整个列表块 |
 | 模板标注：`expr:`/`xpl:`/`tpl_expr:` 超链接 | 已支持 | `expr:`→run.model.valueExpr；`tpl_expr:`/`xpl:`→templateExpr；`linkExpr` 无标注形态（未使用） |
-| 模板标注：`xpt:table` 批注 | 识别已支持（顶层表） | 首行首单元格批注含标记 → `table.model.renderType="xpt"`；嵌套表在模型链路被拍平为文本不识别；批注其余文本不解析；展开仍经 `nop-report-docx` |
+| 模板标注：`xpt:table` 批注 | 识别与展开已支持（顶层表） | 首行首单元格批注含标记 → `table.model.renderType="xpt"`；展开经 `io.nop.report.docx.expand.OfficeDocModelExpander`（单元格文本 `*=^ds!field@expr` 标记：`^` 纵向/`>` 横向/`@` 分组，与既有 Word 模板链路同语义）；嵌套表不识别 |
 | 生成端块分派 | 八类块 + 四类行内 | 未识别的块类型显式报错（不输出空段落）；列表编号定义（numbering.xml）不合成，列表字形在生成文档中缺失 |
 | PDF 输出 | 已支持 | `OfficeDocPdfRenderer`（`nop-report-pdf` 的 `io.nop.report.pdf.doc` 包）：流式排版（段落按行/表格按行跨页）、每节页面几何与页眉页脚、run 全装饰（粗斜含合成、下划线/删除线/高亮/上下标）、CJK 换行与字体回退、超链接 annotation、背景；列表字形有降级口径；水印 VML 与混排图片不承载不渲染 |
 
@@ -97,6 +97,14 @@
 - 降级口径：列表无命名样式时项目符号/顺序数字缺省；表格单行超页截断具名告警；水印 VML 与混排图片不渲染。
 - 不支持形态（未识别块、无效页面几何、缺 asset 引用）显式报错。
 - 验收：文本抽取 + 像素探针断言（`TestOfficeDocPdfRender2a/2b`）；端到端 docx→模型→PDF 与 LibreOffice 对照见 `TestOfficeDocPdfRender3E2E`。
+
+## 10. 动态展开契约
+
+- 入口：`io.nop.report.docx.expand.OfficeDocModelExpander.expand(doc, scope)` → 展开后的新模型（入参不变）；便捷重载接受数据 Map。
+- 覆盖：`renderType="xpt"` 表格按单元格文本标记展开（纵向/横向/分组聚合，复用 NopReport 展开引擎）；doc/page/块三级条件过滤与循环（解析期编译的 testExpr/loop 字段求值）。
+- 展开产物可直连 docx 生成（§6）与 PDF 渲染（§9）。
+- 边界：非 xpt 表格原样保留；模板位 cell model 按原坐标对位复制，展开新增行列不带 model；循环副本共享块实例（浅拷贝平台约定）；`deleteAllAfterConfigTable` 属生成期语义。
+- 展开失败（数据集缺失/非法标记）快速失败。
 
 ## 相关文档
 

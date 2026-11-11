@@ -39,6 +39,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- plan 2522 WI7：仅测试使用——展开出口验收走 OfficeDocPdfRenderer -> PDF 文本抽取 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-report-pdf</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>
