@@ -43,7 +43,7 @@
 | 多节 section/页眉页脚 | 部分（header/footer/main 三段，无多节） | 有 | 有 | 忽略 | 吸收（Nop 目标超集） |
 | 页面设置/页边距/背景/水印 | 有（含 watermark） | 有 | 有 | 忽略 | 吸收 |
 | 模板变量/数据集绑定 | 有（绑定表 + settings JSON） | 无 | OpenDoPE | 无 | 吸收语义，**内嵌 model 承载**（不建外挂 settings 表） |
-| 动态表格 vertical/horizontal/group 展开 | 有（ReportWordUtil） | 无 | 无 | 无 | 复用 nop-report-docx |
+| 动态表格 vertical/horizontal/group 展开 | Word 侧未实证（ReportWordUtil.java:200-213 系对齐 switch，原锚有误；纵/横扩展枚举见 CellExtendEnum，驱动在 Excel 报表链） | 无 | 无 | 无 | 复用 nop-report-docx（WI7 已落地） |
 | 图表/二维码/条码占位 | 有（charts/codes 绑定表） | 无 | 无 | 无 | 吸收「占位+绑定+替换」模式 |
 | Word→PDF | **Aspose（禁用）** | 无（需外部） | 商业转换器 | 无 | **禁用**；Nop 走 nop-pdf 路线 |
 | 在线设计器/分类/发布/权限 | 有 | — | — | — | **仅对版**；产品化编辑层外部化，产品管理字段不入文档模型 |

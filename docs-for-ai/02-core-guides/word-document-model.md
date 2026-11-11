@@ -36,6 +36,7 @@
 | 页边距 | 解析+生成已支持 | `pgMar` → page 级 `OfficePageMargins`（twips→pt） |
 | 页眉/页脚 | 已支持（多节） | 每节经 headerReference/footerReference 独立解析与生成（headerN.xml/footerN.xml） |
 | 多节 section | 解析+生成已支持 | 每个 `w:sectPr` 一个 page（节边界=段落内嵌 sectPr）；生成每节独立 sectPr 与 headerN/footerN 部件 |
+| 首页不同页眉页脚（titlePg） | 未支持 | OOXML `w:titlePg` + first 引用未建模；归属裁定：应进模型、延期补齐（对版结论文档见设计侧 springreport-alignment） |
 | 块级：段落/表格 | 已支持 | 解析与生成均支持（doc.xdef body 八类块分派之二） |
 | 块级：标题/列表/图片/超链接块/分隔线/分页 | 解析+生成已支持 | pStyle Heading1-9/Title→title 块；连续 numPr 聚合 list 块；独立图片段落→image 块（assets 承载媒体）；块级 hyperlink→hyperlink 块；pBdr 空段→separator；page-br 段→pageBreak。|
 | 行内：文本 run | 已支持 | `OfficeRunModel.t` |
@@ -45,7 +46,7 @@
 | 段落样式 | 部分已支持 | `WordParagraphStyle`（`align`/`firstLineIndent`/`leftIndent`/行距/`titleLevel` 0-8 等） |
 | 表格：横纵合并/列宽/行高 | 已支持 | `WordTableCell.mergeAcross/mergeDown`、`WordTableColumnConfig`；行高经 `w:trHeight` 解析（`WordTableParser`）与生成（`OfficeDocXmlBuilder`） |
 | 表格：边框/底纹/单元格背景 | 解析+生成已支持 | tcPr 边框（缺省回退 tblBorders）/底纹/vAlign → 内联 WordCellStyle 注册 doc.styles（id `__cell_t<n>_<r>_<c>`）+ cell.styleId 引用；tcPr 横向对齐未解析（模型无字段，follow-up） |
-| 背景/水印 | 背景已支持；水印仅解析保留 | doc 级 `background` 颜色（w:background + settings displayBackgroundShape）；水印为 header 内 VML，模型不承载原始形态，round-trip 不保真 |
+| 背景/水印 | 背景已支持；水印仅解析保留 | doc 级 `background` 颜色（w:background + settings displayBackgroundShape）；水印为 header 内 VML，模型不承载原始形态，round-trip 不保真；水印归属裁定：留外部/模型不承载 VML（springreport-alignment.md） |
 | 批注 | 部分 | `WordTableCell.comment` 承载单元格批注字符串 |
 | 命名样式/默认样式/基样式继承 | 解析+生成已支持（styles.xml↔styles 容器） | 五类样式映射 + basedOn/default；内联 rPr 覆盖语义留给消费方经 `OfficeStyleResolver`；`WordListStyle` 经 `OfficeListModel.styleId` 引用；命名段落样式不落字体（WordParagraphStyle 无 font 字段，follow-up） |
 | 模板标注：`c:if`/`c:for` 块级标记 | 已支持 | `c:if`→testExpr（嵌套合并）；`c:for`→loopVarName/loopIndexName/loopItemsName + beginLoop（items 表达式），落 page/paragraph/title/list 的 model；列表项上的 c:for 聚合后表示重复整个列表块 |

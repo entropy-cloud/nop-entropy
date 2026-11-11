@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-11-11（WI0–WI9 完成，plan 2515–2524；WI10–WI11 未启动）
+> Last updated: 2026-11-11（WI0–WI10 完成，plan 2515–2525；WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -65,7 +65,7 @@
 ### M6 — 统一出口与产品能力对齐
 
 - [x] WI9 统一出口与 docx 模板编译：静态 docx 与含模板语义的动态文档统一生成出口；把现有 `WordTemplateParser`/`XptWordTemplateParser` 机制模型化（docx → 模型 → XPL/XPT 编译链路），保留高级 `xpl` 逃生口与原始 OOXML 扩展保留。含编译链路测试（Deliverable: 统一出口 + 模板编译 + 测试；deps: WI4、WI7；Item Type: Feature）
-- [ ] WI10 springreport 能力对齐裁定：对照 springreport 的三层（文档结构层/模板配置层/产品化编辑层）逐项裁定吸收项——`firstpageHeaderFooterShow`、`watermark`、`charts`、`codes`、vertical/horizontal/group 扩展策略、`paramMerge`——明确进入模型 vs 留外部的归属；产出对齐结论文档（不复制其代码/依赖）。含必要补齐实现（Deliverable: 对齐裁定 + 补齐；deps: WI7、WI8；Item Type: Feature + Decision）
+- [x] WI10 springreport 能力对齐裁定：对照 springreport 的三层（文档结构层/模板配置层/产品化编辑层）逐项裁定吸收项——`firstpageHeaderFooterShow`、`watermark`、`charts`、`codes`、vertical/horizontal/group 扩展策略、`paramMerge`——明确进入模型 vs 留外部的归属；产出对齐结论文档（不复制其代码/依赖）。含必要补齐实现（Deliverable: 对齐裁定 + 补齐；deps: WI7、WI8；Item Type: Feature + Decision）
 
 ### M7 — 端到端验收与收口
 
@@ -75,7 +75,7 @@
 - [x] ★ **Milestone: docx 双向转换可用**（WI3–WI5 完成后勾选）
 - [x] ★ **Milestone: Word 文档 PDF 输出可用**（WI6 完成后勾选）
 - [x] ★ **Milestone: Word 模板动态展开可用**（WI7–WI8 完成后勾选）
-- ★ **Milestone: 统一出口与 springreport 能力对齐**（WI9–WI10 完成后勾选）
+- [x] ★ **Milestone: 统一出口与 springreport 能力对齐**（WI9–WI10 完成后勾选）
 - ★ **Milestone: 端到端验收通过**（WI0–WI11 全部完成后勾选）
 
 ## Current Baseline（2026-10-17 核对）
