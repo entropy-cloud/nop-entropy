@@ -52,4 +52,8 @@ public interface ReportPdfErrors {
     ErrorCode ERR_PDF_DOC_INVALID_PAGE_GEOMETRY = define("nop.err.report.pdf.doc.invalid-page-geometry",
             "Section page geometry is invalid (non-positive content area) for section [{blockType}]",
             ARG_BLOCK_TYPE);
+
+    ErrorCode ERR_PDF_DOC_RENDER_MODEL_REQUIRED = define("nop.err.report.pdf.doc.render-model-required",
+            "renderPdf requires a non-null, already expanded OfficeDocModel; template input must be "
+                    + "expanded through the docx outlet model stage (WordDocTemplates.expandToModel) first");
 }

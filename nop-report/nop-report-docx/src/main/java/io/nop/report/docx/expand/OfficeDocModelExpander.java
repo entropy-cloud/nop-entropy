@@ -88,6 +88,18 @@ public class OfficeDocModelExpander {
      */
     private final DocImageBinder imageBinder;
 
+    /**
+     * WI9: number of xpt tables expanded by the most recent {@link #expand} call
+     * (observability only; no behavioral effect).
+     */
+    private int lastExpandedTableCount;
+
+    /**
+     * WI9: number of images bound by the binding phase of the most recent
+     * {@link #expand} call (observability only; no behavioral effect).
+     */
+    private int lastBoundImageCount;
+
     public OfficeDocModelExpander() {
         // E2: expansion-time compile context, same shape as
         // XptWordTableParser.fromCompileScope (new XLangCompileTool over a compile
@@ -126,6 +138,10 @@ public class OfficeDocModelExpander {
      * new OfficeDocModel; the input model is left untouched (E4).
      */
     public OfficeDocModel expand(OfficeDocModel doc, IEvalScope scope) {
+        // WI9: per-call observability counters
+        lastExpandedTableCount = 0;
+        lastBoundImageCount = 0;
+
         OfficeDocModel result = new OfficeDocModel();
         result.setLocation(doc.getLocation());
         result.setWidth(doc.getWidth());
@@ -151,9 +167,26 @@ public class OfficeDocModelExpander {
 
         // WI8 (B2): image binding post-processing at the tail of expand; images
         // without a binding definition are untouched
-        if (imageBinder != null)
+        if (imageBinder != null) {
             imageBinder.bind(result, scope);
+            lastBoundImageCount = imageBinder.getLastBoundImageCount();
+        }
         return result;
+    }
+
+    /**
+     * WI9: number of xpt tables expanded by the most recent {@link #expand} call.
+     */
+    public int getLastExpandedTableCount() {
+        return lastExpandedTableCount;
+    }
+
+    /**
+     * WI9: number of images bound by the binding phase of the most recent
+     * {@link #expand} call; 0 when the binding phase is disabled.
+     */
+    public int getLastBoundImageCount() {
+        return lastBoundImageCount;
     }
 
     // ---- doc / page / block loop iteration -------------------------------
@@ -368,7 +401,9 @@ public class OfficeDocModelExpander {
         ExpandedTable expanded = expandedSheet.getTable();
         expanded.assignRowIndexAndColIndex();
 
-        return mapExpandedTable(expanded, original);
+        WordTable mapped = mapExpandedTable(expanded, original);
+        lastExpandedTableCount++;
+        return mapped;
     }
 
     /**

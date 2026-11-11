@@ -572,4 +572,31 @@ public class TestDocImageBinding extends JunitBaseTestCase {
             return new byte[]{1, 2, 3};
         }
     }
+
+    /**
+     * Regression (found by WI9 probes): the bound image block must be materialized —
+     * rewriting the shared block's assetRef polluted the input template (which then
+     * failed docx generation with gen-image-invalid because the input assets list never
+     * received the generated asset).
+     */
+    @Test
+    public void testBindingDoesNotMutateInputImageBlock() {
+        OfficeDocModel input = doc(image(templateModel()));
+        OfficeImageModel inputImage = (OfficeImageModel) input.getPages().get(0).getBody().get(0);
+        String originalRef = inputImage.getAssetRef();
+
+        OfficeDocModel out = new OfficeDocModelExpander().expand(input,
+                Map.of("user", Map.of("name", "Bob")));
+        // standalone bind on the result model (binding stage runs inside expand already;
+        // this call exercises bind() directly on a copied tree)
+        new DocImageBinder().bind(out, null);
+
+        OfficeImageModel outImage = (OfficeImageModel) out.getPages().get(0).getBody().get(0);
+        assertEquals("__gen-img-1", outImage.getAssetRef(), "output image points at generated asset");
+        assertTrue(out.getAsset("__gen-img-1") != null
+                && out.getAsset("__gen-img-1").getData().toByteArray().length > 0);
+
+        assertEquals(originalRef, inputImage.getAssetRef(),
+                "input template image assetRef must not be mutated");
+    }
 }

@@ -114,6 +114,13 @@
 - 产物注入文档 assets（`__gen-img-<n>` 生成物命名空间）并改写 assetRef；注入前物化 assets 副本，输入模板不被污染。
 - 缺失表达式/无效 codeType/渲染失败快速失败；无绑定定义的图片不触碰。
 
+## 12. 统一出口
+
+- docx 出口：`io.nop.report.docx.WordDocTemplates`——`generate(docx bytes | OfficeDocModel, dataScope)` → `WordDocOutput`（docx bytes + 解析 skips + 表格展开计数 + 图片绑定计数）；内部串接解析 → 展开（含图片绑定）→ 生成；无模板语义输入幂等直生成（字节确定）。`expandToModel(...)` 暴露展开模型阶段。
+- 高级逃生口：`generateViaLegacyTemplate(docx, scope, outputFile)` 透传既有 Word 模板解析链（完整 xpl 标签场景）。
+- PDF 出口：`io.nop.report.pdf.doc.WordDocPdfTemplates.renderPdf(OfficeDocModel)` → `WordDocPdfOutput`（pdf + 渲染 warnings）；只收模型（bytes 先经 docx 出口的模型阶段）；未展开的模板语义按原样渲染（无结构性校验）。
+- 模型未建模的 OOXML 部件（customXml/fontTable 等）在模型链路生成时不保留——需要时走逃生口。
+
 ## 相关文档
 
 - `03-modules/nop-report.md`（报表侧 Word 表格路径的路由位）

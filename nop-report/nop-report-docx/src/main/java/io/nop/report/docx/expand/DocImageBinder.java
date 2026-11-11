@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 
 /**
@@ -66,6 +67,12 @@ public class DocImageBinder {
     /** asset name sequence; keeps increasing across multiple bind() calls */
     private int seq = 0;
 
+    /**
+     * WI9: number of images bound by the most recent {@link #bind} call
+     * (observability only; no behavioral effect).
+     */
+    private int lastBoundImageCount;
+
     public DocImageBinder() {
         this(DEFAULT_CHART_RENDERER_CLASS);
     }
@@ -85,6 +92,7 @@ public class DocImageBinder {
      * definition are not touched.
      */
     public void bind(OfficeDocModel doc, IEvalScope scope) {
+        lastBoundImageCount = 0;
         if (doc == null || doc.getPages() == null)
             return;
         for (OfficeDocPageModel page : doc.getPages()) {
@@ -97,20 +105,24 @@ public class DocImageBinder {
     private void bindBlocks(OfficeDocModel doc, List<OfficeBlock> blocks, IEvalScope scope) {
         if (blocks == null)
             return;
-        for (OfficeBlock block : blocks) {
-            if (block instanceof OfficeImageModel)
-                bindImage(doc, (OfficeImageModel) block, scope);
+        for (ListIterator<OfficeBlock> it = blocks.listIterator(); it.hasNext();) {
+            OfficeBlock block = it.next();
+            if (block instanceof OfficeImageModel) {
+                OfficeImageModel bound = bindImage(doc, (OfficeImageModel) block, scope);
+                if (bound != block)
+                    it.set(bound);
+            }
         }
     }
 
-    private void bindImage(OfficeDocModel doc, OfficeImageModel image, IEvalScope scope) {
+    private OfficeImageModel bindImage(OfficeDocModel doc, OfficeImageModel image, IEvalScope scope) {
         OfficeImageTemplateModel model = image.getModel();
         if (model == null)
-            return;
+            return image;
         OfficeChartBindingModel chart = model.getChartBinding();
         OfficeCodeBindingModel code = model.getCodeBinding();
         if (chart == null && code == null)
-            return; // no-op for unbound images
+            return image; // no-op for unbound images
 
         if (chart != null && code != null)
             throw new NopOfficeDocModelException("image '" + image.getId()
@@ -123,7 +135,27 @@ public class DocImageBinder {
         } else {
             data = renderCode(code, image, scope);
         }
-        injectAsset(doc, image, name, data);
+        // materialize the image block before rewriting its assetRef: the block instance
+        // may be shared with the input template (expand copies share blocks), and the
+        // input must never be mutated (E4)
+        OfficeImageModel copy = new OfficeImageModel();
+        copy.setId(image.getId());
+        copy.setType(image.getType());
+        copy.setAssetRef(image.getAssetRef());
+        copy.setWidth(image.getWidth());
+        copy.setHeight(image.getHeight());
+        copy.setLocation(image.getLocation());
+        copy.setModel(model);
+        injectAsset(doc, copy, name, data);
+        lastBoundImageCount++;
+        return copy;
+    }
+
+    /**
+     * WI9: number of images bound by the most recent {@link #bind} call.
+     */
+    public int getLastBoundImageCount() {
+        return lastBoundImageCount;
     }
 
     // ---- chart binding (B3) ----------------------------------------------
