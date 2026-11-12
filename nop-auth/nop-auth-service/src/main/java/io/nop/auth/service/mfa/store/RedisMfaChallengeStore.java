@@ -10,6 +10,7 @@ package io.nop.auth.service.mfa.store;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.auth.service.support.RedisTtlGuard;
 import io.nop.auth.core.mfa.store.MfaChallenge;
 import io.nop.auth.core.mfa.store.MfaChallengeStore;
 import io.nop.auth.core.mfa.store.MfaChallengeStoreConfig;
@@ -38,6 +39,9 @@ import jakarta.inject.Inject;
  * 原子性由 nop-nosql 自身测试建立的 INCRBY / Lua CAS 语义保证，行为由 Local 实现覆盖。
  */
 public class RedisMfaChallengeStore implements MfaChallengeStore {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RedisMfaChallengeStore.class);
+
 
     private static final String CHALLENGE_PREFIX = "mfa:challenge:";
     private static final String FAIL_PREFIX = "mfa:fail:";
@@ -71,6 +75,10 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
 
     private String failKey(String token) {
         return FAIL_PREFIX + token;
+    }
+
+    private java.time.Duration ttlDuration() {
+        return java.time.Duration.ofMillis(ttlMillis());
     }
 
     private long ttlMillis() {
@@ -148,8 +156,9 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         INosqlCounter counter = nosql.counter(failKey(challengeToken));
         long val = counter.increment(1);
         if (val == 1L) {
-            // 首次递增设定 TTL 一次（PEXPIRE）；后续递增不刷新（设计 §3.3 窄竞态裁决）
-            FutureHelper.syncGet(nosql.setTimeoutAsync(failKey(challengeToken), ttlMillis()));
+            // 首次递增设定 TTL 一次（PEXPIRE）；后续递增不刷新（设计 §3.3 窄竞态裁决）。
+            // 5.1-MA-02（plan 2569）：附着失败补偿删除（重取验证码，无害）
+            RedisTtlGuard.attachTtl(nosql, failKey(challengeToken), ttlDuration(), LOG);
         }
         return (int) Math.min(val, Integer.MAX_VALUE);
     }

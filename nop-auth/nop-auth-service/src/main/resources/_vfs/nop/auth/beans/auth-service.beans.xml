@@ -187,8 +187,14 @@
     <!-- 可信设备共享组件（W15-impl，设计 §六）：指纹计算 + 豁免判定 + 登记 + 撤销矩阵统一
           落点。注入 LoginServiceImpl（豁免/登记）/ NopAuthUserBizModel（撤销/管理 API）。
           ioc:default 允许应用覆盖。 -->
+    <!-- 5.1-MA-04（plan 2569）：显式 ref 注入——容器内存在多个 IResourceLockManager 候选
+         （nopSysDaoResourceLockManager 等），by-type 自动装配歧义 fail-fast，故逐消费者显式指名 -->
     <bean id="nopMfaTrustedDeviceManager" class="io.nop.auth.service.mfa.MfaTrustedDeviceManager"
-          ioc:default="true"/>
+          ioc:default="true">
+        <property name="lockManager">
+            <ref bean="nopAuthSessionFlushLockManager"/>
+        </property>
+    </bean>
 
     <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
 
@@ -214,6 +220,9 @@
         <ioc:condition>
             <if-property name="nop.auth.login.use-dao-user-context-cache"/>
         </ioc:condition>
+        <property name="lockManager">
+            <ref bean="nopAuthSessionFlushLockManager"/>
+        </property>
     </bean>
 
     <bean id="nopAuditService" class="io.nop.auth.service.audit.AuditServiceImpl"/>

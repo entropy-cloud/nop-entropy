@@ -12,6 +12,7 @@ import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.dao.entity.NopAuthMfaTrustedDevice;
 import io.nop.auth.dao.entity.NopAuthUser;
+import io.nop.commons.concurrent.lock.IResourceLockManager;
 import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.LinkedHashMap;
+import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 
@@ -71,6 +73,22 @@ public class MfaTrustedDeviceManager {
     @Nullable
     protected IAuditService auditService;
 
+    /**
+     * 5.1-MA-04（plan 2569）：register 新行路径 per-user 串行化锁（max-count check-then-insert
+     * 越界闭合）。复用 plan 2568 的缺省锁 bean 形态（ioc:default LocalResourceLockManager，
+     * 部署方可换分布式实现）。
+     */
+    @Inject
+    protected IResourceLockManager lockManager;
+
+    @Inject
+    protected io.nop.orm.IOrmTemplate ormTemplate;
+
+    /** 锁持有者实例级标识（同 JVM lock/unlock 配对语义，AlertEvaluator/2568 先例形态）。 */
+    private final String lockHolderId = "mfa-trusted-device@" + UUID.randomUUID();
+
+    public static final String LOCK_RESOURCE_PREFIX = "auth:mfa-trusted-device:";
+
     // ===================== 指纹计算（设计 §6.3） =====================
 
     /**
@@ -116,10 +134,17 @@ public class MfaTrustedDeviceManager {
         Timestamp now = new Timestamp(CoreMetrics.currentTimeMillis());
         if (trusted.getExpireAt() == null || !trusted.getExpireAt().after(now))
             return false; // 过期行惰性失效（行保留审计）
-        trusted.setLastUsedAt(now);
-        dao().updateEntityDirectly(trusted);
-        LOG.info("nop.auth.mfa-trusted-device-exempt:userId={}", userId);
-        return true;
+        // 5.1-MA-04 / C2-005 子面②（plan 2569）：lastUsedAt 改条件 UPDATE（expireAt > now 守卫）
+        // ——并发 removeBySid 删除后 updateEntityDirectly 曾抛 ERR_ORM_UPDATE_ENTITY_NOT_FOUND（500 面）
+        io.nop.core.lang.sql.SQL upd = io.nop.core.lang.sql.SQL.begin()
+                .name("mfaTrustedDeviceTouchLastUsed")
+                .sql("update NopAuthMfaTrustedDevice o set o.lastUsedAt = ? "
+                        + "where o.sid = ? and o.expireAt > ?", now, trusted.getSid(), now)
+                .end();
+        boolean exempted = ormTemplate.executeUpdate(upd) > 0;
+        if (exempted)
+            LOG.info("nop.auth.mfa-trusted-device-exempt:userId={}", userId);
+        return exempted;
     }
 
     // ===================== 登记（mfaVerify 成功路径，completeLogin 之前） =====================
@@ -148,6 +173,14 @@ public class MfaTrustedDeviceManager {
             return "refresh";
         }
 
+        // 5.1-MA-04（plan 2569）：max-count check-then-insert 以 per-user 锁串行化
+        //（并发不同 deviceHash 曾双双越过 count 检查 → max+1 行；(userId, deviceHash) UK 只兜同 hash）
+        return lockManager.callWithLock(LOCK_RESOURCE_PREFIX + userId, lockHolderId,
+                "mfa-trusted-device-register", lock -> registerLocked(userId, deviceHash, tenantId, requestHeaders));
+    }
+
+    private String registerLocked(String userId, String deviceHash, String tenantId,
+                                  Map<String, Object> requestHeaders) {
         if (countUnexpired(userId) >= CFG_AUTH_MFA_TRUSTED_DEVICE_MAX_COUNT.get()) {
             LOG.info("nop.auth.mfa-trusted-device-max-count:userId={},maxCount={}",
                     userId, CFG_AUTH_MFA_TRUSTED_DEVICE_MAX_COUNT.get());

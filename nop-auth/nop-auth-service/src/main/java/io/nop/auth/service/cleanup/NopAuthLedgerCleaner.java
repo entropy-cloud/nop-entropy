@@ -6,12 +6,14 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.dao.entity.NopAuthEmailCode;
 import io.nop.auth.dao.entity.NopAuthLoginAttempt;
 import io.nop.auth.dao.entity.NopAuthMfaChallenge;
+import io.nop.auth.dao.entity.NopAuthMfaTrustedDevice;
 import io.nop.auth.dao.entity.NopAuthRateLimitCounter;
 import io.nop.auth.dao.entity.NopAuthSession;
 import io.nop.auth.dao.entity.NopAuthSmsCode;
 import io.nop.auth.dao.entity._gen._NopAuthEmailCode;
 import io.nop.auth.dao.entity._gen._NopAuthLoginAttempt;
 import io.nop.auth.dao.entity._gen._NopAuthMfaChallenge;
+import io.nop.auth.dao.entity._gen._NopAuthMfaTrustedDevice;
 import io.nop.auth.dao.entity._gen._NopAuthRateLimitCounter;
 import io.nop.auth.dao.entity._gen._NopAuthSession;
 import io.nop.auth.dao.entity._gen._NopAuthSmsCode;
@@ -41,13 +43,15 @@ import static io.nop.auth.service.NopAuthErrors.ARG_CONFIG_VALUE;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LEDGER_CONFIG_INVALID;
 
 /**
- * 5.1-MA-01（plan 2502）：认证六族账本表保留期批量清扫（形态 A 周期低频接入）。
+ * 5.1-MA-01（plan 2502）：认证账本表保留期批量清扫（形态 A 周期低频接入）。
+ * 5.1 第七面（plan 2569，2502 移交 R3-01 授权扩展）：trusted-device 过期行清扫第七族并入——
+ * 授权边界由六族扩为七族（plan 2502 Deferred R3-01 successor 兑现，2026-11-13 ask-first 授权留痕 plan 2569 授权节）。
  * <p>
  * 六族 = NopAuthSession（含 accessToken/refreshToken/cacheData 令牌载荷行）+ 五族短 TTL 临时行
  * （mfa_challenge / sms_code / email_code / rate_limit_counter / login_attempt）。五族既有语义为
  * 「同键访问时惰性删除」——键不复访即永久驻留（RateLimitCounter/LoginAttempt 键空间可被攻击者
  * 低成本扩充）；session 族连惰性删除都没有。本组件提供跨键批量清扫的清理配对（credential
- * {@code NopCredentialOauthStateStore.cleanupExpired()} 语句形态），六族一处实现、统一接入、
+ * {@code NopCredentialOauthStateStore.cleanupExpired()} 语句形态），七族一处实现、统一接入、
  * 处置一致不静默分叉。
  * <p>
  * 参数语义 SSOT = ai-dev/design/concurrency/ledger-retention-policy.md §3.4 成员 3 行 +
@@ -65,9 +69,9 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LEDGER_CONFIG_INVALID;
  * Throwable 由绝缘层（IPeriodicTaskListener）观测并重臂，失败 ERROR 显式可见 + 失败计数——
  * 不静默吞掉。
  * <p>
- * 授权边界（ask-first 2026-10-25）：本组件仅覆盖六族；trusted-device 过期行清扫第七面
- * （MfaTrustedDeviceManager）已由 plan 2502 R1 修订摘除，归 Deferred/R3-01——本组件不包含
- * NopAuthMfaTrustedDevice 通道。
+ * 授权边界（ask-first 2026-10-25 六族 → 2026-11-13 扩展授权 plan 2569）：本组件覆盖七族；
+ * trusted-device 过期行清扫第七面原由 plan 2502 R1 修订摘除（Deferred/R3-01 successor），
+ * 现随 plan 2569 兑现并入。
  */
 public class NopAuthLedgerCleaner extends LifeCycleSupport {
     static final Logger LOG = LoggerFactory.getLogger(NopAuthLedgerCleaner.class);
@@ -178,7 +182,7 @@ public class NopAuthLedgerCleaner extends LifeCycleSupport {
     }
 
     /**
-     * 单轮六族清扫（5.1-MA-01）。清理体失败直接抛出（由绝缘 listener 观测），不在本方法内吞异常。
+     * 单轮七族清扫（5.1-MA-01 + 2569 第七族）。清理体失败直接抛出（由绝缘 listener 观测），不在本方法内吞异常。
      *
      * @param retentionTimeMillis 保留期（毫秒）
      * @param batchSize           单轮单表删除上限
@@ -206,7 +210,37 @@ public class NopAuthLedgerCleaner extends LifeCycleSupport {
         total += purgeExpiredByExpireAt(NopAuthLoginAttempt.class, _NopAuthLoginAttempt.PROP_NAME_attemptKey,
                 NopAuthLoginAttempt::getAttemptKey, _NopAuthLoginAttempt.PROP_NAME_expireAt, cutoffMillis, batchSize);
 
+        // ⑦ trusted-device 族（5.1 第七面，plan 2569/2502 移交）：expireAt 为 Timestamp 列
+        //（DATETIME 语义，与五族 epoch-millis-BIGINT 不同）——独立 Timestamp 变体通道，
+        // 谓词绑定 new Timestamp(cutoffMillis)（同 purgeExpiredSessions 先例形态）。
+        total += purgeExpiredByExpireAtTimestamp(NopAuthMfaTrustedDevice.class,
+                _NopAuthMfaTrustedDevice.PROP_NAME_sid, NopAuthMfaTrustedDevice::getSid,
+                _NopAuthMfaTrustedDevice.PROP_NAME_expireAt, cutoffMillis, batchSize);
+
         return total;
+    }
+
+    /**
+     * Timestamp 锚列变体（plan 2569 W7）：与 {@link #purgeExpiredByExpireAt} 同构，
+     * 谓词值绑定 Timestamp（NopAuthMfaTrustedDevice.expireAt 为 DATETIME 语义列）。
+     */
+    private <T extends io.nop.dao.api.IDaoEntity> long purgeExpiredByExpireAtTimestamp(
+            Class<T> entityClass, String pkProp, Function<T, Object> pkGetter,
+            String anchorProp, long cutoffMillis, int batchSize) {
+        IEntityDao<T> dao = daoProvider.daoFor(entityClass);
+        QueryBean pick = new QueryBean();
+        pick.setLimit(batchSize);
+        pick.addFilter(FilterBeans.lt(anchorProp, new Timestamp(cutoffMillis)));
+        List<T> rows = dao.findAllByQuery(pick);
+        if (rows.isEmpty())
+            return 0L;
+        List<Object> pks = new ArrayList<>(rows.size());
+        for (T row : rows) {
+            pks.add(pkGetter.apply(row));
+        }
+        QueryBean delete = new QueryBean();
+        delete.addFilter(FilterBeans.in(pkProp, pks));
+        return dao.deleteByQuery(delete);
     }
 
     private long purgeExpiredSessions(long cutoffMillis, int batchSize) {

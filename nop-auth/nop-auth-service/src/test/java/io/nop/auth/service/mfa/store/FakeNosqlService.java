@@ -150,6 +150,12 @@ public class FakeNosqlService implements INosqlService {
     @Override
     public CompletionStage<Boolean> setTimeoutAsync(String key, long timeout) {
         record("setTimeoutAsync");
+        // 5.1-MA-02（plan 2569）故障注入：瞬时故障模拟（PEXPIRE 抛错），resetInjectSetTimeoutFail()
+        // 恢复——供 TTL 附着族红绿钉使用
+        if (injectSetTimeoutFail) {
+            injectSetTimeoutFail = false;
+            throw io.nop.api.core.exceptions.NopException.adapt(new IllegalStateException("simulated transient pexpire failure"));
+        }
         Slot s = store.get(key);
         if (s != null && timeout > 0) {
             store.put(key, new Slot(s.value, System.currentTimeMillis() + timeout));
@@ -158,6 +164,13 @@ public class FakeNosqlService implements INosqlService {
             counterTtl.put(key, System.currentTimeMillis() + timeout);
         }
         return CompletableFuture.completedFuture(true);
+    }
+
+    /** 5.1-MA-02 故障注入：下次 setTimeoutAsync 抛错一次（瞬时故障形态）。 */
+    volatile boolean injectSetTimeoutFail;
+
+    public void injectNextSetTimeoutFail() {
+        this.injectSetTimeoutFail = true;
     }
 
     @Override

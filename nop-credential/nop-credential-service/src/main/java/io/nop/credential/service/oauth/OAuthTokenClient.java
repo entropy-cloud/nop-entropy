@@ -14,6 +14,7 @@ import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
+import io.nop.credential.config.CredentialConfigs;
 import io.nop.credential.crypto.CredentialErrors;
 import jakarta.inject.Inject;
 
@@ -79,12 +80,30 @@ public class OAuthTokenClient {
         return fetchToken(tokenEndpoint, form);
     }
 
+    /**
+     * 请求级超时覆盖（毫秒；>=0 生效，<0 = 读配置键 nop.credential.oauth.request-timeout-millis）。
+     * 部署 beans 装配与测试注入用。
+     */
+    private int requestTimeoutMillis = -1;
+
+    public void setRequestTimeoutMillis(int requestTimeoutMillis) {
+        this.requestTimeoutMillis = requestTimeoutMillis;
+    }
+
     private OAuthTokenResponse fetchToken(String tokenEndpoint, Map<String, Object> form) {
         HttpRequest request = new HttpRequest();
         request.setMethod(HttpApiConstants.METHOD_POST);
         request.dataType(HttpApiConstants.DATA_TYPE_FORM);
         request.body(form);
         request.url(tokenEndpoint);
+        // 5.1-I-01（plan 2569）：请求级超时上界（行锁/类锁内 I/O 时长受控，D3-05 先例形态）。
+        // ≤0 = 不设（客户端部署级缺省兜底）；实例覆盖字段 >=0 优先（测试/装配注入）
+        int timeoutMillis = requestTimeoutMillis >= 0
+                ? requestTimeoutMillis
+                : CredentialConfigs.CFG_CREDENTIAL_OAUTH_REQUEST_TIMEOUT_MILLIS.get();
+        if (timeoutMillis > 0) {
+            request.setTimeout(timeoutMillis);
+        }
 
         IHttpResponse response;
         try {
@@ -113,14 +132,17 @@ public class OAuthTokenClient {
                     .param(CredentialErrors.ARG_ERROR, "invalid token response: " + e.getMessage());
         }
 
-        // token endpoint 错误响应（error 字段）显式抛错，不静默
+        // token endpoint 错误响应（error 字段）显式抛错，不静默。
+        // 5.1-I-02（plan 2569）：原始 OAuth error 码经 ARG_OAUTH_ERROR 独立携带（类型化分型点，
+        // Provider 按 param 精确匹配归一，避免对合并 detail 串做字符串 contains 误判）
         if (token.getError() != null) {
             String detail = token.getErrorDescription() != null
                     ? token.getError() + ": " + token.getErrorDescription()
                     : token.getError();
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_TOKEN_EXCHANGE_FAILED)
                     .param(CredentialErrors.ARG_TOKEN_ENDPOINT, tokenEndpoint)
-                    .param(CredentialErrors.ARG_ERROR, detail);
+                    .param(CredentialErrors.ARG_ERROR, detail)
+                    .param(CredentialErrors.ARG_OAUTH_ERROR, token.getError());
         }
         if (token.getAccessToken() == null) {
             throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_TOKEN_EXCHANGE_FAILED)

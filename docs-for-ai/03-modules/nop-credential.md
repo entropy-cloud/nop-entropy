@@ -55,7 +55,9 @@
 
 - **发起**（`CredentialOAuthApi__beginOAuthFlow` mutation，登录态）：校验 实例存在/未删/未禁用/类型 oauth2/**clientId 与 clientSecret 已录入（D2-02：发起侧字段集对齐回调侧，缺任一拒绝，param 标注缺失字段集）** + **归属校验（W11：system 级限管理员、user 级限 owner+管理员）** → 生成安全随机 128bit 一次性 state（DB 绑定 credentialId + 发起人 + TTL）→ 返回授权 URL（`response_type=code` + `client_id` + `redirect_uri` + `scope` + `state`）。发起时惰性清理 state 表过期行（无后台任务）。
 - **回调**（`GET /r/CredentialOAuthApi__oauthCallback?code=..&state=..`，`@Auth(publicAccess=true)` 单一公开端点）：state 校验与一次性消费原子（条件 UPDATE + affected-row 判定，并发双回调恰一个成功；未命中/过期/重放统一拒绝不区分细节防探测）→ 经 provider 引擎内部通道解密 clientSecret → 令牌端点换取 token 集（form：grant_type/code/client_id/client_secret/redirect_uri）→ 只写保留字段回写 → 返回 **`WebContentBean` HTML 跳转页**（200 + meta-refresh/JS location 到配置的结果页；biz 层无 30x 原语，语义等价：浏览器落结果页、token 明文不出现在任何响应体）。
-- **惰性刷新**（`getCredential` 出口，SPI 签名零变更）：oauth2 类型 accessToken 临期（now 距 expiresAt < 刷新窗口）→ DB 行级锁（SELECT FOR UPDATE）互斥下锁内双重检查 → refreshToken 刷新 → 回写 → 返回新明文。跨副本/多线程并发取用同一凭证刷新收敛为一次；刷新失败（invalid_grant 等）fail-closed；过期且无 refreshToken → fail-closed（提示重新授权）。非临期取用不持锁可并发。
+- **惰性刷新**（`getCredential` 出口，SPI 签名零变更）：oauth2 类型 accessToken 临期（now 距 expiresAt < 刷新窗口）→ DB 行级锁（SELECT FOR UPDATE）互斥下锁内双重检查 → refreshToken 刷新 → 回写 → 返回新明文。跨副本/多线程并发取用同一凭证刷新收敛为一次；刷新失败 fail-closed；过期且无 refreshToken → fail-closed（提示重新授权）。非临期取用不持锁可并发。
+- **刷新错误码归一 + 轮换窗口补偿（5.1-I-02，plan 2569）**：invalid_grant（原始 OAuth error 码经 `OAuthTokenClient` 的 `oauthError` param 类型化携带）→ 归一 `ERR_CREDENTIAL_OAUTH_REAUTH_REQUIRED`（明确"需重新授权"）；其余刷新错误维持 `ERR_CREDENTIAL_OAUTH_REFRESH_FAILED`。轮换型 IdP 下刷新 HTTP 成功即已作废旧 refreshToken——若其后事务持久化失败，补偿通道 `compensateTokenFields` 以 `engineUpdateTokenFields` 独立事务单次重试持久化新 token（补偿亦失败 → 下次刷新 invalid_grant → REAUTH_REQUIRED；补偿与原失败之间并发副本已写入更新 token 时按非空合并覆盖，该副本同样 fail-closed，无静默旧 token 使用）。fail-closed 语义不放宽（补偿后原异常仍上抛）。
+- **令牌端点请求级超时（5.1-I-01，plan 2569）**：`OAuthTokenClient.fetchToken` 设请求超时（`nop.credential.oauth.request-timeout-millis`，缺省 10000ms，≤0=客户端部署缺省兜底；实例 `setRequestTimeoutMillis` 覆盖）——行锁/类锁内 I/O 时长受控（D3-05 Vault 先例形态）。
 - **写路径串行化**：惰性刷新与 `saveCredential` 分组写共用同一行锁入口（"刷新 vs 刷新"与"刷新 vs 人工保存"互斥，无双写丢失）。
 - **saveCredential 分组写**（oauth2 类型）：人工字段整包替换（未传即删）不变 + 保留字段锁下原样保留；`typeList` 对 oauth2 类型裁剪保留字段（表单只出人工字段）。
 - **disabled 全路径拒绝**（显式增量）：oauth2 类型 `status=disabled` 在发起/回调/刷新/取用全路径 fail-closed；非 OAuth 类型取用维持一期语义（仅 delFlag）。
@@ -68,6 +70,7 @@
 | `nop.credential.oauth.callback-base-url` | 无（必配） | 回调端点对外基础地址（部署方配置外部可达地址）；`redirect_uri = {base}/r/CredentialOAuthApi__oauthCallback`，token 交换回传同值。未配置时发起授权 fail-closed |
 | `nop.credential.oauth.result-page-url` | 无 | 授权结果前端页 URL（回调跳转目标）；未配置时回调页输出内置静态完成提示 |
 | `nop.credential.oauth.state-ttl-seconds` | 600 | state 绑定 TTL（秒） |
+| `nop.credential.oauth.request-timeout-millis` | 10000 | 令牌端点请求级超时（毫秒，plan 2569 5.1-I-01）；≤0 = 客户端部署缺省兜底 |
 | `nop.credential.oauth.refresh-window-seconds` | 300 | 惰性刷新窗口（秒）；类型 oauth2 元数据 `refreshWindowSeconds` 可按类型覆盖 |
 
 > 示例类型：`generic-oauth2.credential-type.xml`（clientId/clientSecret 人工字段 + 端点元数据）。运行时需在部署中引入 raw HTTP client 实现模块（如 `nop-http-client-jdk`）以装配 `IHttpClient`。

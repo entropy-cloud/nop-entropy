@@ -198,19 +198,29 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
 
     @Override
     protected CompletionStage<Void> doLogout(int logoutType, SessionInfo sessionInfo) {
-        CompletionStage<Void> future = super.doLogout(logoutType, sessionInfo);
-
         if (logoutType != LOGOUT_TYPE_SSO_CALLBACK) {
+            // 5.1-I-06（plan 2569）：IdP 登出外呼纳入 waitAll 聚合（原 thenCompose 结果被丢弃，
+            // IdP 侧登出可能未发出且失败不可见 = best-effort 半成功）。实施期深化发现：原顺序
+            // 先 super.doLogout（本地移除上下文）后 doGetUserContext，Local/Dao 部署下取到的
+            // userContext 恒为 null——IdP 登出请求从未发出（比审计"失败不可见"更深一层的
+            // 静默不发）。故上下文读取先行于本地移除，IdP 外呼随聚合 future 传播失败 + ERROR
+            // 留痕；客户端重试登出幂等无害（已吊销 token parseAuthToken 返回 null → success）。
             CompletionStage<IUserContext> promise = doGetUserContext(sessionInfo.getSessionId());
-            promise.thenCompose(userContext -> {
+            CompletionStage<Void> idpLogout = promise.thenCompose(userContext -> {
                 if (userContext == null)
                     return FutureHelper.success(null);
                 HttpRequest req = newLogoutRequest(userContext);
-                return httpClient.fetchAsync(req, null);
+                return httpClient.fetchAsync(req, null).thenApply(v -> null);
             });
-            return FutureHelper.waitAll(Arrays.asList(future, promise));
+            CompletionStage<Void> observed = idpLogout.whenComplete((v, e) -> {
+                if (e != null) {
+                    LOG.error("nop.err.auth.sso-logout-idp-fail:sessionId={}", sessionInfo.getSessionId(), e);
+                }
+            });
+            CompletionStage<Void> local = super.doLogout(logoutType, sessionInfo);
+            return FutureHelper.waitAll(Arrays.asList(local, observed));
         }
-        return future;
+        return super.doLogout(logoutType, sessionInfo);
     }
 
     protected HttpRequest newLogoutRequest(IUserContext userContext) {

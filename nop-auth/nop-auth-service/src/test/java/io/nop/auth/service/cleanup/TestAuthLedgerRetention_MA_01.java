@@ -163,8 +163,12 @@ public class TestAuthLedgerRetention_MA_01 extends JunitAutoTestCase {
      * 清扫后过期 trusted-device 行保留——第七面（trusted-device 过期行清扫）摘除的
      * 产品级在测证据（清理入口对 NopAuthMfaTrustedDevice 零触碰）。
      */
+    /**
+     * 第七面并入后契约改写（plan 2569 W7，原 C10-005 六族零触碰钉按新授权范围改形——非弱化：
+     * 过期行由第七族通道清扫，未过期行保留钉保留）：trusted-device 过期行被清扫、未过期行保留。
+     */
     @Test
-    void testMA_01_countUnexpiredCountsOnlyUnexpiredRowsAndSweepLeavesTrustedDeviceUntouched() {
+    void testMA_01_seventhFamilyExpiredTrustedDeviceSweptUnexpiredRetained() {
         long now = System.currentTimeMillis();
         seedTrustedDevice("td-ma01-fresh-1", now + 10 * DAY_MS);
         seedTrustedDevice("td-ma01-fresh-2", now + 10 * DAY_MS);
@@ -177,7 +181,6 @@ public class TestAuthLedgerRetention_MA_01 extends JunitAutoTestCase {
         assertEquals(2L, manager.countUnexpired(USER_ID),
                 "C10-005 pin: countUnexpired must count only unexpired rows");
 
-        // 清扫入口运行后 trusted-device 行（含过期行）零变化——第七面不在六族清扫范围内
         NopAuthLedgerCleaner cleaner = newCleaner();
         cleaner.purgeExpiredLedgerRows(30 * DAY_MS, 1000);
 
@@ -185,9 +188,9 @@ public class TestAuthLedgerRetention_MA_01 extends JunitAutoTestCase {
         ormTemplate.clearSession();
 
         assertEquals(2L, manager.countUnexpired(USER_ID),
-                "cleanup must not alter trusted-device rows (seventh face removed -> R3-01)");
-        assertNotNull(trustedDeviceDao().getEntityById("td-ma01-expired"),
-                "expired trusted-device row must be retained by the six-family sweeper (zero-touch)");
+                "unexpired trusted-device rows must be retained by the seventh-family sweeper");
+        assertNull(trustedDeviceDao().getEntityById("td-ma01-expired"),
+                "expired trusted-device row must be swept by the seventh-family channel (plan 2569 W7)");
     }
 
     /**
@@ -414,6 +417,17 @@ public class TestAuthLedgerRetention_MA_01 extends JunitAutoTestCase {
             java.lang.reflect.Field f = MfaTrustedDeviceManager.class.getDeclaredField("daoProvider");
             f.setAccessible(true);
             f.set(manager, daoProvider);
+            // 5.1-MA-04（plan 2569）：可选依赖注入缺位容忍（isExempted/register 旧测试面不触锁/orm 通道时无需）
+            try {
+                java.lang.reflect.Field lf = MfaTrustedDeviceManager.class.getDeclaredField("lockManager");
+                lf.setAccessible(true);
+                lf.set(manager, new io.nop.commons.concurrent.lock.impl.LocalResourceLockManager());
+                java.lang.reflect.Field of = MfaTrustedDeviceManager.class.getDeclaredField("ormTemplate");
+                of.setAccessible(true);
+                of.set(manager, ormTemplate);
+            } catch (NoSuchFieldException ignored) {
+                // 修复前代码形态容忍
+            }
         } catch (ReflectiveOperationException e) {
             throw NopException.adapt(e);
         }

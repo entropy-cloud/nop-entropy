@@ -786,6 +786,9 @@ class TestTrustedDeviceE2E {
         trustedDeviceManager = new MfaTrustedDeviceManager();
         setField(trustedDeviceManager, "daoProvider", daoProvider);
         setField(trustedDeviceManager, "auditService", new NoopAuditService());
+        // 5.1-MA-04（plan 2569）：并发纪律锁 + 条件 UPDATE 通道注入
+        setField(trustedDeviceManager, "lockManager", new io.nop.commons.concurrent.lock.impl.LocalResourceLockManager());
+        setField(trustedDeviceManager, "ormTemplate", ormTemplate);
 
         roleMfaPolicyEvaluator = new RoleMfaPolicyEvaluator();
         setField(roleMfaPolicyEvaluator, "daoProvider", daoProvider);
