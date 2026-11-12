@@ -206,6 +206,10 @@
         </ioc:condition>
     </bean>
 
+    <!-- 2.3-C1-010（plan 2568）：saveUserContextAsync per-session 单飞所用的本地资源锁。
+         ioc:default=true：部署方可用分布式 IResourceLockManager 实现覆盖。 -->
+    <bean id="nopAuthSessionFlushLockManager" class="io.nop.commons.concurrent.lock.impl.LocalResourceLockManager" ioc:default="true"/>
+
     <bean id="nopUserContextCache" class="io.nop.auth.service.login.DaoUserContextCache">
         <ioc:condition>
             <if-property name="nop.auth.login.use-dao-user-context-cache"/>

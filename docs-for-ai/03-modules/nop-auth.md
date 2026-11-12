@@ -436,6 +436,8 @@ MFA 敏感表**禁止通用 CRUD 写**：八张表的 BizModel（共同基类 `M
 
 **联系方式变更治理（A2-followup-1 W12 路由项 3）**：`NopAuthUser` 的 phone/email 经通用 CRUD（save/update preparer 路径，ORM 脏属性判定）修改被分级：非 admin 登录调用方（含修改本人行）→ `ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED`（联系方式变更需管理员或专用流程）；admin → 放行 + `user:contact-changed` 审计事件（改人留痕，不落明文新旧值）；无登录态内部调用（批量导入/数据准备）→ 放行。非联系字段（nickname 类）通用修改行为不变。用户自助 changePhone/changeEmail 专用正门（含 proof/MFA ceremony）未提供——需变更联系方式的用户联系管理员。租户变体面 `NopAuthUser_tenant` 复用同一 BizModel，同口径覆盖。
 
+**Dao-cache 会话 flush 契约（2.3-C1-010，plan 2568）**：`nop.auth.login.use-dao-user-context-cache` 部署下，`DaoUserContextCache.saveUserContextAsync` 为 per-session 单飞（`IResourceLockManager`，bean `nopAuthSessionFlushLockManager` 缺省本地实现，可换分布式实现）内的**基线条件 UPDATE**：乐观条件 = `getUserContextAsync` 读时捕获的 DB 行基线（refreshToken + lastAccessTime）+ `logoutType=0` 守卫。affected=0 且行存在 → 副本过期（token 已被其他副本旋转/行已登出），**放弃写入**并 WARN（`nop.auth.session-flush-stale-abandoned`）——本请求内非 token 字段修改（nickName/roles 等 cacheData 内容）不落库；副本 request-scoped、下请求重读 DB，丢失窗口为单请求内变更，fail-safe（DB 中 token 权威）优先于 last-writer-wins。affected=0 且行不存在 → 登录路径同会话 insert 待 flush，回退实体改写（行未提交前对其他写者不可见）。仅落库成功后 `clearDirty`；flush 异常 ERROR（`nop.auth.session-flush-fail`）——`AuthHttpServerFilter` 丢弃 flush 返回值，日志为唯一观测面。checkExpired 过期标记同为显式条件 UPDATE（仅未登出行）。回归钉：`TestDaoUserContextCacheConditionalFlush`（红① 过期副本不回滚旋转 token / 红④ 并发过期副本 flush / 绿① logout 后放弃 / 绿② 全字段落库 / 基线字段不进 cacheData 白名单钉）。
+
 ## 相关文档
 
 - `../02-core-guides/auth-and-permissions.md`

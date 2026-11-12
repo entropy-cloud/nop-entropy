@@ -14,6 +14,7 @@ import io.nop.auth.service.login.DaoLoginSessionStore;
 import io.nop.auth.service.login.DaoUserContextCache;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.LocalCacheProvider;
+import io.nop.commons.concurrent.lock.impl.LocalResourceLockManager;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.api.IDaoProvider;
@@ -218,6 +219,8 @@ class TestDaoSessionStoreAndUserContextCache {
         daoCache = new DaoUserContextCache();
         daoCache.setUserContextConfig(new UserContextConfig());
         setField(daoCache, "daoProvider", daoProvider);
+        setField(daoCache, "ormTemplate", ormTemplate);
+        setField(daoCache, "lockManager", new LocalResourceLockManager());
         daoCache.init();
     }
 

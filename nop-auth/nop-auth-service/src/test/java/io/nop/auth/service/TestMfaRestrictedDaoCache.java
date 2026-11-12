@@ -20,6 +20,7 @@ import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.dao.entity.NopAuthUserRole;
 import io.nop.auth.service.login.DaoLoginSessionStore;
 import io.nop.auth.service.login.DaoUserContextCache;
+import io.nop.commons.concurrent.lock.impl.LocalResourceLockManager;
 import io.nop.auth.service.login.LoginServiceImpl;
 import io.nop.auth.service.mfa.MfaLoginPolicyServiceImpl;
 import io.nop.auth.service.mfa.RoleMfaPolicyEvaluator;
@@ -352,6 +353,8 @@ class TestMfaRestrictedDaoCache {
         daoCache = new DaoUserContextCache();
         daoCache.setUserContextConfig(new UserContextConfig());
         setField(daoCache, "daoProvider", daoProvider);
+        setField(daoCache, "ormTemplate", ormTemplate);
+        setField(daoCache, "lockManager", new LocalResourceLockManager());
         daoCache.init();
 
         // 真实 DaoLoginSessionStore（completeLogin saveSession 落 NopAuthSession 行）
