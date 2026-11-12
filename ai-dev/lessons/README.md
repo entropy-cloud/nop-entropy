@@ -31,3 +31,4 @@
 | 16 | [16-xlang-dsl-call-sites-invisible-to-java-grep.md](16-xlang-dsl-call-sites-invisible-to-java-grep.md) | XLang DSL 调用点对 Java 向 grep 不可见：删"死代码"必须全资源搜方法名+跑下游模块 | 2026-08-28 |
 | 17 | [17-full-regression-three-artifacts.md](17-full-regression-three-artifacts.md) | 全量回归三重假象：陈旧 ~/.m2 工件、fail-fast 截断与被硬配置压制的 ignore 开关 | 2026-10-10 |
 | 18 | [18-governance-text-replace-silent-noop.md](18-governance-text-replace-silent-noop.md) | 治理文本的静默替换失配：python replace 无断言等于没做 | 2026-10-10 |
+| 19 | [19-cra-campaign-process-discipline.md](19-cra-campaign-process-discipline.md) | CRA campaign 过程纪律——门禁复跑、独立审计边界与构建归因 | 2026-11-12 |
