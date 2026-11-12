@@ -18,7 +18,7 @@ import java.util.function.LongSupplier;
  * 这使 {@link ProviderFailoverChain} 游走器跳过冷却中的 provider，防 P1↔P2 跨调用反复弹跳（防震荡）。
  *
  * <p><b>可测试时间源（裁定 D，不复制 ThresholdBreaker 反模式）</b>：时间经可注入
- * {@link LongSupplier nowMs}（构造器参数，默认 {@code CoreMetrics::currentTimeMillis}，
+ * {@link LongSupplier nowMs}（构造器参数，默认 {@code CoreMetrics::nanoTime}，R4-32 改单调，
  * TestClock 注入时同轴）。测试注入可控时间源（如 {@code AtomicLong}）精确推进时间，
  * 零窗口确定性测试去重边界。对比 {@code ThresholdBreaker} 曾直接调
  * {@code System.currentTimeMillis()}（已知反模式，2026-09-12 审计修复后已统一 CoreMetrics），
@@ -39,15 +39,19 @@ public final class ProviderFailoverQueue implements IProviderFailoverQueue {
     private final ConcurrentMap<String, ProviderHealth> health = new ConcurrentHashMap<>();
 
     /**
-     * 默认冷却（60s）+ 系统时间源。
+     * 默认冷却（60s）+ 时间源。R4-32（3.1-C7-004，plan 2566）：构造缝默认值改单调时钟
+     * {@code CoreMetrics::nanoTime}（缝形态不变；既有 TestProviderFailoverQueue 注入护栏
+     * 经缝显式注入墙钟/受控钟的用例零回改）。nowMs 语义自本批起为单调纳秒相对值（冷却
+     * 差值比较类内自洽），非 epoch——注记见 R4-32 owner doc 落账。
      */
     public ProviderFailoverQueue() {
-        this(DEFAULT_COOLDOWN_MS, CoreMetrics::currentTimeMillis);
+        this(DEFAULT_COOLDOWN_MS, CoreMetrics::nanoTime);
     }
 
     /**
      * @param cooldownMs provider 失败后冷却时长（ms，须 &gt;= 0；0 = 不冷却，去重禁用）
-     * @param nowMs      时间源（ms since epoch）；测试注入可控时间源。非 null
+     * @param nowMs      时间源（R4-32：默认单调纳秒相对值，仅类内差值比较；显式注入
+     *                   须与比较语义自洽——注入 ms 值时冷却阈值须同单位）。非 null
      */
     public ProviderFailoverQueue(long cooldownMs, LongSupplier nowMs) {
         if (cooldownMs < 0) {

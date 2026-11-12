@@ -311,15 +311,16 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
 
     @Override
     public boolean waitForAllTasks(long timeout, TimeUnit unit) throws InterruptedException {
-        long endTime = CoreMetrics.currentTimeMillis() + unit.toMillis(timeout);
+        // R4-32（C7-004）：等待期限换单调时钟（读写同源），timeout 经 toNanos 换算保持时长语义
+        long endTime = CoreMetrics.nanoTime() + unit.toNanos(timeout);
 
         for (State state : new ArrayList<>(states.values())) {
-            long remaining = endTime - CoreMetrics.currentTimeMillis();
+            long remaining = endTime - CoreMetrics.nanoTime();
             if (remaining <= 0)
                 return false;
 
             try {
-                state.getPromise().get(remaining, TimeUnit.MILLISECONDS);
+                state.getPromise().get(remaining, TimeUnit.NANOSECONDS);
             } catch (java.util.concurrent.TimeoutException e) {
                 return false;
             } catch (java.util.concurrent.ExecutionException expected) {

@@ -9,8 +9,6 @@ package io.nop.commons.concurrent.lock.impl;
 
 import io.nop.commons.concurrent.lock.IResourceLockState;
 
-import java.sql.Timestamp;
-
 public class ResourceLockState implements IResourceLockState {
     private String resourceId;
     private String lockerId;
@@ -98,9 +96,11 @@ public class ResourceLockState implements IResourceLockState {
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        // R4-32（C7-004[R1-m4/R2-m2]）：时间域随 LocalResourceLockManager 换源为单调时钟（纳秒相对值），
+        // 非 epoch 语义，不再包装 Timestamp 展示，直接输出原始值
         sb.append("ResourceLockState[resourceId=").append(resourceId).append(",lockerId=").append(lockerId)
-                .append(",lockTime=").append(new Timestamp(lockTime)).append(",createTime=")
-                .append(new Timestamp(createTime)).append(",expireTime=").append(new Timestamp(expireTime)).append("]");
+                .append(",lockTime=").append(lockTime).append(",createTime=")
+                .append(createTime).append(",expireTime=").append(expireTime).append("]");
         return sb.toString();
     }
 }

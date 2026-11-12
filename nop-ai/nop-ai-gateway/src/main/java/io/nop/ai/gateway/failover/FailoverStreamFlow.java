@@ -178,7 +178,9 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         final ChatOptions sunkOptions;
         final AttemptCancelToken token;
         final AtomicBoolean released = new AtomicBoolean();
-        final long windowStart = CoreMetrics.currentTimeMillis(); // 仅 metrics 时长维度
+        // R4-32（3.3-C7-002，plan 2566）：windowStart 与两处时长消费成对同源切换为单调时钟
+        // （仅 metrics 时长维度自标注释保留）
+        final long windowStart = CoreMetrics.nanoTime(); // 仅 metrics 时长维度
         volatile Flow.Subscription upSub;
 
         AttemptState(int index, ModelClassCandidate candidate, ChatOptions sunkOptions,
@@ -605,7 +607,8 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 // attempt 失败（切换类 / NON_TRANSIENT / 窗口外断流）；取消路径不经过本方法。
                 metrics.onRequestFailure(state.candidate.getProvider(), state.candidate.getModel(),
                         state.candidate.getAccountKey(),
-                        CoreMetrics.currentTimeMillis() - state.windowStart);
+                        // R4-32：差值域为单调纳秒，metrics 契约 durationMs 毫秒口径经 nanoToMillis 换算
+                        CoreMetrics.nanoToMillis(CoreMetrics.nanoTime() - state.windowStart));
             }
             if (throwable instanceof StreamingBufferOverflowException) {
                 // 裁定⑤：溢出 = 不可重试终态——不分类、不 recordFailure、不重选/重订阅，直接断流。
@@ -700,7 +703,9 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
             IFailoverMetrics metrics = adapter.getMetrics();
             if (metrics != null) {
                 metrics.onRequestSuccess(state.candidate.getProvider(), state.candidate.getModel(),
-                        state.candidate.getAccountKey(), CoreMetrics.currentTimeMillis() - state.windowStart);
+                        // R4-32：差值域为单调纳秒，metrics 契约 durationMs 毫秒口径经 nanoToMillis 换算
+                        state.candidate.getAccountKey(),
+                        CoreMetrics.nanoToMillis(CoreMetrics.nanoTime() - state.windowStart));
             }
             if (!cancelled.get()) {
                 subscriber.onComplete();

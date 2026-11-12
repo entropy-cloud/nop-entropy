@@ -291,6 +291,10 @@ nop-ai-core 的旧 chat API 已整体删除，公共 API 变更如下（Protecte
 
 行为登记：①旧磁盘缓存条目格式失效（TTL 默认 0 时残留无害，读取走 load-fail→miss）；②`disableCache`/`streamListener`/`seed`/`contextLength` options 键不再有落点（`contextLength` task-xml attr 仍可解析但被忽略——新栈 dialect 本就不消费）；③`ai:toolSet` 死属性已从 deepwiki task-xml 移除；④`nopGraphQLToolSet` bean 已随 plan 2415（WI2 双路线裁定）退役——AiCommand 工具循环生产链不存在，`nop.err.ai.unknown-tool-call` 错误码同步删除。
 
+## 熔断时钟口径（plan 2566 R4-32，3.1-C7-004）
+
+`ThresholdBreaker` 内部时间域（openedAt/lastTransition/probeStartedAt）整域换源 `CoreMetrics.nanoTime()`（单调纳秒；cooldownMs/entryTtlMs/probeTimeoutMs 毫秒阈值类内 `TimeUnit.MILLISECONDS.toNanos` 换算）——墙钟回拨不再顺延/提前熔断冷却。`ProviderFailoverQueue` 构造缝默认值改 `CoreMetrics::nanoTime`（`nowMs` 缝形态不变；显式注入须与差值比较语义自洽）。测试锚点：`TestCraR432BreakerMonotonicClock_C7_004`（registerClock 兜底+finally；PFQ 默认缝回拨腿）+ 既有 `TestThresholdBreaker`/`TestProviderFailoverQueue`/`TestBreakerEntryTtl` 护栏。
+
 ## 相关文档
 
 - `../reusable-modules-overview.md`

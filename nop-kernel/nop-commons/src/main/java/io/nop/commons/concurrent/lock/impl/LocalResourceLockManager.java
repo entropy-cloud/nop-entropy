@@ -21,7 +21,6 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -30,6 +29,14 @@ import java.util.concurrent.TimeUnit;
 
 public class LocalResourceLockManager implements IResourceLockManager, IResourceLockManagerImplementor {
     static final Logger LOG = LoggerFactory.getLogger(LocalResourceLockManager.class);
+
+    /*
+     * R4-32（C7-004，plan 2566）：锁表内部全部时间域（createTime/lockTime/expireTime/lastCleanUpTime）
+     * 按类内整域原子切换为单调时钟 CoreMetrics.nanoTime()（读写同源），消除墙钟回拨导致的租约误判
+     * （回拨 1h 租约变长 1h）与前跳导致的批量误删。IResourceLockState.expireTime/getExpireTime()
+     * 返回值语义随之变为「单调相对值（纳秒），仅与本进程 CoreMetrics.nanoTime() 比较」，不承载
+     * epoch 语义，不得持久化或跨进程传输（本实现族内）。IResourceLockState 契约 javadoc 同步修订。
+     */
 
     final ConcurrentMap<String, LocalResourceLockState> locks = new ConcurrentHashMap<>();
 
@@ -91,7 +98,8 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
         lock.setResourceId(resourceId);
         lock.setLockerId(lockerId);
 
-        long now = CoreMetrics.currentTimeMillis();
+        // R4-32（C7-004）：锁表内部时间戳统一使用单调时钟（nanoTime 纳秒），仅作类内相对比较与诊断展示
+        long now = CoreMetrics.nanoTime();
         lock.setCreateTime(now);
         lock.setLockTime(now);
         return lock;
@@ -115,8 +123,10 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
     }
 
     public void checkTimeout() {
-        long now = CoreMetrics.currentTimeMillis();
-        LOG.debug("nop.lock.check-lease-expire:lastCleanupTime={}", new Timestamp(lastCleanUpTime));
+        // R4-32（C7-004）：过期判定与锁表时间同源（单调时钟）；lastCleanUpTime 亦为单调值，
+        // 日志直接输出原始值（不再包装 Timestamp——单调值非 epoch 语义[R1-m4/R2-m2]）
+        long now = CoreMetrics.nanoTime();
+        LOG.debug("nop.lock.check-lease-expire:lastCleanupTime={}", lastCleanUpTime);
         lastCleanUpTime = now;
         for (LocalResourceLockState lock : locks.values()) {
             // 与tryResetLease/isHoldingLock使用同一把锁，避免续租过程中读到旧的expireTime而误删锁
@@ -143,15 +153,19 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
 
     @Override
     public IResourceLockState tryLockWithLease(String resourceId, String lockerId, long waitTime, long leaseTime, String lockReason) {
-        long startTime = CoreMetrics.currentTimeMillis();
+        // R4-32（C7-004）：整域原子切换——读写同源（单调时钟）；waitTime/leaseTime 参数保持毫秒口径，
+        // 类内统一换算为纳秒后与 nanoTime 比较[R2-m6 ms→ns 换算同则]
+        long startTime = CoreMetrics.nanoTime();
+        long waitNs = TimeUnit.MILLISECONDS.toNanos(waitTime);
+        long leaseNs = TimeUnit.MILLISECONDS.toNanos(leaseTime);
 
         LocalResourceLockState lock = this.newLock(resourceId, lockerId);
         lock.setLockReason(lockReason);
 
         do {
-            long current = CoreMetrics.currentTimeMillis();
+            long current = CoreMetrics.nanoTime();
             lock.setLockTime(current);
-            lock.setExpireTime(current + leaseTime);
+            lock.setExpireTime(current + leaseNs);
 
             LocalResourceLockState existingLock = locks.putIfAbsent(resourceId, lock);
             if (existingLock == null) {
@@ -160,7 +174,7 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
             }
 
             long usedTime = current - startTime;
-            if (waitTime <= 0 || waitTime <= usedTime) {
+            if (waitNs <= 0 || waitNs <= usedTime) {
                 LOG.debug("nop.lock.acquire-fail:resourceId={},usedTime={},lock={},existingLock={}", resourceId,
                         usedTime, lock, existingLock);
                 return null;
@@ -171,7 +185,7 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
             // 可能读到旧值误删刚续租的锁（违反同文件注释声明的不变式）。
             boolean expired;
             synchronized (existingLock.getLatch()) {
-                expired = existingLock.getExpireTime() < CoreMetrics.currentTimeMillis();
+                expired = existingLock.getExpireTime() < CoreMetrics.nanoTime();
                 if (expired)
                     removeExpiredLock(existingLock);
             }
@@ -179,10 +193,10 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
                 continue;
 
             LOG.debug("nop.lock.acquire-wait:resourceId={},lock={},existingLock={},wait={}", resourceId, lock,
-                    existingLock, waitTime - usedTime);
+                    existingLock, TimeUnit.NANOSECONDS.toMillis(waitNs - usedTime));
 
             try {
-                boolean b = existingLock.getLatch().await(waitTime - usedTime, TimeUnit.MILLISECONDS);
+                boolean b = existingLock.getLatch().await(waitNs - usedTime, TimeUnit.NANOSECONDS);
                 if (!b) {
                     LOG.debug("nop.lock.await-timeout");
                 }
@@ -237,13 +251,13 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
         LocalResourceLockState state = (LocalResourceLockState) lock;
 
         synchronized (state.getLatch()) {
-            long current = CoreMetrics.currentTimeMillis();
+            long current = CoreMetrics.nanoTime();
 
             long expireTime = lock.getExpireTime();
 
             if (expireTime > current) {
-                // 租约仍然有效时才可以续租
-                state.setExpireTime(current + leaseTime);
+                // 租约仍然有效时才可以续租（R4-32：单调时钟同源，leaseTime 毫秒口径换算纳秒）
+                state.setExpireTime(current + TimeUnit.MILLISECONDS.toNanos(leaseTime));
                 state.setLockTime(current);
 
                 if (locks.get(state.getResourceId()) == lock) {
@@ -263,12 +277,12 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
         LocalResourceLockState state = (LocalResourceLockState) lock;
 
         synchronized (state.getLatch()) {
-            long current = CoreMetrics.currentTimeMillis();
+            long current = CoreMetrics.nanoTime();
 
             long expireTime = lock.getExpireTime();
 
             if (expireTime > current) {
-                // 租约仍然有效且仍在锁表中时才报告为持有
+                // 租约仍然有效且仍在锁表中时才报告为持有（R4-32：单调时钟同源判定）
                 if (locks.get(state.getResourceId()) == lock) {
                     return true;
                 }

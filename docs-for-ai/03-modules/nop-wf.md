@@ -73,6 +73,10 @@ due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推
 
 **wf step retry 语义（plan 2541 W-12，MA-22 裁定 F）**：`computeRetryDelay` 对固定 delay 与 exponential 两分支统一应用 `maxRetryDelay` 封顶（对齐 task 侧 RetryPolicy）；`maxRetryDelay<=0` 维持不封顶（未配置语义，存量长退避零变更）。**活动事务上下文中延迟等待降级不重试**——事务内 sleep 持连接/行锁为更劣形态，检测到已开启事务时显式 WARN（`nop.wf.retry-degraded-in-transaction`）后抛原业务异常（事务检测经 `IWorkflowStore.hasOpenedTransaction` 接口投影，DaoWorkflowStore 以 ORM querySpace 实测）；升级注记：存量依赖事务内重试的模型升级后该场景改为显式失败。测试锚点：`TestCraR408TransferAndRetry`（封顶两分支 + 事务降级 execCount 断言）。
 
+### 扫描时钟双缝（plan 2566 R4-32，1.5-C7-006）
+
+`WfTaskScanner` 暴露两个 protected 时钟缝：`nowMillis()`（默认 `CoreMetrics::currentTimeMillis`，绝对域——`leaseUntil`/`dueTime`/`remindTime` 写值与 DB 可比，保留 epoch 语义；墙钟回拨=租约相对变长，自愈型有界）与 `nowNanos()`（默认 `CoreMetrics::nanoTime`，纯相对预算域——due/remind 两半区扫描时间预算 deadline，毫秒预算类内 `TimeUnit.MILLISECONDS.toNanos` 换算）。消费方按语义选缝，禁止缝外直连 `System.currentTimeMillis`。测试锚点：`TestWfScannerClockSeams_C7_006`（预算确定性耗尽钉 + 绝对域墙钟缝钉）。
+
 ### 扫描 job 装配与韧性（plan 2542 R4-09，CRA 8.49）
 
 **invoker bean 装配（W-04，1.5-C4-003）**：`wf-due-task-scan.job.yaml` / `wf-remind-task-scan.job.yaml` 的 `invoker.bean` 必须为容器内实际 bean id **`nopWfTaskScanner`**（`app-scheduler.beans.xml` 定义）。修复前两文件写 `wfTaskScanner`（全仓零命中）——一旦启用 `nop.job.wf-*-task-scan.enabled=true`，每次 fire 在 `requireBean` 处同步抛 `ERR_JOB_BEAN_NOT_FOUND` → job FAILED 永久停摆，到期升级与提醒能力 100% 失效。**已部署环境若持有外部覆盖副本（delta/自定义 conf），须同步改名**。测试锚点：`TestWfScanJobWiringR409`（C10-010 装配三腿：yaml 解析 → bean id 集 → method 反射）。

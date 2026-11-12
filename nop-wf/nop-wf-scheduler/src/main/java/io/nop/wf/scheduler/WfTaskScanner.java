@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -163,6 +164,25 @@ public class WfTaskScanner {
         return ref.get();
     }
 
+    /**
+     * R4-32（1.5-C7-006，plan 2566 [R1-M4]）双缝之墙钟缝：绝对时间域（leaseUntil/dueTime/
+     * remindTime 写值，与 DB 可比）取值入口。默认 CoreMetrics::currentTimeMillis（epoch 毫秒）。
+     * 回拨语义注记：绝对域写值随墙钟回拨将使租约/dueTime 相对变长（回拨=租约变长），自愈型
+     * 有界（扫描集游标推进+到期重扫），不引入 DB 钟改造（防扩：1.5-C4-007/MA-05 归 R4-09）。
+     */
+    protected long nowMillis() {
+        return CoreMetrics.currentTimeMillis();
+    }
+
+    /**
+     * R4-32（1.5-C7-006 [R1-M4]）双缝之单调缝：纯相对预算域（扫描时间预算 deadline）取值入口。
+     * 默认 CoreMetrics::nanoTime（单调纳秒）。预算毫秒阈值类内经 TimeUnit.MILLISECONDS.toNanos
+     * 换算[R2-m6]，与 nanoTime 同单位比较。
+     */
+    protected long nowNanos() {
+        return CoreMetrics.nanoTime();
+    }
+
     int getScanBatchSize() {
         return cfg(WfSchedulerConfigs.CFG_WF_SCAN_BATCH_SIZE);
     }
@@ -241,7 +261,8 @@ public class WfTaskScanner {
     void scanDueTasksInCurrentSession() {
         int batchSize = getScanBatchSize();
         long budgetMs = getScanTimeBudgetMs();
-        long deadline = budgetMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + budgetMs;
+        // R4-32（C7-006）：预算为纯相对计时域——单调缝取值，毫秒阈值换算纳秒
+        long deadline = budgetMs <= 0 ? Long.MAX_VALUE : nowNanos() + TimeUnit.MILLISECONDS.toNanos(budgetMs);
 
         // 毒步骤连续失败轮次计数（有界 cap，裁定④）
         Map<String, Integer> failCounts = new HashMap<>();
@@ -252,7 +273,7 @@ public class WfTaskScanner {
         DUE_SCAN_FAILURES.set(0);
 
         while (true) {
-            if (System.currentTimeMillis() >= deadline) {
+            if (nowNanos() >= deadline) {
                 LOG.info("nop.wf.scheduler.scan-time-budget-exhausted:scanned={},budgetMs={}", scanned, budgetMs);
                 break;
             }
@@ -284,7 +305,8 @@ public class WfTaskScanner {
     private void scanDueTask(IWorkflowStepRecord stepRecord, Map<String, Integer> failCounts) {
         String stepKey = stepRecord.getWfId() + "/" + stepRecord.getStepId();
         String holderId = resolveNodeId() + ":" + UUID.randomUUID();
-        Timestamp leaseUntil = new Timestamp(System.currentTimeMillis() + getScanLeaseMs());
+        // R4-32（C7-006）：leaseUntil 为 DB 可比绝对时间——墙钟缝取值（绝对域保留 epoch）
+        Timestamp leaseUntil = new Timestamp(nowMillis() + getScanLeaseMs());
         if (!workflowStore.tryClaimScanLease(stepRecord, holderId, leaseUntil)) {
             // 裁定⑥：抢占失败显式 skip（race skip INFO 形态复用，非吞）
             LOG.info("nop.wf.scheduler.skip-due-task-scan-lease-lost:wfId={},stepId={}",
@@ -414,7 +436,8 @@ public class WfTaskScanner {
         }
         int failures = failCounts.merge(stepKey, 1, Integer::sum);
         long backoff = Math.min(BACKOFF_BASE_MS * (1L << Math.min(failures - 1, BACKOFF_MAX_SHIFT)), BACKOFF_MAX_MS);
-        Timestamp newDueTime = new Timestamp(System.currentTimeMillis() + backoff);
+        // R4-32（C7-006）：dueTime 为 DB 可比绝对时间——墙钟缝取值
+        Timestamp newDueTime = new Timestamp(nowMillis() + backoff);
         // 失败退避路径显式可见（ERROR + 退避量留痕，非空 catch）
         LOG.warn("nop.wf.scheduler.due-task-backoff-postpone:wfId={},stepId={},failures={},backoffMs={},newDueTime={}",
                 stepRecord.getWfId(), stepRecord.getStepId(), failures, backoff, newDueTime);
@@ -432,7 +455,8 @@ public class WfTaskScanner {
     void scanRemindTasksInCurrentSession() {
         int batchSize = getScanBatchSize();
         long budgetMs = getScanTimeBudgetMs();
-        long deadline = budgetMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + budgetMs;
+        // R4-32（C7-006）：预算为纯相对计时域——单调缝取值，毫秒阈值换算纳秒
+        long deadline = budgetMs <= 0 ? Long.MAX_VALUE : nowNanos() + TimeUnit.MILLISECONDS.toNanos(budgetMs);
 
         // W-01(a)（MA-06 残留面裁定 E）：remind 半区毒步骤连续失败轮次计数（与 due 半区
         // failCounts 同构，有界 cap 同款）
@@ -441,7 +465,7 @@ public class WfTaskScanner {
         int scanned = 0;
 
         while (true) {
-            if (System.currentTimeMillis() >= deadline) {
+            if (nowNanos() >= deadline) {
                 LOG.info("nop.wf.scheduler.scan-time-budget-exhausted:scanned={},budgetMs={}", scanned, budgetMs);
                 break;
             }
@@ -472,7 +496,8 @@ public class WfTaskScanner {
     private void scanRemindTask(IWorkflowStepRecord stepRecord, Map<String, Integer> failCounts) {
         String stepKey = stepRecord.getWfId() + "/" + stepRecord.getStepId();
         String holderId = resolveNodeId() + ":" + UUID.randomUUID();
-        Timestamp leaseUntil = new Timestamp(System.currentTimeMillis() + getScanLeaseMs());
+        // R4-32（C7-006）：leaseUntil 为 DB 可比绝对时间——墙钟缝取值（绝对域保留 epoch）
+        Timestamp leaseUntil = new Timestamp(nowMillis() + getScanLeaseMs());
         if (!workflowStore.tryClaimScanLease(stepRecord, holderId, leaseUntil)) {
             LOG.info("nop.wf.scheduler.skip-remind-task-scan-lease-lost:wfId={},stepId={}",
                     stepRecord.getWfId(), stepRecord.getStepId());
@@ -515,7 +540,8 @@ public class WfTaskScanner {
         }
         int failures = failCounts.merge(stepKey, 1, Integer::sum);
         long backoff = Math.min(BACKOFF_BASE_MS * (1L << Math.min(failures - 1, BACKOFF_MAX_SHIFT)), BACKOFF_MAX_MS);
-        Timestamp newRemindTime = new Timestamp(System.currentTimeMillis() + backoff);
+        // R4-32（C7-006）：remindTime 为 DB 可比绝对时间——墙钟缝取值
+        Timestamp newRemindTime = new Timestamp(nowMillis() + backoff);
         // 失败退避路径显式可见（ERROR + 退避量留痕，非空 catch）
         LOG.warn("nop.wf.scheduler.remind-task-backoff-postpone:wfId={},stepId={},failures={},backoffMs={},newRemindTime={}",
                 stepRecord.getWfId(), stepRecord.getStepId(), failures, backoff, newRemindTime);

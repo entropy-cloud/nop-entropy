@@ -4,6 +4,8 @@ import static io.nop.ai.core.AiCoreConfigs.CFG_AI_BREAKER_ENTRY_TTL;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_CORE_INVALID_STATE;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
+
+import java.util.concurrent.TimeUnit;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
 import org.slf4j.Logger;
@@ -226,7 +228,9 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         }
         boolean[] holder = new boolean[1];
         entries.compute(modelKey, (k, existing) -> {
-            long now = CoreMetrics.currentTimeMillis();
+            // R4-32（3.1-C7-004，plan 2566）：整域原子切换单调时钟；entryTtlMs/probeTimeoutMs
+            // 毫秒阈值类内 toNanos 换算保持时长语义
+            long now = CoreMetrics.nanoTime();
             // 3.1-C7-007 (plan 2556 裁定 I): lazy TTL sweep inside the same
             // per-key critical section — a failure-memory entry (OPEN, or
             // CLOSED with failures) that has not transitioned within
@@ -236,7 +240,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
             if (existing != null && entryTtlMs > 0
                     && (existing.state == CircuitState.OPEN
                     || (existing.state == CircuitState.CLOSED && existing.consecutiveFailures > 0))
-                    && now - existing.lastTransition >= entryTtlMs) {
+                    && now - existing.lastTransition >= TimeUnit.MILLISECONDS.toNanos(entryTtlMs)) {
                 LOG.info("ThresholdBreaker failure-memory entry for model {} expired after {} ms without "
                         + "transition; forgetting (lazy TTL sweep).", modelKey, entryTtlMs);
                 // The key restarts fresh (healthy default = CLOSED) → the call is allowed.
@@ -254,8 +258,8 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                 case OPEN:
                     // Lazy cooldown check: no background timer. If the cooldown
                     // has elapsed, transition to HALF_OPEN and admit this caller
-                    // as the single probe.
-                    if (now - entry.openedAt >= cooldownMs) {
+                    // as the single probe.（R4-32：单调纳秒同源，冷却毫秒阈值换算纳秒）
+                    if (now - entry.openedAt >= TimeUnit.MILLISECONDS.toNanos(cooldownMs)) {
                         entry.state = CircuitState.HALF_OPEN;
                         entry.probeInFlight = true;
                         entry.probeStartedAt = now;
@@ -281,7 +285,8 @@ public final class ThresholdBreaker implements ICircuitBreaker {
                         // wedge the breaker in HALF_OPEN forever, rejecting every
                         // subsequent call. Once probeTimeoutMs has elapsed, treat
                         // the probe as stuck and re-take its slot for this caller.
-                        if (probeTimeoutMs > 0 && now - entry.probeStartedAt >= probeTimeoutMs) {
+                        if (probeTimeoutMs > 0 && now - entry.probeStartedAt
+                                >= TimeUnit.MILLISECONDS.toNanos(probeTimeoutMs)) {
                             LOG.warn("ThresholdBreaker HALF_OPEN probe for model {} did not report within {} ms; "
                                             + "re-taking the probe slot (escape from a stuck probe). state stays HALF_OPEN.",
                                     modelKey, probeTimeoutMs);
@@ -322,7 +327,8 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         if (entry == null || entry.state != CircuitState.OPEN) {
             return true;
         }
-        return CoreMetrics.currentTimeMillis() - entry.openedAt >= cooldownMs;
+        // R4-32（3.1-C7-004）：单调时钟同源判定（毫秒阈值换算纳秒）
+        return CoreMetrics.nanoTime() - entry.openedAt >= TimeUnit.MILLISECONDS.toNanos(cooldownMs);
     }
 
     @Override
@@ -470,7 +476,8 @@ public final class ThresholdBreaker implements ICircuitBreaker {
      * run inside the per-key {@code entries.compute} critical section.
      */
     private BreakerEntry applyFailure(BreakerEntry entry, String modelKey) {
-        long now = CoreMetrics.currentTimeMillis();
+        // R4-32（3.1-C7-004）：单调时钟（与 openedAt/lastTransition/probeStartedAt 读写同源）
+        long now = CoreMetrics.nanoTime();
         switch (entry.state) {
             case CLOSED:
                 entry.consecutiveFailures++;
@@ -523,7 +530,7 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         int consecutiveFailures = 0;
         long openedAt = 0L;
         boolean probeInFlight = false;
-        // Timestamp (CoreMetrics.currentTimeMillis) of the last probe-slot
+        // R4-32（3.1-C7-004）：单调时钟值（CoreMetrics.nanoTime，纳秒）of the last probe-slot
         // (re)taking; the HALF_OPEN probe-timeout escape compares against it.
         long probeStartedAt = 0L;
         // 3.1-C7-005 (plan 2556 裁定 G): bumped on every probe-slot admission

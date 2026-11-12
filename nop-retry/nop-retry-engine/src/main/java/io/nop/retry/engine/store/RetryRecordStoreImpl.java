@@ -130,7 +130,13 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         // renewLease CAS 续租、0 行败方显式中止（ERR_RETRY_LEASE_LOST），扫描器接管面（含
         // 首执行窗）由协议闭合。推延值保留为首提租约的起点（nextTriggerTime = now + 租约），
         // 调用方失联超过租约后扫描器照常接管，双执行由续租 CAS + attempt 级超时上界闭合。
-        record.setNextTriggerTime(new Timestamp(CoreMetrics.currentTimestamp().getTime()
+        // R4-32（1.6-C7-011，plan 2566 [R1-m5 live 勘正]）：首提租约起点归一到 DB 估计钟写侧
+        // 口径（getCurrentTime()=max 侧），与续租 renewLease 写值（:361 同函数）及扫描 reclaim
+        // 判据（getDbEstimatedClock max 双缝，plan 2543 W-08）完全同源——原实现经
+        // CoreMetrics.currentTimestamp() 直连本地墙钟，为首提路径唯一的缝外残留。
+        // 回拨语义注记：DB 估计钟不受本地墙钟调整影响（回拨=首提租约相对变短/变长均为 DB
+        // 钟语义，自愈型有界，扫描器接管面闭合）。
+        record.setNextTriggerTime(new Timestamp(getCurrentTime()
                 + NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS));
 
         // 确定性分区：同 (namespaceId, groupId, idempotentId) 稳定落同一分区，集群扫描按分区取数

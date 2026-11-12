@@ -719,6 +719,10 @@ Redis Pub/Sub 为 fire-and-forget 传输（无消费组、无持久化），lett
 5. 只改 orm.xml 的包名，没有同步迁移 Java 源文件目录和 package 声明。
 6. 手动编辑 `_gen/` 里的包名，而不是删除后让 codegen 重新生成。
 
+## 跨节点时钟口径（plan 2566 R4-32，2.5-C7-013）
+
+Redis 侧限流（`LettuceRateLimiter` + `nop/redis/rate_limit.lua`）时间戳在 Redis 侧跨节点比较存储——**禁用客户端本地钟**（客户端墙钟跨节点共享即缺陷本体）。脚本时间源 = Redis 服务器 `TIME`（秒针，存量键同为 epoch 秒）；Lua 内调 TIME 为非确定性命令，脚本首行显式 `redis.replicate_commands()`（<5.0 必需，≥5.0 兼容）；客户端 `now` 参数已移除。存量键混存（客户端 epoch 秒 vs 服务器 epoch 秒）经 `delta=max(0,...)` 下界与 `min(capacity,...)` 上界钳制，错域影响有界。测试锚点：`TestRedisRateLimitServerClock_C7_013`（结构钉）；`TestRedisRateLimitServerClockDocker_C7_013`（testcontainers 行为钉，`-Dnop.test.docker.enabled=true` 门控，先例 `TestLettuceHashTtlAtomic`）。
+
 ## 相关文档
 
 - `./orm-model-design.md` — ORM 模型设计规范（stdDataType/stdSqlType 分离、主键策略、字段设计、关系设计的概念知识归该文档所有）

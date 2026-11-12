@@ -78,7 +78,11 @@ public class DefaultResourceChangeChecker implements IResourceChangeChecker {
      * @param recorded    记录的判据mtime
      * @param current     当前mtime读数
      * @param graceMillis 宽限期（毫秒），0=关闭档
-     * @param now         当前时刻（CoreMetrics.currentTimeMillis()，墙钟敏感点归R4-32换源面覆盖）
+     * @param now         当前时刻（CoreMetrics.currentTimeMillis()）。R4-32（plan 2566 [R1-B1/R2-m3]）
+     *                    裁定本点为<strong>绝对域豁免</strong>：now 与 mtime epoch 同表达式耦合
+     *                    （writeAge=now-current），换单调时钟将恒产生巨大负值使写入年龄宽限双条件
+     *                    永久退化，静默杀死 plan 2500 写入年龄锚——故保留墙钟取值不改，随 owner doc
+     *                    落账豁免注记（cra-index :381 原注记「归R4-32换源面覆盖」以此勘正）
      */
     public static boolean isChangeRecord(long recorded, long current, long graceMillis, long now) {
         if (isLoadMismatch(recorded, current))

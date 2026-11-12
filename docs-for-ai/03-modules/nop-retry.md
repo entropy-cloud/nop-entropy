@@ -160,6 +160,10 @@
 | 账本保留清理（1.6-C7-001） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/store/RetryRecordStoreImpl.java`（`purgeExpiredLedgerRows` 三通道清理面；保留参数 `RetryEngineConfigs`，引擎生命周期链接线 `RetryEngineImpl`） |
 | 并发契约（plan 2515 R2-12 + plan 2543 R4-10） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java`（续租+被抢中止 `executeImmediateRetry` :457/:465、代际校验 `finishImmediateRetry` :488/:500、两层簿记隔离 `runRecordBookkeeping` :565/:665/:723、僵尸死信化 `executeRetryFromScanner` :355/:377-388、join 兜底 :923、**OVERWRITE 输家四分支** `handleOverwriteReplaceFailure` :353+、**回调深度护栏** `triggerCallback`/`callbackDepth` :849/:936+、**per-record 派发隔离** `dispatchScannerBatch` :1035+）；`RetryRecordStoreImpl`（store/）（原子替换 `replaceRecord` :339、续租 CAS `renewLease` :349、遗留 RUNNING 对账 `reconcileStaleRunningAttempts` :203、namespace 放宽 `fetchPendingRecords` :230-241、**limit 防御** :230）；`RetryScannerImpl`（scanner/）（**单轮双上界 + RoundEndReason + 时钟 seam** `doScan` :255+、**参数 fail-fast** setter :66-140）；`RetryTaskImpl`（impl/）（提交面 failedStage 契约 `callAsync` :101）；attempt 超时上界键 `nop.retry.attempt.timeout-ms` = `RetryEngineConfigs`；新增覆盖键 `nop.retry.callback.max-depth` / `nop.retry.scanner.max-batches-per-round` / `nop.retry.scanner.max-round-duration-ms` = `RetryEngineConfigs` / `RetryScannerImpl` setter |
 
+## 时钟口径（plan 2566 R4-32，1.6-C7-011）
+
+首提租约写值（`RetryRecordStoreImpl.newRecord` 的 `nextTriggerTime` 起点）、续租写值（`renewLease`）与诊断读值统一经 `getCurrentTime()` = DB 估计钟 **max 侧**（`getDbEstimatedClock().getMaxCurrentTimeMillis()`，plan 2543 W-08 双缝写侧口径；读侧 reclaim 用 min 侧）。`RetryScannerImpl` 的 `lastScanFailureTimeMillis`（:199/:207/:328）为对外可观测诊断时间戳（getter 展示），保留墙钟 epoch 语义，不入单调换源面。测试锚点：`TestCraR432RetryClockPins`（红⑧ 形态：stub getDbEstimatedClock 已知 min/max，断言写侧取 max；变异回退本地墙钟即红）。
+
 ## 相关文档
 
 - `../nop-job.md`

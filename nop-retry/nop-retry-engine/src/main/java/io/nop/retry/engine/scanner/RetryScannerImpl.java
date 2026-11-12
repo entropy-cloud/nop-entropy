@@ -196,6 +196,8 @@ public class RetryScannerImpl implements IRetryScanner {
                 new IPeriodicTaskListener() {
                     @Override
                     public void onRunFailure(Throwable e, long consecutiveFailures) {
+                        // R4-32（1.6-C7-011 [R2-M2 裁定]）：对外可观测诊断时间戳（getter 展示 +
+                        // 测试 >0 断言），保留墙钟 epoch 语义，不入单调换源清单
                         lastScanFailureTimeMillis = System.currentTimeMillis();
                         scanFailureCount.incrementAndGet();
                         LOG.error("nop.retry.scanner.round-failed:consecutiveFailures={}", consecutiveFailures, e);
@@ -204,6 +206,8 @@ public class RetryScannerImpl implements IRetryScanner {
                     @Override
                     public void onChainRejected(Throwable e) {
                         running = false;
+                        // R4-32（1.6-C7-011 [R2-M2 裁定]）：对外可观测诊断时间戳（getter 展示 +
+                        // 测试 >0 断言），保留墙钟 epoch 语义，不入单调换源清单
                         lastScanFailureTimeMillis = System.currentTimeMillis();
                         scanFailureCount.incrementAndGet();
                         LOG.error("nop.retry.scanner.chain-rejected: scan chain terminated by executor rejection,"
@@ -325,6 +329,7 @@ public class RetryScannerImpl implements IRetryScanner {
             // Exception 级失败仍由站点自身兜底（既有语义）；Error 级逃逸到平台绝缘设施边界，
             // 由 onRunFailure 观测计数并重臂（C8-001 原缺陷 = Error/被拒即近静默永久停摆）
             endReason = RoundEndReason.FETCH_ERROR;
+            // R4-32（1.6-C7-011 [R2-M2 裁定]）：对外诊断时间戳，保留墙钟（同上）
             lastScanFailureTimeMillis = System.currentTimeMillis();
             scanFailureCount.incrementAndGet();
             LOG.error("nop.retry.scanner.scan-failed", e);

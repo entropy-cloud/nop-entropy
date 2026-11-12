@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT;
@@ -136,14 +137,21 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
         return path;
     }
 
+    /**
+     * R4-32（C7-004[R1-m7]）：自单调时钟换源后本值为单调相对值（纳秒），非 epoch。
+     * 全仓当前零外部消费者；如有新增消费必须按单调语义类内比较。
+     */
     public long getLastLoadTime() {
         return lastLoadTime;
     }
 
     @Override
     public boolean isRefreshEnabled(int refreshMinInterval) {
-        long now = CoreMetrics.currentTimeMillis();
-        return now - lastLoadTime > refreshMinInterval;
+        // R4-32（C7-004[R2-B1]）：与 lastLoadTime 写入侧（loadObject）成对同源切换为单调时钟；
+        // 判据结构零改写，阈值毫秒口径换算纳秒保持时长语义。cra-index :381 勘正：原「零改写」
+        // 注记系未虑读写混源危险的原文技术错误——仅读侧换源将致 now-lastLoadTime 符号失真。
+        long now = CoreMetrics.nanoTime();
+        return now - lastLoadTime > TimeUnit.MILLISECONDS.toNanos(refreshMinInterval);
     }
 
     /**
@@ -244,33 +252,37 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
             return isChanged();
         }
 
-        long now = CoreMetrics.currentTimeMillis();
+        // R4-32（C7-004[R2-B1]）：verdict TTL/maxAge 判定与 lastLoadTime 写入侧成对同源切换为
+        // 单调时钟（cra-index :381 追加面(2)(3)），判据结构零改写
+        long now = CoreMetrics.nanoTime();
 
         // maxAge自愈：仅对deps非空entry生效；阈值0=关闭档（确定性测试缝，裁定⑥(c)）
         Duration maxAge = CFG_CACHE_TIMEOUT.get();
         if (maxAge != null && !maxAge.isNegative() && maxAge.toMillis() > 0
-                && now - lastLoadTime > maxAge.toMillis())
+                && now - lastLoadTime > TimeUnit.MILLISECONDS.toNanos(maxAge.toMillis()))
             return true;
 
         int memoTtl = CFG_REFRESH_MIN_INTERVAL.get();
         if (memoTtl > 0) {
             long checkTime = verdictCheckTime;
-            if (checkTime > 0 && now - checkTime < memoTtl) {
+            if (checkTime > 0 && now - checkTime < TimeUnit.MILLISECONDS.toNanos(memoTtl)) {
                 if (!verdictChanged)
                     return false;
                 // TRUE侧同源键重载限速：仅距lastLoadTime超过同源间隔才重载
-                return now - lastLoadTime > memoTtl;
+                return now - lastLoadTime > TimeUnit.MILLISECONDS.toNanos(memoTtl);
             }
         }
 
         boolean changed = isChanged();
         if (memoTtl > 0) {
             verdictChanged = changed;
+            // R4-32：now 为单调值；>0 哨兵沿用（单调时钟原点在个别 JVM 可为负，负值仅退化为
+            // 恒走真实裁决，不产生错误判定）
             verdictCheckTime = now;
         }
         if (!changed)
             return false;
-        return now - lastLoadTime > memoTtl;
+        return now - lastLoadTime > TimeUnit.MILLISECONDS.toNanos(memoTtl);
     }
 
     public T getObject(boolean checkChanged, IResourceObjectLoader<T> loader) {
@@ -369,7 +381,9 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
 
         Thread target = loaderThread;
         long timeoutMillis = loadWaitTimeoutMillis();
-        long deadline = timeoutMillis > 0 ? CoreMetrics.currentTimeMillis() + timeoutMillis : 0L;
+        // R4-32（C7-004）：等待期限换单调时钟（读写同源），毫秒阈值换算纳秒
+        long deadline = timeoutMillis > 0 ? CoreMetrics.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(timeoutMillis) : 0L;
 
         // 跨线程环检测：登记「等待者 → 目标装载线程」边并回溯目标等待链（与 LazyFn 编译等待共用同一等待图）
         LoadWaitGraph.register(current, target);
@@ -389,13 +403,13 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
                     return null;
                 }
                 if (deadline > 0) {
-                    long remaining = deadline - CoreMetrics.currentTimeMillis();
+                    long remaining = deadline - CoreMetrics.nanoTime();
                     if (remaining <= 0) {
                         // 有界兜底：等待图回溯存在竞态漏检窗，超时类型化（携带等待链快照，诊断可见）
                         throw ringError(ERR_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT,
                                 LoadWaitGraph.describeChain(current)).param(ARG_RESOURCE_PATH, path);
                     }
-                    wait(remaining);
+                    wait(TimeUnit.NANOSECONDS.toMillis(remaining));
                 } else {
                     wait();
                 }
@@ -511,7 +525,9 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
         Object result = executeLoadWithMtimeGuard(deps, loader);
         deps.freeze();
         this.deps = deps;
-        this.lastLoadTime = CoreMetrics.currentTimeMillis();
+        // R4-32（C7-004[R2-B1]）：与读侧判定（isRefreshEnabled/shouldReloadObject）成对同源切换为
+        // 单调时钟——仅读侧换源将致 now-lastLoadTime 符号失真（混源即错）
+        this.lastLoadTime = CoreMetrics.nanoTime();
         // 记忆化状态重置：新装载后首查必走真实裁决（裁定④门语义）
         this.verdictCheckTime = 0;
         return result;

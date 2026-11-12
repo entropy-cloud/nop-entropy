@@ -317,6 +317,12 @@ bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（经 `/
 | 扫码登录端点 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/login/ChannelLoginApiBizModel.java` |
 | 扫码登录编排 / 错误码 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/login/ChannelLoginScanProcessor.java` / `NopAiGatewayErrors.java` |
 
+## 时钟口径（plan 2566 R4-32，2.3-C8-005 + 3.3-C7-002）
+
+- **本地令牌桶**（`AiRateLimitGatewayInterceptor.TokenBucket`，nop-gateway 拦截器形态）：回填计时整域换源 `CoreMetrics.nanoTime()`（墙钟回拨不再冻结桶、前跳不再集中回填；`Math.min(capacity,...)` 钳制保留）。测试锚点：`TestAiRateLimitTokenBucket_C8_005`。
+- **failover 窗口时长**（`FailoverStreamFlow`）：`windowStart` 与 `onRequestSuccess/onRequestFailure` 时长消费成对同源换源 `CoreMetrics.nanoTime()`（差值域=单调纳秒，metrics 契约 `durationMs` 经 `CoreMetrics.nanoToMillis` 换算）。测试锚点：`TestFailoverStreamWindowClock_C7_002`。
+- **C7-003 第 8 面预留（防扩）**：`FeishuConnector.tryAcquireInbound`（:465）入站滚动窗属 C7-003（merge-adjudication #19），不入 R4-32；C7-003 激活回升时并入，届时按单调时钟换源准则裁定（滚动窗本地时戳列表换 nanoTime 化为单调列表）。
+
 ## 相关文档
 
 - `../reusable-modules-overview.md`
