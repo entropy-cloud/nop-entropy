@@ -301,7 +301,8 @@ public class TestProcessingTimeServiceDriver {
         // A timer that is ALREADY due and never drained stays due every tick —
         // the continuously-due driver state (fire removes the timer, so the
         // undrained registration never goes away).
-        pts.registerTimer(System.currentTimeMillis(), time -> fires.incrementAndGet());
+        // ManualClock 冻结在 1_000_000（plan 2510 确定化口径）：注册一个恒到期的 timer
+        pts.registerTimer(clock.peekMillis(), time -> fires.incrementAndGet());
 
         driver.start();
         try {

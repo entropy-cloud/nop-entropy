@@ -214,20 +214,27 @@ class TestCachingTableLookup {
         CachingTableLookup lookup = newLookup(stub, 60_000L, 60L, 1, 100, scan);
         assertEquals("stable", lookup.lookup("k"));
 
-        // the failing mode stays on until we have VERIFIED staleness — no recovery race
+        // the failing mode stays on until we have VERIFIED staleness — no recovery race.
+        // refreshOne runs on the async refresh pool while scans run on the manual
+        // scheduler: a single advance can land while the previous refresh still holds
+        // the in-flight slot (its dispatch is then skipped) — so each verification
+        // advance is re-armed inside the polling predicate (deterministic convergence,
+        // deadline still enforced by TestAwait).
         stub.failing = true;
         stub.values.put("k", "updated");
-        scan.advance(200);
-        TestAwait.until("the background refresh attempted and failed",
-                () -> stub.failCount.get() >= 1);
+        TestAwait.until("the background refresh attempted and failed", () -> {
+            scan.advance(200);
+            return stub.failCount.get() >= 1;
+        });
         assertEquals("stable", lookup.lookup("k"),
                 "a failed refresh keeps the stale value (cache intact, no sync requery)");
 
-        // recovery: failing off → the next scan picks up the new value
+        // recovery: failing off → a later scan round picks up the new value
         stub.failing = false;
-        scan.advance(200);
-        TestAwait.until("recovered refresh delivers the new value",
-                () -> "updated".equals(lookup.lookup("k")));
+        TestAwait.until("recovered refresh delivers the new value", () -> {
+            scan.advance(200);
+            return "updated".equals(lookup.lookup("k"));
+        });
         assertEquals("updated", lookup.lookup("k"), "recovered refresh delivers the new value");
         lookup.close();
     }
