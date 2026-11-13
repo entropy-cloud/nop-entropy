@@ -65,9 +65,11 @@ public class TestNewRpcContextBinder_C3_012 {
 
     @AfterAll
     public static void destroy() {
+        // 测试卫生（合并修订 2026-11-13）：保留 i18n 清理（本类自建消息），但不再
+        // CoreInitialization.destroy()——全局上下文销毁后后序类重初始化存在已关闭
+        // 对象残留（context-already-closed 随类序漂移）。全局上下文由平台测试基建统一管理。
         I18nMessageManager.instance().clearI18nMessages("en-US");
         I18nMessageManager.instance().clearI18nMessages("zh-CN");
-        CoreInitialization.destroy();
     }
 
     @BeforeEach

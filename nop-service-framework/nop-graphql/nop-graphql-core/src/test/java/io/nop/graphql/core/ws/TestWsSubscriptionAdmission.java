@@ -5,7 +5,6 @@ import io.nop.commons.concurrent.semaphore.HighWatermarkSemaphore;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -36,10 +35,6 @@ public class TestWsSubscriptionAdmission extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     private static JsonRpcWebSocketHandler newHandler() {
         BiFunction<JsonRpcRequest, Map<String, Object>, Flow.Publisher<ApiResponse<?>>> executionService =

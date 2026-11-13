@@ -17,7 +17,6 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.IGraphQLExecutionContext;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -149,10 +148,6 @@ public class TestGraphQLDataLoaderDispatchLifecycle {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     public void setUp() {

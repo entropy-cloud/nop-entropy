@@ -3,7 +3,6 @@ package io.nop.graphql.core.subscription;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.ws.IWebSocketSession;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -38,10 +37,6 @@ public class TestSubscriptionPushOffload_C8_001 {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     private static void awaitUntil(String message, BooleanSupplier condition) {
         long deadline = System.currentTimeMillis() + 10000;

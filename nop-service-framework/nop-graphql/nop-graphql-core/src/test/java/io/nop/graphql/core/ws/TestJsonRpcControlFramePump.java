@@ -3,7 +3,6 @@ package io.nop.graphql.core.ws;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
 import io.nop.core.initialize.CoreInitialization;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -41,10 +40,6 @@ public class TestJsonRpcControlFramePump {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     /**
      * 记录每次 sendMessage 的执行线程与消息内容——直发/泵送的判别面。

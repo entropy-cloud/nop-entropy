@@ -4,6 +4,10 @@ site:
       displayName: Modify Dataset
     FNPT:NopReportDataset:query:
       displayName: Query Dataset
+    FNPT:NopReportDatasetAuth:mutation:
+      displayName: Modify Dataset Auth
+    FNPT:NopReportDatasetAuth:query:
+      displayName: Query Dataset Auth
     FNPT:NopReportDatasetRef:mutation:
       displayName: Modify Dataset Ref
     FNPT:NopReportDatasetRef:query:
@@ -34,6 +38,8 @@ site:
       displayName: Query Sub Dataset
     NopReportDataset-main:
       displayName: Dataset
+    NopReportDatasetAuth-main:
+      displayName: Dataset Auth
     NopReportDatasetRef-main:
       displayName: Dataset Ref
     NopReportDatasource-main:

@@ -15,7 +15,6 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.graphql.core.engine.GraphQLEngine;
 import io.nop.graphql.core.engine.MockGraphQLSchemaLoader;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,10 +39,6 @@ public class TestJsonRpcService extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     public void setUp() {

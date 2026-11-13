@@ -20,7 +20,6 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
 import io.nop.graphql.core.ws.JsonRpcWebSocketHandler;
 import io.nop.graphql.core.ws.IWebSocketSession;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,10 +49,6 @@ public class TestGraphQLEngineWithWebSocket extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     public void setUp() {

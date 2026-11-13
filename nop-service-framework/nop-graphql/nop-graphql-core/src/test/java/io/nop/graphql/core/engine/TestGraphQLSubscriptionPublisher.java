@@ -13,7 +13,6 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,10 +39,6 @@ public class TestGraphQLSubscriptionPublisher extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     public void setUp() {

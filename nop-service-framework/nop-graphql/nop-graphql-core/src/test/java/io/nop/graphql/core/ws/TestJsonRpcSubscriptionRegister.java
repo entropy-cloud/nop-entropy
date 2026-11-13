@@ -4,7 +4,6 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -36,10 +35,6 @@ public class TestJsonRpcSubscriptionRegister extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     private static class MockWebSocketSession implements IWebSocketSession {
         private final List<String> sentMessages = new java.util.ArrayList<>();

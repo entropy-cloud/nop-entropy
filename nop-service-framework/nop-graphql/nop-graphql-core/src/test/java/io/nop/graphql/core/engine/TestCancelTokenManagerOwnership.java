@@ -6,7 +6,6 @@ import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -37,10 +36,6 @@ public class TestCancelTokenManagerOwnership {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     /**
      * 同一用户携同reqId重试：先到请求不被取消（修复前register会oldToken.cancel("replace")），

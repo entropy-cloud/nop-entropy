@@ -4,7 +4,6 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.graphql.core.ParsedGraphQLRequest;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -30,10 +29,6 @@ public class TestGraphQLContextRequest extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @Test
     public void pin4_concurrentSetGetRequestConsistent() throws Exception {

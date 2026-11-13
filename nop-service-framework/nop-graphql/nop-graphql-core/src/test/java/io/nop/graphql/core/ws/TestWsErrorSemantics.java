@@ -4,7 +4,6 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -40,10 +39,6 @@ public class TestWsErrorSemantics extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     private static void awaitUntil(String message, BooleanSupplier condition) throws InterruptedException {
         long deadline = System.currentTimeMillis() + 30000;

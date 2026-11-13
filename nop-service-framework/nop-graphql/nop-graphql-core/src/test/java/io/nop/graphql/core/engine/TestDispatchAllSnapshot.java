@@ -6,7 +6,6 @@ import io.nop.core.unittest.BaseTestCase;
 import io.nop.graphql.core.ParsedGraphQLRequest;
 import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderFactory;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -35,10 +34,6 @@ public class TestDispatchAllSnapshot extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @Test
     public void pin1_slowDispatchDoesNotBlockConcurrentMonitorUsers() throws Exception {

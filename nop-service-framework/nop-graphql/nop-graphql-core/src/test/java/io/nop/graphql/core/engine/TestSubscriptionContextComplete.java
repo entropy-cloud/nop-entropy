@@ -3,7 +3,6 @@ package io.nop.graphql.core.engine;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -27,10 +26,6 @@ public class TestSubscriptionContextComplete extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     private static class CompletableContext extends GraphQLExecutionContext {
         final AtomicBoolean completed = new AtomicBoolean(false);

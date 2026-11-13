@@ -12,7 +12,6 @@ import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import jakarta.annotation.PostConstruct;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -35,10 +34,6 @@ public class TestSubscriptionDefaultsBeans extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @Test
     public void testBeansPropertiesHaveSetters() {

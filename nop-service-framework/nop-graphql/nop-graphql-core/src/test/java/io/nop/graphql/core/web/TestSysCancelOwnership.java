@@ -6,7 +6,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.engine.GraphQLEngine;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -36,10 +35,6 @@ public class TestSysCancelOwnership {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     /**
      * 用户A注册在途请求req-1后，用户B以同一reqId调用Sys__cancel必须被显式拒绝，

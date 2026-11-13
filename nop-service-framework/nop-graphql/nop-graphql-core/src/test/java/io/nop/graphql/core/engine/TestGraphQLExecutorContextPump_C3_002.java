@@ -13,7 +13,6 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.context.BaseContextProvider;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.IGraphQLExecutionContext;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -118,10 +117,6 @@ public class TestGraphQLExecutorContextPump_C3_002 {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     public void setUp() {

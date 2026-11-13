@@ -2,7 +2,6 @@ package io.nop.graphql.core.ws;
 
 import io.nop.commons.concurrent.executor.IPeriodicTaskListener;
 import io.nop.core.initialize.CoreInitialization;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -50,10 +49,6 @@ public class TestJsonRpcKeepAliveInsulation {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     /**
      * sendMessage 按注入序列抛出异常（RuntimeException / Error 谱系）；序列耗尽后正常记录消息。

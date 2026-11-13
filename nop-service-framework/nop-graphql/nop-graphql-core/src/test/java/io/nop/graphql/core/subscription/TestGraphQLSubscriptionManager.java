@@ -20,7 +20,6 @@ import io.nop.graphql.core.engine.GraphQLExecutionContext;
 import io.nop.graphql.core.engine.MockGraphQLSchemaLoader;
 import io.nop.graphql.core.engine.GraphQLEngine;
 import io.nop.graphql.core.ws.IWebSocketSession;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +45,6 @@ public class TestGraphQLSubscriptionManager {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     @BeforeEach
     public void setUp() {
