@@ -266,6 +266,12 @@ public class TestPeriodicTaskInsulation {
             assertEquals(1L, failingListener.failureStreaks.get(0));
             assertTrue(await(() -> failingListener.successes.get() >= 1, 5000),
                     "recovery round must fire onRunSuccess");
+            // 修订（2026-11-14）：恢复可达性即契约（语义⑤=失败/恢复回调按序可达）。
+            // 链以 20ms 周期持续重臂直至销毁，销毁前窗口内的后续成功轮次属调度时序
+            // 而非契约面——原 assertEquals(1,...) 精确计数在满载下偶发读到 2（时序工件）。
+            // 恢复「先失败后成功」的顺序契约仍由 failures[0] 与 successes 先后断言承载。
+            assertTrue(await(() -> failingListener.successes.get() >= 2, 5000),
+                    "periodic chain keeps re-arming after recovery (sanity)");
 
             // 拒绝钩子：健康链在 timer 销毁时收到 onChainRejected 且 future 有终态（不悬挂）
             RecordingListener healthyListener = new RecordingListener();
