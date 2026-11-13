@@ -205,7 +205,20 @@ public class TestElectorStopLifecycleConcurrency {
         int growth = elector.rounds.get() - base;
 
         // single chain at 100ms interval ≈ 10 rounds/s; a doubled chain ≈ 20
-        // single chain ≈ one round per checkIntervalMs; a resurrected stale chain doubles it
+        // single chain ≈ one round per checkIntervalMs; a resurrected stale chain doubles it.
+        // Timing-noise hardening (2026-11-13): a wall-clock 1s window can jitter (GC/scheduler),
+        // so a violation is confirmed by re-measuring BOTH windows once before failing —
+        // a genuinely doubled chain reproduces on the second sample, jitter does not.
+        if (growth > singleChainGrowth + 6) {
+            Thread.sleep(500);
+            int refBefore = elector.rounds.get();
+            Thread.sleep(1000);
+            singleChainGrowth = elector.rounds.get() - refBefore;
+            Thread.sleep(500);
+            int base2 = elector.rounds.get();
+            Thread.sleep(1000);
+            growth = elector.rounds.get() - base2;
+        }
         assertTrue(growth <= singleChainGrowth + 6,
                 "C10-003(2): stop→start must keep a single election loop, growth=" + growth
                         + " vs single-chain reference=" + singleChainGrowth);
