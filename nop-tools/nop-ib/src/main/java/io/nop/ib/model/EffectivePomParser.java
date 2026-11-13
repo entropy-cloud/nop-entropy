@@ -139,41 +139,42 @@ public final class EffectivePomParser {
     }
 
     private void parseCompilerPlugin(Element plugin, IbModule mod) {
-        // executions first, then plugin-level configuration as the "default" entry
-        for (Element exe : executions(plugin)) {
-            Element cfg = first(exe, "configuration");
-            if (cfg == null)
-                continue;
-            IbModule.CompilerExec exec = compilerExecFrom(exeName(exe), cfg);
-            mod.getCompilerExecs().add(exec);
+        Element pluginCfg = first(plugin, "configuration");
+        List<Element> execs = executions(plugin);
+        boolean anyExecCfg = false;
+        for (Element exe : execs) {
+            if (first(exe, "configuration") != null)
+                anyExecCfg = true;
         }
-        Element cfg = first(plugin, "configuration");
-        if (cfg != null && !mod.getCompilerExecs().isEmpty()) {
-            // plugin-level config merges under each execution in effective poms are
-            // already materialized per-execution; plugin-level alone covers the case
-            // where executions carry no own configuration
-            boolean anyExecCfg = false;
-            for (Element exe : executions(plugin)) {
-                if (first(exe, "configuration") != null)
-                    anyExecCfg = true;
+        if (!execs.isEmpty() && anyExecCfg) {
+            // per-execution effective config; fields the execution lacks are filled
+            // from the plugin-level config (Maven merge semantics: execution wins)
+            for (Element exe : execs) {
+                Element cfg = first(exe, "configuration");
+                if (cfg == null)
+                    continue;
+                mod.getCompilerExecs().add(compilerExecFrom(exeName(exe), cfg, pluginCfg));
             }
-            if (!anyExecCfg) {
-                mod.getCompilerExecs().add(compilerExecFrom("default-compile", cfg));
-            }
-        } else if (cfg != null && mod.getCompilerExecs().isEmpty()) {
-            mod.getCompilerExecs().add(compilerExecFrom("default-compile", cfg));
+        } else if (pluginCfg != null) {
+            // no execution-level config: the plugin-level config IS the compile config
+            mod.getCompilerExecs().add(compilerExecFrom("default-compile", pluginCfg, null));
         }
     }
 
-    private IbModule.CompilerExec compilerExecFrom(String id, Element cfg) {
+    private IbModule.CompilerExec compilerExecFrom(String id, Element cfg, Element defaults) {
         IbModule.CompilerExec exec = new IbModule.CompilerExec();
         exec.id = id;
-        exec.release = text(first(cfg, "release"));
-        exec.proc = text(first(cfg, "proc"));
-        exec.annotationProcessorPaths = first(cfg, "annotationProcessorPaths") != null;
-        exec.source = text(first(cfg, "source"));
-        exec.target = text(first(cfg, "target"));
+        exec.release = firstNonEmpty(text(first(cfg, "release")), text(first(defaults, "release")));
+        exec.proc = firstNonEmpty(text(first(cfg, "proc")), text(first(defaults, "proc")));
+        exec.annotationProcessorPaths = first(cfg, "annotationProcessorPaths") != null
+                || (defaults != null && first(defaults, "annotationProcessorPaths") != null);
+        exec.source = firstNonEmpty(text(first(cfg, "source")), text(first(defaults, "source")));
+        exec.target = firstNonEmpty(text(first(cfg, "target")), text(first(defaults, "target")));
         return exec;
+    }
+
+    private String firstNonEmpty(String a, String b) {
+        return a != null && !a.isEmpty() ? a : b;
     }
 
     private void parseSurefire(Element plugin, IbModule mod) {

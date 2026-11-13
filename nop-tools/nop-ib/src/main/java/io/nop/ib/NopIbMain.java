@@ -1,5 +1,6 @@
 package io.nop.ib;
 
+import io.nop.ib.cli.CompileCommand;
 import io.nop.ib.cli.Commands;
 import io.nop.ib.engine.IbEngine;
 
@@ -25,7 +26,7 @@ public class NopIbMain {
     };
 
     private static final List<String> IMPLEMENTED =
-            List.of("status", "plan", "explain", "model", "cache");
+            List.of("status", "plan", "explain", "model", "cache", "compile");
 
     public static void main(String[] args) {
         int code = run(args, System.out, System.err);
@@ -60,6 +61,8 @@ public class NopIbMain {
         // parse common flags
         boolean json = false;
         boolean allowPartial = false;
+        String onFallback = "maven";
+        String plModules = null;
         List<String> positional = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -67,6 +70,12 @@ public class NopIbMain {
                 json = true;
             } else if ("--allow-partial".equals(arg)) {
                 allowPartial = true;
+            } else if ("--on-fallback".equals(arg) && i + 1 < args.length) {
+                onFallback = args[++i];
+            } else if (arg.startsWith("--on-fallback=")) {
+                onFallback = arg.substring("--on-fallback=".length());
+            } else if ("-pl".equals(arg) && i + 1 < args.length) {
+                plModules = args[++i];
             } else if ("--paths".equals(arg)) {
                 // --paths <comma-separated> or remaining positional args
                 if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
@@ -88,6 +97,10 @@ public class NopIbMain {
                     return Commands.status(engine, out, json);
                 case "plan":
                     return Commands.plan(engine, positional, allowPartial, out, json);
+                case "compile":
+                    return CompileCommand.compile(engine, positional, plModules, onFallback,
+                            allowPartial, json,
+                            new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "explain":
                     if (positional.isEmpty()) {
                         err.println("usage error: explain <file|module>");

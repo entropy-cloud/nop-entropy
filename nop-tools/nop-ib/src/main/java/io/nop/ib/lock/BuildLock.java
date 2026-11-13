@@ -43,7 +43,14 @@ public final class BuildLock implements AutoCloseable {
                     StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
             long deadline = System.currentTimeMillis() + timeout.toMillis();
             while (true) {
-                FileLock lock = channel.tryLock();
+                FileLock lock;
+                try {
+                    lock = channel.tryLock();
+                } catch (java.nio.channels.OverlappingFileLockException e) {
+                    // same-JVM contender (FileChannel locks are JVM-scoped): treated
+                    // identically to a cross-process holder
+                    lock = null;
+                }
                 if (lock != null) {
                     BuildLock holder = new BuildLock(lockFile);
                     holder.channel = channel;

@@ -84,13 +84,26 @@ public final class IncrementalCompileExecutor {
                     List<String> recompileSources = sourcesReferencing(index, upstreamAbiChanged);
                     if (recompileSources.isEmpty())
                         continue;
-                    compileModule(module, recompileSources, outcome, abiChangedByModule);
+                    // index source facts are module-relative; compileModule consumes
+                    // repo-relative paths
+                    List<String> repoRelSources = new ArrayList<>();
+                    for (String moduleRel : recompileSources)
+                        repoRelSources.add(module.getBasedir() + "/" + moduleRel);
+                    compileModule(module, repoRelSources, outcome, abiChangedByModule);
                     if (!outcome.isSuccess())
                         return outcome;
                 }
             }
         }
         return outcome;
+    }
+
+    private String moduleRelPath(Path basedir, String repoRelPath) {
+        try {
+            return basedir.relativize(Path.of(model.getRepoRoot()).resolve(repoRelPath)).toString();
+        } catch (IllegalArgumentException e) {
+            return repoRelPath;
+        }
     }
 
     private List<String> sourcesReferencing(UnitIndex index, Set<String> changedClasses) {
@@ -111,18 +124,21 @@ public final class IncrementalCompileExecutor {
         Path basedir = model.resolve(module.getBasedir()).toPath();
         List<File> files = new ArrayList<>();
         Set<String> deletedSources = new HashSet<>();
-        for (String moduleRel : moduleRelSources) {
-            Path abs = basedir.resolve(moduleRel);
+        for (String source : moduleRelSources) {
+            // plan output is repo-relative; module index facts are module-relative
+            Path abs = model.getRepoRoot() != null
+                    ? Path.of(model.getRepoRoot()).resolve(source)
+                    : basedir.resolve(source);
             if (Files.isRegularFile(abs))
                 files.add(abs.toFile());
             else
-                deletedSources.add(moduleRel);
+                deletedSources.add(moduleRelPath(basedir, source));
         }
         if (files.isEmpty() && deletedSources.isEmpty())
             return;
 
         ClasspathMaterializer materializer = new ClasspathMaterializer(model);
-        boolean testCompile = moduleRelSources.stream().anyMatch(p -> p.startsWith("src/test/"));
+        boolean testCompile = moduleRelSources.stream().anyMatch(p -> p.contains("/src/test/"));
         ClasspathMaterializer.Materialized cp = testCompile
                 ? materializer.testClasspath(module)
                 : materializer.mainClasspath(module);
@@ -133,6 +149,16 @@ public final class IncrementalCompileExecutor {
         }
 
         UnitIndex oldIndex = loadIndex(module.getArtifactId());
+
+        // self output dir sits on the classpath and is the write target: ensure it
+        // exists so javac prevalidation and incremental writes work after a clean
+        try {
+            Files.createDirectories(model.resolve(module.getOutputDir()).toPath());
+            if (module.getTestOutputDir() != null && testCompile)
+                Files.createDirectories(model.resolve(module.getTestOutputDir()).toPath());
+        } catch (IOException e) {
+            throw new NopIbException("cannot create output dir for " + module.getArtifactId(), e);
+        }
 
         // I4 deletion sweep from the OLD index (never the current snapshot)
         for (String deleted : deletedSources) {
@@ -151,7 +177,7 @@ public final class IncrementalCompileExecutor {
 
         JavaCompilerFacade.CompileResult result = JavaCompilerFacade.compile(
                 files, model.resolve(module.getOutputDir()).toPath(),
-                cp.entries(), module.getCompileRelease(), sourcePath);
+                cp.entries(), module.getCompileRelease(), module.getCompileSource(), sourcePath);
 
         diagnostics.put(module.getArtifactId(), result.diagnostics());
         if (!result.success()) {

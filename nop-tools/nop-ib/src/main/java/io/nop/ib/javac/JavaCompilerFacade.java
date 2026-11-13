@@ -27,15 +27,28 @@ public final class JavaCompilerFacade {
     public static CompileResult compile(List<File> sourceFiles, Path outputDir,
                                         List<String> classpathEntries, String release,
                                         List<File> sourcePath) {
+        return compile(sourceFiles, outputDir, classpathEntries, release, null, sourcePath);
+    }
+
+    public static CompileResult compile(List<File> sourceFiles, Path outputDir,
+                                        List<String> classpathEntries, String release,
+                                        String sourceLevel, List<File> sourcePath) {
         JdkJavaCompiler compiler = new JdkJavaCompiler();
         JavaCompileOptions options = new JavaCompileOptions()
                 .setOutputDir(outputDir.toFile())
                 .setClassPaths(classpathEntries)
                 .setImplicitPolicy(JavaCompileOptions.IMPLICIT_NONE)
                 .setProcMode("none")
-                .setEncoding(StandardCharsets.UTF_8.name());
+                .setEncoding(StandardCharsets.UTF_8.name())
+                // Maven compiler plugin default debug=true emits plain -g; required for
+                // byte-level product parity with mvn compile (item 17 oracle)
+                .setExtraOptions(List.of("-g"));
+        // effective channel: explicit release, else the source level (Maven 4 maps
+        // equal source/target to --release, verified against mvn -X option dumps)
         if (release != null && !release.isBlank())
             options.setRelease(release);
+        else if (sourceLevel != null && !sourceLevel.isBlank())
+            options.setRelease(sourceLevel);
         if (sourcePath != null && !sourcePath.isEmpty())
             options.setSourcePath(sourcePath);
 

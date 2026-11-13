@@ -26,9 +26,9 @@ public final class ModelRefresher {
     /** [INFO] --- maven-dependency-plugin:...:list ... @ <artifactId> --- */
     private static final Pattern MODULE_ANCHOR =
             Pattern.compile("@\\s+(\\S+)\\s*---");
-    /** g:a:type:version:scope or g:a:type:classifier:version:scope */
+    /** g:a:type:version:scope or g:a:type:classifier:version:scope (Maven 4 appends " -- module ..." notes) */
     private static final Pattern ARTIFACT_LINE =
-            Pattern.compile("^\\[INFO\\]\\s+(\\S+):(\\S+):(\\S+):(\\S+)(?::(\\S+))?(?::(\\S+))?\\s*$");
+            Pattern.compile("^\\[INFO\\]\\s+([^:\\s]+):([^:\\s]+):([^:\\s]+):([^:\\s]+)(?::([^:\\s]+))?(?::([^:\\s]+))?(?:\\s+--.*)?$");
 
     private final Path repoRoot;
     private final Duration timeout;
@@ -64,8 +64,8 @@ public final class ModelRefresher {
             throw new NopIbException("cannot parse './mvnw --version' output: " + versionOut);
 
         // 2. local repository path (worktree repo when going through mvnq)
-        String localRepo = runMaven("-q", "help:evaluate", "-Dexpression=settings.localRepository",
-                "-DforceStdout").trim();
+        String localRepo = stripMavenEchoes(runMaven("-q", "help:evaluate",
+                "-Dexpression=settings.localRepository", "-DforceStdout")).trim();
         if (localRepo.isEmpty())
             throw new NopIbException("empty settings.localRepository output");
 
@@ -116,12 +116,21 @@ public final class ModelRefresher {
         return hashes;
     }
 
-    Map<String, List<String>> parseDependencyList(String output) {
-        Map<String, List<String>> byModule = new LinkedHashMap<>();
+    /**
+     * mvnq's pipeline prefixes echoed child output with "[INFO] [stdout] ";
+     * strip it wherever we expect clean tool output.
+     */
+    static String stripMavenEchoes(String text) {
+        if (text.indexOf("[INFO] [stdout] ") < 0)
+            return text;
+        return text.replace("[INFO] [stdout] ", "");
+    }
+
+    Map<String, List<String>> parseDependencyList(String output) {        Map<String, List<String>> byModule = new LinkedHashMap<>();
         String current = null;
         for (String line : output.split("\n")) {
             Matcher anchor = MODULE_ANCHOR.matcher(line);
-            if (anchor.find() && line.contains("dependency-plugin")) {
+            if (anchor.find() && line.contains(":list (default-cli)")) {
                 current = anchor.group(1);
                 byModule.computeIfAbsent(current, k -> new ArrayList<>());
                 continue;

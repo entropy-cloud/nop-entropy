@@ -281,6 +281,15 @@ public class IbModule {
         return null;
     }
 
+    /** Default compile source level (first found), else null. */
+    public String getCompileSource() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.source != null)
+                return e.source;
+        }
+        return null;
+    }
+
     public static class DepEdge {
         String ga;
         String scope;
