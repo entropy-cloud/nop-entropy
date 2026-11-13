@@ -13,7 +13,6 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,11 +34,9 @@ public class TestGraphQLVariables extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
-
+    // 测试卫生（合并修订 2026-11-13）：不在 @AfterAll 里 CoreInitialization.destroy()——
+    // 全局上下文销毁后同类/后序类的重初始化存在已关闭对象残留（context-already-closed），
+    // 且类执行顺序（字母序）变化会使失败面漂移。全局上下文由平台测试基建统一管理。
     @BeforeEach
     public void setUp() {
         engine = new GraphQLEngine();
