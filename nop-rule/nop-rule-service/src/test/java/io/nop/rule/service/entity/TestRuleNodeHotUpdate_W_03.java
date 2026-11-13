@@ -78,7 +78,7 @@ public class TestRuleNodeHotUpdate_W_03 extends JunitAutoTestCase {
      */
     @Test
     @EnableSnapshot(checkOutput = false)
-    public void testNodeEditInvalidatesCompiledRule() {
+    public void testNodeEditInvalidatesCompiledRule() throws InterruptedException {
         uploadAndSaveRule("test-w03");
 
         Map<String, Object> inputs = new LinkedHashMap<>();
@@ -115,6 +115,15 @@ public class TestRuleNodeHotUpdate_W_03 extends JunitAutoTestCase {
             CoreMetrics.currentTimeMillis();
         }
 
+        // R4-32（plan 2566，commit 794eab47ea）将 ResourceCacheEntry 的刷新门与 verdict 记忆化
+        // 成对切换为单调时钟（CoreMetrics.nanoTime()，TestClock 不覆写 → 真实时间），平台时钟快进
+        // 不再能穿越 refresh-min-interval=100ms 节流窗。依赖检查本身仍以平台时钟节流
+        // （DaoEntityResource.checkLoad），此处等待真实时间 200ms 保证刷新门判定执行，随后依赖
+        // 判据仍由「节点行 updateTime 变更 → DaoEntityResource mtime 变更」平台判据驱动。
+        Thread.sleep(200);
+
+        NopRuleNode afterNode = findNodeByLabel(definition.getRuleId(), "Fall");
+        assertNotNull(afterNode, "Fall node must persist after node-level CRUD edit");
         String secondDish = executeRule("test-w03", 1, inputs);
         assertEquals("Spareribs", secondDish,
                 "node-level edit must invalidate compiled rule: next execution follows the new predicate");
