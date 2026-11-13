@@ -2,6 +2,7 @@ package io.nop.ib;
 
 import io.nop.ib.cli.CompileCommand;
 import io.nop.ib.cli.Commands;
+import io.nop.ib.cli.TestCommand;
 import io.nop.ib.engine.IbEngine;
 
 import java.io.PrintStream;
@@ -26,7 +27,7 @@ public class NopIbMain {
     };
 
     private static final List<String> IMPLEMENTED =
-            List.of("status", "plan", "explain", "model", "cache", "compile");
+            List.of("status", "plan", "explain", "model", "cache", "compile", "test", "check");
 
     public static void main(String[] args) {
         int code = run(args, System.out, System.err);
@@ -63,6 +64,7 @@ public class NopIbMain {
         boolean allowPartial = false;
         String onFallback = "maven";
         String plModules = null;
+        List<String> explicitClasses = new ArrayList<>();
         List<String> positional = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -76,6 +78,10 @@ public class NopIbMain {
                 onFallback = arg.substring("--on-fallback=".length());
             } else if ("-pl".equals(arg) && i + 1 < args.length) {
                 plModules = args[++i];
+            } else if ("--class".equals(arg) && i + 1 < args.length) {
+                explicitClasses.add(args[++i]);
+            } else if ("--affected".equals(arg)) {
+                // default selection mode; explicit for readability
             } else if ("--paths".equals(arg)) {
                 // --paths <comma-separated> or remaining positional args
                 if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
@@ -100,6 +106,11 @@ public class NopIbMain {
                 case "compile":
                     return CompileCommand.compile(engine, positional, plModules, onFallback,
                             allowPartial, json,
+                            new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
+                case "test":
+                case "check":
+                    return TestCommand.test(engine, positional, plModules, explicitClasses,
+                            allowPartial, json, "check".equals(cmd), onFallback,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "explain":
                     if (positional.isEmpty()) {

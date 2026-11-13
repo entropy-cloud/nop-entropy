@@ -86,13 +86,17 @@ public final class Commands {
         int indexed = 0;
         for (IbModule module : model.getModules()) {
             List<Path> outputs = new ArrayList<>();
-            Path main = engine.getRepoRoot().resolve(module.getOutputDir());
-            if (module.getTestOutputDir() != null)
-                outputs.add(engine.getRepoRoot().resolve(module.getTestOutputDir()));
-            // main output last: testClass refs recorded per class, order irrelevant, but
-            // keep deterministic
-            outputs.add(main);
-            if (!Files.isDirectory(main))
+            Path main = module.getOutputDir() != null
+                    ? engine.getRepoRoot().resolve(module.getOutputDir()) : null;
+            Path testOut = module.getTestOutputDir() != null
+                    ? engine.getRepoRoot().resolve(module.getTestOutputDir()) : null;
+            if (testOut != null && Files.isDirectory(testOut))
+                outputs.add(testOut);
+            if (main != null && Files.isDirectory(main))
+                outputs.add(main);
+            // modules with neither main nor test products (never built) have no index —
+            // the planner reports indexMissing and widens, never prunes
+            if (outputs.isEmpty())
                 continue;
             engine.getUnitStore().save(indexer.scan(module.getArtifactId(), outputs,
                     engine.getRepoRoot().resolve(module.getBasedir())));
