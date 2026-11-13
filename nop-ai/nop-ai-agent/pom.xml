@@ -84,6 +84,17 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
             </plugin>
+            <!-- 多 agent 并发/写意图注册表等时序敏感钉族：全局 forkCount=4 +
+                 parallel=classes 的跨 JVM 负载曾致并发注册计数偶发假红
+                 （合并修订 2026-11-13 登记面），收敛为单 JVM 串行。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
