@@ -1,7 +1,7 @@
 # nop-ib 实施 Roadmap — 用 javac 增量引擎替代 AI 开发期的 Maven 全量调用
 
 > Created: 2026-11-13
-> Last updated: 2026-11-13（起草；全部 Work Item 为 `todo`）
+> Last updated: 2026-11-13（Wave 0 六项裁定+基线实测落档,Milestone M0 达成）
 > 设计权威: [ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md](../design/nop-incremental-build/05-nop-ib-engine-design.md)（Architecture Baseline，规范性）
 > 上游设计: [00-vision.md](../design/nop-incremental-build/00-vision.md) / [01-architecture-baseline.md](../design/nop-incremental-build/01-architecture-baseline.md) / [02-test-execution.md](../design/nop-incremental-build/02-test-execution.md) / [03-alternatives-and-roi.md](../design/nop-incremental-build/03-alternatives-and-roi.md)
 > 参考实现分析: [04-gradle-incremental-compilation-analysis.md](../design/nop-incremental-build/04-gradle-incremental-compilation-analysis.md)
@@ -33,12 +33,12 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 
 ### Wave 0 — 裁定与基线（开工前置）
 
-- 1. **[Decision]** 模块落位、命名与依赖方向裁定（IB-G1 / IB-G5）：默认候选 `nop-tools` 下的 `nop-ib`，依赖 `nop-javac` + `nop-bytecode`，不新增 `-api`、不依赖 `nop-code-service`；同步 `docs-for-ai/01-repo-map/module-groups.md` 等登记面: `todo` — deps: none
-- 2. **[Decision]** 构建事实导出形态 POC（IB-G2）：对比"开发期小 mojo/extension 一次 reactor 导出"与"effective-pom 批量 dump"在 465 个 pom 上的耗时、完整度、维护面；产出 `model.json` 草案 schema: `todo` — deps: none
-- 3. **[Proof]** Phase 0 成本与适用面实测：目标机器上的骨架/编译/测试三段基线；L0/L1/L2/L3 模块占比；以 20–30 次真实编辑为例的适用面复算（对齐 `00`/`03` 口径）: `todo` — deps: none
-- 4. **[Decision]** 测试执行路线与切换门（IB-G3）：首版委托 `mvn surefire:test`，或直接自研 JUnit Platform 启动器；给出对照验收标准: `todo` — deps: 1, 2
-- 5. **[Decision]** 锁与并发协议（设计 IB-D9 / IB-G6）：确认 `nop-ib` 写产物与 `mvnq` 共用 `.mvn/build.lock`，只读命令不取锁；确认 `--max-tests`/partial 的默认策略: `todo` — deps: 1
-- 6. **[Decision]** 动态覆盖是否进入 v1（IB-G4）：默认不做，静态图优先；给出后续收窄的触发条件: `todo` — deps: 3
+- 1. **[Decision]** 模块落位、命名与依赖方向裁定（IB-G1 / IB-G5）：默认候选 `nop-tools` 下的 `nop-ib`，依赖 `nop-javac` + `nop-bytecode`，不新增 `-api`、不依赖 `nop-code-service`；同步 `docs-for-ai/01-repo-map/module-groups.md` 等登记面: `done`（2026-11-13，见 plans/nop-ib/wave0-adjudications.md IB-G1） — deps: none
+- 2. **[Decision]** 构建事实导出形态 POC（IB-G2）：对比"开发期小 mojo/extension 一次 reactor 导出"与"effective-pom 批量 dump"在 465 个 pom 上的耗时、完整度、维护面；产出 `model.json` 草案 schema: `done`（裁定 effective-pom 批量 dump 形态,22.4s/457 project 实测,见 wave0-adjudications.md IB-G2） — deps: none
+- 3. **[Proof]** Phase 0 成本与适用面实测：目标机器上的骨架/编译/测试三段基线；L0/L1/L2/L3 模块占比；以 20–30 次真实编辑为例的适用面复算（对齐 `00`/`03` 口径）: `done`（本机 p50≈3.42s 骨架/L0 343·75.1%、L1 92·20.1%、L2 12、L3 10；30 commit 复算见 wave0-adjudications.md） — deps: none
+- 4. **[Decision]** 测试执行路线与切换门（IB-G3）：首版委托 `mvn surefire:test`，或直接自研 JUnit Platform 启动器；给出对照验收标准: `done`（首版委托 surefire:test,自研启动器须同语料对照通过后切换,见 IB-G3） — deps: 1, 2
+- 5. **[Decision]** 锁与并发协议（设计 IB-D9 / IB-G6）：确认 `nop-ib` 写产物与 `mvnq` 共用 `.mvn/build.lock`，只读命令不取锁；确认 `--max-tests`/partial 的默认策略: `done`（共用 .mvn/build.lock,只读不取锁,--max-tests 默认拒绝,partial 须显式,见 IB-G5） — deps: 1
+- 6. **[Decision]** 动态覆盖是否进入 v1（IB-G4）：默认不做，静态图优先；给出后续收窄的触发条件: `done`（v1 不做,静态图优先,见 IB-G4） — deps: 3
 
 - ★ **Milestone M0：六项裁定落档，设计 05 与实现基线对齐**（unlocks when 1–6 done）
 
