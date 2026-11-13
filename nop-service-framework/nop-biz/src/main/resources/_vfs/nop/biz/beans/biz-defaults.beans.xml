@@ -172,10 +172,15 @@
           ioc:default="true"/>
 
     <!-- 2.3-C4-001（plan 2551 closure audit Major-2 接线闭环）：执行器启动期校验挂接——
-         depends-on nopBizObjectManager 保证 biz 模型装载后校验。 -->
+         depends-on nopBizObjectManager 保证 biz 模型装载后校验。
+         ioc:init-order=200 将本 bean 排到默认层（100）之后：容器内存在既有环
+         nopBizObjectManager <-> nopDynCodeGen（tenantBizModelProvider 按类型注入
+         bizObjectManager 按引用注入，allow-cycle 容忍），同层 breakLoop 破环后
+         depends-on 声明顺序可能被校验（bean-order-constraint-violated）判违例；
+         跨层排序保证 nopBizObjectManager 恒先于本 bean，约束恒可满足。 -->
     <bean id="nopBizExecutorStartupValidator"
           class="io.nop.biz.service.BizExecutorStartupValidator"
-          ioc:default="true" depends-on="nopBizObjectManager"/>
+          ioc:default="true" ioc:init-order="200" depends-on="nopBizObjectManager"/>
 
     <bean id="nopRpcServiceOnGraphQL" class="io.nop.graphql.core.rpc.RpcServiceOnGraphQL">
         <constructor-arg index="0" ref="nopGraphQLEngine"/>
