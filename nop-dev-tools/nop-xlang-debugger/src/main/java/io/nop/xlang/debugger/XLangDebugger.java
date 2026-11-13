@@ -250,12 +250,20 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             // releaseThread/releaseAllThreads 锁内形态）——消除快照-加锁窗口的 stepX 静默
             // 丢失/陈旧 step 模式施用（item 24 审计 C-4 交错 A/B）
             SuspendedThread target = this.lastSuspendThread;
-            if (target == null || !target.isSuspended()) {
+            if (target == null) {
                 LOG.info("nop.debugger.step-no-suspended-thread");
                 throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             }
             target.setThreadStepMode(stepMode);
-            target.setLocalReleased(true);
+            if (target.isSuspended()) {
+                // 已挂起：局部放行路径（step 消费由 localReleased 承载，纪元不动）
+                target.setLocalReleased(true);
+            } else {
+                // pending 停点窗口（CRA 8.40 W-04）：宣告回调中（doSuspend 未进入，
+                // isSuspended=false）——step 与 resume 同权，经纪元推进使该停点直接完成，
+                // step 模式保留到下一检查点。仅 target==null（无任何停点）才报错。
+                resumeEpoch++;
+            }
             resumeCondition.signalAll();
         } finally {
             monitorLock.unlock();
@@ -790,8 +798,12 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             // 挂起入口复位放行标志 + per-thread 发布（同锁临界区——M2/F4 时序点）
             thread.setLocalReleased(false);
             // plan 2479 C-4 加固：新挂起 = 上一次 step 模式已消费——复位防陈旧 step 模式
-            // 经线程 ID 回收/旧 map 条目跨执行污染（漏断点/幽灵挂起，item 24 审计 C-4 交错 B）
-            thread.setThreadStepMode(DebugStepMode.RESUME);
+            // 经线程 ID 回收/旧 map 条目跨执行污染（漏断点/幽灵挂起，item 24 审计 C-4 交错 B）。
+            // W-04：纪元已推进 = 快照之后已有 resume/step 到达（pending 停点窗口），step 模式
+            // 随该命令生效，不得复位（否则回调内投递的 stepOver 意图丢失）
+            if (resumeEpoch == suspendEpoch) {
+                thread.setThreadStepMode(DebugStepMode.RESUME);
+            }
             thread.setSuspended(true);
             suspended = true;
             suspendedCondition.signalAll();

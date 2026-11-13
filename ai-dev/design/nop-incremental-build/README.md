@@ -22,6 +22,7 @@
 | 2 | [01-architecture-baseline.md](01-architecture-baseline.md) | Architecture Baseline | 分层 / 核心对象 / 模块归属与依赖方向 / 模块能力分级 / 变更路由 / 编译作用域算法 / **六条正确性不变量** / 反馈契约 / 回退矩阵 |
 | 3 | [02-test-execution.md](02-test-execution.md) | Baseline 展开 | 每模块 fork 隔离 / cwd 硬约束 / classpath 定序与禁止跨模块合并 / 快照录制硬禁用 / 测试发现机制 / 三层超时 / 反馈契约 |
 | 4 | [03-alternatives-and-roi.md](03-alternatives-and-roi.md) | 决策依据 | 成本构成与负载敏感性实测 / 适用面与签名变更率 / 实现成本与收缩退路 / **替代方案逐项量化评估** / 可证伪的重启与收缩条件 |
+| 5 | [04-gradle-incremental-compilation-analysis.md](04-gradle-incremental-compilation-analysis.md) | 外部框架知识参考层（不承载决策） | Gradle 增量编译的分层实现：任务级 up-to-date / 输入归一化与 ABI hash / 构建缓存 / Java 选择性重编译（ASM 依赖分析、受影响闭包、事务化输出、分析数据持久化）/ VFS+文件监听+daemon；含正确性回退清单与 12 条可迁移要点（仅事实，不作裁定） |
 
 **只想看结论**：ROI 高 + 适用面 63.4% + 代价约 5,000 行与 6 条不变量 + 预设收缩退路 → 直接读 [03 §一 与 §八](03-alternatives-and-roi.md)。
 
