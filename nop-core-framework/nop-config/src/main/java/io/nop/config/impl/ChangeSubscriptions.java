@@ -14,7 +14,7 @@ import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,7 +58,8 @@ public class ChangeSubscriptions {
     public void trigger(IConfigProvider provider, Map<String, Object> oldValues) {
         Set<String> names = oldValues.keySet();
 
-        Set<IConfigChangeListener> triggered = new HashSet<>();
+        // LinkedHashSet：保持监听器注册序（同订阅 List 序 + 跨订阅收集序确定性）；去重语义不变
+        Set<IConfigChangeListener> triggered = new LinkedHashSet<>();
 
         for (String name : names) {
             ChangeSubscription sub = simpleSubscriptions.get(name);
@@ -77,7 +78,7 @@ public class ChangeSubscriptions {
 
         // C4-007（plan 2549 裁定 B）：逐监听器计时观测——一个阻塞 refreshConfig 搁浅全平台配置传播前
         // 先有可观测信号（>1s WARN）。串行内联保持（executor 单线程契约 + 通知顺序）；
-        // 跨订阅通知顺序 = HashSet hash 序（不声明注册序），本批不改收集结构（LinkedHashSet 范围外）。
+        // 跨订阅通知顺序 = 注册收集序（LinkedHashSet，合并修订 2026-11-13：pin3 注册序契约钉确立，原 HashSet hash 序为不确定性形态）。
         for (IConfigChangeListener listener : triggered) {
             long begin = System.nanoTime();
             try {
