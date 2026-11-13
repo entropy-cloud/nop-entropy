@@ -145,9 +145,14 @@ public class TestLanguageRegistryConcurrency_W_04 {
             registry.register(new IdOnlyLanguage("base-" + i));
         }
         AtomicReference<Throwable> writerFailure = new AtomicReference<>();
+        java.util.concurrent.CountDownLatch firstScanDone = new java.util.concurrent.CountDownLatch(1);
         int registrations = 20_000;
         Thread writer = new Thread(() -> {
             try {
+                // 确定性握手（合并修订 2026-11-13）：等待主线程完成首次迭代扫描后再开始
+                // 注册——否则压力下 writer 可先于主线程首个循环检查跑完全部注册
+                //（scans=0 假红）。注册与迭代的重叠由该屏障保证。
+                firstScanDone.await();
                 for (int i = 0; i < registrations; i++) {
                     registry.register(new IdOnlyLanguage("new-" + i));
                 }
@@ -156,6 +161,10 @@ public class TestLanguageRegistryConcurrency_W_04 {
             }
         }, "w04-ids-writer");
         writer.start();
+
+        // 主线程先完成一次迭代扫描，再放行 writer（保证重叠）
+        registry.registeredIds();
+        firstScanDone.countDown();
 
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
         long scans = 0;
