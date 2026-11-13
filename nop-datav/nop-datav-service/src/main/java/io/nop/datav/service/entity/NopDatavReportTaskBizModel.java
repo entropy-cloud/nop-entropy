@@ -170,7 +170,9 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
         IEntityDao<NopDatavReportDelivery> dao = daoProvider().daoFor(NopDatavReportDelivery.class);
         QueryBean q = new QueryBean();
         q.addFilter(FilterBeans.eq("reportTaskId", reportTaskId));
-        q.addOrderField("startTime", false);
+        // desc=true = 按 startTime 倒序：兑现 INopDatavReportTaskBiz「按 startTime 倒序」契约，
+        // 最近一次交付在前
+        q.addOrderField("startTime", true);
         return (List<NopDatavReportDelivery>) dao.findAllByQuery(q);
     }
 

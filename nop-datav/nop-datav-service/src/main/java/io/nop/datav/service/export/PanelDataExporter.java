@@ -158,7 +158,9 @@ public class PanelDataExporter {
         IEntityDao<NopDatavPanel> panelDao = daoProvider.daoFor(NopDatavPanel.class);
         io.nop.api.core.beans.query.QueryBean query = new io.nop.api.core.beans.query.QueryBean();
         query.addFilter(io.nop.api.core.beans.FilterBeans.eq("dashboardId", dashboardId));
-        query.addOrderField("sortOrder", true);
+        // desc=false = 升序：与看板渲染 getDashboardData / 布局导出 / 快照序列化的
+        // sortOrder 语义一致（sortOrder 小者在前），导出 sheet 顺序对齐 UI 显示顺序
+        query.addOrderField("sortOrder", false);
         @SuppressWarnings("unchecked")
         List<NopDatavPanel> panels = (List<NopDatavPanel>) panelDao.findAllByQuery(query);
         List<NopDatavPanel> exportable = new ArrayList<>();

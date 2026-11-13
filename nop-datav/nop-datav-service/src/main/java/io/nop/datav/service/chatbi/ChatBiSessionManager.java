@@ -96,7 +96,9 @@ public class ChatBiSessionManager {
     public List<NopDatavChatSession> listSessions(String operator) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq("userName", operator));
-        query.addOrderField("updateTime", false);
+        // desc=true = 按 updateTime 降序：兑现本方法 javadoc「按 updateTime 降序」契约，
+        // 最近活跃会话在前
+        query.addOrderField("updateTime", true);
         return sessionDao().findAllByQuery(query);
     }
 
