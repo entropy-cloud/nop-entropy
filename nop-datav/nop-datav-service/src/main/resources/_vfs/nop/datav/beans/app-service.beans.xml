@@ -60,12 +60,14 @@
          （AlertThresholdComparator）→ 状态机转换 + rearm 判定 → 通知（NotificationSender.sendAlert）
          → 更新 NopDatavAlertState。PanelDataBinder 非 bean，本评估器注入 IDaoProvider+IJdbcTemplate
          后 new PanelDataBinder(...) 构造（与 NopDatavPanelBizModel:47 同模式）。 -->
-    <!-- 显式 ref 注入（合并修订 2026-11-13）：容器内多个 IResourceLockManager 候选
-         （nopSysDaoResourceLockManager + nopAuthSessionFlushLockManager）时 by-type
-         自动装配歧义 fail-fast，逐消费者显式指名（与 auth-service 同模式）。 -->
+    <!-- datav 域本地默认锁（合并修订 2026-11-13）：容器内多个 IResourceLockManager 候选
+         （nopSysDaoResourceLockManager/nopAuthSessionFlushLockManager）时 by-type 歧义
+         fail-fast；且 datav-web 等子容器不含 auth beans——本地定义保证引用恒存在。
+         ioc:default 允许部署方以分布式实现覆盖。 -->
+    <bean id="nopDatavResourceLockManager" class="io.nop.commons.concurrent.lock.impl.LocalResourceLockManager" ioc:default="true"/>
     <bean id="nopDatavAlertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true">
         <property name="resourceLockManager">
-            <ref bean="nopAuthSessionFlushLockManager"/>
+            <ref bean="nopDatavResourceLockManager"/>
         </property>
     </bean>
 
