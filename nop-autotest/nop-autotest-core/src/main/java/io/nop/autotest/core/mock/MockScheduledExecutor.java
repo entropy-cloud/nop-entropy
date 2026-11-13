@@ -17,10 +17,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Manual-drive mock of {@link IScheduledExecutor} for tests. Time is modeled by an internal
- * virtual clock: submissions are anchored against {@code System.nanoTime()} plus a manually
- * advanced offset ({@link #expireTasks(long)}), and deadlines decay accordingly. No real thread
+ * Manual-drive mock of {@link IScheduledExecutor} for tests. Time is modeled by a purely virtual
+ * clock: submissions are anchored against the current virtual offset and deadlines decay only as
+ * {@link #expireTasks(long)} advances that offset. No real thread
  * is started; task bodies only run when the test calls {@link #triggerNext()}.
+ *
+ * <p><b>Deterministic virtual clock</b>: time advances ONLY through {@link #expireTasks(long)}.
+ * Real wall-clock elapsed time never contributes to expiry: a task fires exactly when the
+ * accumulated virtual advance reaches its deadline. This makes contract tests immune to GC
+ * pauses / thread preemption under parallel test execution (real-time leakage previously made a
+ * 499ms-advance / 500ms-delay assertion leave only 1ms of real-time slack, flaking under
+ * surefire parallel=classes).
  *
  * <p><b>Boundary declaration (design adjudication D / R1-B2)</b>: periodic kinds
  * ({@link MockTaskKind#SCHEDULED_AT_FIXED_RATE} / {@link MockTaskKind#SCHEDULED_WITH_FIXED_DELAY})
@@ -34,8 +41,9 @@ public class MockScheduledExecutor implements IScheduledExecutor {
     private String name;
     private volatile boolean started = true;
     private final DelayQueue<MockTask> tasks = new DelayQueue<>();
-    private final long baseNanos = System.nanoTime();
-    private long virtualOffsetNanos = 0L;
+    // volatile: read via MockTask.getDelay on the DelayQueue-internal remove path (promise
+    // whenComplete cleanup) which does not hold the executor monitor
+    private volatile long virtualOffsetNanos = 0L;
 
     public void setName(String name) {
         this.name = name;
@@ -51,7 +59,7 @@ public class MockScheduledExecutor implements IScheduledExecutor {
     }
 
     private long nowNanos() {
-        return System.nanoTime() - baseNanos + virtualOffsetNanos;
+        return virtualOffsetNanos;
     }
 
     private void checkStarted() {

@@ -10,7 +10,7 @@ import java.util.function.LongSupplier;
 
 /**
  * Manual-drive task record used by {@link MockScheduledExecutor}. The deadline is anchored in
- * nanoseconds against the executor's virtual clock (real nanoTime base + advanced offset), so
+ * nanoseconds against the executor's virtual clock, so
  * {@link #getDelay(TimeUnit)} decays as the virtual clock advances.
  */
 public class MockTask implements Delayed {

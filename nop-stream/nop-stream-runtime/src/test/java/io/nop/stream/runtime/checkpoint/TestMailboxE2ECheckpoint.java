@@ -167,7 +167,13 @@ class TestMailboxE2ECheckpoint {
         // Execute: must complete without hanging (cross-task priming invariant holds).
         GraphModelCheckpointExecutor.executeWithCheckpoint(jobGraph, jobId, config);
 
-        // All records must have flowed through the cross-task data path.
+        // All records must have flowed through the cross-task data path. Under a fully
+        // loaded machine the sink task thread can lag the execute() return point by a
+        // scheduling beat, so the count is confirmed event-driven within a bounded
+        // window instead of read at a single instant. If a record is genuinely lost
+        // the wait times out and the assertion below still fails — semantic strength
+        // is unchanged.
+        awaitSinkRecords(sinkResults, recordCount, 30000);
         assertEquals(recordCount, sinkResults.size(),
                 "All " + recordCount + " records must reach the sink. Got: " + sinkResults);
         for (int i = 1; i <= recordCount; i++) {
@@ -184,5 +190,18 @@ class TestMailboxE2ECheckpoint {
         assertTrue(completed.getCheckpointId() >= 0, "Completed checkpoint must have a valid non-negative id");
 
         storage.deleteAllCheckpoints(jobId);
+    }
+
+    /**
+     * Bounded event-driven wait until the sink has observed {@code expected} records.
+     * Returns as soon as the condition holds; on timeout returns with whatever arrived
+     * so the caller's assertion reports the actual record loss.
+     */
+    private static void awaitSinkRecords(List<Integer> sinkResults, int expected, long timeoutMs)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (sinkResults.size() < expected && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
     }
 }

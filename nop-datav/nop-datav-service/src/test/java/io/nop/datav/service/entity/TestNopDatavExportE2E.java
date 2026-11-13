@@ -250,43 +250,71 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
         String dashboardId = setupDashboard("dash-conc-cl005");
         NopDatavPanel panel = saveChartPanelWithDataset("panel-conc-cl005", dashboardId, "Chart CL005");
 
-        java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(threads);
-        java.util.List<NopDatavExportTask> created = new java.util.concurrent.CopyOnWriteArrayList<>();
-        java.util.concurrent.atomic.AtomicInteger rejected = new java.util.concurrent.atomic.AtomicInteger();
-        java.util.List<Thread> workers = new java.util.ArrayList<>();
-        for (int t = 0; t < threads; t++) {
-            Thread worker = new Thread(() -> {
-                try {
-                    barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        // 确定化在途窗口：执行体在 executionStartHook 处阻塞，使前 max 个任务的限额许可
+        // 在整个并发提交窗内保持持有（许可自 tryAcquire 起持有至执行体 finally 释放），
+        // 消除「早创建的任务在提交窗内跑完并释放许可 → 观测读数瞬超」的时序竞态
+        // （满载 seq 下曾单发 got:4）。hook 在 finally 中复位，任务随后照常跑完。
+        java.util.concurrent.CountDownLatch executionGate = new java.util.concurrent.CountDownLatch(1);
+        exportBizModel.setExecutionStartHookForTest(() -> {
+            try {
+                executionGate.await(30, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        try {
+            java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(threads);
+            java.util.List<NopDatavExportTask> created = new java.util.concurrent.CopyOnWriteArrayList<>();
+            java.util.concurrent.atomic.AtomicInteger rejected = new java.util.concurrent.atomic.AtomicInteger();
+            java.util.List<Thread> workers = new java.util.ArrayList<>();
+            for (int t = 0; t < threads; t++) {
+                Thread worker = new Thread(() -> {
                     try {
-                        NopDatavExportTask task = exportBiz.createExportTask(
-                                "panel", panel.getPanelId(), "csv", null, ctx);
-                        created.add(task);
-                    } catch (NopException e) {
-                        if (ERR_DATAV_EXPORT_CONCURRENCY_LIMIT.getErrorCode().equals(e.getErrorCode())) {
-                            rejected.incrementAndGet();
-                        } else {
-                            throw e;
+                        barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                        try {
+                            NopDatavExportTask task = exportBiz.createExportTask(
+                                    "panel", panel.getPanelId(), "csv", null, ctx);
+                            created.add(task);
+                        } catch (NopException e) {
+                            if (ERR_DATAV_EXPORT_CONCURRENCY_LIMIT.getErrorCode().equals(e.getErrorCode())) {
+                                rejected.incrementAndGet();
+                            } else {
+                                throw e;
+                            }
                         }
+                    } catch (Exception e) {
+                        throw new IllegalStateException("concurrent submit failed", e);
                     }
-                } catch (Exception e) {
-                    throw new IllegalStateException("concurrent submit failed", e);
-                }
-            }, "cl005-submit-" + t);
-            workers.add(worker);
-            worker.start();
-        }
-        for (Thread worker : workers) {
-            worker.join(60_000);
-            assertTrue(!worker.isAlive(), "submit worker must finish in time");
-        }
+                }, "cl005-submit-" + t);
+                workers.add(worker);
+                worker.start();
+            }
+            for (Thread worker : workers) {
+                worker.join(60_000);
+                assertTrue(!worker.isAlive(), "submit worker must finish in time");
+            }
 
-        assertTrue(created.size() <= max,
-                "in-flight tasks must not exceed max under concurrent submits, got: " + created.size());
-        assertTrue(rejected.get() >= 1,
-                "at least one concurrent submit must be rejected by the semaphore atomic layer");
-        assertEquals(threads, created.size() + rejected.get(),
-                "every submit either created a task or was explicitly rejected");
+            // 提交窗内所有许可均被阻塞中的执行体持有：in-flight 恒等于 created，
+            // 上限断言此时是确定性的（无观测读数瞬超）
+            assertTrue(created.size() <= max,
+                    "in-flight tasks must not exceed max under concurrent submits, got: " + created.size());
+            assertTrue(rejected.get() >= 1,
+                    "at least one concurrent submit must be rejected by the semaphore atomic layer");
+            assertEquals(threads, created.size() + rejected.get(),
+                    "every submit either created a task or was explicitly rejected");
+
+            // 放行阻塞中的执行体并复位 hook，任务照常完成（轮询至终态，避免泄漏到后续测试）
+            executionGate.countDown();
+            exportBizModel.setExecutionStartHookForTest(null);
+            for (NopDatavExportTask task : created) {
+                NopDatavExportTask done = pollUntilTerminal(task.getTaskId(), ctx);
+                assertEquals(NopDatavExportTaskStatus.SUCCEEDED, done.getStatus(),
+                        "released export task succeeded, errorMsg=" + done.getErrorMsg());
+            }
+        } finally {
+            executionGate.countDown();
+            exportBizModel.setExecutionStartHookForTest(null);
+        }
     }
 
     // ==================== owner / 下载校验 ====================

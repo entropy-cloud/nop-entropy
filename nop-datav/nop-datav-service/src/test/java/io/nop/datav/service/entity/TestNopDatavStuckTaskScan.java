@@ -280,8 +280,23 @@ public class TestNopDatavStuckTaskScan extends AbstractNopDatavTest {
                 now - (timeoutMinutes + 1) * MINUTE_MS);
 
         long scansBefore = stuckScanner.getScanCountForTest();
-        assertTrue(stuckScanner.getScheduler().fireNow(NopDatavStuckTaskScanner.JOB_NAME),
-                "fireNow dispatches the registered periodic job");
+        // fireNow 与 addJob 注册时排下的首次 scheduled fire 存在 running 态互斥：满载 seq 下
+        // scheduled fire 线程可能仍 in-flight（job.running != null → fireNow 返回 false）。
+        // 在有界窗口内事件驱动重试直至派发成功——派发能力这一断言语义不变；窗口耗尽仍失败则照常断言失败。
+        boolean fired = false;
+        long fireDeadline = System.currentTimeMillis() + 10_000L;
+        while (!fired && System.currentTimeMillis() < fireDeadline) {
+            fired = stuckScanner.getScheduler().fireNow(NopDatavStuckTaskScanner.JOB_NAME);
+            if (!fired) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        assertTrue(fired, "fireNow dispatches the registered periodic job");
 
         NopDatavReportDelivery d = pollDeliveryFailed(deliveryId);
         assertEquals(NopDatavReportDeliveryStatus.FAILED, d.getStatus(),
