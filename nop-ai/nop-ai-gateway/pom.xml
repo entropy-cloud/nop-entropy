@@ -160,6 +160,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <!-- failover/流式窗口等时序敏感钉族：跨 JVM 负载曾致窗口转发断言偶发
+                         假红（合并修订 2026-11-13 登记面），收敛为单 JVM 串行。 -->
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
                     <!-- Adding nop-ai-dao (required by ChannelSessionStore) puts
                          nop-dao's dao-defaults.beans.xml on the test classpath, so
                          tests that call CoreInitialization.initialize() (e.g.
