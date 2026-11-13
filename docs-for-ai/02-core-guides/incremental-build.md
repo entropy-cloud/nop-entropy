@@ -39,6 +39,7 @@ AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，�
 - **产物一致性**: 快路径编译与 `mvn compile` byte 级对拍零差异（-g/--release/-proc 通道对齐）；对拍 harness 在 `nop-tools/nop-ib/tools/ab_compare.py`。
 - **能力分级**（产物证据法）: L0 快路径 343 模块 / L1 xgen 模板 92（模板变更回退,手写源码快路径）/ L2 注解处理器 12（恒回退）/ L3 AOP 产物 10（恒回退）。
 - **模块串行 + 拓扑序**执行；产物目录与 Maven 共用，禁止 intra-project jar 进 fast-path classpath。
+- **仓库分层**: 本项目模块间依赖=reactor 输出目录（永远最新，永不 install）；第三方依赖=公共仓（`~/.m2/repository`，可用 `NOP_IB_COMMON_REPO` 覆盖）**只读解析**；worktree 私有仓（`.m2-repo`）仅作冷路径回退时的 fallback，且 nop-ib 从不写任何仓库。本项目编译产物只存在于各 worktree 的 `target/`，天然无跨 worktree 竞争。
 
 ## 实测基线（本机,勿外推）
 

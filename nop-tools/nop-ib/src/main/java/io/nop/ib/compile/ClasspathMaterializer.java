@@ -75,18 +75,44 @@ public final class ClasspathMaterializer {
                 seen.add(jar.toString());
         }
 
-        // reactor directories become real classpath entries in stable order
+        // reactor directories and external jars become classpath entries in stable order
         entries.addAll(seen);
         return new Materialized(entries, missing);
     }
 
-    private Path externalJar(String group, String artifact, String version, String classifier) {
+    /**
+     * External (third-party) artifacts are resolved READ-ONLY from the common
+     * repository first — the common repo is the single source of truth for
+     * third-party dependencies and is never written by nop-ib. The worktree-local
+     * repo is only a fallback for artifacts the cold path happened to download
+     * there (e.g. versioned snapshots); project-built artifacts never take this
+     * path at all (intra-project deps are reactor directories, see above).
+     */
+    Path externalJar(String group, String artifact, String version, String classifier) {
+        String rel = relativePath(group, artifact, version, classifier);
+        String common = commonRepo();
+        if (common != null) {
+            Path jar = Path.of(common, rel);
+            if (Files.isRegularFile(jar))
+                return jar;
+        }
+        return Path.of(model.getLocalRepo(), rel);
+    }
+
+    private String commonRepo() {
+        String env = System.getenv("NOP_IB_COMMON_REPO");
+        if (env != null && !env.isBlank())
+            return env;
+        return Path.of(System.getProperty("user.home"), ".m2", "repository").toString();
+    }
+
+    private String relativePath(String group, String artifact, String version, String classifier) {
         String groupPath = group.replace('.', '/');
         StringBuilder name = new StringBuilder(artifact).append('-').append(version);
         if (classifier != null && !classifier.isEmpty())
             name.append('-').append(classifier);
         name.append(".jar");
-        return Path.of(model.getLocalRepo(), groupPath, artifact, version, name.toString());
+        return Path.of(groupPath, artifact, version, name.toString()).toString();
     }
 
     public record Materialized(List<String> entries, List<String> missing) {
