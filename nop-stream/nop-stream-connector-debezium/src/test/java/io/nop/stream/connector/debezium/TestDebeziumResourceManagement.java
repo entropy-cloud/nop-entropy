@@ -3,6 +3,7 @@ package io.nop.stream.connector.debezium;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
+import io.nop.message.debezium.engine.DebeziumEngineWrapper;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.NopStreamErrors;
@@ -32,17 +33,33 @@ class TestDebeziumResourceManagement {
         config.setName("test-reentrant");
         config.setConnectorType("mysql");
         config.setDatabaseHost("localhost");
-        // 确定性排序（合并修订 2026-11-13）：放行 latch 挂到 createMessageSource 钩子
-        //（runEntered CAS 之后才被调用）——runner1 必先赢得 CAS，runner2 必然命中
-        // W-04 re-entry 守卫；原 latch 在 run() 调用前放行，压力下 runner2 可能反超
-        // 变成首个 run（engine-start-failed 假红）。
+        // 确定性排序（合并审查修订 2026-11-13；非合并丢失：master 侧 jdbc 默认语义本来就如此，
+        // 分支 tip 的通过是 latch 位置差异掩盖了竞态）：放行 latch 挂到 createMessageSource 钩子
+        // 分支 tip 的通过是 latch 位置差异掩盖了竞态）：latch 挂在 createMessageSource
+        // 后，runner1 必须真实存活在 run() 内 runner2 才能命中守卫。单测无 MySQL，
+        // 真实引擎 start 必然 engine-start-failed 快速退出并重置 runEntered，runner2
+        // 变成全新 run，得到 NopException 而非类型化 re-entry 拒绝（顺序运行下必现
+        // 假红）。因此注入 never-started 桩 wrapper：start() no-op（引擎"已启动"但
+        // 不连库）、stop() 因 startRequested=false 早退、isTerminated() 空真——
+        // runner1 稳定驻留在 completionLatch 等待循环，cancel() 正常收尾。
         CountDownLatch runStarted = new CountDownLatch(1);
         DebeziumCdcSourceFunction debeziumSource = new DebeziumCdcSourceFunction(config) {
             @Override
             protected DebeziumMessageSource createMessageSource(DebeziumConfig cfg,
                                                                 NopStreamOffsetBackingStore offsetStore) {
                 runStarted.countDown();
-                return super.createMessageSource(cfg, offsetStore);
+                return new DebeziumMessageSource(cfg, offsetStore) {
+                    @Override
+                    protected DebeziumEngineWrapper createEngineWrapper() {
+                        return new DebeziumEngineWrapper(cfg, null) {
+                            @Override
+                            public synchronized void start() {
+                                // no-op: unit test has no live MySQL; a never-started
+                                // wrapper is vacuously terminated for the stop contract
+                            }
+                        };
+                    }
+                };
             }
         };
 
