@@ -102,4 +102,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <!-- 本模块测试为 stub/时序敏感的引擎生命周期链（CRA 8.43/8.44 钉族）：
+                 全局 forkCount=4 + parallel=classes 的跨 JVM 负载曾把 carrier 启动链
+                 饥饿到 >60s（合并修订 2026-11-13 登记面），收敛为单 JVM 串行。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
