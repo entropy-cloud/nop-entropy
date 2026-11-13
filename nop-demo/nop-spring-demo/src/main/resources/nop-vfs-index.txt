@@ -256,7 +256,10 @@
 /nop/auth/pages/NopAuthResource/NopAuthResource.lib.js
 /nop/auth/pages/NopAuthResource/NopAuthResource.lib.xjs
 /nop/auth/pages/NopAuthResource/NopAuthResource.view.xml
+/nop/auth/pages/NopAuthResource/NopAuthResource_main.lib.xjs
+/nop/auth/pages/NopAuthResource/NopAuthResource_main.view.xml
 /nop/auth/pages/NopAuthResource/_gen/_NopAuthResource.view.xml
+/nop/auth/pages/NopAuthResource/_gen/_NopAuthResource_main.view.xml
 /nop/auth/pages/NopAuthResource/main.page.yaml
 /nop/auth/pages/NopAuthResource/picker.page.yaml
 /nop/auth/pages/NopAuthResource_main/NopAuthResource_main.lib.xjs
@@ -313,7 +316,11 @@
 /nop/auth/pages/NopAuthUser/NopAuthUser.lib.js
 /nop/auth/pages/NopAuthUser/NopAuthUser.lib.xjs
 /nop/auth/pages/NopAuthUser/NopAuthUser.view.xml
+/nop/auth/pages/NopAuthUser/NopAuthUser_tenant.lib.js
+/nop/auth/pages/NopAuthUser/NopAuthUser_tenant.lib.xjs
+/nop/auth/pages/NopAuthUser/NopAuthUser_tenant.view.xml
 /nop/auth/pages/NopAuthUser/_gen/_NopAuthUser.view.xml
+/nop/auth/pages/NopAuthUser/_gen/_NopAuthUser_tenant.view.xml
 /nop/auth/pages/NopAuthUser/add.page.yaml
 /nop/auth/pages/NopAuthUser/change-self-pass.flux.yaml
 /nop/auth/pages/NopAuthUser/change-self-pass.page.yaml
@@ -557,6 +564,7 @@
 /nop/schema/office/doc.xdef
 /nop/schema/office/font.xdef
 /nop/schema/office/word-cell-style.xdef
+/nop/schema/office/word-list-style.xdef
 /nop/schema/office/word-paragraph-style.xdef
 /nop/schema/office/word-run-style.xdef
 /nop/schema/office/word-table-style.xdef
@@ -915,6 +923,11 @@
 /nop/templates/orm-web/src/main/resources/_vfs/i18n/en/{moduleName}-web.i18n.yaml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.action-auth.xml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/_gen/_{metaInfo.objName}.view.xml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/main.page.yaml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/picker.page.yaml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.lib.xjs
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/_gen/_{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/main.page.yaml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/picker.page.yaml.xgen

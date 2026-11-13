@@ -891,7 +891,57 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.audit.IAuditService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.auth.ActionAuthMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.IActionAuthChecker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.IBizAuthChecker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.IDataAuthChecker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.IRolePermissionMapping"
   },
   {
     "allDeclaredConstructors": true,
@@ -2119,6 +2169,16 @@
     ],
     "methods": [],
     "name": "io.nop.api.core.beans.FilterBeanConstants"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.ITreeBean"
   },
   {
     "allDeclaredConstructors": true,
@@ -3959,6 +4019,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.config.IConfigRefreshable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "fillInStackTrace",
@@ -4204,6 +4274,36 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.message.IMessageSender"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.message.IMessageService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.message.IMessageSubscriber"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getInputStream",
@@ -4223,6 +4323,16 @@
       }
     ],
     "name": "io.nop.api.core.resource.IResourceReference"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.rpc.IRpcService"
   },
   {
     "allDeclaredConstructors": true,
@@ -4263,6 +4373,16 @@
       }
     ],
     "name": "io.nop.api.core.time.DefaultSysCalendar"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.time.ISysCalendar"
   },
   {
     "allDeclaredConstructors": true,
@@ -4745,6 +4865,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.IDeepCloneable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "freeze",
@@ -4758,6 +4888,46 @@
       }
     ],
     "name": "io.nop.api.core.util.IFreezable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.IMapLike"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.IMergeable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.INeedInit"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.IOrdered"
   },
   {
     "allDeclaredConstructors": true,
@@ -4790,6 +4960,16 @@
       }
     ],
     "name": "io.nop.api.core.util.ISourceLocationSetter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.ITextSerializable"
   },
   {
     "allDeclaredConstructors": true,
@@ -4927,6 +5107,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.api.beans.NopAuthMfaCredentialOutputBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.api.bind.IChannelBindService"
   },
   {
     "allDeclaredConstructors": true,
@@ -5993,7 +6183,277 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.api.mfa.IOperationMfaChecker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.biz.INopAuthDeptBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthEmailCodeBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthExtLoginBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthGroupBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthGroupDeptBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthGroupUserBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthLoginAttemptBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthMfaChallengeBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthMfaCredentialBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthMfaRecoveryCodeBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthMfaSettingBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthMfaTrustedDeviceBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthOpLogBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthPositionBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthRateLimitCounterBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthResourceBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthRoleBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthRoleDataAuthBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthRoleMfaPolicyBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthRoleResourceBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthSessionBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthSiteBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthSmsCodeBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthTenantBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthUserBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthUserRoleBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.biz.INopAuthUserSubstitutionBiz"
   },
   {
     "allDeclaredConstructors": true,
@@ -6646,6 +7106,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.core.login.IAuthTokenProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.core.login.ILoginAttemptStore"
   },
   {
@@ -6728,6 +7198,46 @@
       }
     ],
     "name": "io.nop.auth.core.login.ILoginService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.login.ILoginSessionStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.login.ISessionBootstrap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.login.ISessionIdGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.login.IUserContextCache"
   },
   {
     "allDeclaredConstructors": true,
@@ -7153,6 +7663,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.core.mfa.IMfaLoginPolicyService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.core.mfa.store.EmailCodeStore"
   },
   {
@@ -7563,6 +8083,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.password.IPasswordEncoder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.password.IPasswordPolicy"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "encodePassword",
@@ -7602,6 +8142,26 @@
       }
     ],
     "name": "io.nop.auth.core.password.SHA256PasswordEncoder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.sitemap.ISiteMapProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.spi.ILoginSpi"
   },
   {
     "allDeclaredConstructors": true,
@@ -14217,6 +14777,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.dao.generator.IUserIdGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -14571,6 +15141,25 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.auth.service.channel.UserChannelResolverImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.service.cleanup.NopAuthLedgerCleaner"
   },
   {
     "allDeclaredConstructors": true,
@@ -15839,6 +16428,14 @@
       {
         "allowWrite": true,
         "name": "daoProvider"
+      },
+      {
+        "allowWrite": true,
+        "name": "lockManager"
+      },
+      {
+        "allowWrite": true,
+        "name": "ormTemplate"
       }
     ],
     "methods": [],
@@ -16186,6 +16783,36 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.api.IBizActionArgModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.api.IBizActionModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.api.IBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getAction",
@@ -16238,6 +16865,16 @@
       }
     ],
     "name": "io.nop.biz.api.IBizObject"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.api.IBizObjectManager"
   },
   {
     "allDeclaredConstructors": true,
@@ -17673,6 +18310,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.crud.IQueryTransformer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "normalize",
@@ -17683,6 +18330,16 @@
       }
     ],
     "name": "io.nop.biz.crud.QueryBeanArgsNormalizer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.decorator.IActionDecoratorCollector"
   },
   {
     "allDeclaredConstructors": true,
@@ -18139,6 +18796,16 @@
       }
     ],
     "name": "io.nop.biz.dict.ObjDictLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.download.DownloadTempReconciler"
   },
   {
     "allDeclaredConstructors": true,
@@ -19168,6 +19835,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.biz.service.BizExecutorStartupValidator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.service.DefaultWorkExecutor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.chart.report.ExcelChartImageProvider"
   },
   {
@@ -19584,6 +20271,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.cache.ICacheProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "buildCache",
@@ -19617,6 +20314,26 @@
       }
     ],
     "name": "io.nop.commons.cache.LocalCacheProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.collections.IKeyedElement"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.collections.IKeyedList"
   },
   {
     "allDeclaredConstructors": true,
@@ -20030,7 +20747,85 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.commons.concurrent.executor.IPartitionedExecutor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.executor.IThreadPoolExecutor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.lock.IResourceLockManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.lock.impl.IResourceLockManagerImplementor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "name": "locks"
+      },
+      {
+        "allowWrite": true,
+        "name": "schedulePromise"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.lock.impl.LocalResourceLockManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.commons.functional.ChainedAsyncFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.functional.IAsyncFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.functional.IFunctionInvoker"
   },
   {
     "allDeclaredConstructors": true,
@@ -20053,6 +20848,16 @@
       }
     ],
     "name": "io.nop.commons.lang.IAttributeSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.lang.IDestroyable"
   },
   {
     "allDeclaredConstructors": true,
@@ -20188,6 +20993,16 @@
       }
     ],
     "name": "io.nop.commons.text.CharacterCase"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.type.ISqlDataType"
   },
   {
     "allDeclaredConstructors": true,
@@ -23119,6 +23934,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.dict.IDictLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.initialize.impl.CoreInitializer"
   },
   {
@@ -23160,6 +23985,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.core.lang.eval.IEvalPredicate"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.lang.json.IJsonContainer"
   },
   {
     "allDeclaredConstructors": true,
@@ -26818,6 +27653,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.core.model.tree.ITreeParentStructure"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.model.tree.ITreeStructure"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "forModuleName",
@@ -26926,6 +27781,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.reflect.aop.IAopProxy"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.reflect.aop.IMethodInterceptor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.reflect.hook.IExtensibleObject"
   },
   {
@@ -26936,7 +27811,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.reflect.hook.IMethodMissingHook"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.reflect.hook.IPropGetMissingHook"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.reflect.hook.IPropMakeMissingHook"
   },
   {
     "allDeclaredConstructors": true,
@@ -27267,6 +28162,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.resource.IResourceNamespaceHandler"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.resource.IResourceObjectLoader"
   },
   {
@@ -27277,7 +28182,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.resource.IResourceObjectLoaderFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.resource.IResourceObjectSaver"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.IResourceTextLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -28126,6 +29051,16 @@
       }
     ],
     "name": "io.nop.core.resource.component.AbstractFreezable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.resource.component.IComponentTransformer"
   },
   {
     "allDeclaredConstructors": true,
@@ -29288,6 +30223,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.api.IDaoProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.api.INamedSqlBuilder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "clearQueryCache",
@@ -29365,6 +30320,26 @@
       }
     ],
     "name": "io.nop.dao.api.ISqlExecutor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.coderule.ICodeRule"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.coderule.ICodeRuleGenerator"
   },
   {
     "allDeclaredConstructors": true,
@@ -29486,6 +30461,16 @@
       }
     ],
     "name": "io.nop.dao.dialect.DialectSelector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.dialect.IDataTypeHandler"
   },
   {
     "allDeclaredConstructors": true,
@@ -29859,6 +30844,16 @@
       }
     ],
     "name": "io.nop.dao.dialect.IDialectProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.dialect.exception.ISQLExceptionTranslator"
   },
   {
     "allDeclaredConstructors": true,
@@ -30431,6 +31426,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.dao.dialect.model.DialectSqls"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.dialect.model.ISqlFunctionModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -32105,7 +33110,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.dao.jdbc.IJdbcTemplate"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.dao.jdbc.datasource.HikariDataSourceFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.jdbc.datasource.IDataSourceFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -32155,6 +33180,9 @@
     "fields": [
       {
         "name": "LOG"
+      },
+      {
+        "name": "queryCacheEpochs"
       }
     ],
     "methods": [
@@ -32440,6 +33468,26 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.metrics.IDaoMetrics"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.seq.ISequenceGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "INSTANCE"
@@ -32510,6 +33558,56 @@
       }
     ],
     "name": "io.nop.dao.shard.EmptyShardSelector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.shard.IShardSelector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.txn.ITransactionListener"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.txn.ITransactionManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.txn.ITransactionMetrics"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.txn.ITransactionTemplate"
   },
   {
     "allDeclaredConstructors": true,
@@ -32812,6 +33910,16 @@
       }
     ],
     "name": "io.nop.dao.utils.TransactionalFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dataset.binder.IDataParameterBinder"
   },
   {
     "allDeclaredConstructors": true,
@@ -34133,6 +35241,36 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.excel.renderer.IChartImageProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.renderer.IReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.renderer.IReportRendererRegistry"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.excel.renderer.SimpleHtmlReportRendererFactory"
   },
   {
@@ -34226,6 +35364,16 @@
       }
     ],
     "name": "io.nop.file.core.DownloadRequestBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.file.core.IFileStore"
   },
   {
     "allDeclaredConstructors": true,
@@ -35107,6 +36255,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.gateway.conversion.IBackendMessageConverter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.gateway.conversion.ai.DeepSeekMessageConverter"
   },
   {
@@ -35163,6 +36321,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.gateway.core.interceptor.IGatewayInterceptor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getBizObjName",
@@ -35170,6 +36338,16 @@
       }
     ],
     "name": "io.nop.graphql.core.IBizModelImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.IGraphQLHook"
   },
   {
     "allDeclaredConstructors": true,
@@ -35190,6 +36368,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.graphql.core.audit.GraphQLAuditOperationInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.audit.IGraphQLAuditer"
   },
   {
     "allDeclaredConstructors": true,
@@ -35277,6 +36465,16 @@
       }
     ],
     "name": "io.nop.graphql.core.biz.IBizObjectQueryProcessor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.biz.IGraphQLBizInitializer"
   },
   {
     "allDeclaredConstructors": true,
@@ -35660,6 +36858,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.engine.IGraphQLEngine"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "beginDataFetch",
@@ -35757,7 +36965,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.graphql.core.reflection.IGraphQLArgsNormalizer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.graphql.core.rpc.RpcServiceOnGraphQL"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.schema.IGraphQLSchemaLoader"
   },
   {
     "allDeclaredConstructors": true,
@@ -36171,6 +37399,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.http.api.client.IHttpClient"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -36222,7 +37460,37 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.http.api.server.IClientIpFetcher"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.http.api.server.IHttpServerFilter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.http.api.support.DefaultHttpClientFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.http.api.support.IHttpClientFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -36354,6 +37622,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.integration.api.channel.UserChannelResolver"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.integration.api.qrcode.IQrcodeService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.integration.api.qrcode.QrcodeOptions"
   },
   {
@@ -36372,6 +37660,16 @@
       }
     ],
     "name": "io.nop.integration.qrcode.ZxingQrcodeService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ioc.api.IBeanPointcut"
   },
   {
     "allDeclaredConstructors": true,
@@ -36684,6 +37982,16 @@
       }
     ],
     "name": "io.nop.ioc.model.BeansModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ioc.model.IBeanModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -38975,7 +40283,38 @@
     "fields": [
       {
         "allowWrite": true,
+        "name": "consumeAwaitTimeoutMs"
+      },
+      {
+        "allowWrite": true,
+        "name": "deliveryExecutor"
+      },
+      {
+        "allowWrite": true,
+        "name": "destroyed"
+      },
+      {
+        "allowWrite": true,
+        "name": "maxPendingRedeliveriesPerSubscription"
+      },
+      {
+        "allowWrite": true,
+        "name": "metrics"
+      },
+      {
+        "name": "pendingRedeliveryDepth"
+      },
+      {
+        "allowWrite": true,
+        "name": "redeliverMinIntervalMs"
+      },
+      {
+        "allowWrite": true,
         "name": "redeliveryExecutor"
+      },
+      {
+        "allowWrite": true,
+        "name": "suspendedRedeliverDelayMs"
       }
     ],
     "methods": [
@@ -39392,7 +40731,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.orm.IOrmEntityFileStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.orm.IOrmEntityLifecycle"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.IOrmInterceptor"
   },
   {
     "allDeclaredConstructors": true,
@@ -39622,6 +40981,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.orm.IOrmTemplate"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.orm.biz.ICrudBiz"
   },
   {
@@ -39748,6 +41117,26 @@
       }
     ],
     "name": "io.nop.orm.dao.OrmDaoProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.eql.IEqlAstTransformer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.eql.binder.IOrmColumnBinderEnhancer"
   },
   {
     "allDeclaredConstructors": true,
@@ -40736,6 +42125,36 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.IEntityComponentModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.IEntityComponentPropModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.IEntityJoinConditionModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "containsTenantIdInPk",
@@ -41234,6 +42653,16 @@
       }
     ],
     "name": "io.nop.orm.model.IOrmDataType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.IOrmModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -44474,6 +45903,26 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.sql.IEntityFilterProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.sql_lib.ISqlLibManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -45181,6 +46630,26 @@
       }
     ],
     "name": "io.nop.orm.support.DynamicOrmEntity"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.support.IOrmCompactExtFieldHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.support.IOrmCompactExtFieldSupport"
   },
   {
     "allDeclaredConstructors": true,
@@ -45932,6 +47401,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.record_mapping.IRecordMappingManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.record_mapping.impl.RecordMappingManagerImpl"
   },
   {
@@ -45995,6 +47474,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.report.core.dataset.ReportDataSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.core.engine.IReportEngine"
   },
   {
     "allDeclaredConstructors": true,
@@ -46068,6 +47557,44 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateSheet",
+        "parameterTypes": [
+          "io.nop.excel.model.IExcelTable",
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.renderer.CsvReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateSheet",
+        "parameterTypes": [
+          "io.nop.excel.model.IExcelTable",
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.renderer.FodsReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -46091,8 +47618,46 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "generateSheet",
+        "parameterTypes": [
+          "io.nop.excel.model.IExcelTable",
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.renderer.RtfReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateSheet",
+        "parameterTypes": [
+          "io.nop.excel.model.IExcelTable",
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.renderer.SingleSheetTableRenderer"
   },
   {
     "allDeclaredConstructors": true,
@@ -46369,6 +47934,215 @@
       }
     ],
     "name": "io.nop.rpc.model.proto.ProtoFileParser"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysBroadcastEventBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysChangeLogBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysCheckerRecordBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysClusterLeaderBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysCodeRuleBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysCompactExtFieldBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysDictBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysDictOptionBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysEventBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysExtFieldBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysI18nBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysLockBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysNoticeTemplateBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysObjTagBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysSequenceBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysServiceInstanceBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysTagBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysUserVariableBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.biz.INopSysVariableBiz"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.cleanup.SysDaoLedgerCleaner"
   },
   {
     "allDeclaredConstructors": true,
@@ -52412,6 +54186,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.IObjMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.IObjPropMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getClassName",
@@ -52724,6 +54518,16 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.SchemaLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.impl.IObjSchemaImpl"
   },
   {
     "allDeclaredConstructors": true,
@@ -55368,6 +57172,66 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.xjava.JavaObjMetaParser"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.IXplTag"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.IXplTagAttribute"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.IXplTagLib"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.IXplTagSlot"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.IXplTagSlotArg"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.IXplTagVariable"
   },
   {
     "allDeclaredConstructors": true,
@@ -59575,6 +61439,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "java.lang.CharSequence"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.lang.Cloneable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "compareTo",
@@ -60341,6 +62225,16 @@
       }
     ],
     "name": "java.lang.constant.Constable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.lang.constant.ConstantDesc"
   },
   {
     "allDeclaredConstructors": true,
@@ -61908,6 +63802,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "java.util.RandomAccess"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "reversed",
@@ -61915,6 +63819,26 @@
       }
     ],
     "name": "java.util.SequencedCollection"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.SequencedMap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.SequencedSet"
   },
   {
     "allDeclaredConstructors": true,
@@ -62125,5 +64049,15 @@
       }
     ],
     "name": "java.util.Set"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.concurrent.Executor"
   }
 ]
