@@ -119,10 +119,6 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
-    </build>
-    <build>
-        <plugins>
             <!-- 执行器/调度器/锁钉族为时序敏感测试（CRA 8.x executor/scheduler 钉族）：
                  全局 forkCount=4 + parallel=classes 的跨 JVM 负载曾致 cancel/latch 断言互扰
                  假红（合并修订 2026-11-13 登记面），收敛为单 JVM 串行。 -->
