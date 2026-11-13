@@ -14,7 +14,6 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.BeanContainerBuilder;
-import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.flow.builder.StreamModelDslBuilder;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.stream.flow.spi.ISqlStreamCompiler;
@@ -99,12 +98,31 @@ public class TestSqlModelDeclarationE2E {
                 .parseFromNode(XNode.parse(modelXml));
         assertNotNull(model.getSql(), "the xdef-validated model carries the <sql> element");
 
-        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model).build();
-        // expansion consumed the declaration and replaced the content
-        assertEquals(null, model.getSql(), "the <sql> element is consumed by build()");
-        assertTrue(model.getTransforms().size() > 1, "compiled transforms replaced the model");
-        env.execute("sql-declaration-e2e");
+        // CRA 8.45 R4-05 W-07 reshape (E-2538-2, plan 2538 组 A): build() is
+        // zero-consumption — the expansion product lives on the builder's internal
+        // defensive copy, so the caller-held model stays pristine. The old
+        // consume-in-place observation channel (model.getSql() == null after build)
+        // is replaced by the output-level oracle below plus a zero-consumption pin.
+        assertNotNull(model.getSql(), "build() is zero-consumption: the caller-held "
+                + "model keeps its <sql> declaration (W-07 / 1.3-C1-005)");
 
+        // output-level oracle — and re-entrant rebuild: a second build from the SAME
+        // pristine model must expand and execute identically (under the old
+        // consume-in-place semantics the second expansion would run on an
+        // already-consumed model and fail). Two identical runs prove the expansion
+        // happens per build, which is the replacement evidence for "the declaration
+        // was consumed and replaced".
+        List<String> rows1 = buildExecuteCollect("sql-declaration-e2e", model);
+        List<String> rows2 = buildExecuteCollect("sql-declaration-e2e-rebuild", model);
+        assertEquals(Arrays.asList("a=4", "b=2", "b=4", "c=1"), rows1,
+                () -> "declared SQL rows: " + rows1);
+        assertEquals(rows1, rows2, "rebuild from the pristine model must produce "
+                + "identical rows (zero-consumption idempotence)");
+    }
+
+    private static List<String> buildExecuteCollect(String label, StreamModel model)
+            throws Exception {
+        StreamModelDslBuilder.of(model).build().execute(label);
         SqlTestSink sink = (SqlTestSink) BeanContainer.instance().getBean("testSink");
         List<String> rows = sink.getCollected().stream()
                 .map(o -> {
@@ -113,7 +131,7 @@ public class TestSqlModelDeclarationE2E {
                 })
                 .sorted()
                 .collect(Collectors.toList());
-        assertEquals(Arrays.asList("a=4", "b=2", "b=4", "c=1"), rows,
-                () -> "declared SQL rows: " + rows);
+        sink.getCollected().clear();
+        return rows;
     }
 }

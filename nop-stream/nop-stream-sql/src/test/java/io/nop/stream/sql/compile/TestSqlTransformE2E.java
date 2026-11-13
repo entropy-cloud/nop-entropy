@@ -154,19 +154,37 @@ public class TestSqlTransformE2E {
 
         StreamModel model = (StreamModel) new DslModelParser()
                 .parseFromNode(XNode.parse(xml));
-        StreamExecutionEnvironment env = StreamModelDslBuilder.of(model).build();
 
-        // registry rename/merge mechanics: both fragments' strategies survive with
-        // their vertex-id prefixes (a collision would have failed the build)
-        java.util.Set<String> strategyIds = new java.util.HashSet<>();
-        model.getWindowingStrategies().forEach(s -> strategyIds.add(s.getStrategyId()));
-        assertTrue(strategyIds.contains("t1_ws0") && strategyIds.contains("t2_ws0"),
-                () -> "both windowed fragments' strategies must be merged with distinct "
-                        + "prefixed ids, got: " + strategyIds);
-
-        env.execute("sql-transform-dual-window");
+        // CRA 8.45 R4-05 W-07 reshape (E-2538-2, plan 2538 组 A): build() is
+        // zero-consumption — the fragment splice (registry rename + merge) runs on
+        // the builder's internal defensive copy, so the caller-held model stays
+        // pristine and the expanded strategy ids are no longer observable on it.
+        // Rename/merge mechanics are pinned through the output-level oracle (both
+        // branches execute their windowed aggregates; a broken rename/merge fails
+        // the build with a duplicate registry id) plus a zero-consumption pin and a
+        // re-entrant rebuild from the same pristine model.
+        StreamModelDslBuilder.of(model).build().execute("sql-transform-dual-window");
         SqlTestSink sink = (SqlTestSink) BeanContainer.instance().getBean("testSink");
         assertTrue(!sink.getCollected().isEmpty(),
                 "both branches feed the sink store");
+        int rowsFirstRun = sink.getCollected().size();
+        sink.getCollected().clear();
+
+        // re-entrant rebuild: the second expansion starts from the untouched model
+        // (both sqlTransform vertices still declared) and must splice + execute
+        // identically — under the old consume-in-place semantics this would collide
+        // with the already-spliced transforms
+        long remainingSqlTransforms = model.getTransforms().stream()
+                .filter(t -> t instanceof io.nop.stream.flow.model.StreamSqlTransformModel)
+                .count();
+        assertTrue(model.getWindowingStrategies().isEmpty() && remainingSqlTransforms == 2,
+                () -> "caller model stays pristine after build (W-07 zero-consumption): "
+                        + "the raw <sqlTransform> vertices survive and no fragment "
+                        + "strategies leaked onto the parsed model; transforms="
+                        + model.getTransforms().size() + ", strategies="
+                        + model.getWindowingStrategies().size());
+        StreamModelDslBuilder.of(model).build().execute("sql-transform-dual-window-rebuild");
+        assertEquals(rowsFirstRun, sink.getCollected().size(),
+                "rebuild from the pristine model must reproduce the same pipeline");
     }
 }
