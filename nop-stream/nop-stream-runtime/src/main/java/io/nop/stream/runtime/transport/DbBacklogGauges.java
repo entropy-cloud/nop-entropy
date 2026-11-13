@@ -55,6 +55,22 @@ public final class DbBacklogGauges {
         holder.set(partition);
     }
 
+    /**
+     * Clears the binding of one topic's backlog gauge (holder -> null). The gauge itself
+     * stays registered (re-deploys re-bind the existing meter); after unbind the gauge
+     * reads 0.0 instead of a closed partition's stale backlog. Called from the partition's
+     * close path.
+     */
+    public static void unbind(String topic) {
+        if (topic == null) {
+            return;
+        }
+        AtomicReference<RemoteResultPartition> holder = HOLDERS.get(topic);
+        if (holder != null) {
+            holder.set(null);
+        }
+    }
+
     private static double backlogOf(AtomicReference<RemoteResultPartition> holder) {
         RemoteResultPartition partition = holder.get();
         return partition == null ? 0.0 : partition.readBacklogCached();

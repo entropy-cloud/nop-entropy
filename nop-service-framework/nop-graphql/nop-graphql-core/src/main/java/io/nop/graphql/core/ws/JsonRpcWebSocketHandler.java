@@ -745,6 +745,12 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 // 订阅（SSE/执行链在会话关闭后停止推送，否则上游执行至 EOF 白耗资源）。
                 LOG.debug("nop.websocket.ignore-response:cancel-upstream:opId={}", operationId);
                 cancel();
+                // Minor-6 关闭会话清理收口：session-closed 分支原先只 cancel 上游，条目滞留
+                // activeOperations——既泄漏全局闸名额（validSubscription 阶段占用），又使同 id
+                // 复用被 4409 拒绝。与 onComplete 对称地做双参 remove + 名额归还。
+                if (activeOperations.remove(operationId, this)) {
+                    releaseGlobalSubscriptionSlot();
+                }
             }
         }
 

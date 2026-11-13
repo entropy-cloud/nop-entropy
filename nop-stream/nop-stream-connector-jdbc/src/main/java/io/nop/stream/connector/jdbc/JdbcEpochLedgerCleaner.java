@@ -259,10 +259,15 @@ public class JdbcEpochLedgerCleaner extends LifeCycleSupport {
             return deleted;
         } catch (SQLException | RuntimeException e) {
             // SSOT §3.1 item 5: a failed round is ERROR-visible + counted, never
-            // swallowed silently, and never terminal for the periodic chain
+            // swallowed silently. The failure must also reach the insulation
+            // listener (onRunFailure), so it is rethrown after logging/counting —
+            // the insulation layer (PeriodicTaskHelper) keeps the periodic chain
+            // alive across failed rounds.
             LOG.error("nop.stream.ledger.epochledger.cleanup-fail:table={}", ledgerTableName, e);
             cleanupFailureCount.incrementAndGet();
-            return 0L;
+            if (e instanceof RuntimeException)
+                throw (RuntimeException) e;
+            throw new StreamException("jdbc epoch ledger cleanup round failed: " + e.getMessage(), e);
         } finally {
             if (!committed) {
                 try {
@@ -303,9 +308,13 @@ public class JdbcEpochLedgerCleaner extends LifeCycleSupport {
             }
             return keys;
         } catch (SQLException | RuntimeException e) {
+            // SSOT §3.1 item 5: log + count, then rethrow so the failure reaches
+            // the insulation listener instead of masquerading as an empty round
             LOG.error("nop.stream.ledger.epochledger.cleanup-fail:table={}", ledgerTableName, e);
             cleanupFailureCount.incrementAndGet();
-            return List.of();
+            if (e instanceof RuntimeException)
+                throw (RuntimeException) e;
+            throw new StreamException("jdbc epoch ledger cleanup pick failed: " + e.getMessage(), e);
         }
     }
 }

@@ -97,16 +97,27 @@ public class TestThreadPoolDestroyAwaitProbe {
         assertFalse(interrupted.get(), "await=0 时不得 shutdownNow 中断在飞任务（保持现语义）");
     }
 
-    /** pin0402c：init 前 destroy 抛类型化异常而非裸 NPE。 */
+    /**
+     * pin0402c（契约修订 2026-11-13）：init 前/销毁后再 destroy 均为无害 no-op——
+     * destroy 幂等契约（close-then-close 生产场景，如 ShellCommandExecutor.close 重复触发）
+     * 优于早前的"typed 拒绝"钉；NOT_INITIALIZED 类型化拒绝保留在使用路径
+     * （execute/submit 经 snapshotExecutor），由 pin0402c-use 覆盖。
+     */
     @Test
-    public void pin0402c_destroyBeforeInitFailsTyped() {
+    public void pin0402c_destroyBeforeInitIsNoOpAndUsePathStillTyped() {
         ThreadPoolConfig config = new ThreadPoolConfig();
         config.setName("probe-broken");
         DefaultThreadPoolExecutor executor = new DefaultThreadPoolExecutor();
         executor.setConfig(config);
 
-        NopException e = assertThrows(NopException.class, executor::destroy);
-        assertEquals("nop.err.commons.concurrent.thread-pool-not-initialized", e.getErrorCode());
+        // destroy 前未初始化：no-op，不抛
+        executor.destroy();
+        executor.destroy(); // 幂等
+
+        // 使用路径仍 typed 拒绝（NOT_INITIALIZED）
+        NopException e = assertThrows(NopException.class, () -> executor.execute(() -> {
+        }));
+        assertEquals("nop.err.commons.service.not-active", e.getErrorCode()); // snapshotExecutor 统一走 ERR_SERVICE_NOT_ACTIVE
     }
 
     /** pin6001：C6-001（plan 2548）排队任务在 destroy 后必须异常终态，不悬挂。 */

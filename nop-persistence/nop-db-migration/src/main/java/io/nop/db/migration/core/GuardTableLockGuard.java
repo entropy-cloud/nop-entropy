@@ -83,7 +83,13 @@ public class GuardTableLockGuard implements IMigrationLockGuard {
                 if (updated == 1)
                     return; // 条件 INSERT 成功 = 持锁
             } catch (Exception conflict) {
-                // 唯一冲突 = 持锁方在：重试至超时（失败语义见下，非静默继续）
+                // Minor-10: 仅唯一约束冲突（SQLState 23505，方言回退 message 判定）= 持锁方在：
+                // 重试至超时（失败语义见下，非静默继续）。其余异常（表缺失/连接失败/语法错误等）
+                // 上抛，不再以「冲突」名义静默重试掩盖根因。
+                if (!isUniqueConstraintViolation(conflict)) {
+                    // 检查型异常经 NopException.adapt 包装上抛，根因（cause 链）完整保留
+                    throw NopException.adapt(conflict);
+                }
                 LOG.trace("nop.db-migration.guard-lock-conflict:lockName={}", lockName, conflict);
             }
             if (CoreMetrics.currentTimeMillis() >= deadline)
@@ -97,6 +103,34 @@ public class GuardTableLockGuard implements IMigrationLockGuard {
                         .param(ARG_LOCK_NAME, lockName);
             }
         }
+    }
+
+    /**
+     * Minor-10: 唯一约束冲突判定——优先按 SQLState 23505（H2/MySQL/PG/Oracle/DB2 通用），
+     * JDBC 包装层可能吞掉 SQLState，回退按 message 关键字判定（unique / duplicate）。
+     */
+    static boolean isUniqueConstraintViolation(Throwable e) {
+        Throwable cur = e;
+        int depth = 0;
+        while (cur != null && depth < 10) {
+            if (cur instanceof java.sql.SQLException) {
+                String sqlState = ((java.sql.SQLException) cur).getSQLState();
+                if (sqlState != null && sqlState.startsWith("23")) {
+                    // 23xxx = 完整性约束冲突；唯一冲突为 23505（个别方言 23000/23513 非唯一）
+                    return "23505".equals(sqlState);
+                }
+                String message = cur.getMessage();
+                if (message != null) {
+                    String lower = message.toLowerCase();
+                    if (lower.contains("unique") || lower.contains("duplicate")) {
+                        return true;
+                    }
+                }
+            }
+            cur = cur.getCause();
+            depth++;
+        }
+        return false;
     }
 
     @Override

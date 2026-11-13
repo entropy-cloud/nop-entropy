@@ -42,10 +42,12 @@ public final class FileSourceConnectorFactory implements IStreamSplitSourceFacto
                     // (unset = 0 = channel off; explicit <= 0 rejected at the factory).
                     ConnectorParamDescriptor.optional("rateLimitRowsPerSecond",
                             io.nop.stream.core.connector.registry.ConnectorParamKind.INT,
-                            "max records per second (0/unset = unlimited; WI5)"),
+                            "max records per second (unset = unlimited; explicit 0/negative "
+                                    + "rejected typed; WI5)"),
                     ConnectorParamDescriptor.optional("rateLimitBytesPerSecond",
                             io.nop.stream.core.connector.registry.ConnectorParamKind.INT,
-                            "max bytes per second (0/unset = unlimited; WI5)"),
+                            "max bytes per second (unset = unlimited; explicit 0/negative "
+                                    + "rejected typed; WI5)"),
                     ConnectorParamDescriptor.optional("splitAssignmentPolicy", STRING,
                             "split assignment policy (WI5)",
                             false, List.of(FileSplitEnumerator.POLICY_ROUND_ROBIN,

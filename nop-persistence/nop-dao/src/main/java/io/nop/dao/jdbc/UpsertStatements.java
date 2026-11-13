@@ -7,6 +7,7 @@
  */
 package io.nop.dao.jdbc;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.exception.ISQLExceptionTranslator;
 import io.nop.dao.exceptions.JdbcException;
@@ -17,7 +18,9 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.StringJoiner;
 
+import static io.nop.dao.DaoErrors.ARG_NAME;
 import static io.nop.dao.DaoErrors.ERR_SQL_DUPLICATE_KEY;
+import static io.nop.dao.DaoErrors.ERR_SQL_UPSERT_CONFLICT_KEYS_EMPTY;
 
 /**
  * Static face of the DAO batch-upsert primitive (WI11 design contract §2.3): native
@@ -110,6 +113,11 @@ public final class UpsertStatements {
         UpsertStyle style = resolveUpsertStyle(dialect);
         if (style == null) {
             return null;
+        }
+        // 冲突键列集非空守卫：三种方言形态都把 conflictColumns 拼进 SQL（MYSQL key-only 形态
+        // 还会裸 get(0)），空集在文本生成点类型化失败（报静态面不一定经过 UpsertExecutors.validateShape）
+        if (conflictColumns == null || conflictColumns.isEmpty()) {
+            throw new NopException(ERR_SQL_UPSERT_CONFLICT_KEYS_EMPTY).param(ARG_NAME, tableName);
         }
         String insert = "INSERT INTO " + dialect.escapeSQLName(tableName)
                 + " (" + escapeJoin(dialect, columns) + ") VALUES (" + placeholders(columns.size()) + ")";

@@ -86,8 +86,13 @@ public class RateLimitExecutorImpl implements IRateLimitExecutor {
                 try {
                     task.run();
                 } finally {
-                    // 任务结束后清理条目（仅当映射仍指向本次 future 时移除）
-                    promiseMap.remove(k, self[0]);
+                    // 任务结束后清理条目（仅当映射仍指向本次 future 时移除）。
+                    // delay=0 时本 lambda 可能先于 compute 尾部的 self[0]=scheduled 赋值执行：
+                    // CHM.remove(key,null) 会抛 NPE 且被调度线程吞掉，这里显式判空跳过
+                    // （条目保持到下一次 debounce 覆盖，与自比较语义兜底一致）。
+                    Future<?> cur = self[0];
+                    if (cur != null)
+                        promiseMap.remove(k, cur);
                 }
                 return null;
             }, delay, TimeUnit.MILLISECONDS);

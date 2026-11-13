@@ -378,9 +378,9 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
     private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
         // C3-004（plan 2523）：sidecar 探测整体移出 reactor 回调线程——嵌套同步 get(30s)×2
         // 复用同一 client 会占死回调线程（ioThreadCount=1 配置面即全连接停摆，CL-021）
-        // 卸载任务 60s 有界（get 30s×2 超时内终结），join 等价于原 get 语义且已在 worker 线程
-        return io.nop.commons.concurrent.executor.GlobalExecutors.globalWorker()
-                .<String>submit(() -> {
+        // 卸载任务 60s 有界（get 30s×2 超时内终结）；等待侧同样有界（65s > 60s 上界），
+        // 且当前线程已在 globalWorker 上时直接同步执行，避免 worker 池饱和时 join 自我饥饿
+        java.util.concurrent.Callable<String> probe = () -> {
             for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
                 java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(
                         HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
@@ -397,7 +397,33 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
                 }
             }
             return null;
-        }).join();
+        };
+        if (Thread.currentThread().getName().startsWith(io.nop.commons.concurrent.executor.GlobalExecutors.NOP_GLOBAL_WORKER)) {
+            try {
+                return probe.call();
+            } catch (Exception e) {
+                // 与原 join 语义一致：探测任务自身的同步抛出上抛
+                throw NopException.adapt(e);
+            }
+        }
+        java.util.concurrent.Future<String> offloaded = io.nop.commons.concurrent.executor.GlobalExecutors
+                .globalWorker().submit(probe);
+        try {
+            return offloaded.get(65, TimeUnit.SECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            // 等待超时：取消在途探测，sidecar 缺失按探测失败处理（不阻断下载）
+            offloaded.cancel(false);
+            LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            offloaded.cancel(false);
+            LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+            return null;
+        } catch (java.util.concurrent.ExecutionException e) {
+            // 与原 join 语义一致：探测任务自身的同步抛出（非超时/中断）上抛
+            throw NopException.adapt(e.getCause());
+        }
     }
 
     private static HttpRequest copyRequest(HttpRequest request) {

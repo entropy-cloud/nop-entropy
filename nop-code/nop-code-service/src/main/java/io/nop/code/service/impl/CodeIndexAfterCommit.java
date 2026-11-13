@@ -50,7 +50,9 @@ public final class CodeIndexAfterCommit {
         transactionTemplate.afterCommit(null, () -> {
             try {
                 action.run();
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // MA-07 绝缘层约定对齐：commit 点之后无回滚可用，回调失败（含 Error）
+                // 一律 catch + 结构化 WARN，绝不向上传播（throwable 逃逸会污染提交线程）
                 LOG.warn("{} failed", site, e);
             }
         });

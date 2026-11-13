@@ -404,8 +404,10 @@ class TestKafkaConsumeTask {
 
         // Round 2: attempt 2 > cap 1 → endpoint: the boundary (record0 offset+1 = 4) is
         // committed explicitly, then the TAIL is rewound (record1 offset 4), never record 0.
-        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
-                task::batchConsume);
+        // The endpoint is a batch EXIT (runFailureEndpoint contract: no rethrow) — the
+        // pre-fix rethrow fell into the runTask catch and dispatched a SECOND,
+        // context-less onConsumeFailure after the endpoint had already dispatched one.
+        task.batchConsume();
         org.mockito.ArgumentCaptor<Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndMetadata>> committed =
                 org.mockito.ArgumentCaptor.forClass(Map.class);
         verify(consumer).commitSync(committed.capture());

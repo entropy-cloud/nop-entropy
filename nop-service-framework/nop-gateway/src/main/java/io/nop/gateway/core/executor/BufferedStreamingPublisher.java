@@ -545,7 +545,15 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
                         if (cancelled.get()) {
                             return;
                         }
-                        deliver(signal);
+                        try {
+                            deliver(signal);
+                        } catch (Throwable e) {
+                            // Minor-9: 下游 subscriber.onNext 抛出不得冲出 drain（队列已清空、
+                            // 终态信号丢失 → 流悬挂）。按 Flow 规范 2.13：取消上游订阅、清空
+                            // 残余信号队列，并以 onError 终态收口（terminate 内含上游 cancel）。
+                            failFromDelivery(e);
+                            return;
+                        }
                     }
                 }
             } finally {
@@ -553,6 +561,18 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
                     draining = false;
                 }
             }
+        }
+
+        /** Minor-9: 下游投递抛出的终态收口——cancel 上游 + 清空信号队列 + onError。 */
+        private void failFromDelivery(Throwable e) {
+            LOG.warn("nop.gateway.streaming-delivery-failed:routeId={}", route.getId(), e);
+            Attempt state;
+            synchronized (this) {
+                state = attempt;
+                attempt = null;
+                signalQueue.clear();
+            }
+            terminate(state, e);
         }
 
         /**

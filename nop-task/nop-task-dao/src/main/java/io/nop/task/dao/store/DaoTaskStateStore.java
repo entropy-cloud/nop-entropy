@@ -1141,7 +1141,9 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             Object component = ResourceComponentManager.instance().loadComponentModel(path);
             return secretPropsOfModel(component);
         } catch (Exception e) {
-            LOG.debug("nop.task.collect-secret-props-failed:taskName={}", taskName, e);
+            // 观测面一致化（类内"宁过滤勿漏"声明）：fail-open 行为不变（模型加载失败返回空集），
+            // 但不可静默——模型解析失败意味着 secret 属性未被过滤，至少 WARN 可见
+            LOG.warn("nop.task.collect-secret-props-failed:taskName={}", taskName, e);
             return Collections.emptySet();
         }
     }

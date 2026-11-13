@@ -102,7 +102,14 @@ public final class KafkaSourceConnectorFactory implements IStreamSourceFunctionF
         if (raw == null || raw.isEmpty()) {
             return 0L;
         }
-        long v = Long.parseLong(raw);
+        long v;
+        try {
+            v = Long.parseLong(raw);
+        } catch (NumberFormatException nfe) {
+            throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param("argName", name)
+                    .param("detail", name + " must be a number, got: " + raw);
+        }
         if (v < 0) {
             throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
                     .param("argName", name)

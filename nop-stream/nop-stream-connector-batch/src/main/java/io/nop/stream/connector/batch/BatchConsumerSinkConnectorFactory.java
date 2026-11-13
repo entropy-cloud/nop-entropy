@@ -27,6 +27,14 @@ import static io.nop.stream.core.connector.registry.ConnectorParamKind.OBJECT;
  * {@link BatchConsumerSinkFunction} bridging nop-batch consumers (item 19 / P-REQ-28).
  * The consumer provider is a programmatic OBJECT param. Registered in
  * {@code _vfs/nop/stream/beans/connector-batch.beans.xml}.
+ *
+ * <p><b>Migration note (plan 2326 CON-02, behavior unchanged)</b>: the declared
+ * capability was shrunk from {@code parallelism(PARALLEL)} to
+ * {@code parallelism(SINGLE_INSTANCE)} — the batch-consumer sink is bound to a
+ * single programmatic consumer provider instance, so multi-instance parallel
+ * deployment was never actually supported; the descriptor now states the real
+ * contract. Deployments that configured parallel sink instances must pin
+ * parallelism to 1 (or move fan-out into the nop-batch consumer itself).
  */
 public final class BatchConsumerSinkConnectorFactory implements IStreamSinkFactory {
 

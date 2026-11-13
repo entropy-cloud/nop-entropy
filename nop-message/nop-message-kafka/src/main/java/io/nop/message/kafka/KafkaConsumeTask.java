@@ -180,8 +180,11 @@ public class KafkaConsumeTask {
             cf.cancel(false);
             throw new ConsumeAwaitTimeoutException(consumeAwaitTimeoutMs, te);
         } catch (InterruptedException e) {
+            // Interrupt is a lifecycle signal, not a "not async" shape violation — use the
+            // dedicated interrupt error, keep the interrupt flag set, and log loudly.
             Thread.currentThread().interrupt();
-            throw new NopException(KafkaErrors.ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC)
+            LOG.warn("nop.err.message.kafka.consume-await-interrupted", e);
+            throw new NopException(KafkaErrors.ERR_KAFKA_CONSUME_AWAIT_INTERRUPTED)
                     .description("interrupted while waiting for the consume handler future")
                     .cause(e);
         } catch (java.util.concurrent.ExecutionException e) {
@@ -738,7 +741,13 @@ public class KafkaConsumeTask {
                         } catch (Exception rollbackError) {
                             e.addSuppressed(rollbackError);
                         }
-                        throw e;
+                        // The failure endpoint already dispatched onConsumeFailure once and
+                        // cleared the lastFailure* context — rethrowing here would fall into
+                        // the runTask catch and dispatch a SECOND, context-less failure
+                        // report. The endpoint is a batch exit: the tail after the capped
+                        // record was rewound above and re-polls in-process (runFailureEndpoint
+                        // contract: the caller must NOT rethrow).
+                        return dispatched;
                     }
                 }
             }

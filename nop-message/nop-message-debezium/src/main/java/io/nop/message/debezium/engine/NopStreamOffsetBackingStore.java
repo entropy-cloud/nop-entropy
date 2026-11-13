@@ -247,10 +247,31 @@ public class NopStreamOffsetBackingStore implements OffsetBackingStore {
                         + "a store instance started against a released bucket (orphan generation)",
                         b.connectorName);
             } else {
-                b.liveBindings.incrementAndGet();
-                bindingHeld = true;
-                // recovery declaration window: any binding start seals it for the generation
-                b.recoveryWindowOpen = false;
+                // The binding registration shares the REGISTRY.compute synchronization
+                // domain with clearConnector's check-and-remove: without it, a
+                // clearConnector removing the entry concurrently with a start() whose
+                // liveBindings read saw 0 left the new binding on an orphan bucket
+                // (removed from the registry while still live). Inside the compute the
+                // decision is atomic with the removal: the binding counts only when the
+                // bucket is still the registered entry.
+                boolean[] bound = {false};
+                REGISTRY.compute(b.connectorName, (name, current) -> {
+                    if (current == b) {
+                        b.liveBindings.incrementAndGet();
+                        bindingHeld = true;
+                        // recovery declaration window: any binding start seals it
+                        b.recoveryWindowOpen = false;
+                        bound[0] = true;
+                    }
+                    return current;
+                });
+                if (!bound[0]) {
+                    // the entry was concurrently removed (orphan generation): do not
+                    // count the binding — the instance fails typed on data operations
+                    LOG.warn("nop.message.debezium.offset-registry-orphan-start:connector={} - "
+                            + "a store instance started against a de-registered bucket (orphan generation)",
+                            b.connectorName);
+                }
             }
         }
         LOG.debug("NopStreamOffsetBackingStore started for connector '{}'", connectorName);

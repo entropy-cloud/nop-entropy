@@ -1313,6 +1313,13 @@ public class LuceneSearchEngine implements ISearchEngine {
             }
         }
 
+        // 注意：此处刻意不摘 topicCoordinations 条目。同一 topic 的读者与
+        // remove+re-add 序列依赖同一个 TopicCoordination 的 RW 锁互斥（C10-001）；
+        // 若在 removeTopic 内 remove 条目，新读者会经 computeIfAbsent 拿到新锁，
+        // 与在途关闭不再互斥 → AlreadyClosedException（TestLuceneSearchEngineCoordination.
+        // removeTopicOverlappingSearchNoAlreadyClosed 即钉此不变量）。残留条目是
+        // 已知有界代价（每 topic 一个小对象）；eviction 路径在锁保护下另行摘除。
+
             LOG.info("nop.search.remove-topic:topic={}", topic);
         });
     }

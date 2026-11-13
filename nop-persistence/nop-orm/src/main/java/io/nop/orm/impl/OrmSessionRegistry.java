@@ -81,9 +81,12 @@ public class OrmSessionRegistry extends ContextualizedRegistry<IOrmSessionFactor
         if (session == null)
             return;
         synchronized (PENDING_CLOSE) {
-            PENDING_CLOSE.values().forEach(set -> set.remove(session));
+            boolean[] removed = new boolean[1];
+            PENDING_CLOSE.values().forEach(set -> removed[0] |= set.remove(session));
+            // 计数与登记对称：仅真正摘除时递减，防止 unregister/sweep 竞态下重复递减造成负漂移
+            if (removed[0])
+                PENDING_CLOSE_COUNT.decrementAndGet();
         }
-        PENDING_CLOSE_COUNT.decrementAndGet();
     }
 
     public static int getPendingCloseCount() {

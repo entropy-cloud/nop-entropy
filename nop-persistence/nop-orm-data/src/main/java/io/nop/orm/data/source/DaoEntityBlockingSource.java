@@ -237,8 +237,13 @@ public class DaoEntityBlockingSource<T extends IOrmEntity> implements IBlockingS
      */
     private List<T> loadRound(IEntityDao<T> dao, int maxCount, Collection<? super T> c) {
         if (transactionTemplate == null) {
-            // 显式降级声明：事务模板未注入（@Transactional 拦截器装配前提未满足的部署形态），逐轮无事务执行
-            return loadItems(dao, maxCount);
+            // 显式降级声明：事务模板未注入（@Transactional 拦截器装配前提未满足的部署形态），逐轮无事务执行。
+            // flush 语义与旧行为保持一致（旧实现在 items 非空后无条件 dao.flushSession()）：
+            // 降级只摘除事务包络，不摘除 flush（tryClaim 抢占标记依赖 flush 落库）
+            List<T> items = loadItems(dao, maxCount);
+            if (!items.isEmpty())
+                dao.flushSession();
+            return items;
         }
         return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, txn -> {
             List<T> items = loadItems(dao, maxCount);

@@ -44,4 +44,9 @@ public interface KafkaErrors {
     ErrorCode ERR_KAFKA_CONSUME_AWAIT_NOT_ASYNC =
             ErrorCode.define(PREFIX + "consume-await-not-async",
                     "consume handler returned a CompletionStage that is not a CompletableFuture");
+
+    // consume 等待点被中断：独立于 NOT_ASYNC 的 typed error（中断语义≠非 CompletableFuture 形态）。
+    ErrorCode ERR_KAFKA_CONSUME_AWAIT_INTERRUPTED =
+            ErrorCode.define(PREFIX + "consume-await-interrupted",
+                    "consume thread was interrupted while waiting for the consume handler future");
 }

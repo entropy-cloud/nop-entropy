@@ -167,6 +167,9 @@ public interface DaoErrors {
 
     ErrorCode ERR_SQL_DUPLICATE_KEY = define("nop.err.dao.sql.duplicate-key", "数据库记录的键值冲突", ARG_SQL_TEXT);
 
+    ErrorCode ERR_SQL_UPSERT_CONFLICT_KEYS_EMPTY = define("nop.err.dao.sql.upsert-conflict-keys-empty",
+            "upsert冲突键列集不允许为空:{name}", ARG_NAME);
+
     ErrorCode ERR_SQL_DATA_INTEGRITY_VIOLATION = define("nop.err.dao.sql.data-integrity-violation", "违反数据库完整性约束",
             ARG_SQL_TEXT);
 

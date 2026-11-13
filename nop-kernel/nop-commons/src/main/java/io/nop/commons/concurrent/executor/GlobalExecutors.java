@@ -67,11 +67,21 @@ public class GlobalExecutors {
             return CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.get();
 
         if (AppConfig.var(CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.getName()) == null) {
-            LOG.warn("nop.warn.commons.global-timer.legacy-max-pool-size: config key '{}' is deprecated, "
-                    + "use '{}' instead. Legacy value {} is applied as the timer corePoolSize for now",
-                    CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE.getName(),
-                    CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.getName(), legacy);
-            return Integer.parseInt(legacy.toString());
+            // 非法旧值不炸单例初始化：解析失败 WARN + 回退新键默认值（C4-001 观测面兜底）
+            try {
+                int parsed = Integer.parseInt(legacy.toString().trim());
+                LOG.warn("nop.warn.commons.global-timer.legacy-max-pool-size: config key '{}' is deprecated, "
+                        + "use '{}' instead. Legacy value {} is applied as the timer corePoolSize for now",
+                        CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE.getName(),
+                        CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.getName(), parsed);
+                return parsed;
+            } catch (NumberFormatException e) {
+                LOG.warn("nop.warn.commons.global-timer.legacy-max-pool-size-invalid: config key '{}' has "
+                        + "non-numeric legacy value '{}', falling back to the '{}' config default",
+                        CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE.getName(), legacy,
+                        CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.getName(), e);
+                return CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.get();
+            }
         }
         return CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE.get();
     }

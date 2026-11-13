@@ -275,7 +275,12 @@ public class LocalMessageService implements IMessageService {
             // lookup removed the FIRST matching entry, so with two subscriptions of the
             // same listener ([A, B]) cancelling B deleted A and left the cancelled B in
             // place (still receiving, holder A silently unsubscribed).
-            consumers.get(topic).remove(this);
+            // Minor-5: clearConsumers 并发移除整个 topic 列表时 get(topic) 可能为 null——
+            // 订阅已随 topic 一起清理，cancel 幂等返回即可（不 NPE 打断调用方）。
+            List<Subscription> list = consumers.get(topic);
+            if (list != null) {
+                list.remove(this);
+            }
         }
 
         @Override

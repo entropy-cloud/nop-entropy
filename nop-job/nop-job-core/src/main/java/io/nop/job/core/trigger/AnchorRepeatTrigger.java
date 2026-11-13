@@ -30,6 +30,14 @@ public class AnchorRepeatTrigger implements ITrigger {
     private final LocalDate anchorDate;
 
     public AnchorRepeatTrigger(ITrigger trigger, int every, String unit, String anchorDate) {
+        // Minor-4 构造期 Guard：every<1 会在 matchesAnchor 取模处抛 ArithmeticException；
+        // 非法 unit 原先静默按 day 语义执行。均在构造期 fail-fast（typed）。
+        if (every < 1) {
+            throw new IllegalArgumentException("AnchorRepeatTrigger: every must be >= 1, got: " + every);
+        }
+        if (!"day".equals(unit) && !"week".equals(unit)) {
+            throw new IllegalArgumentException("AnchorRepeatTrigger: unit must be 'day' or 'week', got: " + unit);
+        }
         this.trigger = trigger;
         this.every = every;
         this.weekUnit = "week".equals(unit);

@@ -479,6 +479,22 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
             }
         }
 
+        // 裁定⑧: usageMetadata mapping (promptTokenCount/candidatesTokenCount/totalTokenCount).
+        // The usage rides the termination chunk instead of a trailing standalone chunk: the
+        // DONE-phase chunk is the termination signal (parseStreamChunk returns the FIRST
+        // chunk of the frame and stream consumers stop at DONE), so a usage chunk appended
+        // AFTER it was dropped by every consumer.
+        Object usageObj = dataMap.get("usageMetadata");
+        ChatUsage usage = null;
+        if (usageObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> usageMap = (Map<String, Object>) usageObj;
+            usage = new ChatUsage();
+            usage.setPromptTokens(getIntByPath(usageMap, "promptTokenCount"));
+            usage.setCompletionTokens(getIntByPath(usageMap, "candidatesTokenCount"));
+            usage.setTotalTokens(getIntByPath(usageMap, "totalTokenCount"));
+        }
+
         // termination signal: candidates[0].finishReason → DONE (pre-fix single-chunk
         // contract carried it on the one chunk; multi-chunk attaches to the last
         // enumerated chunk or emits a standalone DONE chunk — zero regression for
@@ -492,17 +508,10 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
             }
             last.setPhase(StreamItemPhase.DONE);
             last.setFinishReason(finishReason);
-        }
-
-        // 裁定⑧: usageMetadata mapping (promptTokenCount/candidatesTokenCount/totalTokenCount)
-        Object usageObj = dataMap.get("usageMetadata");
-        if (usageObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> usageMap = (Map<String, Object>) usageObj;
-            ChatUsage usage = new ChatUsage();
-            usage.setPromptTokens(getIntByPath(usageMap, "promptTokenCount"));
-            usage.setCompletionTokens(getIntByPath(usageMap, "candidatesTokenCount"));
-            usage.setTotalTokens(getIntByPath(usageMap, "totalTokenCount"));
+            if (usage != null && last.getUsage() == null) {
+                last.setUsage(usage);
+            }
+        } else if (usage != null) {
             ChatStreamChunk usageChunk = new ChatStreamChunk();
             usageChunk.setUsage(usage);
             chunks.add(usageChunk);

@@ -459,6 +459,15 @@ public class CepOperator<IN, KEY, OUT>
     private static final java.util.concurrent.ConcurrentHashMap<Integer, Object>
             SHAREABLE_LEAF_POOL = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * Upper bound on pooled shareable leaves. The pool has no eviction (entries are read
+     * back via {@code readResolve} by deserializing copies), so a pathological graph that
+     * produces a distinct non-serializable leaf per copy would otherwise grow it without
+     * limit. Past the cap new leaves are simply not pooled — each deserialization of the
+     * same id fails typed, and fresh ids behave as ordinary serialized objects.
+     */
+    private static final int SHAREABLE_LEAF_POOL_MAX_ENTRIES = 1024;
+
     private static final java.util.concurrent.atomic.AtomicInteger
             SHAREABLE_LEAF_SEQ = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -467,6 +476,16 @@ public class CepOperator<IN, KEY, OUT>
         private final int id;
 
         ShareRef(Object target) {
+            // Bounded pool (see SHAREABLE_LEAF_POOL_MAX_ENTRIES): past the cap fail typed
+            // at copy time — the shareable carve-out cannot fall back to plain
+            // serialization (the target is deliberately non-Serializable), so an unpooled
+            // id would only defer the failure to readResolve.
+            if (SHAREABLE_LEAF_POOL.size() >= SHAREABLE_LEAF_POOL_MAX_ENTRIES) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "shareable XLang function copy pool exceeded "
+                                + SHAREABLE_LEAF_POOL_MAX_ENTRIES + " entries; refusing to pool "
+                                + "further leaves: " + target.getClass().getName());
+            }
             this.id = SHAREABLE_LEAF_SEQ.incrementAndGet();
             SHAREABLE_LEAF_POOL.put(id, target);
         }

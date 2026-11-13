@@ -53,8 +53,25 @@ public class KafkaClientConfig {
         return extraProps == null ? null : Map.copyOf(extraProps);
     }
 
+    /**
+     * Null entries are filtered on write (consistent with {@link #addExtraProperty}):
+     * {@link #getExtraProps()} freezes via {@code Map.copyOf}, which throws NPE on a null
+     * value, so a raw map carrying nulls would poison every subsequent read.
+     */
     public void setExtraProps(Map<String, String> extraProps) {
-        this.extraProps = extraProps;
+        if (extraProps == null) {
+            this.extraProps = null;
+            return;
+        }
+        Map<String, String> filtered = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : extraProps.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                LOG.warn("nop.warn.kafka.extra-prop-null-skip:key={},ignored=true", entry.getKey());
+                continue;
+            }
+            filtered.put(entry.getKey(), entry.getValue());
+        }
+        this.extraProps = filtered;
     }
 
     /**

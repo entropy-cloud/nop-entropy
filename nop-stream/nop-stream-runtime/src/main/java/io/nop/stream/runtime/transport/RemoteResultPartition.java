@@ -276,28 +276,34 @@ public class RemoteResultPartition extends ResultPartition {
             return;
         }
         markFinished();
-
-        // Send the end-of-stream control message as the partition's terminal
-        // message. EOS is the only notification the consumer ever gets that the
-        // producer is done: a lost EOS leaves the downstream reader waiting
-        // forever — fail the partition typed so the owning task fails and
-        // job-level cancellation unblocks the consumer — never a silent,
-        // unbounded downstream wait.
-        StreamMessageEnvelope eos = new StreamMessageEnvelope(
-                epochId,
-                StreamMessageEnvelope.TYPE_CONTROL, null,
-                StreamMessageEnvelope.CONTROL_END_OF_STREAM);
         try {
-            synchronized (sendLock) {
-                messageService.send(topic, eos);
+            // Send the end-of-stream control message as the partition's terminal
+            // message. EOS is the only notification the consumer ever gets that the
+            // producer is done: a lost EOS leaves the downstream reader waiting
+            // forever — fail the partition typed so the owning task fails and
+            // job-level cancellation unblocks the consumer — never a silent,
+            // unbounded downstream wait.
+            StreamMessageEnvelope eos = new StreamMessageEnvelope(
+                    epochId,
+                    StreamMessageEnvelope.TYPE_CONTROL, null,
+                    StreamMessageEnvelope.CONTROL_END_OF_STREAM);
+            try {
+                synchronized (sendLock) {
+                    messageService.send(topic, eos);
+                }
+            } catch (Exception e) {
+                eosSendError = e;
+                LOG.error("Failed to send END_OF_STREAM on topic={} - failing partition typed so the "
+                        + "task/job failure path unblocks the downstream reader", topic, e);
+                throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                        .param(ARG_TOPIC, topic)
+                        .param(ARG_DETAIL, "Failed to send END_OF_STREAM control message");
             }
-        } catch (Exception e) {
-            eosSendError = e;
-            LOG.error("Failed to send END_OF_STREAM on topic={} - failing partition typed so the "
-                    + "task/job failure path unblocks the downstream reader", topic, e);
-            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
-                    .param(ARG_TOPIC, topic)
-                    .param(ARG_DETAIL, "Failed to send END_OF_STREAM control message");
+        } finally {
+            // WI6 residency: release the DB-backlog gauge binding so the gauge reads 0.0
+            // after close instead of this closed partition's stale backlog (the meter
+            // itself stays registered for a re-deploy re-bind).
+            DbBacklogGauges.unbind(topic);
         }
     }
 

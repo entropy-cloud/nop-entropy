@@ -140,9 +140,23 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
 
         LOG.info("nop.ai.use-cached-response:promptName={},cachedPath={}", promptName, resource.getPath());
         ChatExchange exchange = chatExchangePersister.load(resource);
-        if (exchange != null && exchange.getRequest() != null)
-            exchange.getRequest().makeOptions().setSessionId(options.getSessionId());
+        if (exchange != null) {
+            // LRU javadoc 契约：读命中也计入 recency。lruIndex 是 access-order
+            // LinkedHashMap（构造参数 accessOrder=true），get 即 touch——否则只写不读的
+            // 热门条目会被误逐出。仅命中（exchange != null）时触碰，miss 不改序。
+            touchInLru(resource);
+            if (exchange.getRequest() != null)
+                exchange.getRequest().makeOptions().setSessionId(options.getSessionId());
+        }
         return exchange;
+    }
+
+    private void touchInLru(IResource resource) {
+        if (maxEntries <= 0)
+            return;
+        synchronized (lruLock) {
+            lruIndex.get(resource.getPath());
+        }
     }
 
     private boolean isExpired(IResource resource) {

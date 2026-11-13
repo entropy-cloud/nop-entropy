@@ -15,10 +15,17 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class WeightedPartitionAssigner implements IPartitionAssigner {
     static final Logger LOG = LoggerFactory.getLogger(WeightedPartitionAssigner.class);
+
+    /** 非 0 权重 WARN 的 per-instance 频控窗口（毫秒）。 */
+    static final long NON_POSITIVE_WEIGHT_WARN_INTERVAL_MS = 1000L;
+
+    private static final ConcurrentHashMap<String, Long> NON_POSITIVE_WEIGHT_WARN_AT =
+            new ConcurrentHashMap<>();
 
     @Override
     public List<IntRangeBean> assignPartitions(IntRangeBean range, List<ServiceInstance> servers) {
@@ -92,11 +99,29 @@ public class WeightedPartitionAssigner implements IPartitionAssigner {
         // 该实例仍按 weight=1 获得比例份额；摘流须改用 enabled/healthy 等替代手段。
         int weight = server.getWeight();
         if (weight <= 0) {
-            // R25-1：WARN 留痕原始值（载体断言项）
-            LOG.warn("nop.cluster.assigner.non-positive-weight-floored:instanceId={},weight={} -> 1",
-                    server.getInstanceId(), weight);
+            // R25-1：WARN 留痕原始值（载体断言项）。getWeight 处于分区分配循环内
+            //（getTotalWeight + assignWeighted 每轮各调一次），per-server 1s 窗口频控，
+            // 防止 zero-weight 实例在周期性分配下刷屏。
+            throttleWarnNonPositiveWeight(server.getInstanceId(), weight);
             weight = 1;
         }
         return weight;
+    }
+
+    /**
+     * per-instanceId 1s 窗口 WARN 频控：每实例首个窗口内首次与后续每窗口各告警一次，
+     * 保留原始值留痕语义同时消除分区循环内的日志刷屏。
+     */
+    private void throttleWarnNonPositiveWeight(String instanceId, int weight) {
+        long now = System.currentTimeMillis();
+        String key = instanceId != null ? instanceId : "";
+        Long lastWarnAt = NON_POSITIVE_WEIGHT_WARN_AT.get(key);
+        if (lastWarnAt != null && now - lastWarnAt < NON_POSITIVE_WEIGHT_WARN_INTERVAL_MS) {
+            return;
+        }
+        // get/put 竞态仅可能丢/多一条 WARN（频控面，可接受）
+        NON_POSITIVE_WEIGHT_WARN_AT.put(key, now);
+        LOG.warn("nop.cluster.assigner.non-positive-weight-floored:instanceId={},weight={} -> 1",
+                instanceId, weight);
     }
 }

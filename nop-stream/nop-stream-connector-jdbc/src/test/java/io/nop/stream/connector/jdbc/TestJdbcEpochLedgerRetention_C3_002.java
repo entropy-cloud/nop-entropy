@@ -158,14 +158,15 @@ class TestJdbcEpochLedgerRetention_C3_002 {
         assertEquals(0, countLedgerRows(), "all expired rows must eventually converge to zero");
     }
 
-    /** A failed DB round is counted and visible (ERROR + counter), not swallowed. */
+    /** A failed DB round is counted, logged, and rethrown — never swallowed. */
     @Test
     void cleanupFailureIsCountedNotSwallowed() throws Exception {
         insertLedgerRow("ns", 1, 0, System.currentTimeMillis() - 31L * DAY_MS);
         JdbcEpochLedgerCleaner cleaner = newCleaner(30, Duration.ofHours(1), 1000);
         dataSource.close(); // force the pick to fail
-        long deleted = cleaner.purgeExpiredLedgerRows(30L * DAY_MS, 1000);
-        assertEquals(0, deleted);
+        assertThrows(RuntimeException.class,
+                () -> cleaner.purgeExpiredLedgerRows(30L * DAY_MS, 1000),
+                "a failed round must propagate so the insulation listener observes it");
         assertTrue(cleaner.getCleanupFailureCount() >= 1,
                 "the failed round must be visible via the failure counter");
     }

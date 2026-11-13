@@ -13,6 +13,7 @@ import io.nop.stream.core.checkpoint.EpochManifest;
 import io.nop.stream.core.checkpoint.SavepointMetadata;
 import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.core.lang.json.JsonTool;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -38,7 +39,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -172,6 +175,9 @@ public class S3CheckpointStorage implements ICheckpointStorage {
     }
 
     private String pipelinePrefix(String jobId, String pipelineId) {
+        // Minor-12: 读路径（getLatestCheckpoint 等）同样经本方法拼 key——pipelineId 必须与
+        // 写路径（checkpointKey/manifestKey）一致地 validateId，堵住 key 注入面。
+        validateId("pipelineId", pipelineId);
         return jobPrefix(jobId) + pipelineId + "/";
     }
 
@@ -338,9 +344,13 @@ public class S3CheckpointStorage implements ICheckpointStorage {
         String cpKey = targetPath + "/savepoint-" + checkpoint.getCheckpointId() + ".checkpoint";
         String metaKey = targetPath + "/savepoint-" + checkpoint.getCheckpointId() + ".metadata";
         putBytes(cpKey, CheckpointSerDe.serializeCheckpoint(checkpoint));
-        putBytes(metaKey, ("{\"jobId\":\"" + checkpoint.getJobId() + "\",\"pipelineId\":\""
-                + checkpoint.getPipelineId() + "\",\"checkpointId\":"
-                + checkpoint.getCheckpointId() + "}").getBytes(StandardCharsets.UTF_8));
+        // Minor-12: metadata JSON 不再手工拼接（jobId/pipelineId 含引号/反斜杠时会注入坏 JSON），
+        // 改经 JsonTool 序列化（与 loadSavepoint 侧 JsonTool.parseBeanFromText 对称）。
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("jobId", checkpoint.getJobId());
+        metadata.put("pipelineId", checkpoint.getPipelineId());
+        metadata.put("checkpointId", checkpoint.getCheckpointId());
+        putBytes(metaKey, JsonTool.stringify(metadata).getBytes(StandardCharsets.UTF_8));
         return targetPath + "/savepoint-" + checkpoint.getCheckpointId();
     }
 

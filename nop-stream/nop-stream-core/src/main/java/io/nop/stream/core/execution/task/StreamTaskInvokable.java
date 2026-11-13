@@ -1431,8 +1431,15 @@ public class StreamTaskInvokable implements Invokable<Void> {
             }
             // The inner record is copied so the producer's reused StreamRecord
             // instance is never aliased by the exchange queue (same as RecordWriterOutput).
+            // Tag-edge accounting mirrors the main-edge collect(): recordsOut +
+            // recordsEmitted + emitTime are counted at the cross-task emission
+            // point regardless of which edge kind carries the record.
+            taskMetrics.recordsOut(1);
+            taskMetrics.recordsEmitted(1);
+            long emitStart = CoreMetrics.nanoTime();
             writer.emitElement(new SideOutputElement(outputTag.getId(),
                     record.copy(record.getValue())));
+            taskMetrics.emitTime(CoreMetrics.nanoTime() - emitStart);
         }
 
         @Override

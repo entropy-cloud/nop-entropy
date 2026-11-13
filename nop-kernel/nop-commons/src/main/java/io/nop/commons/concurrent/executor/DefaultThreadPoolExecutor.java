@@ -21,8 +21,11 @@ import java.util.concurrent.TimeUnit;
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
 import static io.nop.commons.CommonErrors.ARG_NAME;
 import static io.nop.commons.CommonErrors.ARG_PARAM_NAME;
+import java.util.concurrent.RejectedExecutionException;
+
 import static io.nop.commons.CommonErrors.ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM;
 import static io.nop.commons.CommonErrors.ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED;
+import static io.nop.commons.CommonErrors.ERR_SERVICE_NOT_ACTIVE;
 
 public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
     static final Logger LOG = LoggerFactory.getLogger(DefaultThreadPoolExecutor.class);
@@ -104,6 +107,12 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
      */
     private volatile AutoCloseable metricsHandle;
 
+    /**
+     * destroy 幂等契约（close-then-close 场景）：已销毁后重复 destroy 为无害 no-op；
+     * NOT_INITIALIZED 类型化拒绝仅适用于 execute/submit 等使用路径（snapshotExecutor）。
+     */
+    private volatile boolean destroyed;
+
     @PostConstruct
     public void init() {
         Guard.checkState(executor == null);
@@ -111,21 +120,60 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
             config = new ThreadPoolConfig();
         this.executor = ExecutorHelper.newThreadPoolExecutor(config);
         this.metricsHandle = ExecutorHelper.registerMetrics(this.executor, config);
+        this.destroyed = false;
     }
 
     @Override
     public ThreadPoolStats stats() {
-        return ExecutorHelper.getStats(executor);
+        // destroy 置空后取类型化终态而非裸 NPE（与 DefaultScheduledExecutor.snapshotExecutor 同型）
+        return ExecutorHelper.getStats(snapshotExecutor());
+    }
+
+    /**
+     * destroy 置空竞态的类型化收敛（与姊妹类 {@link DefaultScheduledExecutor#snapshotExecutor} 同型）：
+     * 一次快照读消除判空与解引用之间的 destroy 置空窗——快照为 null 抛类型化
+     * {@code ERR_SERVICE_NOT_ACTIVE}，不再裸 NPE。
+     */
+    private ThreadPoolExecutor snapshotExecutor() {
+        ThreadPoolExecutor exec = this.executor;
+        if (exec == null) {
+            throw new NopException(ERR_SERVICE_NOT_ACTIVE)
+                    .param(ARG_NAME, config == null ? null : config.getName());
+        }
+        return exec;
+    }
+
+    /**
+     * 与快照窗口内 shutdown 竞态的类型化收敛：仅当快照代际确已 shutdown 时把 REE 转类型化
+     * {@code ERR_SERVICE_NOT_ACTIVE}（cause 保留原 REE）。活代际上的 REE（如 cached 形态的
+     * 饱和熔断 {@code CachedPoolRejectHandler}）必须保持 REE 原样穿透——Executor.execute 的
+     * JDK 契约通道是 REE，熔断信号不允许被改写。
+     */
+    private RuntimeException adaptRejected(RejectedExecutionException e, ThreadPoolExecutor exec) {
+        if (exec.isShutdown())
+            return new NopException(ERR_SERVICE_NOT_ACTIVE, e)
+                    .param(ARG_NAME, config == null ? null : config.getName());
+        return e;
     }
 
     @Override
     public <V> CompletableFuture<V> submit(Callable<V> callable) {
-        return ExecutorHelper.submit(executor, callable);
+        ThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            return ExecutorHelper.submit(exec, callable);
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e, exec);
+        }
     }
 
     @Override
     public <V> CompletableFuture<V> submit(Runnable task, V result) {
-        return ExecutorHelper.submit(executor, task, result);
+        ThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            return ExecutorHelper.submit(exec, task, result);
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e, exec);
+        }
     }
 
     /**
@@ -143,8 +191,8 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
     public void destroy() {
         ThreadPoolExecutor pool = this.executor;
         if (pool == null)
-            throw new NopException(ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED)
-                    .param(ARG_NAME, config == null ? null : config.getName());
+            return; // 未初始化/已销毁：destroy 为无害 no-op（close 幂等契约）；NOT_INITIALIZED 类型化拒绝仅适用于 execute/submit（snapshotExecutor）
+        this.destroyed = true;
 
         // C6-004：先置空提交路径并注销本池的 meter（绑定/注销对称），再走池关闭流程
         AutoCloseable handle = this.metricsHandle;
@@ -182,14 +230,19 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
         // 1.7-C3-013（plan 2547 裁定 F）：execute 直通原先不做上下文卫生，池线程上的
         // getOrCreateContext 创建的 IContext 会永久驻留在 worker 线程（跨任务泄漏）。
         // 补与 ExecutorHelper.submit/schedule 一致的 finally detach（唯一行为改动，理由=已确认泄漏面）。
-        executor.execute(() -> {
-            try {
-                command.run();
-            } finally {
-                // 仅 detach，不清中断标志——周期任务的绝缘守卫依赖中断/取消标志的传递，
-                // 清理中断会改变其语义（执行期勘误 E-2547-4）。
-                io.nop.api.core.context.ContextProvider.instance().detachContext();
-            }
-        });
+        ThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            exec.execute(() -> {
+                try {
+                    command.run();
+                } finally {
+                    // 仅 detach，不清中断标志——周期任务的绝缘守卫依赖中断/取消标志的传递，
+                    // 清理中断会改变其语义（执行期勘误 E-2547-4）。
+                    io.nop.api.core.context.ContextProvider.instance().detachContext();
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e, exec);
+        }
     }
 }

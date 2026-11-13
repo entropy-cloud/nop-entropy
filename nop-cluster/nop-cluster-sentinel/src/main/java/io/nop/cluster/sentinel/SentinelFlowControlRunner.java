@@ -92,7 +92,11 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
                 ret = task.get();
             } catch (Throwable e) {
                 // 降级规则需要记录失败次数（C8-008：与 stage 异常完成路径统计对称）
-                Tracer.traceEntry(e, serviceEntry);
+                // Minor-11: SphU.asyncEntry 在 ContextUtil 未建立 context 时可返回 null
+                //（Sentinel 1.8.6 CtSph.asyncEntryWithNoChain 的 null 返回路径），恢复 null 守卫
+                if (serviceEntry != null) {
+                    Tracer.traceEntry(e, serviceEntry);
+                }
                 return FutureHelper.reject(e);
             }
             asyncPhase = true;
@@ -103,11 +107,11 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
             AtomicBoolean exited = new AtomicBoolean();
             CompletableFuture<T> promise = new CompletableFuture<>();
             ret.whenComplete((r, e) -> {
-                if (e != null) {
+                if (e != null && serviceEntryArg != null) {
                     // 降级规则需要记录失败次数
                     Tracer.traceEntry(e, serviceEntryArg);
                 }
-                if (exited.compareAndSet(false, true)) {
+                if (serviceEntryArg != null && exited.compareAndSet(false, true)) {
                     // 务必保证 exit，务必保证每个 entry 与 exit 配对
                     serviceEntryArg.exit(1, args);
                 }
@@ -123,7 +127,7 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
                     if (e instanceof TimeoutException) {
                         LOG.warn("nop.rpc.flow-control.task-timeout:contextName={},resourceName={},bizKey={},timeoutMs={}",
                                 entry.getContextName(), entry.getResource(), entry.getBizKey(), timeout);
-                        if (exited.compareAndSet(false, true)) {
+                        if (serviceEntryArg != null && exited.compareAndSet(false, true)) {
                             serviceEntryArg.exit(1, args);
                         }
                     }

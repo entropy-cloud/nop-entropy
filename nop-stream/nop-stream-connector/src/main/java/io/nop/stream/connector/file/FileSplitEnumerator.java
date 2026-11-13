@@ -207,7 +207,11 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
         // subtask (i mod totalParallelism). This is independent of registration order so
         // late-registering subtasks still get their fair share without losing splits.
         int parallelism = Math.max(1, context.getTotalParallelism());
+        // Minor-7: discoveredFiles 为 CHM keySet，迭代序不确定——round-robin 目标 subtask
+        // 依赖发现序 i，故先按 path asc 排序，保证同一发现集上的分配确定性（恢复/多 subtask
+        // 独立调用分配时各 subtask 看到同一轮转结果）。
         List<String> discoveredOrder = new ArrayList<>(discoveredFiles);
+        discoveredOrder.sort(String::compareTo);
         List<FileSplit> toAssign = new ArrayList<>();
         for (int i = 0; i < discoveredOrder.size(); i++) {
             String filePath = discoveredOrder.get(i);

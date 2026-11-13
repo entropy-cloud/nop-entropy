@@ -375,6 +375,16 @@ public class PulsarConsumeTask {
                     // acks; only the boundary onward redelivers (CL-023 residue halved).
                     LOG.warn("nop.message.pulsar.consume-await-timeout:index={},timeoutMs={}",
                             i, consumeAwaitTimeoutMs);
+                    // Settle the reply/ack futures already registered for [0..i-1] —
+                    // returning without waiting would abandon them unobserved (CL-023
+                    // reply-first-then-ack registration contract still applies to them).
+                    try {
+                        FutureHelper.syncGet(FutureHelper.waitAll(futures));
+                    } catch (Exception settleError) {
+                        LOG.warn("nop.message.pulsar.consume-await-timeout-settle-fail:"
+                                + "settled={},total={}", futures.size(),
+                                settleError);
+                    }
                     while (true) {
                         Message<Object> boundary = it.next();
                         pulsarConsumer.negativeAcknowledge(boundary.getMessageId());

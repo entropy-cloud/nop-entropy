@@ -137,6 +137,8 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
      * precedent).
      */
     private ExecutorService ownedSpawnExecutor;
+    /** Close-then-use guard: once close() drained the owned pool, no new pool is created (fail-loud). */
+    private boolean closed;
 
     /**
      * Plan 2519 (裁定③): resolve the shared spawn executor — injected one
@@ -153,6 +155,13 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
     synchronized Executor resolveSpawnExecutor() {
         if (spawnStepExecutor != null) {
             return spawnStepExecutor;
+        }
+        if (closed) {
+            // close() already drained the owned pool; silently rebuilding a new
+            // pool here would leak it (nobody closes it afterwards) — fail loud
+            throw new io.nop.ai.agent.NopAiAgentException(
+                    "team-execute-flow executor is closed: resolveSpawnExecutor after close() "
+                            + "would create an unmanaged spawn pool (close-then-use refused)");
         }
         if (ownedSpawnExecutor == null) {
             int poolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
@@ -174,8 +183,12 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
      */
     public synchronized void close() {
         if (ownedSpawnExecutor == null) {
+            // idempotent: mark closed even without an owned pool so a later
+            // resolveSpawnExecutor cannot lazily build an unclosable pool
+            closed = true;
             return;
         }
+        closed = true;
         ExecutorService pool = ownedSpawnExecutor;
         ownedSpawnExecutor = null;
         pool.shutdown();

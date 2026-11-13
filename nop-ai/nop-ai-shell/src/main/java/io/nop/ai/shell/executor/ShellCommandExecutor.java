@@ -111,6 +111,7 @@ public class ShellCommandExecutor implements Closeable {
         this.registry = registry;
         DefaultThreadPoolExecutor owned = null;
         if (executor != null) {
+            rejectSynchronousExecutor(executor);
             this.executor = executor;
         } else {
             owned = DefaultThreadPoolExecutor.newExecutor(DEFAULT_PIPELINE_POOL_NAME,
@@ -128,6 +129,28 @@ public class ShellCommandExecutor implements Closeable {
 
     public ShellCommandExecutor(ShellCommandRegistry registry, IToolFileSystem fileSystem) {
         this(registry, null, new DefaultCommandChecker(), fileSystem);
+    }
+
+    /**
+     * Minor-8 注入面守卫：同步/direct Executor（调用线程内联执行，如 {@code Runnable::run}）
+     * 会使 {@code submitCollector} 的收集任务在调用线程内联阻塞于 {@code collectOutput}
+     * 的队列轮询——生产者 stage 尚未提交即自锁死锁。构造期以 no-op 探针检测内联执行并
+     * fail-fast（typed IllegalArgumentException）；异步 executor 上探针只是入队一个空任务。
+     */
+    private static void rejectSynchronousExecutor(Executor executor) {
+        java.util.concurrent.atomic.AtomicBoolean ranInline = new java.util.concurrent.atomic.AtomicBoolean();
+        try {
+            executor.execute(() -> ranInline.set(true));
+        } catch (Throwable e) {
+            // 探针提交失败按既有 RejectedExecutionException 语义留给首个真实提交点暴露
+            return;
+        }
+        if (ranInline.get()) {
+            throw new IllegalArgumentException(
+                    "ShellCommandExecutor: injected executor must be asynchronous — a synchronous "
+                            + "(caller-thread inline) executor deadlocks the pipeline stage/collector design "
+                            + "in collectOutput(): " + executor);
+        }
     }
 
     public CompletionStage<ExecutionResult> execute(String commandLine, IShellCommandExecutionContext context) {
