@@ -34,8 +34,16 @@ class TestNopIbMain {
 
     @Test
     void testUnimplementedCommandFailsLoudlyWithUsageCode() {
-        String r = run("status");
+        String r = run("check");
         assertTrue(r.startsWith("3|"), r);
         assertTrue(r.contains("not yet implemented"), r);
+        assertTrue(run("serve").startsWith("3|"));
+    }
+
+    @Test
+    void testUnknownCommandIsUsageError() {
+        String r = run("frobnicate");
+        assertTrue(r.startsWith("3|"), r);
+        assertTrue(r.contains("unknown command"), r);
     }
 }

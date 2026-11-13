@@ -1,0 +1,268 @@
+package io.nop.ib.compile;
+
+import io.nop.ib.NopIbException;
+import io.nop.ib.index.ClassInfo;
+import io.nop.ib.index.UnitIndex;
+import io.nop.ib.index.UnitIndexer;
+import io.nop.ib.index.UnitIndexStore;
+import io.nop.ib.javac.JavaCompilerFacade;
+import io.nop.ib.model.IbModel;
+import io.nop.ib.model.IbModule;
+import io.nop.ib.scope.PlanResult;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Stream;
+
+/**
+ * Compiles the planned source sets with nop-javac file compilation against
+ * materialized reactor-directory classpaths (design 05 §7.1, IB-D5/IB-D7), then
+ * recomputes precise ABI diffusion: modules whose classes reference ABI-changed
+ * classes get their referencing sources recompiled. Deleted sources are handled
+ * from the old unit index (I4: never from the current snapshot alone).
+ *
+ * <p>Caller responsibilities: build lock held (product writes), model fresh,
+ * plan without a Maven fallback requirement.
+ */
+public final class IncrementalCompileExecutor {
+    private final IbModel model;
+    private final UnitIndexStore unitStore;
+    private final UnitIndexer indexer = new UnitIndexer();
+    private final Map<String, UnitIndex> loadedIndexes = new HashMap<>();
+    private final Map<String, List<String>> diagnostics = new TreeMap<>();
+
+    public IncrementalCompileExecutor(IbModel model, UnitIndexStore unitStore) {
+        this.model = model;
+        this.unitStore = unitStore;
+    }
+
+    public Map<String, List<String>> getDiagnostics() {
+        return diagnostics;
+    }
+
+    public CompileOutcome compile(PlanResult plan) {
+        CompileOutcome outcome = new CompileOutcome();
+        // class binary names whose ABI changed during this run (drives diffusion)
+        Map<String, Set<String>> abiChangedByModule = new HashMap<>();
+
+        // pass 1: changed sources per module (reactor order from the plan)
+        for (String moduleId : plan.getCompileModules()) {
+            IbModule module = model.module(moduleId);
+            if (module == null || module.getOutputDir() == null)
+                continue;
+            List<String> sources = plan.getCompileFiles().get(moduleId);
+            if (sources == null || sources.isEmpty())
+                continue;
+            compileModule(module, sources, outcome, abiChangedByModule);
+            if (!outcome.isSuccess())
+                return outcome;
+        }
+
+        // pass 2: precise ABI diffusion into downstream candidate modules
+        if (!plan.getDownstreamCandidates().isEmpty()) {
+            Set<String> upstreamAbiChanged = new HashSet<>();
+            for (Set<String> s : abiChangedByModule.values())
+                upstreamAbiChanged.addAll(s);
+            if (!upstreamAbiChanged.isEmpty()) {
+                for (String moduleId : plan.getDownstreamCandidates()) {
+                    IbModule module = model.module(moduleId);
+                    if (module == null)
+                        continue;
+                    UnitIndex index = loadIndex(moduleId);
+                    if (index == null)
+                        continue; // candidate without index was flagged at plan time
+                    List<String> recompileSources = sourcesReferencing(index, upstreamAbiChanged);
+                    if (recompileSources.isEmpty())
+                        continue;
+                    compileModule(module, recompileSources, outcome, abiChangedByModule);
+                    if (!outcome.isSuccess())
+                        return outcome;
+                }
+            }
+        }
+        return outcome;
+    }
+
+    private List<String> sourcesReferencing(UnitIndex index, Set<String> changedClasses) {
+        Set<String> sources = new LinkedHashSet<>();
+        for (ClassInfo info : index.getClasses().values()) {
+            for (String ref : info.getRefs()) {
+                if (changedClasses.contains(ref) && info.getSourceFile() != null) {
+                    sources.add(info.getSourceFile());
+                    break;
+                }
+            }
+        }
+        return new ArrayList<>(sources);
+    }
+
+    private void compileModule(IbModule module, List<String> moduleRelSources,
+                               CompileOutcome outcome, Map<String, Set<String>> abiChangedByModule) {
+        Path basedir = model.resolve(module.getBasedir()).toPath();
+        List<File> files = new ArrayList<>();
+        Set<String> deletedSources = new HashSet<>();
+        for (String moduleRel : moduleRelSources) {
+            Path abs = basedir.resolve(moduleRel);
+            if (Files.isRegularFile(abs))
+                files.add(abs.toFile());
+            else
+                deletedSources.add(moduleRel);
+        }
+        if (files.isEmpty() && deletedSources.isEmpty())
+            return;
+
+        ClasspathMaterializer materializer = new ClasspathMaterializer(model);
+        boolean testCompile = moduleRelSources.stream().anyMatch(p -> p.startsWith("src/test/"));
+        ClasspathMaterializer.Materialized cp = testCompile
+                ? materializer.testClasspath(module)
+                : materializer.mainClasspath(module);
+        cp.assertNoIntraProjectJars(model);
+        if (!cp.complete()) {
+            throw new NopIbException("classpath incomplete for module " + module.getArtifactId()
+                    + "; missing: " + cp.missing());
+        }
+
+        UnitIndex oldIndex = loadIndex(module.getArtifactId());
+
+        // I4 deletion sweep from the OLD index (never the current snapshot)
+        for (String deleted : deletedSources) {
+            if (oldIndex != null) {
+                for (String className : oldIndex.classesOfSource(deleted))
+                    deleteClassProducts(model.resolve(module.getOutputDir()).toPath(),
+                            className, outcome);
+            }
+        }
+
+        List<File> sourcePath = new ArrayList<>();
+        if (module.getSourceDir() != null)
+            sourcePath.add(model.resolve(module.getSourceDir()));
+        if (module.getTestSourceDir() != null)
+            sourcePath.add(model.resolve(module.getTestSourceDir()));
+
+        JavaCompilerFacade.CompileResult result = JavaCompilerFacade.compile(
+                files, model.resolve(module.getOutputDir()).toPath(),
+                cp.entries(), module.getCompileRelease(), sourcePath);
+
+        diagnostics.put(module.getArtifactId(), result.diagnostics());
+        if (!result.success()) {
+            outcome.failModule(module.getArtifactId());
+            return;
+        }
+
+        // rescan products, diff ABI, persist the refreshed unit index
+        List<Path> outputs = new ArrayList<>();
+        outputs.add(model.resolve(module.getOutputDir()).toPath());
+        if (module.getTestOutputDir() != null)
+            outputs.add(model.resolve(module.getTestOutputDir()).toPath());
+        UnitIndex newIndex = indexer.scan(module.getArtifactId(), outputs, basedir);
+        Set<String> abiChanged = new HashSet<>();
+        if (oldIndex != null) {
+            for (ClassInfo info : newIndex.getClasses().values()) {
+                ClassInfo old = oldIndex.classInfo(info.getClassName());
+                if (old == null || !old.getAbiDigest().equals(info.getAbiDigest())
+                        || !old.getInlineConstants().equals(info.getInlineConstants()))
+                    abiChanged.add(info.getClassName());
+            }
+        }
+        abiChangedByModule.put(module.getArtifactId(), abiChanged);
+        outcome.addCompiledModule(module.getArtifactId(), files.size(), abiChanged.size());
+        unitStore.save(newIndex);
+        loadedIndexes.put(module.getArtifactId(), newIndex);
+    }
+
+    /** Top-level name + prefix sweep: nested Foo$* classes and synthesized products (I4). */
+    private void deleteClassProducts(Path outputDir, String className, CompileOutcome outcome) {
+        String rel = className.replace('.', '/') + ".class";
+        Path classFile = outputDir.resolve(rel);
+        try {
+            if (Files.deleteIfExists(classFile))
+                outcome.addDeleted(classFile.toString());
+        } catch (IOException e) {
+            throw new NopIbException("failed to delete stale class " + classFile, e);
+        }
+        Path dir = classFile.getParent();
+        if (dir != null && Files.isDirectory(dir)) {
+            String base = className.substring(className.lastIndexOf('.') + 1);
+            String prefix = base + "$";
+            try (Stream<Path> stream = Files.list(dir)) {
+                for (Path p : stream.toList()) {
+                    String name = p.getFileName().toString();
+                    if (name.startsWith(prefix) && name.endsWith(".class")
+                            && Files.deleteIfExists(p))
+                        outcome.addDeleted(p.toString());
+                }
+            } catch (IOException e) {
+                throw new NopIbException("failed to sweep stale classes under " + dir, e);
+            }
+        }
+    }
+
+    private UnitIndex loadIndex(String moduleId) {
+        return loadedIndexes.computeIfAbsent(moduleId, id ->
+                unitStore.exists(id) ? unitStore.load(id) : null);
+    }
+
+    public static final class CompileOutcome {
+        private boolean success = true;
+        private String failedModule;
+        private final List<String> compiledModules = new ArrayList<>();
+        private final Map<String, int[]> stats = new TreeMap<>();
+        private final List<String> deletedFiles = new ArrayList<>();
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public java.util.Optional<String> getFailedModule() {
+            return java.util.Optional.ofNullable(failedModule);
+        }
+
+        public void failModule(String module) {
+            this.success = false;
+            this.failedModule = module;
+        }
+
+        public void addCompiledModule(String module, int files, int abiChanged) {
+            compiledModules.add(module);
+            stats.put(module, new int[]{files, abiChanged});
+        }
+
+        public void addDeleted(String file) {
+            deletedFiles.add(file);
+        }
+
+        public List<String> getCompiledModules() {
+            return compiledModules;
+        }
+
+        public Map<String, int[]> getStats() {
+            return stats;
+        }
+
+        public List<String> getDeletedFiles() {
+            return deletedFiles;
+        }
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> m = new TreeMap<>();
+            m.put("success", success);
+            m.put("failedModule", failedModule);
+            m.put("compiledModules", compiledModules);
+            Map<String, Object> st = new TreeMap<>();
+            stats.forEach((k, v) -> st.put(k, Map.of("files", v[0], "abiChanged", v[1])));
+            m.put("stats", st);
+            m.put("deleted", deletedFiles);
+            return m;
+        }
+    }
+}
