@@ -24,6 +24,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.IResource;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.DaoErrors;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
@@ -62,6 +63,25 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
         if (entity != null)
             checkModuleIdNotShadowingStatic(entity.getModuleName());
         super.saveEntity(entity, action, context);
+    }
+
+    /**
+     * 模块级删除缓存失效（I-04/C6-101，plan 2525 裁定⑨；形态照抄 NopDynFunctionMetaBizModel
+     * afterEntityChange 先例）。模块级删除涉及 codeCache 模块移除 / VFS in-memory 层 /
+     * bizObjectManager 三面——全量 reloadModel 是既有唯一同步三面的通道（按模块精确失效
+     * 无法原子覆盖共享全局态）。已删模型在 reload 完成前的在途请求按旧模型完成（生成/加载
+     * 通道既有语义，窗口声明落 nop-dyn.md）。
+     */
+    @io.nop.api.core.annotations.biz.BizAction
+    @Override
+    protected void afterEntityChange(@Name("entity") NopDynModule entity, @Name("action") String action,
+                                     IServiceContext context) {
+        super.afterEntityChange(entity, action, context);
+
+        if (BizConstants.METHOD_DELETE.equals(action)) {
+            dynCodeGen.removeDynModule(entity.getNopModuleId());
+            dynCodeGen.reloadModel();
+        }
     }
 
     @BizMutation
@@ -166,8 +186,19 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
         entity.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
         // 与importExcel保持一致的数据权限检查
         checkDataAuth(BizConstants.METHOD_SAVE, entity, context);
-        dao.saveEntity(entity);
-        dao.flushSession();
+        try {
+            dao.saveEntity(entity);
+            dao.flushSession();
+        } catch (Exception e) {
+            // 唯一索引违反转译（I-03/C1-008，plan 2525 裁定⑧）：并发双建的输家得到与顺序路径
+            // 一致的语义化错误（沿 addDefaultSequence 的 ERR_SQL_DUPLICATE_KEY 识别先例），
+            // 禁裸DB异常暴露与静默重试吞掉。应用层 findFirstByExample 检查（上方）为顺序路径
+            // 友好失败，唯一索引为跨节点并发权威防护——两层并存
+            NopException ne = e instanceof NopException ? (NopException) e : null;
+            if (ne == null || !DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(ne.getErrorCode()))
+                throw e;
+            throw new NopException(ERR_DYN_MODULE_NAME_EXISTS).param(ARG_MODULE_NAME, moduleName);
+        }
 
         dynCodeGen.generateForModule(entity);
         dynCodeGen.reloadModel();

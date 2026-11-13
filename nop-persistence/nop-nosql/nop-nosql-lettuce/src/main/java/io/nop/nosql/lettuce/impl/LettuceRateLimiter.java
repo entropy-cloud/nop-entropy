@@ -7,7 +7,6 @@
  */
 package io.nop.nosql.lettuce.impl;
 
-import io.nop.api.core.time.CoreMetrics;
 import io.lettuce.core.ScriptOutputType;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -53,14 +52,13 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
     public CompletableFuture<RateLimitResult> tryAcquireAsync(int permits) {
         String tokensKey = tokensKey();
         String timestampKey = timestampKey();
-        long now = CoreMetrics.currentTimeMillis() / 1000;
-
+        // R4-32（2.5-C7-013 [R1-M6]）：跨节点绝对域禁用客户端本地钟——时间源改 Lua 脚本内
+        // Redis 服务器 TIME（秒针），客户端 now 参数移除（finding 本体=客户端墙钟跨节点共享）
         return LettuceExecutor.evalScript(async(), RedisScripts.RATE_LIMIT,
                         ScriptOutputType.MULTI,
                         new String[]{tokensKey, timestampKey},
                         new Object[]{String.valueOf(config.getRate()),
                                 String.valueOf(config.getCapacity()),
-                                String.valueOf(now),
                                 String.valueOf(permits)})
                 .thenApply(result -> {
                     Object[] arr;

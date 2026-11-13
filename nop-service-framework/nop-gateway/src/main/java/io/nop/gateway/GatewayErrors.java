@@ -52,4 +52,12 @@ public interface GatewayErrors {
 
     ErrorCode ERR_GATEWAY_UPSTREAM_FAILED = define("nop.err.gateway.upstream-failed",
             "上游调用失败: httpStatus=${httpStatus}");
+
+    /**
+     * 2.3-C8-002（plan 2508 裁定②）：准入拒绝——在途许可耗尽时的类型化快速失败。
+     * 该码不在 {@code AiFailoverGatewayInterceptor} 的可重试白名单（仅 429/UPSTREAM_FAILED）
+     * 内，准入拒绝不触发 fallback 级联（钉为不可重试，非静默丢弃）。
+     */
+    ErrorCode ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT = define("nop.err.gateway.upstream-inflight-limit",
+            "上游在途并发已达上界，请求被准入拒绝（inflight limit reached）");
 }

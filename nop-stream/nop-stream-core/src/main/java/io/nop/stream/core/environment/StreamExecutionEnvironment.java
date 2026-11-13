@@ -14,6 +14,10 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.ProcessingGuarantee;
@@ -69,6 +73,30 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TASK_FAIL
 
 public class StreamExecutionEnvironment {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StreamExecutionEnvironment.class);
+
+    /**
+     * C4-001 guard b (plan 2510 R2-07, adjudication 2): bounded-wait configuration
+     * for the LOCAL {@code awaitCompletion} funnel point. Default 300000ms; {@code 0}
+     * explicitly disables guard b (long-running LOCAL development scenarios — the
+     * operator explicitly accepts the mutual-wait deadlock risk of blocking edges);
+     * a negative value fails fast at assembly.
+     */
+    public static final String LOCAL_AWAIT_TIMEOUT_CONFIG = "nop.stream.local.await-completion-timeout-ms";
+
+    public static final long DEFAULT_LOCAL_AWAIT_TIMEOUT_MS = 300_000L;
+
+    /**
+     * W-11 (CRA 8.41 R4-01, ruling D.3): bounded terminal-state wait AFTER the
+     * cooperative-cancel sweep in the LOCAL teardown. Default 10000ms;
+     * 0 disables the wait (cancel signals still delivered, shutdownNow follows
+     * immediately); negative values fail fast typed at resolution time
+     * (parameter discipline aligned with {@link #LOCAL_AWAIT_TIMEOUT_CONFIG}).
+     */
+    public static final String LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG = "nop.stream.local.cancel-await-timeout-ms";
+
+    public static final long DEFAULT_LOCAL_CANCEL_AWAIT_TIMEOUT_MS = 10_000L;
+
     private final List<Transformation<?>> transformations = new ArrayList<>();
 
     private int parallelism = 1;
@@ -78,6 +106,18 @@ public class StreamExecutionEnvironment {
     private boolean executed = false;
 
     private final CheckpointConfig checkpointConfig = new CheckpointConfig();
+
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): the execution-context-local
+     * SideOutputRegistry — one execution environment = one side-output scope.
+     * Registered consumers (from {@code getSideOutput(tag).sink(...)} during
+     * assembly) live and die with this env's object graph: two envs on the same
+     * host can never topple each other's same-tag consumers (the pre-fix static
+     * map's silent cross-job mis-delivery), and a new env starts with an empty
+     * registry (no resurrection of a terminal execution's consumer).
+     */
+    private final io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry =
+            new io.nop.stream.core.datastream.SideOutputRegistry();
 
     private static volatile ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
 
@@ -182,6 +222,17 @@ public class StreamExecutionEnvironment {
 
     public CheckpointConfig getCheckpointConfig() {
         return checkpointConfig;
+    }
+
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): this execution context's side-output
+     * registry (the S5 seam — the public accessor IS the test seam; two envs
+     * construct two independent registries with zero product-side test hooks).
+     * Registration happens on it during assembly; the runtime read points
+     * consult the instance the plan/invokable chain carries.
+     */
+    public io.nop.stream.core.datastream.SideOutputRegistry getSideOutputRegistry() {
+        return sideOutputRegistry;
     }
 
     public StreamExecutionEnvironment enableCheckpointing(long interval) {
@@ -486,6 +537,9 @@ public class StreamExecutionEnvironment {
         StreamGraph streamGraph = graphGenerator.generate(sinkList);
 
         JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+        // W-07 (CRA 8.42 R4-02, ruling C.2): vertex invokables generated for THIS
+        // env's job graph join this env's side-output execution scope.
+        jobGraphGenerator.setSideOutputRegistry(sideOutputRegistry);
         return jobGraphGenerator.generate(streamGraph, jobName, null);
     }
 
@@ -538,9 +592,34 @@ public class StreamExecutionEnvironment {
                                            DeploymentPlan deploymentPlan,
                                            long startTime) throws Exception {
         boolean barrierAlignment = checkpointConfig.getProcessingGuarantee().isBarrierAlignment();
-        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
+        // W-07 (CRA 8.42 R4-02, ruling C.2): the LOCAL plan build carries this env's
+        // side-output registry so the runtime invokables consult the same execution
+        // scope the assembly-time getSideOutput(tag).sink(...) registrations landed in.
+        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan,
+                barrierAlignment, sideOutputRegistry);
 
         TaskExecutor executor = new TaskExecutor();
+        // W-11 (ruling D.3): resolve the cancel-await budget BEFORE any task runs —
+        // a negative configuration fails fast typed at assembly, never from inside
+        // the finally.
+        long cancelAwaitTimeoutMs = resolveLocalCancelAwaitTimeoutMs();
+        // C4-001 guard a (plan 2510 R2-07, adjudication 2): fail fast BEFORE any task
+        // is submitted when the topology subtask total exceeds the fixed pool size —
+        // such a topology deadlocks (producers/consumers mutually waiting across full
+        // result-partition queues). The typed failure is bounded and actionable; a
+        // legitimate bounded small-data job that would have finished without filling
+        // the queues is deliberately rejected (adjudicated trade-off).
+        int subtaskTotal = 0;
+        for (String vertexId : plan.getSortedVertexIds()) {
+            subtaskTotal += plan.getSubtasks(vertexId).size();
+        }
+        if (subtaskTotal > executor.getPoolSize()) {
+            shutdownLocalExecution(executor, plan, cancelAwaitTimeoutMs);
+            throw new StreamException(NopStreamErrors.ERR_STREAM_LOCAL_POOL_EXCEEDED)
+                    .param(NopStreamErrors.ARG_SUBTASK_TOTAL, subtaskTotal)
+                    .param(NopStreamErrors.ARG_POOL_SIZE, executor.getPoolSize());
+        }
+        long awaitTimeoutMs = resolveLocalAwaitTimeoutMs();
         try {
             List<SubtaskTask> subtaskTasks = new ArrayList<>();
             java.util.Set<Integer> sourceApiVertexIds = new java.util.LinkedHashSet<>();
@@ -571,7 +650,20 @@ public class StreamExecutionEnvironment {
                 }
             }
 
-            executor.awaitCompletion();
+            // C4-001 guard b (plan 2510 R2-07, adjudication 2): bounded wait at the
+            // single LOCAL awaitCompletion funnel point (covers the execute /
+            // execute(jobName) / savepoint entries). On timeout: abort — cancel all
+            // task futures (interrupt) + shut the executor down + typed failure. No
+            // hang, no silence, no partial residue.
+            if (awaitTimeoutMs > 0) {
+                if (!executor.awaitCompletion(awaitTimeoutMs, TimeUnit.MILLISECONDS)) {
+                    executor.shutdownNow();
+                    throw new StreamException(NopStreamErrors.ERR_STREAM_LOCAL_AWAIT_TIMEOUT)
+                            .param(ARG_DETAIL, "await timeout " + awaitTimeoutMs + "ms exceeded (job " + jobName + ")");
+                }
+            } else {
+                executor.awaitCompletion();
+            }
 
             for (SubtaskTask task : subtaskTasks) {
                 if (task.getState() == SubtaskTask.State.FAILED) {
@@ -583,19 +675,70 @@ public class StreamExecutionEnvironment {
             long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdownLocalExecution(executor, plan);
+            shutdownLocalExecution(executor, plan, cancelAwaitTimeoutMs);
         }
     }
 
     /**
-     * Tears down one local execution: shuts the executor down, releases the per-job
-     * buffer pool so any producer blocked on global exhaustion is woken and permits
-     * do not leak across executions, and unregisters the source-api coordinators
-     * registered for this job (Stage 49 D3) so subsequent executions of the same
-     * vertex id start fresh.
+     * Resolves the C4-001 guard-b bounded-wait window:
+     * {@code nop.stream.local.await-completion-timeout-ms} (default 300000;
+     * 0 = explicitly disabled with a WARN; negative = typed fail-fast).
      */
-    private void shutdownLocalExecution(TaskExecutor executor, GraphExecutionPlan plan) {
-        executor.shutdown();
+    private static long resolveLocalAwaitTimeoutMs() {
+        long configured = Long.getLong(LOCAL_AWAIT_TIMEOUT_CONFIG, DEFAULT_LOCAL_AWAIT_TIMEOUT_MS);
+        if (configured < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, LOCAL_AWAIT_TIMEOUT_CONFIG)
+                    .param(ARG_DETAIL, "must be >= 0 (0 disables the bounded-wait guard), got: " + configured);
+        }
+        if (configured == 0) {
+            LOG.warn("nop.stream.local.await-completion-timeout-ms=0: the LOCAL bounded-wait "
+                    + "guard is explicitly DISABLED — a mutual-wait deadlock on blocking edges "
+                    + "will hang the job forever (operator-accepted risk). The submission-time "
+                    + "subtask-total guard stays in force.");
+        }
+        return configured;
+    }
+
+    /**
+     * Resolves the W-11 (ruling D.3) bounded terminal-state wait window:
+     * {@code nop.stream.local.cancel-await-timeout-ms} (default 10000; 0 disables
+     * the wait with a WARN; negative = typed fail-fast).
+     */
+    private static long resolveLocalCancelAwaitTimeoutMs() {
+        long configured = Long.getLong(LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG, DEFAULT_LOCAL_CANCEL_AWAIT_TIMEOUT_MS);
+        if (configured < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG)
+                    .param(ARG_DETAIL, "must be >= 0 (0 disables the bounded terminal wait), got: " + configured);
+        }
+        if (configured == 0) {
+            LOG.warn("nop.stream.local.cancel-await-timeout-ms=0: the bounded terminal wait after the "
+                    + "LOCAL cancel sweep is DISABLED — shutdownNow follows the cancel signals immediately.");
+        }
+        return configured;
+    }
+
+    /**
+     * Tears down one local execution (W-11 four-step order, ruling D.3):
+     * <ol>
+     *   <li>cooperative-cancel sweep — mailbox signalCancel + cancel (interrupt) per
+     *       subtask, then a bounded terminal-state wait, so a task blocked in user
+     *       code reaches its CANCELED terminal exit instead of spinning forever;</li>
+     *   <li>{@code shutdownNow()} — interrupt fallback for tasks that missed the
+     *       cooperative signal;</li>
+     *   <li>release the per-job buffer pool so any producer blocked on global
+     *       exhaustion is woken and permits do not leak across executions;</li>
+     *   <li>unregister the source-api coordinators registered for this job
+     *       (Stage 49 D3) so subsequent executions of the same vertex id start
+     *       fresh.</li>
+     * </ol>
+     * On the normal-completion path the sweep is a no-op (terminal tasks cancel
+     * idempotently and the wait exits immediately) — zero behavior change.
+     */
+    private void shutdownLocalExecution(TaskExecutor executor, GraphExecutionPlan plan, long cancelAwaitTimeoutMs) {
+        executor.cancelSubtasks(cancelAwaitTimeoutMs);
+        executor.shutdownNow();
         plan.closeBufferPool();
         for (Transformation<?> t : transformations) {
             if (t instanceof SourceApiTransformation) {
@@ -805,6 +948,9 @@ public class StreamExecutionEnvironment {
                 ? null : streamGraph.getStreamModel().getComponents());
 
         JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+        // W-07 (CRA 8.42 R4-02, ruling C.2): vertex invokables generated for THIS
+        // env's job graph join this env's side-output execution scope.
+        jobGraphGenerator.setSideOutputRegistry(sideOutputRegistry);
         // AR-1: same job-name threading as execute() — the distributed launch path's
         // storage identity must match the local path's for cross-run recovery.
         return jobGraphGenerator.generate(streamGraph, jobName, null);

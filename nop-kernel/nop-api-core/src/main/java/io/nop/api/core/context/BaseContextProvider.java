@@ -20,7 +20,16 @@ public class BaseContextProvider implements IContextProvider {
 
     @Override
     public IContext currentContext() {
-        return t_context.get();
+        IContext context = t_context.get();
+        if (context != null && context.isClosed()) {
+            // 平台根因守卫（CRA R1-04 裁定③，设计权威来源
+            // ai-dev/design/concurrency/bindcancel-context-unification.md §3.3）：
+            // 跨线程close残留的已关闭context不可观测——读点惰性清除ThreadLocal残留，
+            // 与getOrCreateContext的isClosed检查构成对称双读点守卫
+            t_context.remove();
+            return null;
+        }
+        return context;
     }
 
     public static void clear() {

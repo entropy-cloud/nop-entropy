@@ -47,7 +47,7 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     /**
      *  
      * xml name: concurrency
-     * 同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
+     * 并行执行chunk循环的线程数。设置executor时chunk任务提交到该线程池执行；未设置executor时兜底提交到平台共享cached线程池执行（池宽上界由配置项nop.commons.concurrent.cached-pool.maxPoolSize控制，缺省200，达界提交报错nop.err.commons.concurrent.cached-pool-saturated），并非串行执行。concurrency与fetchThreadCount超过配置项nop.batch.max-concurrency-cap（缺省200）时任务装配期报错（nop.err.batch.concurrency-exceeds-cap）
      */
     private int _concurrency  = 0;
     
@@ -299,7 +299,7 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     /**
      * 
      * xml name: concurrency
-     *  同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
+     *  并行执行chunk循环的线程数。设置executor时chunk任务提交到该线程池执行；未设置executor时兜底提交到平台共享cached线程池执行（池宽上界由配置项nop.commons.concurrent.cached-pool.maxPoolSize控制，缺省200，达界提交报错nop.err.commons.concurrent.cached-pool-saturated），并非串行执行。concurrency与fetchThreadCount超过配置项nop.batch.max-concurrency-cap（缺省200）时任务装配期报错（nop.err.batch.concurrency-exceeds-cap）
      */
     
     public int getConcurrency(){

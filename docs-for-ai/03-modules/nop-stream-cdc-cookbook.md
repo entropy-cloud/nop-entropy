@@ -30,8 +30,10 @@
    - 核对锚点（offset round-trip）：`TestDebeziumCdcCheckpoint.testSnapshotStateStoresOffsetsFromStore` / `testInitializeStateRestoresOffsetsToStore` / `testSnapshotRestoreRoundTrip`；真实 MySQL 全链路（snapshot→stream→kill→restore→续传不重不丢）由 gated `TestDebeziumRealMysqlCdc.testSnapshotStreamKillRestoreResume` 钉定；A 层并行快照完整性（threads=4，2000 行零重复）与 B 层双实例路由隔离由 gated `TestDebeziumRealMysqlParallel` 钉定——**B 层实例的 serverName 与 schema history 存储均按实例隔离，不可共享**（共享会分别导致 JMX MBean 注册死循环与 recovery 互锁，均为真库测试发现并已修复的产品缺陷）。
 2. **重放语义**：恢复后从 checkpoint 位点重读——checkpoint 之后、崩溃之前已发的事件会**重发**（source 边界 at-least-once）；配合 2PC sink 端到端 exactly-once。**键控 sink（UPSERT/UPSERT_DELETE）使重放结构性安全**（第五节）。
 3. **B 层并行的恢复**：operator state 本就 per-subtask——每实例恢复自己的 offset，路由函数是纯函数（表名 + N 决定分片），restore 后分片一致。
-4. **升级语义**：Debezium 大版本升级（如 2.x → 3.x）存在 offset 格式破坏性变更，**不支持跨大版本位点恢复**——升级 = 重新 initial snapshot，安全性由键控 upsert 幂等保证（cdc-design.md §3.4）。
-5. **重放到任意历史位点**：无 offset 手动改写工具——用「全新重跑」（第四节）+ 上游可重放存储配合。
+4. **恢复分配差集（每表恰一桶，plan 2503 修复后契约）**：恢复路径把全部 unassigned 表预置进单一 reader 份额桶的旧形态已废除——`restoreState` 只登记恢复态 unassigned 表，`start` 的全表 `i % parallelism` 重算是**唯一登记来源**（恢复态与新鲜份额求差集，每表恰一桶/恰一引擎）——恢复态 ∪ 新鲜份额的并集双登记（同表被两台引擎重复消费、下游变更事件双份投递）不可再现。include-list 跨重启收缩时，落在收缩外的恢复表保留记录槽位经原 reader slot 重发并 WARN（不静默丢表）。锚点：`TestDebeziumTableSplitEnumeratorRestore_C3_004`。
+5. **恢复声明窗（REPLACE 重播种契约）**：恢复时序前提下，offset 经 `setOffsets`（REPLACE：clear+put）在 `forConnector`（建桶/绑定）之后、engine start 之前的窗口内重播种——窗内 REPLACE 为声明语义：桶内容 = 恢复态而非「恢复态 ∪ 上代残留」，checkpoint 缺席的分区键不存活。恢复位点唯一合法来源 = nop checkpoint（同 JVM 同名重启无 checkpoint 恢复声明 = 全新起点，AR-03 静默 stale-resume 已废除）；REGISTRY 生命周期契约（桶的建/释/摘除与恢复声明窗守卫——registry-lifecycle-contract.md，位于 ai-dev/design/concurrency/ 目录，按 docs-for-ai 边界规则不直接链接）实施归 R4-24。锚点：`TestNopStreamOffsetBackingStore`（REPLACE 现状钉）。
+6. **升级语义**：Debezium 大版本升级（如 2.x → 3.x）存在 offset 格式破坏性变更，**不支持跨大版本位点恢复**——升级 = 重新 initial snapshot，安全性由键控 upsert 幂等保证（cdc-design.md §3.4）。
+7. **重放到任意历史位点**：无 offset 手动改写工具——用「全新重跑」（第四节）+ 上游可重放存储配合。
 
 ## 三、schema 演进边界
 

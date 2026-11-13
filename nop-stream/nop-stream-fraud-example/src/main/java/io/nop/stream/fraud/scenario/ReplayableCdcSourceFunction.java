@@ -14,18 +14,24 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import io.nop.api.core.util.ICancellable;
+import io.nop.commons.lang.impl.Cancellable;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.ChangeEventMetadata;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumMessageSource;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.connector.debezium.DebeziumCdcSourceFunction;
+import io.nop.stream.core.exceptions.StreamException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
  * S1 scenario CDC source: a deterministic replayable CDC event source built on the
@@ -90,8 +96,97 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
         this.finishLingerMs = finishLingerMs;
     }
 
+    /**
+     * CRA 8.45 R4-05 W-02 (1.3-MA-03): the replay engine's failure channel. The
+     * emitter records a replay failure here (volatile write); the finally-cancel in
+     * the emitter only UNLOCKS super.run()'s wait loop — after super.run() returns,
+     * {@link #run} rethrows the recorded failure typed so the task ends FAILED
+     * instead of a disguised EOS. Subclass-owned field: the parent's pendingError is
+     * private and reset on the parent's run entry, so it cannot carry this signal.
+     * transient (deployment serialization face) / volatile (emitter → task thread
+     * happens-before).
+     */
+    private transient volatile Throwable pendingReplayError;
+
+    /**
+     * CRA 8.45 R4-05 W-02 (1.3-MA-03): zero-parent-seam failure propagation. Entry
+     * stale-reset mirrors the parent's pendingError reset (the same cross-run
+     * lifecycle discipline as the 2512-④ cancelled reset): a late failure from a
+     * PREVIOUS run must not kill a new run on a reused instance. super.run()'s own
+     * failures stay authoritative (rethrown unchanged, the replay failure attached
+     * as suppressed — same priority/suppressed doctrine as the parent family); a
+     * recorded replay failure is rethrown after a NORMAL super.run() return, in the
+     * parent's throwPendingError form (Exception rethrown directly, Throwable
+     * wrapped in a typed StreamException). Declared residual (design C.1 S-1,
+     * watch-only): a replay failure arriving AFTER run() returned is LOG-only.
+     */
+    @Override
+    public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<ChangeEvent> ctx)
+            throws Exception {
+        pendingReplayError = null;
+        try {
+            super.run(ctx);
+        } catch (Exception parentError) {
+            Throwable replay = pendingReplayError;
+            if (replay != null && replay != parentError) {
+                parentError.addSuppressed(replay);
+            }
+            throw parentError;
+        }
+        Throwable replay = pendingReplayError;
+        if (replay != null) {
+            if (replay instanceof Exception) {
+                throw (Exception) replay;
+            }
+            throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                    "CDC replay engine failed: " + replay);
+        }
+    }
+
     public List<Map<String, Object>> getEventSpecs() {
         return Collections.unmodifiableList(eventSpecs);
+    }
+
+    /**
+     * 2511 C8-001 residual-face completion: the production {@code snapshotState} replaces the
+     * store snapshot with the {@link io.nop.stream.connector.debezium.LastEmittedOffsetTracker}
+     * last-emitted map (marker + per-server entries) once any event was emitted. This fixture's
+     * resume position lives in its OWN store key {@link #REPLAY_INDEX_KEY}, which that synthesized
+     * map does not carry — a restore would drop it and the replay engine would restart from index
+     * 0 (re-emitting the already-consumed prefix). Merge the replay-index entry back into the
+     * checkpoint map (same base64 byte encoding as
+     * {@code NopStreamOffsetBackingStore.toSerializable}) so restore resumes at the consumed
+     * boundary. The emitter writes the index AFTER the tracker's {@code onEmitted} on the same
+     * thread, so the merged value is never fresher than the tracker boundary.
+     */
+    @Override
+    public io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotState(long checkpointId)
+            throws Exception {
+        io.nop.stream.core.checkpoint.OperatorSnapshotResult result = super.snapshotState(checkpointId);
+        NopStreamOffsetBackingStore store = getOffsetStore();
+        if (store == null) {
+            return result;
+        }
+        java.nio.ByteBuffer indexValue = store.getOffsets().get(REPLAY_INDEX_KEY);
+        if (indexValue == null) {
+            return result;
+        }
+        Map<String, String> offsets = castOffsetMap(
+                result.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY));
+        if (offsets == null) {
+            return result;
+        }
+        offsets.put(base64Utf8(REPLAY_INDEX_KEY.array()), base64Utf8(indexValue.array()));
+        return result;
+    }
+
+    private static String base64Utf8(byte[] bytes) {
+        return java.util.Base64.getEncoder().encodeToString(bytes);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> castOffsetMap(Object raw) {
+        return raw instanceof Map ? (Map<String, String>) raw : null;
     }
 
     @Override
@@ -115,6 +210,17 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
         private final List<ChangeEvent> events;
         private volatile boolean cancelled;
 
+        /**
+         * CRA 8.45 R4-05 W-10 (1.3-C6-005): single-subscription gate + the engine
+         * level reference stop() drives. A replay engine is ONE-SHOT — a second
+         * subscription would concurrently replay the fixture and interleave
+         * writeReplayIndex (the REPLAYABLE exactly-once violation); the gate makes
+         * that usage typed-fail instead. {@code subscriptionRef} is written once
+         * (CAS-guarded) and published before any stop(); volatile is sufficient.
+         */
+        private final AtomicBoolean subscribed = new AtomicBoolean(false);
+        private volatile ReplaySubscription subscriptionRef;
+
         ReplayEngine(DebeziumConfig config, NopStreamOffsetBackingStore offsetStore,
                      List<ChangeEvent> events) {
             super(config, offsetStore);
@@ -124,41 +230,61 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
 
         @Override
         public ICancellable subscribe(Consumer<ChangeEvent> action) {
+            // CRA 8.45 R4-05 W-10 (1.3-C6-005): typed rejection aligned with the
+            // production DebeziumMessageSource.subscribe reject-if-stopped style
+            // (typed + guidance detail; carrier semantics differ — a one-shot replay
+            // engine, not a multi-subscription dispatch source).
+            if (!subscribed.compareAndSet(false, true)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                        "subscribe() already called on this ReplayEngine; a second subscription "
+                                + "would concurrently replay events and interleave writeReplayIndex "
+                                + "(REPLAYABLE exactly-once violation) — create a new engine");
+            }
             Thread emitter = new Thread(() -> runReplay(action), "fraud-s1-replay-cdc");
             emitter.setDaemon(true);
             emitter.start();
-            return new ReplaySubscription();
+            ReplaySubscription sub = new ReplaySubscription();
+            this.subscriptionRef = sub;
+            return sub;
         }
 
+        /**
+         * CRA 8.45 R4-05 W-03 (1.3-MA-04): the cancel-callback registry delegates to
+         * the platform {@link Cancellable} — check-and-set idempotent cancel, a
+         * synchronized callback list, and per-callback isolation (one throwing
+         * callback neither runs twice nor blocks the rest) replace the bare
+         * ArrayList + full-replay loop. The engine loop's own cancelled flag stays
+         * the emitter's exit mechanism (unchanged); every cancellation path (external
+         * cancel / stop / parent teardown) drives the same delegate, so callbacks run
+         * exactly once.
+         */
         private final class ReplaySubscription implements ICancellable {
-            private final List<Consumer<String>> onCancelTasks = new ArrayList<>();
+            private final Cancellable delegate = new Cancellable();
 
             @Override
             public boolean isCancelled() {
-                return cancelled;
+                return delegate.isCancelled();
             }
 
             @Override
             public String getCancelReason() {
-                return cancelled ? ICancellable.CANCEL_REASON_STOP : null;
+                return delegate.getCancelReason();
             }
 
             @Override
             public void cancel(String reason) {
                 ReplayEngine.this.cancelled = true;
-                for (Consumer<String> task : onCancelTasks) {
-                    task.accept(reason);
-                }
+                delegate.cancel(reason);
             }
 
             @Override
             public void appendOnCancel(Consumer<String> task) {
-                onCancelTasks.add(task);
+                delegate.appendOnCancel(task);
             }
 
             @Override
             public void removeOnCancel(Consumer<String> task) {
-                onCancelTasks.remove(task);
+                delegate.removeOnCancel(task);
             }
         }
 
@@ -181,6 +307,12 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
+                // CRA 8.45 R4-05 W-02 (1.3-MA-03): record the failure on the
+                // subclass-owned volatile channel — the finally-cancel below only
+                // unlocks super.run()'s wait loop; run() rethrows the recorded
+                // failure typed after super.run() returns, so the task ends FAILED
+                // instead of a disguised EOS. LOG stays (observability face).
+                ReplayableCdcSourceFunction.this.pendingReplayError = e;
                 LOG.error("CDC replay engine failed; cancelling source so the job fails loudly", e);
             } finally {
                 // Bounded source completion: the production run() loop only exits on
@@ -212,7 +344,16 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
 
         @Override
         public synchronized void stop() {
+            // CRA 8.45 R4-05 W-03 (1.3-MA-04): stop() is symmetric with cancel() —
+            // it drives the registered subscription (whose cancel cascades to the
+            // delegate registry AND the engine loop flag) instead of silently
+            // bypassing the registry. Idempotent via the delegate's check-and-set:
+            // a later external cancel() runs no callbacks a second time.
             cancelled = true;
+            ReplaySubscription sub = this.subscriptionRef;
+            if (sub != null) {
+                sub.cancel(ICancellable.CANCEL_REASON_STOP);
+            }
         }
     }
 
@@ -249,8 +390,14 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
             @SuppressWarnings("unchecked")
             Map<String, Object> after = (Map<String, Object>) spec.get("after");
 
+            // plan 2511 C8-001 contract: the LastEmittedOffsetTracker requires a
+            // usable position field (lsn here) plus a non-empty serverName on
+            // every emitted event — position-less events fail typed. The replay
+            // fixture synthesizes a deterministic lsn from the event ts so the
+            // scenario satisfies the same contract as a real Debezium stream.
             ChangeEventMetadata metadata = new ChangeEventMetadata(
-                    null, null, "fraud", null, "transactions", "data");
+                    null, "fraud-server", "fraud", null, "transactions", "data",
+                    null, null, ts, null);
             Map<String, Object> key = new LinkedHashMap<>();
             key.put("transactionId", after.get("transactionId"));
             return new ChangeEvent(metadata, op, null, after, key, ts);

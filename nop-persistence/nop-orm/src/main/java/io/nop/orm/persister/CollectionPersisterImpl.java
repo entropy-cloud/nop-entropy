@@ -51,6 +51,9 @@ public class CollectionPersisterImpl implements ICollectionPersister {
     private String defaultQuerySpace;
     private boolean useTenantCache;
 
+    // plan 2517 R2-14 裁定⑥（C2-004）：集合路径与实体路径同 diff 同规范（世代 fence）
+    private final GenerationFence genFence = new GenerationFence();
+
     @Override
     public IEntityRelationModel getCollectionModel() {
         return collectionModel;
@@ -91,12 +94,15 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         if (useGlobalCache && loadFromGlobalCache(collection, session))
             return;
 
+        // plan 2517 R2-14 裁定⑥：readGen = load 发起时的世代快照
+        long readGen = useGlobalCache ? genFence.snapshot(getCacheKey(collection.orm_owner())) : 0L;
+
         ShardSelection shard = getShardSelection(collection);
 
         driver.loadCollection(shard, collection, propIds, selection, session);
 
         if (useGlobalCache) {
-            updateGlobalCache(collection, session);
+            repairGlobalCache(collection, readGen);
         }
     }
 
@@ -142,13 +148,25 @@ public class CollectionPersisterImpl implements ICollectionPersister {
                     FieldSelectionBean selection, IOrmSessionImplementor session, List<CompletionStage<?>> futures) {
         for (final Collection<IOrmEntitySet> colls : CollectionHelper.splitChunk(toLoad, this.getMaxBatchLoadSize())) {
 
+            // plan 2517 R2-14 裁定⑥：readGen = load 发起时的世代快照（per key）
+            Map<String, Long> readGens;
+            if (useGlobalCache) {
+                readGens = new HashMap<>();
+                for (IOrmEntitySet coll : colls) {
+                    String key = getCacheKey(coll.orm_owner());
+                    readGens.put(key, genFence.snapshot(key));
+                }
+            } else {
+                readGens = null;
+            }
+
             CompletionStage<?> future = driver.batchLoadCollectionAsync(shard, colls, propIds, selection, session);
             // 与实体路径EntityPersisterImpl.batchLoadAsync对齐：缓存更新必须链接进返回的future，
             // 保证调用方syncGet返回时缓存已完成更新
             if (useGlobalCache) {
                 future = future.thenRun(() -> {
                     for (IOrmEntitySet coll : colls) {
-                        updateGlobalCache(coll, session);
+                        repairGlobalCache(coll, readGens.get(getCacheKey(coll.orm_owner())));
                     }
                 });
             }
@@ -183,7 +201,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
     }
 
     boolean loadFromGlobalCache(IOrmEntitySet coll, IOrmSessionImplementor session) {
-        Object[] elementIds = convertCacheValues(globalCache.get(getCacheKey(coll.orm_owner())));
+        Object[] elementIds = convertCacheValues(VersionedCacheValue.unwrap(globalCache.get(getCacheKey(coll.orm_owner()))));
         if (elementIds == null) {
             return false;
         }
@@ -210,6 +228,9 @@ public class CollectionPersisterImpl implements ICollectionPersister {
 
         String querySpace = shard == null ? null : shard.getQuerySpace();
 
+        // plan 2517 R2-14 裁定⑥：evict 记失效世代——迟到回填 CAS 必败
+        genFence.invalidate(getCacheKey(coll.orm_owner()));
+
         if (env.txn().isTransactionOpened(querySpace)) {
             env.txn().addTransactionListener(querySpace, new ITransactionListener() {
                 @Override
@@ -222,11 +243,17 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         }
     }
 
-    void updateGlobalCache(IOrmEntitySet coll, IOrmSessionImplementor session) {
-
+    /**
+     * plan 2517 R2-14 裁定⑥（C2-004）：集合路径世代围栏回填（同 EntityPersisterImpl.repairGlobalCache 规范）
+     */
+    void repairGlobalCache(IOrmEntitySet coll, long readGen) {
+        if (!useGlobalCache)
+            return;
+        String cacheKey = getCacheKey(coll.orm_owner());
+        if (!genFence.tryAcquireRepair(cacheKey, readGen))
+            return;
         Object[] elementIds = getElementIds(coll);
-
-        globalCache.put(getCacheKey(coll.orm_owner()), elementIds);
+        globalCache.put(cacheKey, VersionedCacheValue.wrap(readGen, elementIds));
     }
 
     private String getCacheKey(IOrmEntity entity) {
@@ -286,7 +313,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         while (it.hasNext()) {
             IOrmEntitySet coll = it.next();
             // keys与values的key必须一致：useTenantCache时getCacheKey带有租户前缀，而orm_idString()没有
-            Object[] elmIds = convertCacheValues(values.get(getCacheKey(coll.orm_owner())));
+            Object[] elmIds = convertCacheValues(VersionedCacheValue.unwrap(values.get(getCacheKey(coll.orm_owner()))));
             if (elmIds != null) {
                 coll.orm_beginLoad();
                 for (Object elmId : elmIds) {

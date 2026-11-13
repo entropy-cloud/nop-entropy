@@ -18,11 +18,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -61,8 +63,16 @@ public class FeishuClient {
 
     private final IStreamTransport transport;
     private final IFeishuHttpApi httpApi;
-    private final ScheduledExecutorService scheduler;
+    /**
+     * 4.3-C1-011（plan 2560 裁定 M）：scheduler 可换引用——owned scheduler 在 stop 期
+     * shutdownNow 后 start 重建，消除 stop→start 的半启动死态（旧 scheduler 已终止、
+     * 心跳/重连任务全部被拒）。外部注入 scheduler（ownsScheduler=false）不归本类管理，
+     * stop 后 start 显式 fail-fast（documented unsupported）。
+     */
+    private volatile ScheduledExecutorService scheduler;
     private final boolean ownsScheduler;
+    /** 裁定 M：scheduler 已被 stop 终止（owned 重建依据 / 外部注入 fail-fast 依据）。 */
+    private volatile boolean schedulerShutdown;
 
     private long heartbeatIntervalSeconds = DEFAULT_HEARTBEAT_SECONDS;
 
@@ -75,11 +85,21 @@ public class FeishuClient {
     // connection state
     private volatile boolean started = false;
     private volatile boolean connected = false;
-    private FeishuCredentials credentials;
-    private IMessageHandler handler;
-    private StreamEndpoint endpoint;
+    // 4.3-C1-010（plan 2560 裁定 L）：stop 期清空 + WS 回调线程并发读——volatile 化，
+    // 停机窗口的僵尸投递/NPE 链（回调线程读到半清空状态）消除
+    private volatile FeishuCredentials credentials;
+    private volatile IMessageHandler handler;
+    private volatile StreamEndpoint endpoint;
     private ScheduledFuture<?> heartbeatFuture;
     private final AtomicLong reconnectAttempt = new AtomicLong();
+
+    // C1-009/C6-021 (plan 2522): single-flight reconnect + lifecycle generation guard
+    private final AtomicBoolean reconnectPending = new AtomicBoolean();
+    private final AtomicLong lifecycleGeneration = new AtomicLong();
+    /** 世代快照：每次 connect 前记录，onOpen/完成回调比对（R2 Major-2 捕获侧机制）。 */
+    private volatile long connectGeneration;
+    /** C3-015 (plan 2522)：send 预算（毫秒），转发到 JdkStreamTransport（部署可调）。 */
+    private long sendTimeoutMillis = 15_000L;
 
     // tenant_access_token cache
     private volatile String cachedToken;
@@ -105,6 +125,22 @@ public class FeishuClient {
 
     public void setHeartbeatIntervalSeconds(long seconds) {
         this.heartbeatIntervalSeconds = seconds;
+    }
+
+    /**
+     * C3-015 (plan 2522)：send 预算部署可调面（缺省 15s，对齐 JdkFeishuHttpApi 同模块
+     * 15s 先例）；转发到 JDK transport 的有界 get。半开连接上无界 {@code get()} 会占死
+     * 心跳+重连唯一 scheduler 线程（整体死锁面）。
+     */
+    public void setSendTimeoutMillis(long sendTimeoutMillis) {
+        this.sendTimeoutMillis = sendTimeoutMillis;
+        if (transport instanceof JdkStreamTransport) {
+            ((JdkStreamTransport) transport).setSendTimeoutMillis(sendTimeoutMillis);
+        }
+    }
+
+    long getSendTimeoutMillis() {
+        return sendTimeoutMillis;
     }
 
     @Inject
@@ -187,10 +223,25 @@ public class FeishuClient {
             LOG.debug("feishu-client already started, ignoring duplicate start");
             return;
         }
+        // 4.3-C1-011（plan 2560 裁定 M）：stop 后 start 的半启动死态消除——
+        // owned scheduler 已 shutdownNow 则重建；外部注入 scheduler 生命周期不归本类，
+        // stop→start 显式 fail-fast（documented unsupported）
+        if (schedulerShutdown) {
+            if (!ownsScheduler) {
+                throw new NopFeishuException(
+                        "FeishuClient.start: restart with an externally injected scheduler is not supported"
+                                + " (the scheduler lifecycle is not owned by this client; create a new client)");
+            }
+            this.scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory("feishu-client"));
+            this.schedulerShutdown = false;
+        }
         this.credentials = resolveEffectiveCredentials(credentials);
         registerUsageQuietly();
         this.handler = handler;
         this.endpoint = httpApi.getStreamEndpoint(this.credentials.getAppId(), this.credentials.getAppSecret());
+        // C1-009 (plan 2522): 世代递增必须先于 connect —— 同步 connect 内 fake/生产都可能
+        // 同步触发 onOpen，onOpen 比对的是 connect 前记录的快照
+        this.connectGeneration = lifecycleGeneration.incrementAndGet();
         transport.connect(URI.create(endpoint.getUri()), streamListener);
         this.started = true;
         scheduleHeartbeat();
@@ -203,6 +254,8 @@ public class FeishuClient {
         }
         started = false;
         connected = false;
+        // C6-021 (plan 2522)：stop 递增世代——在途 connect/重连回调捕获的世代即刻过期
+        lifecycleGeneration.incrementAndGet();
         if (heartbeatFuture != null) {
             heartbeatFuture.cancel(false);
             heartbeatFuture = null;
@@ -214,6 +267,16 @@ public class FeishuClient {
         }
         if (ownsScheduler) {
             scheduler.shutdownNow();
+        }
+        // 4.3-C1-011（plan 2560 裁定 M）：标记 scheduler 已终止——start 期据此重建
+        // （owned）或 fail-fast（外部注入）
+        this.schedulerShutdown = true;
+        // 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛清单补 httpApi close——
+        // 释放 JdkFeishuHttpApi 自持的 JDK HttpClient（default no-op 对假体无感）
+        try {
+            httpApi.close();
+        } catch (Exception e) {
+            LOG.debug("feishu-client http api close ignored error", e);
         }
         this.credentials = null;
         this.handler = null;
@@ -276,35 +339,103 @@ public class FeishuClient {
                     FeishuStreamFrame.EMPTY_PAYLOAD, null);
             transport.send(FeishuPbCodec.encode(frame));
         } catch (Exception e) {
-            LOG.debug("feishu-client heartbeat send failed", e);
+            // C3-015 (plan 2522)：心跳失败 debug→warn 升级，经失败处理单点驱动重连
+            handleSendFailure("heartbeat", e);
         }
+    }
+
+    /**
+     * C3-015 (plan 2522) 失败处理单点：:277/:324/:353 三 send 调用点统一收敛——
+     * connected=false + close（尽力而为）+ warn（含站点维度）+ 重连调度（单飞由裁定②承载）。
+     */
+    private void handleSendFailure(String site, Exception e) {
+        connected = false;
+        LOG.warn("feishu-client send failed:site={}", site, e);
+        try {
+            transport.close();
+        } catch (Exception closeError) {
+            LOG.debug("feishu-client transport close after send failure ignored", closeError);
+        }
+        scheduleReconnect();
     }
 
     private void scheduleReconnect() {
         if (!started) {
             return;
         }
+        // C1-009 (plan 2522)：单飞 CAS——onClose/onError 双终态（无论互斥与否）去重为恰一在飞
+        if (!reconnectPending.compareAndSet(false, true)) {
+            return;
+        }
         long attempt = reconnectAttempt.incrementAndGet();
         long delay = Math.min(RECONNECT_INITIAL_DELAY_MS << Math.min(attempt - 1, 14), RECONNECT_MAX_DELAY_MS);
         LOG.info("feishu-client scheduling reconnect attempt {} in {} ms", attempt, delay);
+        long capturedGeneration = lifecycleGeneration.get();
         try {
-            scheduler.schedule(this::attemptReconnect, delay, TimeUnit.MILLISECONDS);
+            scheduler.schedule(() -> attemptReconnect(capturedGeneration, attempt), delay, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
+            reconnectPending.set(false);
             LOG.warn("feishu-client failed to schedule reconnect", e);
         }
     }
 
-    private void attemptReconnect() {
+    /**
+     * C1-009 世代守卫 + C6-021 在途建连撤销（plan 2522）。attempt 序号快照承载
+     * 守卫清零（R2 Major-1）——仅当捕获序号==当前才清零单飞标志，防迟到回调击落
+     * 更新的在飞声明。
+     */
+    private void attemptReconnect(long capturedGeneration, long capturedAttempt) {
         if (!started) {
+            reconnectPending.set(false);
+            return;
+        }
+        if (capturedGeneration != lifecycleGeneration.get()) {
+            // 旧世代重连链终止：守卫清零，不重排
+            if (capturedAttempt == reconnectAttempt.get())
+                reconnectPending.set(false);
             return;
         }
         try {
+            // C6-021：旧连接先 close（尽力而为），fd 不依赖对端断开
+            try {
+                transport.close();
+            } catch (Exception closeError) {
+                LOG.debug("feishu-client pre-reconnect close ignored", closeError);
+            }
             StreamEndpoint ep = httpApi.getStreamEndpoint(credentials.getAppId(), credentials.getAppSecret());
             this.endpoint = ep;
-            transport.connect(URI.create(ep.getUri()), streamListener);
-            reconnectAttempt.set(0);
+            this.connectGeneration = lifecycleGeneration.get();
+            long attemptGeneration = this.connectGeneration;
+            transport.connectAsync(URI.create(ep.getUri()), streamListener).whenComplete((nothing, err) -> {
+                if (err != null) {
+                    LOG.warn("feishu-client reconnect failed, will retry", err);
+                    if (attemptGeneration == lifecycleGeneration.get()) {
+                        if (capturedAttempt == reconnectAttempt.get())
+                            reconnectPending.set(false);
+                        scheduleReconnect();
+                    }
+                    return;
+                }
+                // C6-021 消费点 (a)：stop 后完成的建连即刻关闭（孤儿消除）
+                if (attemptGeneration != lifecycleGeneration.get()) {
+                    LOG.info("feishu-client reconnect generation expired, closing stale connection");
+                    try {
+                        transport.close();
+                    } catch (Exception closeError) {
+                        LOG.debug("feishu-client stale-connect close ignored", closeError);
+                    }
+                    if (capturedAttempt == reconnectAttempt.get())
+                        reconnectPending.set(false);
+                    return;
+                }
+                // 消费点 (c)：尾段复校通过——守卫清零单飞标志（重连成功，退避由 stop 重置）
+                if (capturedAttempt == reconnectAttempt.get())
+                    reconnectPending.set(false);
+            });
         } catch (Exception e) {
             LOG.warn("feishu-client reconnect failed, will retry", e);
+            if (capturedAttempt == reconnectAttempt.get())
+                reconnectPending.set(false);
             scheduleReconnect();
         }
     }
@@ -312,23 +443,44 @@ public class FeishuClient {
     private final IStreamListener streamListener = new IStreamListener() {
         @Override
         public void onOpen() {
+            // C6-021 消费点 (b)（plan 2522）：世代不符（stop 后 onOpen 先达）不置 connected
+            // 不发握手帧——封「建立与关闭之间 onOpen 先达」复活窗
+            if (connectGeneration != lifecycleGeneration.get()) {
+                LOG.info("feishu-client onOpen for expired generation, ignoring");
+                return;
+            }
+            // 4.3-C1-010（plan 2560 裁定 L）：WS 回调线程快照读取——stop 窗口内
+            // credentials/endpoint 已清空时不再解引用（NPE 链消除）
+            FeishuCredentials snapshotCredentials = credentials;
+            StreamEndpoint snapshotEndpoint = endpoint;
+            if (snapshotCredentials == null || snapshotEndpoint == null) {
+                LOG.info("feishu-client onOpen in stop window, ignoring");
+                return;
+            }
             connected = true;
             // send CONTROL connect handshake carrying app id + ticket
             try {
                 Map<String, String> headers = new LinkedHashMap<>();
                 headers.put("type", "connect");
-                String payload = "{\"app_id\":\"" + credentials.getAppId()
-                        + "\",\"ticket\":\"" + endpoint.getTicket() + "\"}";
+                String payload = "{\"app_id\":\"" + snapshotCredentials.getAppId()
+                        + "\",\"ticket\":\"" + snapshotEndpoint.getTicket() + "\"}";
                 FeishuStreamFrame handshake = new FeishuStreamFrame(FeishuFrameType.CONTROL.getMethod(),
                         headers, payload.getBytes(StandardCharsets.UTF_8), null);
                 transport.send(FeishuPbCodec.encode(handshake));
             } catch (Exception e) {
-                LOG.warn("feishu-client connect handshake send failed", e);
+                handleSendFailure("connect-handshake", e);
             }
         }
 
         @Override
         public void onBinary(byte[] data) {
+            // 4.3-C1-010（plan 2560 裁定 L）：WS 回调线程对 handler 快照读取——
+            // stop 清空后到达的帧直接丢弃，僵尸投递/NPE 链（catch 内 handler.onError
+            // 二次解引用 null）消除
+            IMessageHandler snapshotHandler = handler;
+            if (snapshotHandler == null) {
+                return;
+            }
             try {
                 FeishuStreamFrame frame = FeishuPbCodec.decode(data);
 
@@ -336,7 +488,7 @@ public class FeishuClient {
 
                     FeishuInboundMessage msg = toInbound(frame);
 
-                    handler.onMessage(msg);
+                    snapshotHandler.onMessage(msg);
 
                     // P1-6.8-004（plan 2392）：DATA 帧处理后按 wire 协议回 ACK——headers 原样复制
 
@@ -354,7 +506,7 @@ public class FeishuClient {
 
                     } catch (Exception e) {
 
-                        LOG.warn("feishu-client ack send failed", e);
+                        handleSendFailure("ack", e);
 
                     }
 
@@ -364,7 +516,7 @@ public class FeishuClient {
                     LOG.debug("feishu-client received CONTROL frame");
                 }
             } catch (Throwable t) {
-                handler.onError(t);
+                snapshotHandler.onError(t);
             }
         }
 
@@ -377,8 +529,9 @@ public class FeishuClient {
         @Override
         public void onError(Throwable error) {
             connected = false;
-            if (handler != null) {
-                handler.onError(error);
+            IMessageHandler snapshotHandler = handler;
+            if (snapshotHandler != null) {
+                snapshotHandler.onError(error);
             }
             scheduleReconnect();
         }

@@ -1,9 +1,19 @@
 package io.nop.ai.tools.utils;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static io.nop.ai.core.NopAiCoreErrors.ARG_SESSION_ID;
@@ -11,6 +21,8 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SESSION_ID_INVALID;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SESSION_ID_IS_EMPTY;
 
 public class AiToolsHelper {
+    private static final Logger LOG = LoggerFactory.getLogger(AiToolsHelper.class);
+
     static final String HEADER_CHAT_SESSION_ID = "nop-chat-session-Id";
 
     /**
@@ -51,5 +63,38 @@ public class AiToolsHelper {
                     .param(ARG_SESSION_ID, sessionId);
         }
         return sessionId;
+    }
+
+    /**
+     * Atomic replace for local file writes (plan 2557 C1-005, ruling C): copied
+     * verbatim from the {@code ThoughtStorage.atomicWriteText} template — write
+     * to a temp file in the same directory, then rename over the target, so a
+     * partial write or crash never truncates the previous content. {@code
+     * ATOMIC_MOVE} is attempted first; plain {@code Files.move} with {@code
+     * REPLACE_EXISTING} is the explicit fallback for filesystems without
+     * atomic rename support. Applies ONLY to local {@code FileResource} write
+     * sites; virtual (VFS, non-local) resources keep their original in-place
+     * write path.
+     */
+    public static void atomicWriteText(File target, String text) {
+        FileHelper.assureParent(target);
+        File temp = new File(target.getParentFile(), target.getName() + ".tmp" + UUID.randomUUID());
+        try {
+            Files.writeString(temp.toPath(), text, StandardCharsets.UTF_8);
+            try {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        } finally {
+            try {
+                Files.deleteIfExists(temp.toPath());
+            } catch (IOException e) {
+                LOG.debug("Failed to delete temp file after write: {}", temp, e);
+            }
+        }
     }
 }

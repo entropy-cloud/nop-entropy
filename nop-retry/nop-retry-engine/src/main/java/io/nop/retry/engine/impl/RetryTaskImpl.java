@@ -12,6 +12,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.retry.api.IRetryTask;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class RetryTaskImpl implements IRetryTask {
@@ -98,6 +99,14 @@ public class RetryTaskImpl implements IRetryTask {
 
     @Override
     public CompletionStage<ApiResponse<?>> callAsync(ApiRequest<?> request, ICancelToken cancelToken) {
-        return retryEngine.executeTask(this, request, cancelToken);
+        // 1.6-C8-017（plan 2515 裁定⑥契约半边，R21 同 diff 搭车）：提交面失败交付三通道
+        // （同步抛/future 异常/永不完成）收敛为 future 单通道——executeTask 同步抛（loadPolicy/
+        // 幂等查重等 DB 读故障）转 failedStage，等待非必需、fire-and-forget 受支持的调用方
+        // 也可经 future 感知失败。契约文本落 docs-for-ai/03-modules/nop-retry.md（Phase 3 落账）
+        try {
+            return retryEngine.executeTask(this, request, cancelToken);
+        } catch (Throwable t) {
+            return CompletableFuture.failedStage(t);
+        }
     }
 }

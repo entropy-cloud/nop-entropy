@@ -13,6 +13,8 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
@@ -257,6 +259,13 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
         return newSelection(propIds, null);
     }
 
+    /**
+     * 2.5-C1-001（plan 2554 裁定 E）线程契约：会话状态变更不得落 RPC 传输线程。
+     * loadAsync/batchLoadAsync 的完成回调（bindEntity/internalAssemble/markMissing）会变更
+     * session 状态，必须经调用方 context 出口泵（thenOnContext）投递回调用方 context 执行；
+     * 显式判空 currentContext 后才决定是否包装——thenOnContext 无 context 时会新建 context
+     * 而非内联，禁止在 RPC 线程静默创建 context；null 时走裸回调（=同步等待的调用线程内联）。
+     */
     @Override
     public CompletionStage<Void> loadAsync(ShardSelection shard, IOrmEntity entity, IntArray propIds,
                                            FieldSelectionBean subSelection, IOrmSessionImplementor session) {
@@ -267,7 +276,9 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
         Map<String, Object> data = new HashMap<>();
         data.put("ids", List.of(entity.orm_idString()));
 
-        return invokeRpc(operationName, data, selection).thenAccept(response -> {
+        CompletionStage<ApiResponse<?>> future = dispatchOnCallerContext(
+                invokeRpc(operationName, data, selection));
+        return future.thenAccept(response -> {
             checkResponse(response);
             List<Map<String, Object>> list = (List<Map<String, Object>>) response.getData();
             Map<String, Object> result = findMatchedRow(entity, list);
@@ -283,6 +294,19 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
                 session.markMissing(entity);
             }
         });
+    }
+
+    /**
+     * 2.5-C1-001（plan 2554 裁定 E）：有 context 时经 thenOnContext 出口泵把完成回调
+     * 拉回调用方 context 线程纪律内执行；无 context（调用方同步等待于同一线程）时内联。
+     * 必须先显式判空 currentContext——无参 thenOnContext 会走 getOrCreateContext 在
+     * RPC 传输线程上静默新建 context，违反线程契约。
+     */
+    private CompletionStage<ApiResponse<?>> dispatchOnCallerContext(CompletionStage<ApiResponse<?>> future) {
+        IContext context = ContextProvider.currentContext();
+        if (context == null)
+            return future;
+        return ContextProvider.thenOnContext(future, context);
     }
 
     /**
@@ -317,10 +341,24 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
             if (data == null || data.isEmpty())
                 return FutureHelper.voidPromise();
 
-            Map<String, Object> args = new HashMap<>();
-            args.put("data", data);
-
-            return invokeRpc(newEntityAction("batchModify"), args).thenAccept(this::checkResponse);
+            // 2.5-MA-11（plan 2554 裁定 D）：按 batch-size 拆分多请求顺序投递。各 chunk
+            // block-join 后才返回，返回 future 必然同步完成——2553 守卫不变式：
+            // BatchActionQueueImpl 两阶段 flush 对未完成 future fail-fast，不得造真异步分块路径。
+            int batchSize = getBatchSize();
+            CompletableFuture<Void> promise = new CompletableFuture<>();
+            try {
+                for (List<Object> chunk : chunkList(data, batchSize)) {
+                    Map<String, Object> args = new HashMap<>();
+                    args.put("data", chunk);
+                    invokeRpc(newEntityAction("batchModify"), args)
+                            .thenAccept(this::checkResponse)
+                            .toCompletableFuture().join();
+                }
+                promise.complete(null);
+            } catch (Throwable e) {
+                promise.completeExceptionally(e);
+            }
+            return promise;
         } else {
             if (deleteActions == null || deleteActions.isEmpty())
                 return FutureHelper.voidPromise();
@@ -329,11 +367,36 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
                     .map(IBatchAction.EntityDeleteAction::getIdString)
                     .collect(Collectors.toList());
 
-            Map<String, Object> args = new HashMap<>();
-            args.put("ids", ids);
-
-            return invokeRpc(newEntityAction("batchDelete"), args).thenAccept(this::checkResponse);
+            // 2.5-MA-11（plan 2554 裁定 D）：同 batchModify，按 batch-size 拆分顺序投递 + block-join
+            int batchSize = getBatchSize();
+            CompletableFuture<Void> promise = new CompletableFuture<>();
+            try {
+                for (List<String> chunk : chunkList(ids, batchSize)) {
+                    Map<String, Object> args = new HashMap<>();
+                    args.put("ids", chunk);
+                    invokeRpc(newEntityAction("batchDelete"), args)
+                            .thenAccept(this::checkResponse)
+                            .toCompletableFuture().join();
+                }
+                promise.complete(null);
+            } catch (Throwable e) {
+                promise.completeExceptionally(e);
+            }
+            return promise;
         }
+    }
+
+    private int getBatchSize() {
+        // 2.5-MA-11（plan 2554 裁定 D）：nop.orm.rpc.batch-size，缺省 500
+        return Math.max(1, OrmRpcConfigs.CFG_ORM_RPC_BATCH_SIZE.get());
+    }
+
+    private static <T> List<List<T>> chunkList(List<T> list, int batchSize) {
+        List<List<T>> chunks = new ArrayList<>((list.size() + batchSize - 1) / batchSize);
+        for (int i = 0, n = list.size(); i < n; i += batchSize) {
+            chunks.add(list.subList(i, Math.min(n, i + batchSize)));
+        }
+        return chunks;
     }
 
     private List<Object> buildData(List<IBatchAction.EntitySaveAction> saveActions,
@@ -364,50 +427,73 @@ public class RpcEntityPersistDriver implements IEntityPersistDriver, IEntityDaoE
         return shard.getQuerySpace();
     }
 
+    /**
+     * 2.5-C1-001（plan 2554 裁定 E）线程契约：会话状态变更不得落 RPC 传输线程——
+     * 装配回调（bindEntity/internalAssemble/markMissing）经调用方 context 出口泵投递，
+     * 无 context 时内联（调用方同步等待线程）。2.5-MA-11（裁定 D）：按 batch-size 拆分多请求。
+     */
     @Override
     public CompletionStage<Void> batchLoadAsync(ShardSelection shard, Collection<IOrmEntity> entities, IntArray propIds,
                                                 FieldSelectionBean subSelection, IOrmSessionImplementor session) {
         String operationName = newEntityAction("batchGet");
         FieldSelectionBean selection = newSelection(propIds, subSelection);
 
-        List<String> ids = entities.stream().map(IOrmEntity::orm_idString).collect(Collectors.toList());
+        List<IOrmEntity> entityList = new ArrayList<>(entities);
+        int batchSize = getBatchSize();
+        List<List<IOrmEntity>> chunks = chunkList(entityList, batchSize);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("ids", ids);
+        // 2.5-MA-11（plan 2554 裁定 D）：按 batch-size 拆分多请求，顺序链式投递；
+        // 聚合语义与未拆分基线一致（按主键匹配绑定 + 未返回实体标 MISSING）。
+        CompletionStage<Void> future = CompletableFuture.completedFuture(null);
+        for (List<IOrmEntity> chunk : chunks) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("ids", chunk.stream().map(IOrmEntity::orm_idString).collect(Collectors.toList()));
+            future = future.thenCompose(v -> {
+                // 2.5-C1-001（plan 2554 裁定 E）：装配回调经调用方 context 出口泵投递
+                return dispatchOnCallerContext(invokeRpc(operationName, data, selection))
+                        .thenAccept(response -> handleBatchGetResponse(chunk, response, propIds, subSelection, session));
+            });
+        }
+        return future;
+    }
 
-        return invokeRpc(operationName, data, selection).thenAccept(response -> {
-            checkResponse(response);
-            List<Map<String, Object>> list = (List<Map<String, Object>>) response.getData();
-            if (list == null || list.isEmpty())
-                return;
+    /**
+     * 处理单个 batchGet chunk 的响应：按主键匹配绑定，未返回的实体标记 MISSING。
+     * 会话状态变更回调必须已在调用方 context 线程纪律内执行（见 dispatchOnCallerContext）。
+     */
+    private void handleBatchGetResponse(List<IOrmEntity> chunk, ApiResponse<?> response, IntArray propIds,
+                                        FieldSelectionBean subSelection, IOrmSessionImplementor session) {
+        checkResponse(response);
+        List<Map<String, Object>> list = (List<Map<String, Object>>) response.getData();
+        if (list == null || list.isEmpty())
+            return; // 与拆分前基线一致：空响应不标 MISSING（仅按主键匹配缺失面标记）
 
-            // 远端返回的列表不保证与请求 ids 同序同长，必须按主键值匹配，避免数据错绑或越界
-            Map<String, IOrmEntity> entityMap = new HashMap<>(entities.size());
-            for (IOrmEntity entity : entities) {
-                String key = buildEntityIdKey(entity);
-                if (key != null)
-                    entityMap.put(key, entity);
+        // 远端返回的列表不保证与请求 ids 同序同长，必须按主键值匹配，避免数据错绑或越界
+        Map<String, IOrmEntity> entityMap = new HashMap<>(chunk.size());
+        for (IOrmEntity entity : chunk) {
+            String key = buildEntityIdKey(entity);
+            if (key != null)
+                entityMap.put(key, entity);
+        }
+
+        for (Map<String, Object> map : list) {
+            String key = buildMapIdKey(map);
+            IOrmEntity entity = key != null ? entityMap.remove(key) : null;
+            if (entity == null) {
+                LOG.warn("nop.orm.rpc-batch-load-ignore-unknown-id:entity={},id={}", entityModel.getName(), key);
+                continue;
             }
-
-            for (Map<String, Object> map : list) {
-                String key = buildMapIdKey(map);
-                IOrmEntity entity = key != null ? entityMap.remove(key) : null;
-                if (entity == null) {
-                    LOG.warn("nop.orm.rpc-batch-load-ignore-unknown-id:entity={},id={}", entityModel.getName(), key);
-                    continue;
-                }
-                bindEntity(entity, map, propIds, session);
-                // 处理 subSelection 中的子表数据
-                if (subSelection != null && subSelection.hasField()) {
-                    bindSubSelection(entity, map, subSelection, session);
-                }
+            bindEntity(entity, map, propIds, session);
+            // 处理 subSelection 中的子表数据
+            if (subSelection != null && subSelection.hasField()) {
+                bindSubSelection(entity, map, subSelection, session);
             }
+        }
 
-            // 远端没有返回的实体标记为 missing
-            for (IOrmEntity entity : entityMap.values()) {
-                session.markMissing(entity);
-            }
-        });
+        // 远端没有返回的实体标记为 missing
+        for (IOrmEntity entity : entityMap.values()) {
+            session.markMissing(entity);
+        }
     }
 
     /**

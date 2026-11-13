@@ -325,6 +325,8 @@ Segment 由 LocalFile、JDBC、对象存储或其他 backend 持久化。Epoch m
 
 ### 9.1 MemoryBudget
 
+> **状态注记（CRA 8.42 R4-02 W-04/C5-012，plan 2535 裁定 B.2 @ 2026-11-07）**：本节与 `MemoryBudget`/`MemoryBudgetMonitor` 为 **RECORD-ONLY, NOT ENFORCED**（声明保留、未强制——`MemoryBudget` 类已标 `@Deprecated(since="8.42")`）。设计文档描述的是**目标包络模型**，不是 live 强制保证：`defaultLocalBudget` 的分配算式从未按真实 `estimatedItemSize` 执行（live 全部走 `EdgeConfig.defaultConfig()` 硬编码，无估算点），执行面归 R4+ 后续批次。依赖本节做容量规划时，请以 owner doc「规模与内存包络」声明为准，勿按本算式推导硬保证。
+
 `DeploymentPlan` 包含内存预算配置：
 
 ```java
@@ -419,7 +421,7 @@ operator state 的 rescale 支持矩阵（plan 369 Phase 3 NEW-A 落地裁定，
 | 扩容且旧子任务带非空 operator state | **fail-fast**（`ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED`，plan 369 NEW-A；消除静默置空） |
 | UNDISTRIBUTED/UNION/BROADCAST 重分布原语 | 后端能力在位（含 plan 369 NEW-B 的 BROADCAST 并集语义），但**未接入生产 rescale 路径**——生产接线归 backlog successor（nop-stream-r5-successors.md），接线前不改变生产行为 |
 
-`restoreBroadcast` 为并集语义（全部非空快照并集发所有实例，对照 Flink RoundRobinOperatorStateRepartitioner）；TTL 清理挂 `setCurrentKey` 周期 sweep（默认 60s，`setTtlSweepIntervalMillis(≤0)` 关闭，plan 369 ST-12 部分），RocksDB sidecar 无界增长仍属资源上界专项。
+`restoreBroadcast` 为并集语义（全部非空快照并集发所有实例，对照 Flink RoundRobinOperatorStateRepartitioner）；TTL 清理挂 `setCurrentKey` 周期 sweep（默认 60s[**8.43→8.44 兑现**：RocksDB 后端已于 CRA 8.44 R4-04 W-11 移植本形态——nanotime 门控+可配置间隔，`setTtlSweepIntervalMillis(long)` setter 注入缺省 60000/≤0 关闭[2537 closure audit Major-1 订正——setter 形态非配置键]]，`setTtlSweepIntervalMillis(≤0)` 关闭，plan 369 ST-12 部分），RocksDB sidecar 无界增长仍属资源上界专项。
 
 ### 10.5 与 Keyed State 的关系
 

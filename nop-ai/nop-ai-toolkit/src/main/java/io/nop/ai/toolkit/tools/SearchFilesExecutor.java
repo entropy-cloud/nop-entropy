@@ -12,6 +12,13 @@ import java.util.concurrent.CompletionStage;
 public class SearchFilesExecutor implements IToolExecutor {
     public static final String TOOL_NAME = "glob";
 
+    /**
+     * 3.2-C8-008（plan 2557 裁定 H）：结果数上界服务端 clamp（≤1万）。
+     */
+    public static final int MAX_RESULTS = 10_000;
+
+    private static final int DEFAULT_MAX_RESULTS = 100;
+
     @Override
     public String getToolName() {
         return TOOL_NAME;
@@ -32,7 +39,8 @@ public class SearchFilesExecutor implements IToolExecutor {
             String pattern = call.attrText("pattern", "*");
             String directory = call.attrText("directory");
             boolean recursive = call.attrBoolean("recursive", false);
-            int maxResults = call.attrInt("maxResults", 100);
+            int maxResults = SearchContentExecutor.clamp(call.attrInt("maxResults", DEFAULT_MAX_RESULTS),
+                    DEFAULT_MAX_RESULTS, MAX_RESULTS);
             int maxDepth = call.attrInt("maxDepth", recursive ? Integer.MAX_VALUE : 1);
 
             List<FileInfo> files = fs.glob(pattern, directory, recursive, maxDepth, maxResults);
@@ -43,7 +51,7 @@ public class SearchFilesExecutor implements IToolExecutor {
             }
             return AiToolCallResult.successResult(call.getId(), sb.toString());
         } catch (Exception e) {
-            return AiToolCallResult.errorResult(call.getId(), e.getMessage());
+            return AiToolCallResult.errorResult(call.getId(), String.valueOf(e));
         }
     }
 }

@@ -73,6 +73,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
@@ -81,6 +82,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_ARG_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_REJECT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_STATUS;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_CASES;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_STEPS;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TO_STEP_NAME;
@@ -122,6 +124,57 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     protected WfRuntime newWfRuntime(IWorkflowImplementor wf, IServiceContext ctx) {
         return new WfRuntime(wf, ctx);
+    }
+
+    // ==================== plan 2514 MA-02（裁定①）wfInstanceId 条带锁 ====================
+    // 锁体经 IWorkflowStore.withWfLock 暴露（core 定义契约 / dao 提供 64 槽实现），
+    // 引擎绝不直接引用 DaoWorkflowStore 具体类。锁序声明见设计文档 §3.1：
+    // 禁止在 withWfLock 段内调用会获取其他 wf 条带锁的引擎入口（跨 wf 互调经 runXpl
+    // 无锁窗自然无环）。
+
+    private <T> T withWfLock(IWorkflowImplementor wf, Supplier<T> action) {
+        String wfId = wf == null ? null : wf.getWfId();
+        if (wfId == null)
+            return action.get();
+        return wf.getStore().withWfLock(wfId, action);
+    }
+
+    /**
+     * 锁内重读：按 store 刷新 wf 实例与步骤的已提交状态，消除每请求 WorkflowImpl
+     * 快照互不可见缺陷（判定输入不再复用请求初载值）。
+     */
+    private void refreshSnapshotsUnderLock(IWorkflowStepImplementor step, boolean includeExecGroup) {
+        IWorkflowImplementor wf = step.getWorkflow();
+        refreshWfStatusFromStore(wf);
+        refreshStepStatusFromStore(step);
+        if (includeExecGroup) {
+            for (IWorkflowStep member : step.getStepsInSameExecGroup(true, true)) {
+                refreshStepStatusFromStore((IWorkflowStepImplementor) member);
+            }
+        }
+    }
+
+    private static void refreshWfStatusFromStore(IWorkflowImplementor wf) {
+        if (wf.getWfId() == null)
+            return;
+        IWorkflowRecord fresh = wf.getStore().getWfRecord(null, null, wf.getWfId());
+        if (fresh == null || fresh == wf.getRecord())
+            return;
+        Integer freshStatus = fresh.getStatus();
+        if (freshStatus != null && !freshStatus.equals(wf.getRecord().getStatus()))
+            wf.getRecord().transitToStatus(freshStatus);
+    }
+
+    private static void refreshStepStatusFromStore(IWorkflowStepImplementor step) {
+        IWorkflowImplementor wf = step.getWorkflow();
+        if (wf.getWfId() == null || step.getStepId() == null)
+            return;
+        IWorkflowStepRecord fresh = wf.getStore().getStepRecordById(wf.getRecord(), step.getStepId());
+        if (fresh == null || fresh == step.getRecord())
+            return;
+        Integer freshStatus = fresh.getStatus();
+        if (freshStatus != null && !freshStatus.equals(step.getRecord().getStatus()))
+            step.getRecord().transitToStatus(freshStatus);
     }
 
     protected WfRuntime newWfRuntime(IWorkflowStepImplementor step, IServiceContext ctx) {
@@ -176,6 +229,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public void start(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         LOG.info("nop.wf.start:wfName={},wfVersion={},args={}", wf.getWfName(), wf.getWfVersion(), args);
 
+        // MA-02（裁定① saveWfRecord 6 调用点覆盖，:148/:470 写点）：start 入口段纳入 wf 条带锁。
+        // 新建实例尚无 wfId（withWfLock 对 null id 直通），持久化后由锁保护并发驱动。
+        withWfLock(wf, () -> {
+            doStart(wf, args, ctx);
+            return null;
+        });
+    }
+
+    private void doStart(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         IWorkflowRecord record = wf.getRecord();
         if (record.getStatus() > NopWfCoreConstants.WF_STATUS_CREATED) {
@@ -333,36 +395,57 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor actor = actorWithWeight.getActor();
 
         IWorkflowImplementor wf = wfRt.getWf();
-        String joinGroup = null;
+        final String joinGroup = stepModel.getJoinType() == null ? null : getJoinGroup(stepModel, currentStep, wfRt);
         if (stepModel.getJoinType() != null) {
-            joinGroup = getJoinGroup(stepModel, currentStep, wfRt);
-
-            // join步骤会自动查找已经存在的步骤实例。
-            // 起始步骤本身为join步骤时无上游实例可复用（currentStep为null），直接新建实例
+            // MA-02（裁定① join 双实例站点，and+or 两型）：锁内原子查建——同一 wfInstanceId
+            // 条带锁内「查已存在 join 实例 → 复用或新建」串行化，双到达只产单实例。
+            // 零 DDL 前提下不采 DB 唯一约束（设计文档 §3.1 join 行）。锁可重入：
+            // 自迁移段（已持锁）调用时直接嵌套进入。
             if (currentStep != null) {
-                IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
-                        joinGroup, stepModel.getName(), actor);
-                if (stepRecord != null) {
-                    IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
+                return withWfLock(wf, () -> {
+                    // join步骤会自动查找已经存在的步骤实例。
+                    // 起始步骤本身为join步骤时无上游实例可复用（currentStep为null），直接新建实例
+                    IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
+                            joinGroup, stepModel.getName(), actor);
+                    if (stepRecord != null) {
+                        IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
 
-                    stepRecord.setExecGroup(stepGroup);
-                    stepRecord.setExecOrder(execOrder);
-                    stepRecord.setActorModelId(actorWithWeight.getActorModelId());
+                        stepRecord.setExecGroup(stepGroup);
+                        stepRecord.setExecOrder(execOrder);
+                        stepRecord.setActorModelId(actorWithWeight.getActorModelId());
 
-                    if (!isSameExecGroup(currentStep, step)) {
-                        wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+                        if (!isSameExecGroup(currentStep, step)) {
+                            wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+                        }
+
+                        // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
+                        if (step.isWaiting()) {
+                            wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
+                        }
+
+                        LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
+                        return step;
                     }
 
-                    // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
-                    if (step.isWaiting()) {
-                        wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
-                    }
-
-                    LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
-                    return step;
-                }
+                    return newStepForActorLocked(stepGroup, execOrder, currentStep, stepModel, fromAction,
+                            actorWithWeight, owner, joinGroup, wfRt);
+                });
             }
         }
+
+        return newStepForActorLocked(stepGroup, execOrder, currentStep, stepModel, fromAction,
+                actorWithWeight, owner, joinGroup, wfRt);
+    }
+
+    /**
+     * 步骤实例创建体（原 newStepForActor 查建后续段）。join 步骤经 withWfLock 锁内调用，
+     * 非 join 步骤直接调用。
+     */
+    private IWorkflowStepImplementor newStepForActorLocked(String stepGroup, Integer execOrder,
+                                                           IWorkflowStepImplementor currentStep, WfStepModel stepModel, String fromAction,
+                                                           WfActorWithWeight actorWithWeight, IWfActor owner, String joinGroup, WfRuntime wfRt) {
+        IWorkflowImplementor wf = wfRt.getWf();
+        IWfActor actor = actorWithWeight.getActor();
 
         if (owner == null)
             owner = getOwner(stepModel.getAssignment(), actor, wfRt);
@@ -642,6 +725,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public void suspend(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         LOG.info("nop.wf.suspend:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
 
+        // MA-02（裁定① saveWfRecord 6 调用点覆盖，:659 写点）：入口段纳入 wf 条带锁
+        withWfLock(wf, () -> {
+            doSuspend(wf, args, ctx);
+            return null;
+        });
+    }
+
+    private void doSuspend(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         if (wf.isSuspended())
             return;
 
@@ -668,6 +759,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public void resume(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         LOG.info("nop.wf.resume:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
 
+        // MA-02（裁定① saveWfRecord 6 调用点覆盖，:682 写点）：入口段纳入 wf 条带锁
+        withWfLock(wf, () -> {
+            doResume(wf, args, ctx);
+            return null;
+        });
+    }
+
+    private void doResume(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         if (!wf.isSuspended())
             return;
 
@@ -716,6 +815,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public void kill(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         LOG.info("nop.wf.kill:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
 
+        // MA-02（裁定①）：kill 驱动的终结段（killSteps + doEndWorkflow）纳入 wf 条带锁
+        withWfLock(wf, () -> {
+            doKill(wf, args, ctx);
+            return null;
+        });
+    }
+
+    private void doKill(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         if (wf.isEnded())
             return;
 
@@ -889,6 +996,18 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                     throw e;
                 long delay = computeRetryDelay(retry, attempt);
                 if (delay > 0) {
+                    // W-12（CRA 8.48 R4-08，MA-22 裁定 F）：活动事务上下文中延迟等待降级不重试——
+                    // Thread.sleep 内联于请求事务（连接/行锁全程持有、不可取消）为更劣形态；
+                    // 显式 WARN 留痕后抛原业务异常（定时器异步退避否决——2497 §七 timer 只触发
+                    // 约束以「不新增定时器面」守约落款；事务检测经 IWorkflowStore 接口投影，
+                    // txnGroup=null 时由 DaoWorkflowStore 解析 wf 实体 querySpace）
+                    if (wfRt.getWf().getStore().hasOpenedTransaction(null)) {
+                        LOG.warn("nop.wf.retry-degraded-in-transaction:wfName={},wfId={},stepName={},maxRetryCount={}; "
+                                        + "step retry delay skipped inside an open transaction "
+                                        + "(retry semantics require a non-transactional context)",
+                                step.getWfName(), step.getWfId(), stepModel.getName(), maxRetryCount);
+                        throw e;
+                    }
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
@@ -925,10 +1044,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             return 0;
         if (retry.isExponentialDelay()) {
             delay = delay * (1L << Math.min(attempt, 30));
-            int maxRetryDelay = retry.getMaxRetryDelay();
-            if (maxRetryDelay > 0)
-                delay = Math.min(delay, maxRetryDelay);
         }
+        // W-12（CRA 8.48 R4-08，MA-22 裁定 F）：封顶统一对固定 delay 与 exponential 两分支生效
+        //（对齐 task 侧 RetryPolicy 两分支均封顶先例——修复前固定 delay 路径不应用 maxRetryDelay）；
+        // maxRetryDelay<=0 维持不封顶（未配置语义，存量长退避行为零变更——E5 显式声明）
+        int maxRetryDelay = retry.getMaxRetryDelay();
+        if (maxRetryDelay > 0)
+            delay = Math.min(delay, maxRetryDelay);
         return delay;
     }
 
@@ -1137,14 +1259,27 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (step.isHistory())
             return;
 
-        step.getRecord().setSubWfResultStatus(status);
+        // MA-02（裁定① 子流回滚重放站点）：父流程侧通知段纳入父 wf 条带锁 + 锁内重读父步骤
+        // 已提交状态——兄弟子流结束串行化后只有一次有效迁移，输家不再以乐观锁异常丢整个事务，
+        // 另一侧见状态已迁移走幂等短路（INFO 留痕）。
+        withWfLock(wf, () -> {
+            IWorkflowStepRecord freshRecord = wf.getStore().getStepRecordById(wf.getRecord(), step.getStepId());
+            if (freshRecord == null || freshRecord.isHistory()) {
+                LOG.info("nop.wf.skip-subflow-end-since-parent-step-migrated:wfId={},stepId={}",
+                        wf.getWfId(), step.getStepId());
+                return null;
+            }
 
-        Map<String, Object> args = new HashMap<>();
-        args.put(NopWfCoreConstants.VAR_SUB_WF_RESULTS, results);
+            step.getRecord().setSubWfResultStatus(status);
 
-        // 触发工作流引擎检查step的状态检查，再根据状态触发auto action实现变迁
-        step.triggerWaiting(args, ctx);
-        step.triggerTransition(args, ctx);
+            Map<String, Object> args = new HashMap<>();
+            args.put(NopWfCoreConstants.VAR_SUB_WF_RESULTS, results);
+
+            // 触发工作流引擎检查step的状态检查，再根据状态触发auto action实现变迁
+            step.triggerWaiting(args, ctx);
+            step.triggerTransition(args, ctx);
+            return null;
+        });
     }
 
     @Override
@@ -1242,69 +1377,40 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_ACTION);
 
-        boolean exitStep = false;
-
         Object result = null;
         try {
+            // MA-02（裁定① action 站点锁段收窄）：runXpl 前锁内双检——入 action 链先经 wf
+            // 条带锁校验步骤仍处于允许操作的状态（锁内重读已提交状态）。
+            withWfLock(step.getWorkflow(), () -> {
+                refreshSnapshotsUnderLock(step, false);
+                requireStepStatusForAction(step, actionModel, wfRt);
+                return null;
+            });
+
             // 只要action不是local=true,就必然会迁移为历史步骤。reject和withdraw相当于是内置实现的action的source段，因此在transition之前执行
             if (actionModel.isForReject()) {
                 doReject(step, actionModel, wfRt);
             } else if (actionModel.isForWithdraw()) {
                 doWithdraw(step, actionModel, wfRt);
             }
+            // runXpl 本体不持锁：用户 source 可长执行，持锁将封锁同 wf 全部操作且跨 wf 互调
+            // 构成 ABBA 死锁面（裁定① action 行）；状态面由迁移段重取锁终检保证恰好一次迁移
             result = runXpl(actionModel.getSource(), wfRt);
 
 
             if (actionModel.isSaveActionRecord())
                 step.getStore().saveActionRecord(actionRecord);
 
-            // exec group 完成检查：仅在普通 action（非 reject/withdraw）且步骤显式声明了 execGroupType 时执行。
-            // 注意：所有步骤都有 execGroup UUID（newSteps 自动生成），但只有 execGroupType != null 才是真正的执行分组。
-            // 应在 doTransition 之前判断：组未完成则跳过下游创建，但步骤仍正常 exit（用户 action 已执行）
-            boolean shouldTransition = true;
-            WfExecGroupType execGroupType = step.getExecGroupType();
-            if (execGroupType != null && !actionModel.isForReject() && !actionModel.isForWithdraw()) {
-                boolean groupComplete = isExecGroupComplete(step, wfRt);
-                if (!groupComplete) {
-                    shouldTransition = false;
-                } else if (execGroupType == WfExecGroupType.OR_GROUP
-                        || execGroupType == WfExecGroupType.VOTE_GROUP) {
-                    ExecGroupSupport.skipExecGroupMembers(this, step, wfRt);
-                }
-                // and-group / seq-group: fall through to normal transition
-            }
+            // MA-02（裁定① 组迁移站点）：迁移段重取 wf 条带锁 + 锁内终检 + 锁内重读同组兄弟
+            // 步骤已提交状态，使判定-迁移原子化——双线程并发 action 同组时迁移恰好一次。
+            // 第二到达者的 source 已执行一次但迁移被终检拒绝，ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS 兜底复用。
+            withWfLock(step.getWorkflow(), () -> {
+                refreshSnapshotsUnderLock(step, true);
+                requireStepStatusForAction(step, actionModel, wfRt);
 
-            if (shouldTransition && actionModel.getTransition() != null) {
-                WfTransitionModel transModel = actionModel.getTransition();
-
-                boolean hasTrans = this.doTransition(step, actionModel.getName(), transModel, wfRt);
-
-                if (!hasTrans && !actionModel.isLocal() && !actionModel.isForReject()
-                        && !actionModel.isForWithdraw()) {
-                    throw wfRt.newError(ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP)
-                            .param(ARG_STEP_NAME, step.getStepName())
-                            .param(ARG_STEP_ID, step.getStepId())
-                            .param(ARG_ACTION_NAME, actionModel.getName());
-                }
-            }
-
-            // 在触发迁移之后离开本步骤
-            if (!actionModel.isLocal()) {
-                if (!step.isHistory()) {
-                    int status = NopWfCoreConstants.WF_STEP_STATUS_COMPLETED;
-                    if (actionModel.isForReject()) {
-                        status = NopWfCoreConstants.WF_STEP_STATUS_REJECTED;
-                    }
-                    doExitStep(step, status, wfRt);
-                    exitStep = true;
-
-                    // SEQ_GROUP 顺序推进：仅正常完成时激活下一个顺序步骤（不含 reject/withdraw/kill）
-                    if (status == NopWfCoreConstants.WF_STEP_STATUS_COMPLETED
-                            && step.getExecGroupType() == WfExecGroupType.SEQ_GROUP) {
-                        ExecGroupSupport.activateNextSeqStep(this, step, wfRt);
-                    }
-                }
-            }
+                doActionMigration(actionModel, step, wfRt);
+                return null;
+            });
 
         } catch (Exception e) {
             handleError(e, actionModel.getName(), (WfStepModel) step.getModel(), wfRt);
@@ -1316,6 +1422,77 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             checkEnd(wfRt);
         });
         return result;
+    }
+
+    /**
+     * MA-02（裁定① 组迁移站点）：action 迁移段——exec group 完成判定 + skipExecGroupMembers
+     * + doTransition + doExitStep + SEQ_GROUP 顺序推进。仅应在 wf 条带锁段内调用
+     * （见 doInvokeAction 迁移段），判定读快照与迁移写库之间不再有跨请求竞态窗。
+     */
+    /**
+     * MA-02（裁定① action 行双检）：锁内状态位守卫——只复检步骤状态/wf 挂起/终结维度
+     * （isForStatus 同判），不重跑 action 权限与条件判定（reject/withdraw 在 runXpl 前已
+     * 改变 next-steps 拓扑，完整复检会误拒）。状态已迁移走即拒绝：
+     * ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS 现役兜底复用。
+     */
+    private void requireStepStatusForAction(IWorkflowStepImplementor step, WfActionModel actionModel,
+                                            WfRuntime wfRt) {
+        if (!isForStatus(step, actionModel)) {
+            throw wfRt.newError(ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS)
+                    .param(ARG_STEP_NAME, step.getStepName())
+                    .param(ARG_STEP_ID, step.getStepId())
+                    .param(ARG_ACTION_NAME, actionModel.getName())
+                    .param(ARG_STEP_STATUS, step.getRecord().getStatus());
+        }
+    }
+
+    private void doActionMigration(WfActionModel actionModel, IWorkflowStepImplementor step, WfRuntime wfRt) {
+        // exec group 完成检查：仅在普通 action（非 reject/withdraw）且步骤显式声明了 execGroupType 时执行。
+        // 注意：所有步骤都有 execGroup UUID（newSteps 自动生成），但只有 execGroupType != null 才是真正的执行分组。
+        // 应在 doTransition 之前判断：组未完成则跳过下游创建，但步骤仍正常 exit（用户 action 已执行）
+        boolean shouldTransition = true;
+        WfExecGroupType execGroupType = step.getExecGroupType();
+        if (execGroupType != null && !actionModel.isForReject() && !actionModel.isForWithdraw()) {
+            boolean groupComplete = isExecGroupComplete(step, wfRt);
+            if (!groupComplete) {
+                shouldTransition = false;
+            } else if (execGroupType == WfExecGroupType.OR_GROUP
+                    || execGroupType == WfExecGroupType.VOTE_GROUP) {
+                ExecGroupSupport.skipExecGroupMembers(this, step, wfRt);
+            }
+            // and-group / seq-group: fall through to normal transition
+        }
+
+        if (shouldTransition && actionModel.getTransition() != null) {
+            WfTransitionModel transModel = actionModel.getTransition();
+
+            boolean hasTrans = this.doTransition(step, actionModel.getName(), transModel, wfRt);
+
+            if (!hasTrans && !actionModel.isLocal() && !actionModel.isForReject()
+                    && !actionModel.isForWithdraw()) {
+                throw wfRt.newError(ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP)
+                        .param(ARG_STEP_NAME, step.getStepName())
+                        .param(ARG_STEP_ID, step.getStepId())
+                        .param(ARG_ACTION_NAME, actionModel.getName());
+            }
+        }
+
+        // 在触发迁移之后离开本步骤
+        if (!actionModel.isLocal()) {
+            if (!step.isHistory()) {
+                int status = NopWfCoreConstants.WF_STEP_STATUS_COMPLETED;
+                if (actionModel.isForReject()) {
+                    status = NopWfCoreConstants.WF_STEP_STATUS_REJECTED;
+                }
+                doExitStep(step, status, wfRt);
+
+                // SEQ_GROUP 顺序推进：仅正常完成时激活下一个顺序步骤（不含 reject/withdraw/kill）
+                if (status == NopWfCoreConstants.WF_STEP_STATUS_COMPLETED
+                        && step.getExecGroupType() == WfExecGroupType.SEQ_GROUP) {
+                    ExecGroupSupport.activateNextSeqStep(this, step, wfRt);
+                }
+            }
+        }
     }
 
     private boolean isExecGroupComplete(IWorkflowStepImplementor step, WfRuntime wfRt) {
@@ -1577,8 +1754,22 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     void checkEnd(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
+        // MA-02（裁定① 流程终结站点）：checkEnd 全段纳入 wf 条带锁——willEnd/isAllStepsHistory
+        // 判定与 doEndWorkflow 原子化，双实例并发 checkEnd 时终结恰好一次（wf.isEnded() 复检在锁内）。
+        withWfLock(wf, () -> {
+            doCheckEnd(wfRt, wf);
+            return null;
+        });
+    }
+
+    private void doCheckEnd(WfRuntime wfRt, IWorkflowImplementor wf) {
         // 如果工作流实例上的状态位没有结束，但是所有流程步骤都已经结束，则自动将整个工作流结束
         if (!wf.isEnded() && wf.isStarted()) {
+            // 锁内重读已提交实例状态：另一请求可能已在本请求快照固化后完成终结
+            refreshWfStatusFromStore(wf);
+            if (wf.isEnded())
+                return;
+
             IWorkflowRecord wfRecord = wf.getRecord();
             boolean bEnd = wfRt.willEnd();
             if (bEnd) {
@@ -1596,6 +1787,19 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     void doEndWorkflow(int status, WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
+        // MA-02（裁定① saveWfRecord 6 调用点覆盖，终结写点）：终结段纳入 wf 条带锁 + 锁内
+        // 复检 isEnded（checkEnd 与 kill 两路终态驱动在此汇合，双到达只落盘一次）
+        withWfLock(wf, () -> {
+            doEndWorkflowLocked(status, wfRt, wf);
+            return null;
+        });
+    }
+
+    private void doEndWorkflowLocked(int status, WfRuntime wfRt, IWorkflowImplementor wf) {
+        if (wf.isEnded())
+            return;
+
+        refreshWfStatusFromStore(wf);
         if (wf.isEnded())
             return;
 

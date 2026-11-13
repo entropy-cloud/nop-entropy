@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.job.core.JobCoreErrors;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.StringHelper;
@@ -223,6 +224,42 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
 
         Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
         return scheduleParams != null ? scheduleParams : Collections.emptyMap();
+    }
+
+    /**
+     * CRA 8.46 R4-07 W-08 (adjudication C.5, BF-1 scope registration): 保存路径
+     * 触发器试构建校验——配置损坏在入口被 typed 拒绝（ERR_JOB_TRIGGER_CONFIG_
+     * INVALID），不再流入 DB（pre-fix 坏 cron/坏 calendar JSON 经 save 入库 →
+     * planner/completion 轮转显式死亡面[裁定 C 分流]）。
+     */
+    @Override
+    public void saveEntity(@Name("entity") NopJobSchedule entity, @Optional @Name("action") String action,
+                           IServiceContext context) {
+        validateScheduleTrigger(entity);
+        super.saveEntity(entity, action, context);
+    }
+
+    @Override
+    public void updateEntity(@Name("entity") NopJobSchedule entity, @Optional @Name("action") String action,
+                             IServiceContext context) {
+        validateScheduleTrigger(entity);
+        super.updateEntity(entity, action, context);
+    }
+
+    /** 试构建校验——复用 recalculateNextFireTime 既有触发链构建面（cron 解析+calendar+anchor 全覆盖）。 */
+    private void validateScheduleTrigger(NopJobSchedule schedule) {
+        if (schedule == null) {
+            return;
+        }
+        try {
+            recalculateNextFireTime(schedule);
+        } catch (NopException e) {
+            // re-classify non-config errors to the config-invalid code for a uniform
+            // save-path error face (the caller cares that it IS a trigger config issue)
+            // any NopException from the trigger chain build IS a trigger config issue
+            throw new NopException(JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID, e)
+                    .param("reason", e.getMessage());
+        }
     }
 
     private Timestamp recalculateNextFireTime(NopJobSchedule schedule) {

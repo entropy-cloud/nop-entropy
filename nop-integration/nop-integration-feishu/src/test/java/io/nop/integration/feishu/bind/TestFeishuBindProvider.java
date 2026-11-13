@@ -15,6 +15,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -260,5 +265,123 @@ class TestFeishuBindProvider {
         assertThrows(NopFeishuException.class,
                 () -> provider.onChannelScanCallback(callback),
                 "consumed ticket must not be reusable");
+    }
+
+    /**
+     * 4.3-MA-11（plan 2560 裁定 D）/C10-013③ 先行失败载体：并发同 ticket 回调必须
+     * 恰一次 BINDING_COMPLETED。缺陷形态（get → exchange → remove）：两个回调都在
+     * remove 前通过 get 非空检查并各自完成 exchange → 两次绑定成功（单次性被击穿）。
+     */
+    @Test
+    void concurrentSameTicketCallbackCompletesBindingExactlyOnce() throws Exception {
+        // 竞争窗口钉住：回调 A 在 exchange 段内挂起（ticket 已被原子摘除）、回调 B
+        // 在此窗口内发起。缺陷形态（get→exchange→remove）下 B 在 A 的 remove 之前
+        // 通过 get 非空检查并同样完成 exchange → completed=2（红）；修复形态（原子
+        // remove）下 B 摘除失败 typed 失败 → completed=1（绿）。
+        CountDownLatch exchangeStarted = new CountDownLatch(1);
+        CountDownLatch releaseGate = new CountDownLatch(1);
+        IFeishuOAuthApi gated = new IFeishuOAuthApi() {
+            @Override
+            public String exchangeUserAccessToken(String appId, String appSecret, String code) {
+                exchangeStarted.countDown();
+                try {
+                    releaseGate.await(10, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return "u-token";
+            }
+
+            @Override
+            public String fetchOpenId(String userAccessToken) {
+                return "ou_server_resolved";
+            }
+        };
+        provider.setHttpApi(gated);
+
+        BindTicket ticket = provider.createBindTicket("feishu", "user-1");
+        ChannelScanCallback callback = new ChannelScanCallback();
+        callback.setChannelType("feishu");
+        callback.setTicketId(ticket.getTicketId());
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("code", "auth-code-1");
+        callback.setRawPayload(payload);
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        AtomicInteger completed = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
+        try {
+            // 回调 A：先发起，钉在 exchange 段内
+            java.util.concurrent.Future<?> first = pool.submit(() -> {
+                try {
+                    provider.onChannelScanCallback(callback);
+                    completed.incrementAndGet();
+                } catch (Exception e) {
+                    failures.incrementAndGet();
+                }
+            });
+            assertTrue(exchangeStarted.await(10, TimeUnit.SECONDS),
+                    "callback A must reach the exchange phase (race window)");
+            // 回调 B：在 A 挂于 exchange 的窗口内发起
+            java.util.concurrent.Future<?> second = pool.submit(() -> {
+                try {
+                    provider.onChannelScanCallback(callback);
+                    completed.incrementAndGet();
+                } catch (Exception e) {
+                    failures.incrementAndGet();
+                }
+            });
+            releaseGate.countDown();
+            first.get(15, TimeUnit.SECONDS);
+            second.get(15, TimeUnit.SECONDS);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertEquals(1, completed.get(),
+                "MA-11/裁定D: concurrent same-ticket callbacks must complete the binding exactly once"
+                        + " (defect: both pass the non-atomic get->exchange->remove window -> 2 completions)");
+        assertEquals(1, failures.get(), "the losing callback must fail explicitly");
+    }
+
+    /**
+     * 4.3-MA-11（plan 2560 裁定 D 选项 (b)）：exchange 失败回插保住已文档化的
+     * 「failed exchange 可在同一 live ticket 上重试」语义——第一次回调失败后
+     * ticket 仍活着，第二次回调成功。
+     */
+    @Test
+    void failedExchangeAllowsRetryOnSameLiveTicket() {
+        BindTicket ticket = provider.createBindTicket("feishu", "user-1");
+        ChannelScanCallback callback = new ChannelScanCallback();
+        callback.setChannelType("feishu");
+        callback.setTicketId(ticket.getTicketId());
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("code", "auth-code-1");
+        callback.setRawPayload(payload);
+
+        provider.setHttpApi(new IFeishuOAuthApi() {
+            int attempts;
+
+            @Override
+            public String exchangeUserAccessToken(String appId, String appSecret, String code) {
+                if (++attempts == 1)
+                    throw new NopFeishuException("simulated transient exchange failure");
+                return "u-token";
+            }
+
+            @Override
+            public String fetchOpenId(String userAccessToken) {
+                return "ou_server_resolved";
+            }
+        });
+
+        NopFeishuException first = assertThrows(NopFeishuException.class,
+                () -> provider.onChannelScanCallback(callback),
+                "first attempt must fail on the simulated transient exchange failure");
+        assertTrue(first.getMessage().contains("simulated transient exchange failure"),
+                "the original failure must surface (not be masked): " + first.getMessage());
+
+        ChannelBindResult retry = provider.onChannelScanCallback(callback);
+        assertEquals(ChannelBindResultStatus.BINDING_COMPLETED, retry.getStatus(),
+                "裁定D option(b): the same live ticket must remain retryable after a failed exchange");
     }
 }

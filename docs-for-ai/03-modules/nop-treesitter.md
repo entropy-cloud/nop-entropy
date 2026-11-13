@@ -262,7 +262,7 @@ glob 元字符、未解引号的展开）、**来源置信度标注**、flag 排
 机器）。刻意**不**纳入参考实现"剥离 `head`/`tail`/`awk`/`wc` 以偏向主命令"的启发式：
 它丢掉的正是 guardrail 最需要看到的路径。
 
-四���容易做错、已各自有断言的细节：
+四个容易做错、已各自有断言的细节：
 
 - **按"参数角色"判定，不按位置表判定。** 几乎所有触碰文件的命令，其非 flag 参数
   **全是**路径，因此规则就是"全部是路径"——位置表无法安全表达这件事：一个自身就是
@@ -294,6 +294,27 @@ glob 元字符、未解引号的展开）、**来源置信度标注**、flag 排
 
 设计裁定与实测指纹不在本仓库的对外文档范围内，见仓库内部 `ai-dev/` 下对应的
 design / analysis 文档。
+
+## 语言实例身份与并发契约
+
+### 语法提供者的单实例身份契约
+
+`DefaultTreeSitterLanguageProvider` 的语法缓存为 `ConcurrentHashMap`，取用入口是 `cache.computeIfAbsent(name, this::loadLanguage)`：并发首触同一语法收敛到单次解码、单一 `Language` 实例。两个实例会使增量解析的身份校验断裂（旧树与新内容必须出自同一实例，否则 fail-fast），并使双份解码表（parse tables + lexer automata，每语法数百 KB）同时驻留。约束与边界：
+
+- **加载器链不回环**：自定义 provider 先于内置 blob 解析；第三方 provider 的实现禁止递归回调本 provider 的缓存（违例属装配错误，不在运行时防护面）。
+- **持锁时长有界**：blob 解码为毫秒级有界操作，并发同键其余线程在 map 分条锁内有界等待，不同键互不阻塞。
+- **null 语义不变**：loader 返回 null（未知语法）时不落缓存、返回 null，由调用方 fail-closed 裁定。
+- 自定义 provider 的同名遮蔽合并使用 `putIfAbsent`（先注册者胜出的遮蔽语义；内置默认类被防御性跳过，services 文件误指不会递归）。
+
+### tsc 类型桥的桥接协议与代际栅栏（nop-lint-js）
+
+tsc 桥接（`NodeTscBridge` + `TscProtocol`，位于 nop-lint-js；nop-lint 族无独立 owner doc 页，本节为其桥接面契约的承载声明）：
+
+- **协议版本帧校验**：ready 帧必须携带 `protocolVersion` 且与桥内常量一致，错配即显式握手失败（错误消息同时命名两端版本）——协议漂移从「运行期不可辨失效」变为可定位错误。helper 脚本与 Java 侧同发布（per-cwd 解析保证同仓 checkout 双侧一致）；跨 checkout 混用正是该守卫的收益面。
+- **error 帧 correlation 校验**：对在途请求 id 失配的 error 帧（含 helper 合成的 id=-1 帧——无归属可判，fail-closed 优先，代价是烧一个重启预算槽）判定为流去同步：回收该进程后抛出携带对端 error code 的 BAD_FRAME 形态异常——K 的错误码不再误抛给 K+1 调用方，回收后错误显式抛出非静默吞。
+- **BAD_FRAME 回收 taxonomy**：回收映射只覆盖**流完整性面**（decode 解析失败 / correlation 失配 / EOF——帧边界已不可信，后续帧全部不可对齐）；健康流上的内容型违例（缺 cacheKey、缺 type、非数值字段族）对齐既有 error 帧语义处理，不回收。
+- **代际栅栏**：每次 spawn 在监视器帧内新建本代应答队列，并以 spawn 局部捕获传入 reader 线程——旧代 reader 的全部写入（含 EOF 哨兵）物理靶向被遗弃的旧代队列，结构上不可能进入新代（stale 数据帧杀健康新进程 / stale EOF 误判终态两分支同时封死）；reader 线程命名随代际可辨；reader 不解引用共享进程字段（NPE 变体随之封死）。
+- **统一失败出口**：写失败 / 查询超时 / 查询 EOF / ok 帧失配 / error 帧失配 / decode 失配 → 进程回收 + 携带真实死因的显式错误；握手 EOF 与 validateReady 失败 → 同样回收进程后进入终态（对已死进程的强杀为安全幂等操作）。**EXHAUSTED 终态语义不变**——预算耗尽后永不重试的契约维持，修复面是「误入终态」不是「终态行为」；恢复链全程不得对健康重生进程出现死因误报。respawn/close 后无存活桥接进程（无孤儿）。
 
 ## 性能特征
 

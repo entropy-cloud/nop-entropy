@@ -8,6 +8,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
@@ -15,16 +16,19 @@ import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.exceptions.NopTaskCancelledException;
 import io.nop.task.exceptions.NopTaskFailException;
+import io.nop.task.impl.TaskStepRuntimeImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -32,23 +36,119 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static io.nop.core.CoreErrors.ARG_KEY;
 import static io.nop.core.CoreErrors.ARG_VAR_NAME;
+import static io.nop.task.TaskErrors.ARG_ATTR_NAME;
+import static io.nop.task.TaskErrors.ARG_REASON;
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
+import static io.nop.task.TaskErrors.ERR_TASK_STEP_CONFIG_INVALID;
 
 public class TaskStepHelper {
     static final Logger LOG = LoggerFactory.getLogger(TaskStepHelper.class);
+
+    /**
+     * plan 2541 W-04（CRA 8.48 R4-08，MA-11 裁定 A）：跨任务链 global throttle 持有键传播属性。
+     * CallTaskStep 在子任务执行前将当前链已持 global 键快照（taskName 限定键，与注册表键形态
+     * 一致）写入子 runtime 的该属性；重入检测据此识别「call-task 自递归同 key」嵌套。
+     */
+    public static final String ATTR_THROTTLE_INHERITED_KEYS = "nop.task.throttle-inherited-keys";
 
     public static String buildStepPath(String parentPath, String stepName) {
         if (StringHelper.isEmpty(parentPath))
             return stepName;
         return parentPath + '/' + stepName;
+    }
+
+    /**
+     * plan 2541 W-04（MA-11 裁定 A）：throttle 重入检测——tryAcquire 成功之后调用（检测时点契约：
+     * 先获取后检测，保证检测语义只覆盖「同执行链嵌套」，不误报合法并发兄弟）。重入 iff key ∈
+     * 同任务祖先链 held 集 ∪ (global 时 taskRt inherited-keys 限定键集)。
+     *
+     * <p>重入即确定性硬失败（ERR_TASK_STEP_CONFIG_INVALID 族——对称 plan 364 [02-06] 硬失败风格）：
+     * 非重入信号量按深度耗 permit 的嵌套获取从未是合法契约（内层在外层 permit 已扣减后再次扣减），
+     * 显式共享 keyExpr 的有意嵌套用法不支持（owner doc 升级注记）。
+     *
+     * <p>链追踪载体为 {@link TaskStepRuntimeImpl} 内部字段（parentStepRt + held 集，不入
+     * ITaskStepRuntime 公共契约）；非 impl 实例（仅测试桩形态）跳过链追踪——生产 runtimes
+     * 恒为 TaskStepRuntimeImpl（TaskRuntimeImpl.newStepRuntime/newMainStepRuntime 唯一构造点）。
+     */
+    public static void acquireThrottleKey(SourceLocation loc, ITaskStepRuntime stepRt, String key, boolean global) {
+        ITaskRuntime taskRt = stepRt.getTaskRuntime();
+
+        if (stepRt instanceof TaskStepRuntimeImpl) {
+            // 同任务祖先链判定（含自身——call-step 以同一 stepRt 执行 lib step，缺省 key=stepPath
+            // 时外层尚未移除、同 stepRt 二次进入同名 key 即命中）
+            for (TaskStepRuntimeImpl rt = (TaskStepRuntimeImpl) stepRt; rt != null; rt = rt.getParentStepRt()) {
+                Set<String> held = rt.peekThrottleHeldKeys();
+                if (held != null && held.contains(key))
+                    throwThrottleReentry(loc, stepRt, key);
+            }
+            if (global) {
+                Object inherited = taskRt.getAttribute(ATTR_THROTTLE_INHERITED_KEYS);
+                if (inherited instanceof Set<?> && ((Set<?>) inherited).contains(taskRt.getTaskName() + ":" + key))
+                    throwThrottleReentry(loc, stepRt, key);
+            }
+            ((TaskStepRuntimeImpl) stepRt).addThrottleHeldKey(key, global);
+        }
+    }
+
+    /**
+     * plan 2541 W-04：held 键集移除点与 permit release 同点成对（检测时点契约：成员资格严格
+     * 镜像 permit 持有权，禁拆分）。与 {@link #acquireThrottleKey} 对称的 impl 内部载体。
+     */
+    public static void releaseThrottleKey(ITaskStepRuntime stepRt, String key, boolean global) {
+        if (stepRt instanceof TaskStepRuntimeImpl) {
+            ((TaskStepRuntimeImpl) stepRt).removeThrottleHeldKey(key, global);
+        }
+    }
+
+    /**
+     * plan 2541 W-04：当前执行链已持 global 键快照（CallTaskStep 跨任务传播取材）。同任务祖先
+     * 链的 raw key 以当前 taskName 限定（注册表键形态 taskName+":"+key）；链上已收到的 inherited
+     * 集原样合并（已限定）。非 impl 实例（测试桩形态）返回仅含 inherited 集的快照。
+     */
+    public static Set<String> snapshotInheritedThrottleKeys(ITaskStepRuntime stepRt) {
+        ITaskRuntime taskRt = stepRt.getTaskRuntime();
+        Set<String> ret = new HashSet<>();
+        String taskName = taskRt.getTaskName();
+        if (stepRt instanceof TaskStepRuntimeImpl) {
+            for (TaskStepRuntimeImpl rt = (TaskStepRuntimeImpl) stepRt; rt != null; rt = rt.getParentStepRt()) {
+                Set<String> held = rt.peekThrottleHeldGlobalKeys();
+                if (held != null) {
+                    for (String key : held) {
+                        ret.add(taskName + ":" + key);
+                    }
+                }
+            }
+        }
+        Object inherited = taskRt.getAttribute(ATTR_THROTTLE_INHERITED_KEYS);
+        if (inherited instanceof Set<?>) {
+            for (Object o : (Set<?>) inherited) {
+                if (o instanceof String)
+                    ret.add((String) o);
+            }
+        }
+        return ret;
+    }
+
+    private static void throwThrottleReentry(SourceLocation loc, ITaskStepRuntime stepRt, String key) {
+        // 重入命中时本层尚未登记 held 键（先检后登），调用方（ThrottleTaskStepWrapper）以
+        // keyRegistered 门控跳过 releaseThrottleKey、仅成对归还本层 permit——外层同 key 的
+        // 注册保持不动
+        throw newError(loc, stepRt, ERR_TASK_STEP_CONFIG_INVALID)
+                .param(ARG_KEY, key)
+                .param(ARG_ATTR_NAME, "throttle.key")
+                .param(ARG_REASON, "throttle key '" + key + "' is already held by an ancestor step in the "
+                        + "same execution chain; nested acquisition of the same key is not supported "
+                        + "(CRA 8.48 R4-08 W-04)");
     }
 
     public static NopException newError(SourceLocation loc,
@@ -206,13 +306,18 @@ public class TaskStepHelper {
         TaskStepReturn result;
         try {
             result = task.apply(cancellable);
-        } catch (Exception e) {
+        } catch (Throwable t) {
+            // W-06（CRA 8.48 R4-08，MA-13 裁定 B / C8-016 矩阵腿 i）：catch 收宽为 Throwable——
+            // 保证 timer.cancel/removeOnCancel 对同步抛出的 Error 亦执行（防超时定时器滞留触发）；
+            // Error 原样 rethrow（不 adapt 包装，防 OOM/SOE 期再分配——致命错误不转业务失败）
             if (cancelToken != null) {
                 cancelToken.removeOnCancel(cancel);
             }
             // 同步抛错出口同样要取消超时定时器，否则滞留到触发
             timer.cancel(false);
-            throw NopException.adapt(e);
+            if (t instanceof Error)
+                throw (Error) t;
+            throw NopException.adapt(t);
         }
 
         if (!result.isAsync()) {
@@ -239,12 +344,24 @@ public class TaskStepHelper {
             if (cancelToken != null)
                 cancelToken.removeOnCancel(cancel);
             timer.cancel(false);
+            // W-07(a)（CRA 8.48 R4-08，MA-14 裁定 B）：任何 winner 完成路径（含正常/异常完成）
+            // 后向 body seam 施加协作式取消信号——幽灵 body（winner 已终结但 body 内层链仍在
+            // 推进的残段）在下个协作检查点停止写 scope/状态行。幂等：timeout 路径 timer 已
+            // cancel 过本 cancellable；正常完成路径此腿保证 seam 收敛。不引入中断式取消
+            // （协作检查点为平台既有取消语义）
+            cancellable.cancel(ICancellable.CANCEL_REASON_KILL);
         });
         return TaskStepReturn.ASYNC_RETURN(winner);
     }
 
     public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
                                        IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepReturn> action) {
+        return retry(loc, stepRt, retryPolicy, action, null);
+    }
+
+    public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
+                                       IRetryPolicy<ITaskStepRuntime> retryPolicy,
+                                       Callable<TaskStepReturn> action, String executorBean) {
         do {
             checkNotCancelled(stepRt);
 
@@ -265,9 +382,25 @@ public class TaskStepHelper {
                     // thenCompleteAsync 同时处理 schedule 的成败：err != null 走 doRetry 重试，
                     // 成功则基于 result 判定 async（与非延迟路径结构一致）；handler 返回
                     // CompletionStage 时会被压平，保证外层 future 的最终完成值是同步 TaskStepReturn。
+                    //
+                    // 1.5-C4-001/MA-04（plan 2498 Phase 2）：schedule 的 callable 就是步骤体本身，
+                    // 完成回调链（doRetry 的 saveState 簿记）也在完成 future 的线程上执行。裸
+                    // schedule(action, delay) 会把整条链压到全平台共享 globalTimer 线程上（≥4 个
+                    // 长体重试并发即钉死全池，且步骤级 executor 隔离配置对延迟路径无效 = C4-008）。
+                    // 按平台调度槽契约改为「timer 只做定时唤醒 + 载体执行」：executeOn 载体 =
+                    // 步骤显式 executor（隔离配置对延迟路径真实生效）或共享 globalWorker。
+                    //
+                    // W-07(d)（CRA 8.48 R4-08，MA-14 裁定 B）：延迟段接取消——cancel/timeout 触发时
+                    // 延迟段以取消终结、载体上的步骤体不执行（对齐 DelayTaskStep 正例的
+                    // bindCancelToken 接线；2498 载体裁定零回退——只加取消接线，timer 只触发+
+                    // 载体执行形态零变化）。已开始执行则协作取消兜底（C4-009 面闭合）。
+                    CompletableFuture<TaskStepReturn> delayedStage = stepRt.getTaskRuntime()
+                            .getScheduledExecutor()
+                            .executeOn(resolveRetryCarrier(stepRt, executorBean))
+                            .schedule(action, delay, TimeUnit.MILLISECONDS);
+                    FutureHelper.bindCancelToken(stepRt.getCancelToken(), delayedStage);
                     return TaskStepReturn.of(null, FutureHelper.thenCompleteAsync(
-                            stepRt.getTaskRuntime().getScheduledExecutor()
-                                    .schedule(action, delay, TimeUnit.MILLISECONDS),
+                            delayedStage,
                             (TaskStepReturn result, Throwable err) -> {
                                 try {
                                     if (err != null)
@@ -322,6 +455,23 @@ public class TaskStepHelper {
                 throw NopException.adapt(saveErr);
             }
         } while (true);
+    }
+
+    /**
+     * 1.5-C4-001/MA-04（plan 2498 Phase 2）：延迟重试轮次的执行载体。步骤配置了显式
+     * {@code executor} 时用该池（executor 隔离配置对延迟路径真实生效 = C4-008 行为钉）；
+     * 未配置时回退共享 {@code globalWorker}——绝不把步骤体/簿记直接留在 globalTimer 线程。
+     */
+    static Executor resolveRetryCarrier(ITaskStepRuntime stepRt, String executorBean) {
+        if (!StringHelper.isEmpty(executorBean)) {
+            Executor executor = stepRt.getTaskRuntime().getThreadPoolExecutor(executorBean);
+            if (executor != null)
+                return executor;
+            LOG.warn("nop.task.retry-executor-bean-not-found:executorBean={},stepPath={}; "
+                    + "delayed retry body falls back to the shared global worker pool",
+                    executorBean, stepRt.getStepPath());
+        }
+        return GlobalExecutors.globalWorker();
     }
 
     static TaskStepReturn doRetry(TaskStepReturn value, Throwable err,

@@ -282,4 +282,52 @@ public class TestProcessingTimeServiceDriver {
         assertTrue(propagated.get() != null,
                 "manager timer failure must propagate through the driver's mail action (fail-fast, P1-6.7-007)");
     }
+
+    // ==================== CRA 8.42 R4-02 W-02 (C10-021, 红②) ====================
+    // Driver-side delivery debounce: while a timer-fire mail is in flight
+    // (undrained), subsequent ticks must NOT deliver another one — a task thread
+    // blocked at a backpressure safe point otherwise accumulates ~864,000 mails
+    // per day from a continuously-due timer at the 100ms default tick. Reverting
+    // the in-flight CAS guard (adjudication B.1) turns this pin red.
+
+    @Test
+    void continuouslyDueTimerDeliversAtMostOneInFlightMail() throws Exception {
+        TaskMailbox mailbox = new TaskMailbox();
+        TaskProcessingTimeService pts = new TaskProcessingTimeService();
+        ProcessingTimeServiceDriver driver =
+                new ProcessingTimeServiceDriver(mailbox, pts, null, 10);
+        AtomicInteger fires = new AtomicInteger();
+
+        // A timer that is ALREADY due and never drained stays due every tick —
+        // the continuously-due driver state (fire removes the timer, so the
+        // undrained registration never goes away).
+        pts.registerTimer(System.currentTimeMillis(), time -> fires.incrementAndGet());
+
+        driver.start();
+        try {
+            // ≥3 ticks at tickMs=10: a 100ms window elapses ~8-10 ticks without
+            // any drain (the unboundedly-blocked-task-thread normal state).
+            TestAwait.staysTrue("driver ticks elapse with the mailbox undrained",
+                    () -> true, 100);
+
+            // Debounce upper bound: at most ONE in-flight timer-fire mail.
+            assertTrue(mailbox.size() <= 1,
+                    "at most one in-flight timer-fire mail while the task thread never "
+                            + "reaches a safe point, got " + mailbox.size());
+
+            // Fire idempotence (catch-up read): one drain fires the due timer
+            // exactly once — the debounce must not swallow the trigger.
+            mailbox.drainAndRun();
+            assertEquals(1, fires.get(),
+                    "one drain fires the due timer exactly once (catch-up semantics)");
+
+            // After the fire the timer is consumed: no further fire mails pile up
+            // (negative window over several ticks).
+            TestAwait.staysTrue("mailbox stays empty after the due timer fired",
+                    mailbox::isEmpty, 80);
+            assertEquals(0, mailbox.size(), "no redundant fire mail after the timer fired");
+        } finally {
+            driver.shutdown();
+        }
+    }
 }

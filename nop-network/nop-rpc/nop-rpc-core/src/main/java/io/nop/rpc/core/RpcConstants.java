@@ -28,6 +28,12 @@ public interface RpcConstants {
 
     String PROP_MAX_POLL_ERROR_COUNT = "maxPollErrorCount";
 
+    /**
+     * 4.2-C4-003（plan 2498 Phase 6）：轮询链整体截止时间（毫秒）。<=0 表示不启用整体 deadline
+     * （维持既有 maxErrorCount/cancelToken 出口形态）。
+     */
+    String PROP_POLL_TIMEOUT = "pollTimeout";
+
     String PROP_RESPONSE_NORMALIZER = "responseNormalizer";
 
     String PROP_HTTP_METHOD = "httpMethod";

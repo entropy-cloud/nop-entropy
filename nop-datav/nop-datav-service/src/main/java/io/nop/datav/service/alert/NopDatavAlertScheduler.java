@@ -10,6 +10,7 @@ import io.nop.job.api.IJobScheduler;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.datav.dao.entity.NopDatavAlertRule;
+import io.nop.datav.service.NopDatavInitRetry;
 
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
@@ -134,6 +135,9 @@ public class NopDatavAlertScheduler {
             } catch (Exception e) {
                 LOG.error("nop.datav.alert-scheduler.register-failed: alertRuleId={}",
                         rule.getAlertRuleId(), e);
+                // 裁定⑬（plan 2526，CL-020）：per-task 注册失败调度一次性延迟重试（上限一次）
+                NopDatavInitRetry.scheduleOnce("alert-scheduler:" + rule.getAlertRuleId(),
+                        () -> doRegister(rule));
             }
         }
         LOG.info("nop.datav.alert-scheduler.init-done: activeRules={} registered={}",

@@ -34,6 +34,24 @@ public class CheckpointConfig implements Serializable {
     public static final int DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
     public static final int DEFAULT_MAX_RESTARTS_PER_REGION = 3;
     /**
+     * CRA 8.43 R4-03 W-09 (MA-18=C8-010): default declared serialization rate
+     * constant for the snapshot-budget coupling guard — 1000ms per thousand
+     * entries. This is a PUBLICLY DECLARED calibration point (honest-source
+     * discipline, 2535-B.2 alignment): real serialization rate varies with row
+     * width and value types, so deployments should calibrate the constant for
+     * their workload; it is not a fabricated silent conversion factor.
+     */
+    public static final int DEFAULT_SNAPSHOT_SERIALIZE_MS_PER_THOUSAND_ENTRIES = 1000;
+    /**
+     * CRA 8.43 R4-03 W-09: the declared-scale snapshot estimate may occupy at
+     * most this fraction of {@link #checkpointTimeout} (the rest is left for
+     * durable writes, transfer and ACK). A declared state scale whose
+     * estimated snapshot time exceeds this share is rejected at config load
+     * instead of entering the "checkpoint timeout &rarr; repeated failures
+     * &rarr; FAIL &rarr; restart &rarr; repeat" loop.
+     */
+    public static final double SNAPSHOT_BUDGET_TIMEOUT_SHARE = 0.5;
+    /**
      * R5 ST-01 contract: with async snapshot enabled and the memory state
      * backend, keyed state values/keys are defensively copied on the task
      * thread inside snapshotState, so operator mutations after the barrier do
@@ -136,6 +154,26 @@ public class CheckpointConfig implements Serializable {
      * {@code globalRecovery()} cycles.
      */
     private int maxRestartsPerRegion = DEFAULT_MAX_RESTARTS_PER_REGION;
+
+    /**
+     * CRA 8.43 R4-03 W-09 (MA-18=C8-010): user-DECLARED upper bound of the
+     * keyed-state entry count this job's snapshot must serialize. {@code 0}
+     * (the default) means "not declared" and BYPASSES the snapshot-budget
+     * coupling guard — the framework never fabricates a state size the user
+     * did not declare (opt-in envelope, honest-source discipline). This single
+     * declared scale covers BOTH snapshot paths (full materialization scales
+     * with the entry count; the incremental path's SST re-hash cost scales
+     * with the same underlying state volume) — the guard uses it as the
+     * conservative upper envelope, never as a precise prediction.
+     */
+    private long snapshotDeclaredEntries = 0L;
+
+    /**
+     * CRA 8.43 R4-03 W-09: declared serialization rate calibration constant
+     * (ms per thousand entries). Publicly declared default — calibrate per
+     * workload; see {@link #DEFAULT_SNAPSHOT_SERIALIZE_MS_PER_THOUSAND_ENTRIES}.
+     */
+    private int snapshotSerializeMsPerThousandEntries = DEFAULT_SNAPSHOT_SERIALIZE_MS_PER_THOUSAND_ENTRIES;
 
     private IStateBackend stateBackend;
 
@@ -241,6 +279,76 @@ public class CheckpointConfig implements Serializable {
                             + ") must be >= 0");
         }
         this.maxRestartsPerRegion = maxRestartsPerRegion;
+    }
+
+    /** CRA 8.43 R4-03 W-09: the declared state-scale upper bound (0 = not declared, guard bypassed). */
+    public long getSnapshotDeclaredEntries() {
+        return snapshotDeclaredEntries;
+    }
+
+    /** CRA 8.43 R4-03 W-09: fail-fast on a nonsensical negative declaration (0 = undeclared bypass). */
+    public void setSnapshotDeclaredEntries(long snapshotDeclaredEntries) {
+        if (snapshotDeclaredEntries < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    "Invalid checkpoint config: snapshotDeclaredEntries (" + snapshotDeclaredEntries
+                            + ") must be >= 0 (0 = not declared, snapshot-budget guard bypassed)");
+        }
+        this.snapshotDeclaredEntries = snapshotDeclaredEntries;
+    }
+
+    /** CRA 8.43 R4-03 W-09: the declared serialization rate calibration constant (ms per 1000 entries). */
+    public int getSnapshotSerializeMsPerThousandEntries() {
+        return snapshotSerializeMsPerThousandEntries;
+    }
+
+    /** CRA 8.43 R4-03 W-09: fail-fast on a non-positive rate constant (a zero rate would zero the estimate). */
+    public void setSnapshotSerializeMsPerThousandEntries(int snapshotSerializeMsPerThousandEntries) {
+        if (snapshotSerializeMsPerThousandEntries <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    "Invalid checkpoint config: snapshotSerializeMsPerThousandEntries ("
+                            + snapshotSerializeMsPerThousandEntries + ") must be > 0");
+        }
+        this.snapshotSerializeMsPerThousandEntries = snapshotSerializeMsPerThousandEntries;
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-09 (MA-18=C8-010+C8-013, adjudication D.2): declared-scale
+     * snapshot-budget coupling guard ({@code validateUnalignedConfig}-shaped
+     * sibling — the same fail-fast-at-config-load discipline). When the user
+     * DECLARES a state scale ({@code snapshotDeclaredEntries > 0}), the
+     * estimated snapshot time (declared entries &times; declared rate) must fit
+     * inside {@link #SNAPSHOT_BUDGET_TIMEOUT_SHARE} of {@link #checkpointTimeout};
+     * a larger declaration is rejected typed here instead of surfacing as the
+     * unbounded "checkpoint timeout &rarr; repeated failure &rarr; FAIL &rarr;
+     * restart &rarr; repeat" loop at runtime. An undeclared scale (0, the
+     * default) bypasses the guard — no fabricated estimate.
+     *
+     * <p>Two-path coverage: both the full-JSON path and the incremental
+     * (default) path scale monotonically with the declared state volume, so
+     * the single declared envelope is checked against the conservative budget
+     * share; with the incremental path default plus the new-only hash policy
+     * the real cost sits well under this upper bound.
+     */
+    public void validateSnapshotBudget() {
+        if (snapshotDeclaredEntries <= 0) {
+            return;
+        }
+        double estimatedSnapshotMs =
+                snapshotDeclaredEntries * (snapshotSerializeMsPerThousandEntries / 1000.0);
+        double budgetMs = checkpointTimeout * SNAPSHOT_BUDGET_TIMEOUT_SHARE;
+        if (estimatedSnapshotMs > budgetMs) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    "Invalid checkpoint config: declared snapshot state scale (snapshotDeclaredEntries="
+                            + snapshotDeclaredEntries + ") at the declared serialization rate ("
+                            + snapshotSerializeMsPerThousandEntries + "ms per 1000 entries) needs ~"
+                            + (long) estimatedSnapshotMs + "ms, above the snapshot budget share ("
+                            + SNAPSHOT_BUDGET_TIMEOUT_SHARE + " x checkpointTimeout=" + checkpointTimeout
+                            + "ms = " + (long) budgetMs + "ms). Reduce the state size, raise "
+                            + "checkpointTimeout, calibrate snapshotSerializeMsPerThousandEntries for your "
+                            + "workload, or keep the incremental default path with the new-only hash policy "
+                            + "(nop.stream.rocksdb.snapshot-hash-policy=new-only) whose real cost sits well "
+                            + "under this envelope");
+        }
     }
 
     /**
@@ -505,6 +613,25 @@ public class CheckpointConfig implements Serializable {
          */
         public Builder maxRestartsPerRegion(int max) {
             config.setMaxRestartsPerRegion(max);
+            return this;
+        }
+
+        /**
+         * CRA 8.43 R4-03 W-09: declared state-scale upper bound for the
+         * snapshot-budget coupling guard (see
+         * {@link #setSnapshotDeclaredEntries(long)}).
+         */
+        public Builder snapshotDeclaredEntries(long entries) {
+            config.setSnapshotDeclaredEntries(entries);
+            return this;
+        }
+
+        /**
+         * CRA 8.43 R4-03 W-09: declared serialization rate calibration
+         * constant (see {@link #setSnapshotSerializeMsPerThousandEntries(int)}).
+         */
+        public Builder snapshotSerializeMsPerThousandEntries(int msPerThousand) {
+            config.setSnapshotSerializeMsPerThousandEntries(msPerThousand);
             return this;
         }
 

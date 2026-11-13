@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import io.nop.core.resource.impl.FileResource;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
@@ -43,6 +44,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -86,6 +88,41 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private static final String MANIFEST_FILE = "manifest.properties";
     private static final String LINE_SEPARATOR = System.lineSeparator();
     /**
+     * C3-002: default retention epoch window = SSOT defaults projected through the
+     * assembly formula — ceil(30d × 86400000ms ÷ 60000ms) = 43200 epochs. Deployments
+     * override via {@link #computeRetentionEpochWindow(long, long)} with their actual
+     * retention-days and checkpoint interval.
+     */
+    public static final long DEFAULT_RETENTION_EPOCH_WINDOW =
+            computeRetentionEpochWindow(30L, CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL);
+
+    /**
+     * CRA 8.43 R4-03 W-04 (MA-13=C5-005; adjudication C.1): upper bound of
+     * buffered lines in the current epoch's {@code currentBuffer} (same default
+     * and meaning as the JDBC sink's {@code maxEpochRecords}). Invoke rejects
+     * typed BEFORE buffering once the bound is reached.
+     */
+    public static final long DEFAULT_MAX_EPOCH_LINES = 100_000L;
+
+    /**
+     * CRA 8.43 R4-03 W-04: upper bound of simultaneously pending (uncommitted)
+     * epochs in {@code pendingCommits} — each entry pins a tmp file on disk, so
+     * the pending stack IS the disk-face bound. 8 pending epochs ≈ 8
+     * consecutive unconverged checkpoints before the sink fails typed.
+     */
+    public static final long DEFAULT_MAX_PENDING_EPOCHS = 8L;
+
+    /**
+     * CRA 8.43 R4-03 W-06 (MA-15=C2-005, merged C3-008; adjudication C.4):
+     * bounded wait for the cross-JVM manifest lock (both levels — the JVM-local
+     * {@link ReentrantLock} AND the OS-level file lock share this one budget).
+     * 60s = checkpointInterval-scale: significantly longer than a legal slow
+     * commit (fsync + manifest rewrite, seconds), far short of the unbounded
+     * block the pre-fix shape had (a peer JVM alive-but-hung froze the commit
+     * path forever → checkpoint stall → restart → same hang).
+     */
+    public static final long DEFAULT_MANIFEST_LOCK_TIMEOUT_MS = 60_000L;
+    /**
      * AR-14 (plan 2026-09-04-1326-3): cross-writer manifest lock file in the output
      * directory. Serializes the manifest read-modify-write across parallel subtasks —
      * both threads within one JVM (ReentrantLock) and subtask copies in different
@@ -99,6 +136,26 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             new ConcurrentHashMap<>();
 
     private final String outputDir;
+    /**
+     * Plan 2511 C3-002 (R01 SSOT member row, face {@code epochledger}): manifest
+     * retention epoch window = {@code ceil(retention-days × 86400000ms ÷
+     * checkpointIntervalMs)}, computed once at assembly ({@link
+     * #computeRetentionEpochWindow(long, long)}) and injected here. Manifest pruning
+     * (form B, commit-time piggyback) removes keys whose encoded epoch is older than
+     * {@code currentEpoch - window} inside the existing AR-14-locked rewrite, so the
+     * manifest stops growing O(all epochs). Negative window = assembly fail-fast; a
+     * zero window disables pruning explicitly (retention-days = 0 opt-out).
+     */
+    private final long retentionEpochWindow;
+
+    /** CRA 8.43 R4-03 W-04: current-epoch line-buffer bound ({@code <= 0} fails fast at construction). */
+    private final long maxEpochLines;
+
+    /** CRA 8.43 R4-03 W-04: pendingCommits stack bound ({@code <= 0} fails fast at construction). */
+    private final long maxPendingEpochs;
+
+    /** CRA 8.43 R4-03 W-06: bounded wait (ms) for BOTH manifest-lock levels ({@code <= 0} fails fast). */
+    private final long manifestLockTimeoutMs;
     /**
      * Item 14 (distributed): stored as a NAME (not a {@link Charset} object) so the
      * sink survives the Java serialization of the deployment descriptor's pipeline
@@ -162,20 +219,32 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * Copy constructor for a parallel subtask (see {@link #copyForSubtask(int)}).
      */
     private FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex) {
-        if (outputDir == null || outputDir.isEmpty()) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
+        this(outputDir, charset, subtaskIndex, DEFAULT_RETENTION_EPOCH_WINDOW);
+    }
+
+    /**
+     * C3-002: the retention epoch window computed at assembly time — {@code
+     * ceil(retentionDays × 86400000ms ÷ checkpointIntervalMs)}, ceiling so the window
+     * never UNDER-retains (the window must stay &ge; the re-submittable epoch window).
+     * The conversion base is the assembly-time checkpoint interval constant (sink
+     * lifetime fixed; interval changes across runs are absorbed by the ceiling and the
+     * 30-day default's order of magnitude).
+     */
+    public static long computeRetentionEpochWindow(long retentionDays, long checkpointIntervalMs) {
+        if (retentionDays < 0) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_ARG_NAME, "retentionDays")
+                    .param(ARG_DETAIL, "retentionDays must be >= 0 (0 disables pruning), got: "
+                            + retentionDays);
         }
-        this.outputDir = outputDir;
-        this.charsetName = (charset != null ? charset : StandardCharsets.UTF_8).name();
-        this.charset = charset != null ? charset : StandardCharsets.UTF_8;
-        this.subtaskIndex = subtaskIndex;
-        this.outputDirPath = Paths.get(outputDir);
-        try {
-            Files.createDirectories(outputDirPath);
-        } catch (IOException e) {
-            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR, e)
-                    .param(ARG_DETAIL, "Failed to create output directory: " + outputDir);
+        if (checkpointIntervalMs <= 0) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_ARG_NAME, "checkpointIntervalMs")
+                    .param(ARG_DETAIL, "checkpointIntervalMs must be positive, got: "
+                            + checkpointIntervalMs);
         }
+        long retentionMillis = retentionDays * 86_400_000L;
+        return (retentionMillis + checkpointIntervalMs - 1) / checkpointIntervalMs;
     }
 
     /**
@@ -195,7 +264,76 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     @Override
     public FileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
-        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex);
+        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex, retentionEpochWindow,
+                maxEpochLines, maxPendingEpochs, manifestLockTimeoutMs);
+    }
+
+    /**
+     * C3-002: constructs a sink with an explicit manifest retention epoch window
+     * (assembly-time projection of the SSOT {@code epochledger} retention parameters
+     * via {@link #computeRetentionEpochWindow(long, long)}). Primarily for the
+     * deployment assembly and tests; the plain constructors keep the SSOT-default
+     * window.
+     */
+    public FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex,
+                                  long retentionEpochWindow) {
+        this(outputDir, charset, subtaskIndex, retentionEpochWindow,
+                DEFAULT_MAX_EPOCH_LINES, DEFAULT_MAX_PENDING_EPOCHS,
+                DEFAULT_MANIFEST_LOCK_TIMEOUT_MS);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-04/W-06: full constructor with the buffer/pending
+     * envelope bounds and the manifest-lock wait budget. Primarily for the
+     * deployment assembly and tests; the plain constructors keep the defaults.
+     * All three bounds fail fast typed on non-positive values.
+     */
+    public FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex,
+                                  long retentionEpochWindow, long maxEpochLines,
+                                  long maxPendingEpochs, long manifestLockTimeoutMs) {
+        if (outputDir == null || outputDir.isEmpty()) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
+        }
+        // CRA 8.43 R4-03 W-04/W-06: nonsensical envelope declarations fail fast.
+        if (maxEpochLines <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxEpochLines")
+                    .param(ARG_DETAIL, "maxEpochLines must be > 0, got: " + maxEpochLines);
+        }
+        if (maxPendingEpochs <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxPendingEpochs")
+                    .param(ARG_DETAIL, "maxPendingEpochs must be > 0, got: " + maxPendingEpochs);
+        }
+        if (manifestLockTimeoutMs <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "manifestLockTimeoutMs")
+                    .param(ARG_DETAIL, "manifestLockTimeoutMs must be > 0, got: "
+                            + manifestLockTimeoutMs);
+        }
+        // C3-002: the retention epoch window is an assembly-time constant; negative
+        // values would prune not-yet-expired epochs (a recovery-correctness hazard)
+        if (retentionEpochWindow < 0) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_ARG_NAME, "retentionEpochWindow")
+                    .param(ARG_DETAIL, "manifest retention epoch window must be >= 0 (0 disables"
+                            + " pruning), got: " + retentionEpochWindow);
+        }
+        this.outputDir = outputDir;
+        this.charsetName = (charset != null ? charset : StandardCharsets.UTF_8).name();
+        this.charset = charset != null ? charset : StandardCharsets.UTF_8;
+        this.subtaskIndex = subtaskIndex;
+        this.retentionEpochWindow = retentionEpochWindow;
+        this.maxEpochLines = maxEpochLines;
+        this.maxPendingEpochs = maxPendingEpochs;
+        this.manifestLockTimeoutMs = manifestLockTimeoutMs;
+        this.outputDirPath = Paths.get(outputDir);
+        try {
+            Files.createDirectories(outputDirPath);
+        } catch (IOException e) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to create output directory: " + outputDir);
+        }
     }
 
     /**
@@ -236,6 +374,19 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "value");
         }
         synchronized (currentBuffer) {
+            // CRA 8.43 R4-03 W-04 (MA-13=C5-005): declared epoch-line envelope —
+            // reject BEFORE buffering (same-monitor atomic check-and-reject) so
+            // the "barrier duration × input rate" product fails typed instead of
+            // growing the heap without bound.
+            if (currentBuffer.size() >= maxEpochLines) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_ARG_NAME, "maxEpochLines")
+                        .param(ARG_DETAIL, "FILE 2PC epoch buffer is full: "
+                                + currentBuffer.size() + "/" + maxEpochLines
+                                + " lines for the current epoch — reduce the checkpoint "
+                                + "interval, raise maxEpochLines, or inspect why commits "
+                                + "are not draining the buffer");
+            }
             currentBuffer.add(value.toString());
         }
     }
@@ -257,6 +408,21 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                 // doCommitLocked ran after the checkpoint durable marker, so an
                 // OS crash inside that window could commit a truncated file.
                 forcePath(tempPath);
+                // CRA 8.43 R4-03 W-04 face 2 (C5-010): bound the pendingCommits
+                // stack BEFORE the transfer — every pending entry pins a tmp file
+                // (disk face) and re-serializes on every later barrier. The
+                // retention window / prune chain is NOT touched (2511 adjudication
+                // ④ carrier, zero-touch) — the task fails typed and the recovery
+                // path takes over.
+                if (getPendingCommits().size() >= maxPendingEpochs) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "FILE 2PC pendingCommits stack is full: "
+                                    + getPendingCommits().size() + "/" + maxPendingEpochs
+                                    + " uncommitted epochs (epoch " + epochId
+                                    + " would exceed the bound) — commits are not landing; "
+                                    + "inspect the commit-notification chain (finishCommit) "
+                                    + "or raise maxPendingEpochs for slow-durable deployments");
+                }
                 getPendingCommits().put(epochId,
                         new FilePendingCommit(tempPath.toString(), count, subtaskIndex));
                 currentBuffer.clear();
@@ -301,6 +467,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         Path finalPath = finalPath(ownerSubtask, checkpointId);
         String manifestEntryKey = manifestKey(ownerSubtask, checkpointId);
         Properties manifest = loadManifest();
+
+        // C3-002 form B (R01 SSOT member row, face epochledger): commit-time piggyback
+        // pruning — drop manifest keys whose encoded epoch fell out of the retention
+        // window, folding the prune into the SAME locked rewrite the commit already
+        // performs, so manifest growth converges from O(all epochs) to O(retention set).
+        // Never touches the key being committed; the window guarantees pruning only
+        // strictly older-than (currentEpoch - window) keys.
+        pruneExpiredEntries(manifest, checkpointId);
 
         // Idempotent guard: manifest already records this epoch.
         // R6 CON-01 (plan 2325): discriminate by pending-entry PROVENANCE — an
@@ -381,6 +555,66 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     /**
+     * C3-002 form B: removes manifest entries whose epoch-key age exceeds the
+     * retention window — {@code epoch(key) < currentEpoch - retentionEpochWindow}.
+     * Idempotent (a second pass over the same manifest removes nothing) and guarded
+     * against over-deletion by the ceiling-rounded window (retention window &ge;
+     * the re-submittable epoch window, so restoredKeys-style recoverable epochs are
+     * never pruned).
+     */
+    private void pruneExpiredEntries(Properties manifest, long currentEpoch) {
+        if (retentionEpochWindow <= 0) {
+            return; // retention-days=0 opt-out: pruning disabled
+        }
+        long keepAbove = currentEpoch - retentionEpochWindow;
+        List<String> expired = null;
+        for (String key : manifest.stringPropertyNames()) {
+            Long epoch = epochOfKey(key);
+            if (epoch != null && epoch < keepAbove) {
+                if (expired == null) {
+                    expired = new ArrayList<>();
+                }
+                expired.add(key);
+            }
+        }
+        if (expired != null) {
+            for (String key : expired) {
+                manifest.remove(key);
+            }
+            LOG.info("file-2pc: pruned {} manifest key(s) below epoch {} (retention window {})",
+                    expired.size(), keepAbove, retentionEpochWindow);
+        }
+    }
+
+    /**
+     * C3-002: decodes the epoch number encoded in a manifest key ({@code N} for
+     * subtask 0, {@code N.sK} for subtask K). Returns null for keys without an
+     * epoch-shaped prefix — those are never pruned by the epoch-age predicate.
+     */
+    static Long epochOfKey(String key) {
+        int dot = key.indexOf('.');
+        String digits = dot >= 0 ? key.substring(0, dot) : key;
+        if (digits.isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < digits.length(); i++) {
+            if (!Character.isDigit(digits.charAt(i))) {
+                return null;
+            }
+        }
+        try {
+            return Long.parseLong(digits);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** C3-002 test/ops visibility: the effective retention epoch window. */
+    long getRetentionEpochWindow() {
+        return retentionEpochWindow;
+    }
+
+    /**
      * AR-14: runs {@code action} under the output-directory manifest lock — a JVM-local
      * {@link ReentrantLock} for same-process subtask threads, plus an OS-level
      * {@link FileLock} on {@code .manifest.lock} for subtask copies in different JVMs
@@ -389,14 +623,72 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private void withManifestLock(FileTwoPhaseCommitAction action) throws Exception {
         ReentrantLock jvmLock = MANIFEST_JVM_LOCKS.computeIfAbsent(
                 outputDirPath.toAbsolutePath().normalize().toString(), k -> new ReentrantLock());
-        jvmLock.lock();
+        // CRA 8.43 R4-03 W-06 (MA-15=C2-005; adjudication C.4): BOTH lock levels
+        // now share ONE bounded budget ({@code manifestLockTimeoutMs}) —
+        // jvmLock.tryLock(time, unit) is bounded AND interruptible (cancel
+        // propagates), replacing the unbounded lock() that froze the commit
+        // path when a peer JVM hung. Lock ORDER is unchanged: the OS-level
+        // tryLock polling loop below still runs while HOLDING the jvmLock
+        // (JL→FL, no inversion), and every timeout path unlocks symmetrically.
+        boolean jvmAcquired;
+        try {
+            jvmAcquired = jvmLock.tryLock(manifestLockTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_ARG_NAME, "manifestLock")
+                    .param(ARG_DETAIL, "Interrupted while waiting for the JVM-local manifest "
+                            + "lock of " + outputDirPath.toAbsolutePath().normalize()
+                            + " (waited up to " + manifestLockTimeoutMs + "ms) — check the "
+                            + "lock-holding thread dump of the peer JVM");
+        }
+        if (!jvmAcquired) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_ARG_NAME, "manifestLock")
+                    .param(ARG_DETAIL, "Timed out after " + manifestLockTimeoutMs
+                            + "ms waiting for the JVM-local manifest lock of "
+                            + outputDirPath.toAbsolutePath().normalize() + " — a peer writer "
+                            + "holds it; check the lock-holding thread dump");
+        }
         try (FileChannel channel = FileChannel.open(outputDirPath.resolve(MANIFEST_LOCK_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-            FileLock fileLock = channel.lock();
+            // OS level: FileLock has no timed variant — tryLock() polling with a
+            // fixed 200ms step until the shared budget runs out (audit C2-005
+            // sanctioned shape). Lock order (JL→FL) and the critical section are
+            // unchanged.
+            FileLock fileLock = null;
+            long deadline = System.currentTimeMillis() + manifestLockTimeoutMs;
             try {
+                while (true) {
+                    try {
+                        fileLock = channel.tryLock();
+                    } catch (java.nio.channels.OverlappingFileLockException e) {
+                        // The JVM (or a foreign holder inside this JVM) already
+                        // holds an overlapping lock — treat exactly like a
+                        // cross-JVM contender: keep polling until the shared
+                        // budget runs out (fail-loud, never a thrown raw
+                        // exception from inside the bounded-wait loop).
+                        fileLock = null;
+                    }
+                    if (fileLock != null) {
+                        break;
+                    }
+                    if (System.currentTimeMillis() >= deadline) {
+                        throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                                .param(ARG_ARG_NAME, "manifestLock")
+                                .param(ARG_DETAIL, "Timed out after " + manifestLockTimeoutMs
+                                        + "ms waiting for the OS-level manifest lock file "
+                                        + outputDirPath.resolve(MANIFEST_LOCK_FILE)
+                                        + " — a peer JVM writer holds it; check whether that "
+                                        + "JVM is alive and dump its lock-holding threads");
+                    }
+                    Thread.sleep(200L);
+                }
                 action.run();
             } finally {
-                fileLock.release();
+                if (fileLock != null) {
+                    fileLock.release();
+                }
             }
         } finally {
             jvmLock.unlock();
@@ -483,6 +775,108 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     @Override
     public void beginTransaction() throws Exception {
         // No per-epoch transaction resource to initialize (NIO file handles are per-call).
+        // CRA 8.44 R4-04 W-08: orphan temps sweep here — begin is the recovery chain's
+        // LAST step, so the restore whitelist is settled and fresh runs are covered too;
+        // between this point and the first saveState there is no concurrent writer for
+        // this subtask's suffix.
+        sweepOrphanTempFiles();
+    }
+
+    /**
+     * CRA 8.44 R4-04 W-08 (C6-007; adjudication D.1): deletes this subtask's orphaned
+     * epoch temp files — temps whose checkpoint never went durable and whose in-memory
+     * {@code pendingCommits} registration died with the process. Only files matching
+     * THIS subtask's temp-name shape are scanned ({@code .epoch-{id}{suffix}.tmp} plus
+     * the {@code manifest.properties{suffix}.tmp} ATOMIC_MOVE-failure residue, face②),
+     * so parallel subtasks on the same directory never touch each other's in-flight
+     * temps (AR-14 isolation, no lock protocol involved).
+     *
+     * <p>A temp is deleted iff it is NOT whitelisted by the manifest (the epoch already
+     * committed/durable — conservative skip) and NOT referenced by any
+     * {@code pendingCommits} entry (the commit-failure-retained temps the next commit
+     * still subsumes). The manifest is READ-ONLY here (no lock protocol, no write
+     * path); retention-window constants and the prune chain are untouched. Any sweep
+     * failure is WARN-only: the recovery chain it serves must never be blocked, and a
+     * kept file is simply retried by the next run's sweep (fail-safe: conservative
+     * keep).
+     */
+    private void sweepOrphanTempFiles() {
+        java.util.regex.Pattern epochPattern = subtaskIndex > 0
+                ? java.util.regex.Pattern.compile("^\\.epoch-(\\d+)\\.s" + subtaskIndex + "\\.tmp$")
+                : java.util.regex.Pattern.compile("^\\.epoch-(\\d+)\\.tmp$");
+        Properties manifest;
+        try {
+            manifest = loadManifest();
+        } catch (IOException | RuntimeException e) {
+            // corrupt content throws IllegalArgumentException from Properties.load —
+            // same fail-safe as an IO failure: whitelist untrustworthy → keep everything
+            LOG.warn("File 2PC orphan sweep skipped: the manifest of {} cannot be read "
+                    + "(whitelist untrustworthy — nothing deleted, the next run retries)",
+                    outputDirPath, e);
+            return;
+        }
+        java.util.Set<String> pendingTempPaths = new java.util.HashSet<>();
+        for (Object raw : getPendingCommits().values()) {
+            if (raw instanceof FilePendingCommit pending) {
+                pendingTempPaths.add(Paths.get(pending.getTempPath())
+                        .toAbsolutePath().normalize().toString());
+            }
+        }
+        String manifestTempName = MANIFEST_FILE + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX;
+        int removed = 0;
+        try (java.nio.file.DirectoryStream<Path> listing =
+                     Files.newDirectoryStream(outputDirPath)) {
+            for (Path child : listing) {
+                if (!Files.isRegularFile(child)) {
+                    continue;
+                }
+                String name = child.getFileName().toString();
+                if (name.equals(manifestTempName)) {
+                    // face②: a manifest temp never enters manifest content, and at the
+                    // begin hook this subtask has no commit in flight — pure residue
+                    removed += deleteOrphanTemp(child, "manifest temp");
+                    continue;
+                }
+                java.util.regex.Matcher matcher = epochPattern.matcher(name);
+                if (!matcher.matches()) {
+                    continue;
+                }
+                long orphanEpoch = Long.parseLong(matcher.group(1));
+                // manifest whitelist (main): the epoch is durable/committed — keep
+                if (manifest.containsKey(orphanEpoch + subtaskSuffix(subtaskIndex))) {
+                    continue;
+                }
+                // pending whitelist: a commit-failure-retained temp the next commit
+                // still subsumes — keep (MJ-3)
+                if (pendingTempPaths.contains(
+                        child.toAbsolutePath().normalize().toString())) {
+                    continue;
+                }
+                removed += deleteOrphanTemp(child, "epoch temp");
+            }
+        } catch (IOException e) {
+            LOG.warn("File 2PC orphan sweep failed listing {} (fail-safe: nothing further "
+                    + "deleted; the next run retries)", outputDirPath, e);
+        }
+        if (removed > 0) {
+            LOG.info("File 2PC orphan sweep removed {} orphaned temp file(s) for subtask {}",
+                    removed, subtaskIndex);
+        }
+    }
+
+    /** Deletes one swept candidate; a failed delete is WARN-visible, never fatal. */
+    private static int deleteOrphanTemp(Path child, String kind) {
+        try {
+            if (Files.deleteIfExists(child)) {
+                LOG.warn("File 2PC orphan sweep removed orphaned {} {}",
+                        kind, child.getFileName());
+                return 1;
+            }
+        } catch (IOException e) {
+            LOG.warn("File 2PC orphan sweep failed to delete {} (kept; the next run "
+                    + "retries)", child, e);
+        }
+        return 0;
     }
 
     /**

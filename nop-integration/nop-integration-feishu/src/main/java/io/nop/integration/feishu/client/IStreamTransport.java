@@ -1,6 +1,7 @@
 package io.nop.integration.feishu.client;
 
 import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Abstraction over the WebSocket long-connection transport. The production
@@ -30,6 +31,17 @@ interface IStreamTransport {
      * @param frameBytes the encoded Pbbp2 frame; never null
      */
     void send(byte[] frameBytes);
+
+    /**
+     * C3-015 (plan 2522)：异步建连——connect 阻塞段移出心跳/重连 scheduler。
+     * default 委托同步 connect 并返回已完成 future（既有假体零改写兼容；生产
+     * JdkStreamTransport override 真异步链）。包私有 seam 的 default 方法级扩展，
+     * 不构成跨模块公共契约面演进。
+     */
+    default CompletableFuture<Void> connectAsync(URI uri, IStreamListener listener) {
+        connect(uri, listener);
+        return CompletableFuture.completedFuture(null);
+    }
 
     /** Close the connection and release transport resources. */
     void close();

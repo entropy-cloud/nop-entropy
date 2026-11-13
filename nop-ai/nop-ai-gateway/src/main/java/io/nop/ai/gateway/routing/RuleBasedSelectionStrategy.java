@@ -33,7 +33,8 @@ import java.util.Set;
  *   <li>{@code health}（Map&lt;Integer, Map&gt;）——候选健康快照，键 = 候选 index（Integer，
  *       与 {@code candidates} 的 index 一致）；值
  *       {@code {circuitState:String(CircuitState 枚举名), currentConcurrency:int,
- *       concurrencyLimit:int|null, available:boolean}}；</li>
+ *       concurrencyLimit:int|null, available:boolean, allowCall:boolean}}（allowCall = 冷却感知
+ *       纯读投影，plan 2509 裁定⑦(b)）；</li>
  *   <li>{@code attempted}（List&lt;Integer&gt;）——本轮已尝试候选的 index 集（可为空）。</li>
  * </ul>
  *
@@ -174,6 +175,12 @@ public final class RuleBasedSelectionStrategy implements ISelectionStrategy {
                             "RuleBasedSelectionStrategy: rule " + ruleName + " selectedIndex " + index
                                     + " refers to an already-attempted candidate; the rule must consume the attempted input");
         }
+        // 权威状态迁移 allowCall（plan 2509 裁定⑦(b)）：脚本返回候选后唯一调用点——false =
+        // 全拒走既有不可用路径（返回 null，调用方 fail-loud，非静默换选）；HALF_OPEN 单探针由
+        // 原语内建互斥维持。
+        if (!health.allowCall(candidate)) {
+            return null;
+        }
         return candidate;
     }
 
@@ -206,6 +213,10 @@ public final class RuleBasedSelectionStrategy implements ISelectionStrategy {
             item.put("currentConcurrency", ch.getCurrentConcurrency());
             item.put("concurrencyLimit", ch.getConcurrencyLimit());
             item.put("available", ch.isAvailable());
+            // 第 5 标量（plan 2509 裁定⑦(b)）：allowCall 冷却感知纯读投影（非 OPEN、或 OPEN 且
+            // 冷却已过）——纯代码侧追加，rule.xdef 只声明顶层输入名、Map 内键非 schema 面，
+            // 对既有规则脚本零破坏。
+            item.put("allowCall", ch.isAllowCall());
             healthView.put(i, item);
         }
         inputs.put(INPUT_HEALTH, healthView);

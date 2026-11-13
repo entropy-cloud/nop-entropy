@@ -68,8 +68,14 @@ public class HttpServerFilterRegistrar {
         if (!enableFilter)
             return;
 
-        // 此时Nop平台还没有初始化
         filters.register((rc) -> {
+            // C1-006/C4-003（plan 2524，MA-01）：就绪门禁——启动窗口内请求 503 短路，
+            // 防空链固化（认证链旁路直至重启不可自愈）。平台守卫 503 先例同形。
+            if (!io.nop.core.initialize.CoreInitialization.isInitialized()) {
+                rc.response().setStatusCode(503);
+                rc.response().end("Service initializing, retry later");
+                return;
+            }
             List<IHttpServerFilter> serverFilters = getFilters(sys);
 
             if (serverFilters.isEmpty()) {

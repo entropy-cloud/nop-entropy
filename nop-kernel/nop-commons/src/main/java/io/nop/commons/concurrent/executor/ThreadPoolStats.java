@@ -13,6 +13,12 @@ import java.io.Serializable;
 
 @DataBean
 public class ThreadPoolStats implements Serializable {
+    /**
+     * C4-012(c)（plan 2548）：零值统计——虚拟线程 per-task 池等无固定池统计的实现统一返回，
+     * 避免 stats() 返回 null 给调用方判空负担。
+     */
+    public static final ThreadPoolStats ZERO = new ThreadPoolStats();
+
     private static final long serialVersionUID = 6535088446065132264L;
 
     private int activeCount;

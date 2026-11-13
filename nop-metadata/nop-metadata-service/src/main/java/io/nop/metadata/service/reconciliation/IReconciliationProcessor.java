@@ -30,6 +30,91 @@ public interface IReconciliationProcessor {
                                             String matchStrategy, Integer limit);
 
     /**
+     * W-08（plan 2528 裁定⑥）：批载入候选池（单次对账执行一次性加载，行间复用——消除
+     * 逐行全池重载 N+1）。池为单次执行的执行期快照：执行期间并发候选变更对本轮不可见
+     * （快照一致性语义，owner doc 声明）。
+     *
+     * @param targetType      目标实体类型（过滤候选，可空表示不限）
+     * @param identifierSpace 标识符空间（过滤候选，可空表示不限）
+     * @param poolLimit       候选池加载显式上界（{@code nop.metadata.reconciliation.candidate-pool-limit}，
+     *                        缺省 1000）；池行数超界<b>显式失败</b>（{@code ERR_RECON_CANDIDATE_POOL_EXCEED_LIMIT}，
+     *                        不静默截断——截断即静默改变匹配语义）
+     * @return 候选池快照（候选实体 + 随池缓存的已解析 properties——单次执行内每候选解析一次）
+     */
+    ReconciliationCandidatePool loadCandidatePool(String targetType, String identifierSpace, int poolLimit);
+
+    /**
+     * W-08（裁定⑥）：在候选池快照上对给定值匹配（与逐行版
+     * {@link #reconcile(String, String, String, String, Integer)} 同一打分/排序/截断语义，
+     * 零重复池加载）。
+     */
+    List<ReconciliationCandidate> reconcile(String value, ReconciliationCandidatePool pool,
+                                            String matchStrategy, Integer limit);
+
+    /**
+     * W-08（裁定⑥）：候选池快照——池实体集合 + 随池缓存的解析产物。
+     */
+    class ReconciliationCandidatePool {
+        private final String targetType;
+        private final String identifierSpace;
+        private final List<PoolEntry> entries;
+
+        public ReconciliationCandidatePool(String targetType, String identifierSpace, List<PoolEntry> entries) {
+            this.targetType = targetType;
+            this.identifierSpace = identifierSpace;
+            this.entries = entries != null ? entries : Collections.emptyList();
+        }
+
+        public String getTargetType() {
+            return targetType;
+        }
+
+        public String getIdentifierSpace() {
+            return identifierSpace;
+        }
+
+        public List<PoolEntry> getEntries() {
+            return entries;
+        }
+
+        public boolean isEmpty() {
+            return entries.isEmpty();
+        }
+
+        /** 池条目：候选实体要素 + 已解析 properties（单次执行内解析一次）。 */
+        public static class PoolEntry {
+            private final String entityId;
+            private final String entityName;
+            private final String entityType;
+            private final Map<String, Object> properties;
+
+            public PoolEntry(String entityId, String entityName, String entityType,
+                             Map<String, Object> properties) {
+                this.entityId = entityId;
+                this.entityName = entityName;
+                this.entityType = entityType;
+                this.properties = properties != null ? properties : Collections.emptyMap();
+            }
+
+            public String getEntityId() {
+                return entityId;
+            }
+
+            public String getEntityName() {
+                return entityName;
+            }
+
+            public String getEntityType() {
+                return entityType;
+            }
+
+            public Map<String, Object> getProperties() {
+                return properties;
+            }
+        }
+    }
+
+    /**
      * 候选实体匹配结果。{@code score} ∈ [0.0, 1.0]：exact 完全相等为 1.0，
      * fuzzy 为 levenshtein 归一化相似度。
      */

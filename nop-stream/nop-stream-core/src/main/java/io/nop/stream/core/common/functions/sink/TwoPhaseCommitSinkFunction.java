@@ -12,7 +12,9 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,15 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
     protected static final Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
 
     private Map<Long, Object> pendingCommits;
+
+    /**
+     * CRA 8.41 W-03（C2-007）：per-instance in-flight epoch 守卫——finishCommit 的并发双提交
+     * check-then-act（containsKey→commit→remove 窗口）使同一 epoch 可能被两个线程各提交一次。
+     * 基类守卫保证「运行期并发双提交不可能」（fail-fast 底线）；子类 commit 幂等仍由子类负责
+     * （守卫不覆盖持久化重放面——restore 重放/崩溃后重复提交）。与 W-06 的两层关系：W-06 修复
+     * 恢复 fanout 单线程调用方串行契约后，本守卫为其 fail-fast 底线，两层防线不互替。
+     */
+    private final Set<Long> inFlightCommits = ConcurrentHashMap.newKeySet();
 
     protected TwoPhaseCommitSinkFunction() {
         this.pendingCommits = Collections.synchronizedMap(new TreeMap<>());
@@ -193,15 +204,44 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
                         if (!pending.containsKey(eid))
                             continue;
                     }
-                    commit(eid);
-                    synchronized (pending) {
-                        pending.remove(eid);
+                    if (!beginInFlight(eid)) {
+                        continue;
+                    }
+                    try {
+                        commit(eid);
+                        synchronized (pending) {
+                            pending.remove(eid);
+                        }
+                    } finally {
+                        endInFlight(eid);
                     }
                 }
             } else {
-                commit(epochId);
+                if (beginInFlight(epochId)) {
+                    try {
+                        commit(epochId);
+                    } finally {
+                        endInFlight(epochId);
+                    }
+                }
             }
         }
+    }
+
+    /**
+     * CRA 8.41 W-03：in-flight 守卫登记——add 失败 = 另一线程正在提交同一 epoch（或同 epoch 在飞）
+     * → 本线程跳过（去重达成，WARN 可观测）。与 {@link #endInFlight} 必须成对（finally 承载）。
+     */
+    private boolean beginInFlight(long epochId) {
+        if (!inFlightCommits.add(epochId)) {
+            LOG.warn("Concurrent commit skipped for epoch={} (already in flight by another thread)", epochId);
+            return false;
+        }
+        return true;
+    }
+
+    private void endInFlight(long epochId) {
+        inFlightCommits.remove(epochId);
     }
 
     /**
@@ -249,12 +289,17 @@ public abstract class TwoPhaseCommitSinkFunction<IN> implements SinkFunction<IN>
 
             for (Map.Entry<Long, Object> entry : toCommit.entrySet()) {
                 Long eid = entry.getKey();
+                if (!beginInFlight(eid)) {
+                    continue;
+                }
                 try {
                     commit(eid);
                 } catch (Exception e) {
                     LOG.error("Commit failed for durable pending transaction epoch={} on restore; "
                             + "retaining in pending for subsuming commit", eid, e);
                     continue;
+                } finally {
+                    endInFlight(eid);
                 }
                 synchronized (pending) {
                     pending.remove(eid);

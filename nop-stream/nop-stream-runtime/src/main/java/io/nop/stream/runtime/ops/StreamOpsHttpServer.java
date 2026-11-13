@@ -254,8 +254,18 @@ public class StreamOpsHttpServer {
                     taskManager.keyedStateSnapshot(jobId, vertexId, subtaskIndex);
             stateData = snapshot.getStateData();
         } catch (StreamException e) {
-            // task-not-running is a 404; any other read failure is a 500
-            sendError(exchange, 404, "TASK_NOT_FOUND", String.valueOf(e));
+            // W-09 (CRA 8.41 R4-01, ruling D.2.5): dispatch by error code —
+            // TASK_NOT_FOUND is a 404 (zero-regression), the bounded state-query
+            // timeout is a typed 503, and any other read failure is a 500. The
+            // pre-fix shape answered 404 for EVERY StreamException, misclassifying
+            // concurrent-snapshot failures of a RUNNING task as task-not-found.
+            if (NopStreamErrors.ERR_STREAM_TASK_NOT_FOUND.getErrorCode().equals(e.getErrorCode())) {
+                sendError(exchange, 404, "TASK_NOT_FOUND", String.valueOf(e));
+            } else if (NopStreamErrors.ERR_STREAM_STATE_QUERY_TIMEOUT.getErrorCode().equals(e.getErrorCode())) {
+                sendError(exchange, 503, "STATE_QUERY_TIMEOUT", String.valueOf(e));
+            } else {
+                sendError(exchange, 500, "STATE_QUERY_FAILED", String.valueOf(e));
+            }
             return;
         }
         if (stateName != null && stateData.containsKey(stateName)) {
@@ -392,7 +402,38 @@ public class StreamOpsHttpServer {
                     "Job submission is not enabled on this endpoint (single-job launch mode)");
             return;
         }
-        String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        // W-01 (CRA 8.42 R4-02, ruling A.1): double-check body-size gate BEFORE any
+        // body materialization. The pre-fix readAllBytes path let a single request
+        // materialize ~3x its body size (byte[] + String + JSON tree) and take down
+        // the coordinator heap. Two legs:
+        // 1) Content-Length pre-check — an over-limit DECLARED body is rejected
+        //    before reading a single body byte;
+        // 2) bounded read — a chunked / missing / malformed Content-Length request
+        //    cannot bypass the gate: at most (limit + 1) bytes are ever read, and
+        //    reading that many is itself a typed 413.
+        int limit = config.getMaxBodyBytes();
+        String declaredLength = exchange.getRequestHeaders().getFirst("Content-Length");
+        if (declaredLength != null && !declaredLength.isBlank()) {
+            try {
+                if (Long.parseLong(declaredLength.trim()) > limit) {
+                    sendError(exchange, 413, "SUBMIT_BODY_TOO_LARGE",
+                            "Declared Content-Length " + declaredLength.trim()
+                                    + " exceeds the submission body bound (" + limit
+                                    + " bytes; tune " + StreamOpsConfig.KEY_MAX_BODY_BYTES + ")");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                // malformed Content-Length — fall through to the bounded read leg
+            }
+        }
+        byte[] bodyBytes = exchange.getRequestBody().readNBytes(limit + 1);
+        if (bodyBytes.length > limit) {
+            sendError(exchange, 413, "SUBMIT_BODY_TOO_LARGE",
+                    "Request body exceeds the submission body bound (" + limit
+                            + " bytes; tune " + StreamOpsConfig.KEY_MAX_BODY_BYTES + ")");
+            return;
+        }
+        String requestBody = new String(bodyBytes, StandardCharsets.UTF_8);
         JobSubmissionSpec spec;
         try {
             spec = io.nop.core.lang.json.JsonTool.parseBeanFromText(

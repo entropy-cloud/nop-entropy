@@ -8,6 +8,7 @@
 package io.nop.batch.core;
 
 import io.nop.api.core.annotations.core.PropertySetter;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
@@ -44,6 +45,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+
+import static io.nop.batch.core.BatchErrors.ARG_FETCH_THREAD_COUNT;
+import static io.nop.batch.core.BatchErrors.ARG_LOAD_BATCH_SIZE;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED;
 
 /**
  * 负责创建{@link IBatchTask}的工厂类。它负责组织skip/retry/transaction/process/listener的处理顺序
@@ -82,6 +88,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     private IBatchStateStore stateStore;
     private Boolean allowStartIfComplete;
+    private Boolean allowRestartIfKilled;
     private int startLimit;
 
     /**
@@ -126,6 +133,13 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     @PropertySetter
     public BatchTaskBuilder<S, R> startLimit(int startLimit) {
         this.startLimit = startLimit;
+        return this;
+    }
+
+    /** 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门（仅程序化 API）。 */
+    @PropertySetter
+    public BatchTaskBuilder<S, R> allowRestartIfKilled(Boolean allowRestartIfKilled) {
+        this.allowRestartIfKilled = allowRestartIfKilled;
         return this;
     }
 
@@ -326,7 +340,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     public IBatchTask buildTask() {
         return new BatchTask<S>(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
                 executor, concurrency, taskInitializers, this::buildLoader, this::buildChunkProcessor, stateStore,
-                allowStartIfComplete, startLimit);
+                allowStartIfComplete, startLimit, allowRestartIfKilled);
     }
 
     protected IBatchLoader<S> buildLoader(IBatchTaskContext context) {
@@ -339,11 +353,51 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             int fetchThreadCount = dispatchConfig.getFetchThreadCount();
             int loadBatchSize = dispatchConfig.getLoadBatchSize();
 
+            // C8-001（plan 2516 裁定②，←C5-005）：dispatch 容量装配期 fail-fast。buildLoader 为全部 dispatch
+            // 路径（AsyncFetch/同步两 provider、DSL 与程序化装配）的必经点，单点覆盖五层装配链；
+            // 队列构造器 Guard 与 xdef min 为备选不启用（错误上下文丢失、拦不住 Java API 装配路径）。
+            if (loadBatchSize <= 0)
+                throw new NopException(ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID)
+                        .param(ARG_LOAD_BATCH_SIZE, loadBatchSize)
+                        .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
+
+            // 1.7-C6-008（plan 2545 W-07；closure audit R1 B-1 + R2 BL-1/MJ-4 修正）：**chunk 压实 + 异步 fetch
+            // 派发**是不支持的组合。fetch 线程与消费线程在时间/线程上解耦，reader 的 chunk 级压实回调
+            // （标记 processingItems 完成、推进 completedIndex）只能附着在 fetch 线程自建的一次性 ctx 上，
+            // 而该 ctx 的 chunkItems 恒为 null —— 压实必然空转，completedIndex 永不推进，任务 100% 以
+            // ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败。装配期响亮失败，不给运维留下"跑 60 秒后报一条
+            // 指向错误根因的异常"的排障陷阱。
+            // <p>
+            // 判定轴 = loader 的 **chunk 压实能力**（{@link IBatchLoaderProvider#hasChunkCompaction()}），
+            // 不是 task 级 stateStore：saveState 有两条独立轴——任务级（接 stateStore）与
+            // loader 级（DSL &lt;loader saveState="true"&gt; → ResourceRecordLoaderProvider.saveState）。
+            // 只判 stateStore 会漏掉 loader 级轴（R2 BL-1）；反过来，jdbc/orm 的 task 级 saveState 只有
+            // 「任务结束关连接/存计数」语义、无 chunk 压实，本可正常工作，不应被拒（R2 MJ-4）。
+            // 同步派发（fetchThreadCount<=0）的 fetcher 闭包捕获消费线程 ctx，压实正常，不受本守卫影响。
+            if (fetchThreadCount > 0 && this.loader != null && this.loader.hasChunkCompaction())
+                throw new NopException(ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED)
+                        .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
+
+            // 1.7-C8-009（plan 2546 W-10）：两旋钮透传——仅 >0 时生效（0 = 未配置，保留 Provider 缺省
+            // 30/100）。拆为两步是因为原实现是 `new Provider(...).setup(context)` 单表达式。
             if (fetchThreadCount > 0) {
-                loader = new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,
-                        dispatchConfig.getPartitionFn()).setup(context);
+                AsyncFetchPartitionDispatchLoaderProvider<S> provider =
+                        new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor,
+                                fetchThreadCount, loadBatchSize, dispatchConfig.getPartitionFn());
+                if (dispatchConfig.getLoadBatchMultiplyFactor() > 0)
+                    provider.setLoadBatchMultiplyFactor(dispatchConfig.getLoadBatchMultiplyFactor());
+                if (dispatchConfig.getMaxLockQueueCountPerThread() > 0)
+                    provider.setMaxLockQueueCountPerThread(dispatchConfig.getMaxLockQueueCountPerThread());
+                loader = provider.setup(context);
             } else {
-                loader = new PartitionDispatchLoaderProvider<>(this::buildLoader1, loadBatchSize, dispatchConfig.getPartitionFn()).setup(context);
+                PartitionDispatchLoaderProvider<S> provider =
+                        new PartitionDispatchLoaderProvider<>(this::buildLoader1, loadBatchSize,
+                                dispatchConfig.getPartitionFn());
+                if (dispatchConfig.getLoadBatchMultiplyFactor() > 0)
+                    provider.setLoadBatchMultiplyFactor(dispatchConfig.getLoadBatchMultiplyFactor());
+                if (dispatchConfig.getMaxLockQueueCountPerThread() > 0)
+                    provider.setMaxLockQueueCountPerThread(dispatchConfig.getMaxLockQueueCountPerThread());
+                loader = provider.setup(context);
             }
         } else {
             loader = buildLoader0(context);
@@ -399,7 +453,14 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             if (useBatchRequestGenerator) {
                 processor = new BatchSequentialProcessor(processor);
             }
-            consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
+            BatchProcessorConsumer<S, R> processorConsumer = new BatchProcessorConsumer<>(processor,
+                    (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
+            // 1.7-C5-003（plan 2545 W-05；closure audit B-2 修正）：输出集上界接线——原实现只提供
+            // setter 而无生产调用方，导致上界恒为 0（不限制），护栏在生产路径上不可达。
+            // 本处是主装配链的接线点；OrmBatchConsumerProvider.setup 自建 BatchProcessorConsumer 为旁路，
+            // 已独立接线同一配置键（closure audit R2 MJ-3）。
+            processorConsumer.setMaxOutputItemsPerChunk(BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK.get());
+            consumer = processorConsumer;
         }
 
         // 保存处理历史，避免重复处理

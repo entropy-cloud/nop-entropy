@@ -7,6 +7,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.datav.dao.entity.NopDatavExportTask;
+import io.nop.datav.service.NopDatavInitRetry;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import org.slf4j.Logger;
@@ -63,6 +64,9 @@ public class NopDatavExportTaskRecovery {
             recoverInterruptedTasks();
         } catch (Exception e) {
             LOG.warn("nop.datav.export.recovery-init-fail", e);
+            // 裁定⑬（plan 2526，CL-020）：重启恢复失败调度一次性延迟重试（上限一次——
+            // 启动期 DB 瞬态故障窗自愈；recoverInterruptedTasks 幂等，重跑安全）
+            NopDatavInitRetry.scheduleOnce("export-recovery", this::recoverInterruptedTasks);
         }
     }
 
@@ -121,15 +125,26 @@ public class NopDatavExportTaskRecovery {
         }
         Timestamp now = CoreMetrics.currentTimestamp();
         String reason = STUCK_REASON_PREFIX + " (" + timeoutMinutes + "m)";
+        int marked = 0;
         for (NopDatavExportTask task : stale) {
             task.setStatus(STATUS_FAILED);
             task.setErrorMsg(reason);
             task.setUpdatedBy("system");
             task.setUpdateTime(now);
+            // 裁定③（plan 2526）：条件更新形态——0 行 = worker 已并发推进该行 → 跳过该行
+            // （scanner 假阳性标记不覆盖 worker 终态），冲突结构化可见。
+            task.orm_disableVersionCheckError(true);
             dao.updateEntityDirectly(task);
+            if (task.orm_readonly()) {
+                LOG.info("nop.datav.export.stuck-scan-conflict:taskId={} "
+                        + "(worker advanced the row; skip marking)", task.getTaskId());
+                continue;
+            }
+            marked++;
         }
-        LOG.info("nop.datav.export.stuck-scan-marked:count={} timeoutMinutes={}", stale.size(), timeoutMinutes);
-        return stale.size();
+        LOG.info("nop.datav.export.stuck-scan-marked:count={} conflictSkipped={} timeoutMinutes={}",
+                marked, stale.size() - marked, timeoutMinutes);
+        return marked;
     }
 
     private Void doRecover(IOrmSession session) {
@@ -142,14 +157,23 @@ public class NopDatavExportTaskRecovery {
             return null;
         }
         Timestamp now = CoreMetrics.currentTimestamp();
+        int recovered = 0;
         for (NopDatavExportTask task : stale) {
             task.setStatus(STATUS_FAILED);
             task.setErrorMsg(RESTART_REASON);
             task.setUpdatedBy("system");
             task.setUpdateTime(now);
+            // 裁定③（plan 2526）：条件更新形态——0 行 = 并发写者已推进该行 → 跳过（不覆盖终态）
+            task.orm_disableVersionCheckError(true);
             dao.updateEntityDirectly(task);
+            if (task.orm_readonly()) {
+                LOG.info("nop.datav.export.recover-conflict:taskId={} "
+                        + "(row advanced concurrently; skip)", task.getTaskId());
+                continue;
+            }
+            recovered++;
         }
-        LOG.info("nop.datav.export.recovered-tasks:count={}", stale.size());
+        LOG.info("nop.datav.export.recovered-tasks:count={} conflictSkipped={}", recovered, stale.size() - recovered);
         return null;
     }
 }

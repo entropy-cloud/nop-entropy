@@ -14,6 +14,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.datav.biz.INopDatavScreenBiz;
 import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
@@ -103,6 +104,14 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
     @Auth(permissions = "NopDatavScreen:publishScreen")
     public NopDatavScreenSnapshot publishScreen(@Name("id") String id, IServiceContext context) {
         NopDatavScreen screen = requireEntity(id, "publishScreen", context);
+
+        // 裁定⑦（plan 2026，与 publishDashboard 同族同 diff）：发布版本号行锁分配——父行
+        // SELECT FOR UPDATE（事务尾释放）使同目标并发发布串行化。isTransactionOpened 守护（同
+        // publishDashboard——lock 语句要求事务中执行，无事务直调跳过）。
+        if (txn() != null && txn().isTransactionOpened(null)) {
+            screen = lockScreenRowForPublish(screen);
+        }
+
 
         String snapshotContent = serializeScreenContent(screen);
         long nextVersion = calculateNextVersion(id);
@@ -222,13 +231,15 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
     public List<ScreenSnapshotHistory> getScreenSnapshotHistory(@Name("id") String id, IServiceContext context) {
         NopDatavScreen screen = requireEntity(id, "getScreenSnapshotHistory", context);
 
-        List<NopDatavScreenSnapshot> snapshots = findAllSnapshots(screen.getScreenId());
-        List<ScreenSnapshotHistory> result = new ArrayList<>(snapshots.size());
-        for (NopDatavScreenSnapshot snapshot : snapshots) {
+        // 裁定⑪（plan 2026）：列投影——仅取三元数据列（SNAPSHOT_CONTENT 大列不进物化集，
+        // QueryBean 声明面零模型变更），返回形态（三元组、版本倒序）不变。
+        List<Map<String, Object>> rows = orm().findListByQuery(historySnapshotQuery(screen.getScreenId()));
+        List<ScreenSnapshotHistory> result = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
             ScreenSnapshotHistory history = new ScreenSnapshotHistory();
-            history.setSnapshotVersion(snapshot.getSnapshotVersion());
-            history.setPublishedBy(snapshot.getPublishedBy());
-            history.setPublishedTime(snapshot.getPublishedTime());
+            history.setSnapshotVersion(((Number) row.get("snapshotVersion")).longValue());
+            history.setPublishedBy((String) row.get("publishedBy"));
+            history.setPublishedTime((Timestamp) row.get("publishedTime"));
             result.add(history);
         }
         return result;
@@ -361,6 +372,54 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         NopDatavScreenSnapshot latest = daoProvider()
                 .daoFor(NopDatavScreenSnapshot.class).findFirstByQuery(query);
         return latest == null ? 1L : latest.getSnapshotVersion() + 1;
+    }
+
+    /**
+     * 裁定⑦（plan 2026）行锁获取（同 lockDashboardRowForPublish——stale 等待期版本冲突
+     * clear+fresh 重载后有界重试）。
+     */
+    private NopDatavScreen lockScreenRowForPublish(NopDatavScreen screen) {
+        IEntityDao<NopDatavScreen> dao = daoProvider().daoFor(NopDatavScreen.class);
+        for (int attempt = 0; ; attempt++) {
+            try {
+                dao.lockEntity(screen);
+                return screen;
+            } catch (Exception e) {
+                if (!isEntityVersionChanged(e) || attempt >= 2) {
+                    throw e;
+                }
+                orm().runInSession(session -> {
+                    session.clear();
+                    return null;
+                });
+                screen = dao.getEntityById(screen.getScreenId());
+                if (screen == null) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static boolean isEntityVersionChanged(Exception e) {
+        return e instanceof io.nop.api.core.exceptions.NopException
+                && io.nop.orm.OrmErrors.ERR_ORM_ENTITY_VERSION_CHANGED.getErrorCode()
+                        .equals(((io.nop.api.core.exceptions.NopException) e).getErrorCode());
+    }
+
+    /**
+     * 裁定⑪（plan 2026）：快照历史投影查询构造（package-private static 供结构断言——红⑩：
+     * 字段声明面恰为三元数据列、不含 snapshotContent）。零模型变更（QueryBean 声明面）。
+     */
+    static QueryBean historySnapshotQuery(String screenId) {
+        QueryBean query = new QueryBean();
+        query.setSourceName(NopDatavScreenSnapshot.class.getName());
+        query.addFilter(FilterBeans.eq("screenId", screenId));
+        query.addOrderField("snapshotVersion", true);
+        query.addFields(java.util.Arrays.asList(
+                io.nop.api.core.beans.query.QueryFieldBean.forField("snapshotVersion"),
+                io.nop.api.core.beans.query.QueryFieldBean.forField("publishedBy"),
+                io.nop.api.core.beans.query.QueryFieldBean.forField("publishedTime")));
+        return query;
     }
 
     private NopDatavScreenSnapshot findLatestSnapshot(String screenId) {

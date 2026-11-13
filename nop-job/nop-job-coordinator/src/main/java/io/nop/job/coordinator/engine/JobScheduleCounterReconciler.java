@@ -30,11 +30,20 @@ import java.util.List;
  * <p><b>写回风暴防护</b>：单次扫描每 schedule 至多一次写回；遇版本冲突不重试（warn + 留待下个周期），
  * 避免热 schedule 上的写竞争。漂移是低频事件（仅并发版本冲突时累积），对账器以扫描间隔（复用 planner 的
  * {@code scan-interval-ms}）为节拍最终一致。
+ *
+ * <p>CRA 8.46 R4-07 W-05：活跃 schedule 数超过 batch-size 时，翻页轮转在
+ * ceil(活跃数/batchSize) 个周期内覆盖全部窗口——最终一致命题对全部活跃行成立（pre-fix
+ * 固定窗口的饥饿面已闭合）；满窗时 {@code nop.job.query-limit-hit} WARN 留痕（容量信号）。
  */
 public class JobScheduleCounterReconciler extends AbstractBatchScanner {
     static final Logger LOG = LoggerFactory.getLogger(JobScheduleCounterReconciler.class);
 
     private IDaoProvider daoProvider;
+
+    // CRA 8.46 R4-07 W-05 (1.4-C7-005, adjudication B): reconciliation cursor —
+    // 递减翻页窗口（null=从最高 id 开始）；结果 < batchSize 时回卷置 null（下轮重
+    // 头开始并天然拾取新高 id schedule）。收敛界=ceil(活跃数/batchSize) 周期。
+    private String reconcileCursor;
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
@@ -76,9 +85,28 @@ public class JobScheduleCounterReconciler extends AbstractBatchScanner {
         query.addFilter(FilterBeans.eq(NopJobSchedule.PROP_NAME_scheduleStatus,
                 _NopJobCoreConstants.SCHEDULE_STATUS_ENABLED));
         query.addFilter(FilterBeans.gt(NopJobSchedule.PROP_NAME_activeFireCount, 0));
+        // CRA 8.46 R4-07 W-05 (adjudication B): 递减翻页窗口——cursor 非 null 时只取
+        // 上批最小 id 之后的更小 id 段（窗口外漂移行在 ceil(N/batch) 周期内必入窗，
+        // 饥饿面闭合）
+        if (reconcileCursor != null) {
+            query.addFilter(FilterBeans.lt(NopJobSchedule.PROP_NAME_jobScheduleId, reconcileCursor));
+        }
         query.setLimit(batchSize);
         query.addOrderField(NopJobSchedule.PROP_NAME_jobScheduleId, false);
-        return scheduleDao().findAllByQuery(query);
+        List<NopJobSchedule> result = scheduleDao().findAllByQuery(query);
+        if (!result.isEmpty()) {
+            if (result.size() >= batchSize) {
+                // CRA 8.46 R4-07 W-05: limit-hit warn 对齐 findActiveFires 先例
+                // (nop.job.query-limit-hit)——满窗可观测（运维容量信号）
+                LOG.warn("nop.job.query-limit-hit:method=fetchSchedulesToReconcile,limit={}",
+                        batchSize);
+                reconcileCursor = result.get(result.size() - 1).getJobScheduleId();
+            } else {
+                // 欠批回卷：本方向窗口已尽，下轮从最高 id 重新开始
+                reconcileCursor = null;
+            }
+        }
+        return result;
     }
 
     private void reconcileSchedule(NopJobSchedule stale) {

@@ -30,12 +30,46 @@ public class MigrationHistoryManager {
 
     public static final String TABLE_NAME = "nop_db_migration_history";
 
+    /** 裁定⑧：DDL 守卫互斥锁名（ensureHistoryTableExists check-then-act 串行化）。 */
+    public static final String GUARD_LOCK_DDL = "nop-db-migration:history-table-ddl";
+    /** 裁定⑧：按版本键域的 recordMigration 互斥锁名前缀。 */
+    public static final String GUARD_LOCK_VERSION_PREFIX = "nop-db-migration:record:";
+
+    /** 裁定⑧：守卫锁获取超时（缺省常量，零新配置键）。 */
+    private static final long GUARD_LOCK_TIMEOUT_MS = 30_000L;
+
     private final IJdbcTemplate jdbcTemplate;
     private final String querySpace;
+    private volatile IMigrationLockGuard guard;
 
     public MigrationHistoryManager(IJdbcTemplate jdbcTemplate, String querySpace) {
         this.jdbcTemplate = jdbcTemplate;
         this.querySpace = querySpace != null ? querySpace : "default";
+    }
+
+    /**
+     * 互斥守卫注入（测试缝；缺省按方言选型：mysql/pg 连接级咨询锁，其余守卫表实现）。
+     */
+    public void setLockGuard(IMigrationLockGuard guard) {
+        this.guard = guard;
+    }
+
+    /**
+     * 裁定⑧（C1-003）：跨进程互斥守卫——方言选型一次定夺（设计文档 §3.8 方言矩阵），
+     * WI 1.5/1.6 租约族对齐选型引用不重建。
+     */
+    private IMigrationLockGuard guard() {
+        IMigrationLockGuard g = guard;
+        if (g == null) {
+            synchronized (this) {
+                if (guard == null)
+                    guard = AbstractAdvisoryLockGuard.forDialect(
+                            jdbcTemplate.getDialectForQuerySpace(querySpace),
+                            jdbcTemplate, querySpace, GUARD_LOCK_TIMEOUT_MS);
+                g = guard;
+            }
+        }
+        return g;
     }
 
     public Set<String> getExecutedVersions() {
@@ -70,72 +104,103 @@ public class MigrationHistoryManager {
     }
 
     public void ensureHistoryTableExists(IDialect dialect) {
-        if (tableExists()) {
-            return;
-        }
+        // 裁定⑧：DDL 守卫段跨进程互斥串行化——check-then-act 在锁内重查，多节点并发启动
+        // DDL 重复执行面闭合（持锁失败类型化异常，启动重试面承接，非静默继续）
+        guard().withLock(GUARD_LOCK_DDL, () -> {
+            if (tableExists()) {
+                return;
+            }
 
-        String sql = buildCreateHistoryTableSQL(dialect);
+            String sql = buildCreateHistoryTableSQL(dialect);
 
-        jdbcTemplate.executeUpdate(
-            SQL.begin()
-                .querySpace(querySpace)
-                .name("create-migration-history-table")
-                .append(sql)
-                .end()
-        );
+            jdbcTemplate.executeUpdate(
+                SQL.begin()
+                    .querySpace(querySpace)
+                    .name("create-migration-history-table")
+                    .append(sql)
+                    .end()
+            );
+        });
     }
 
     public void recordMigration(MigrationRecord record) {
-        // A version may already have a history row (e.g. a previous failed
-        // attempt, or a repeatable migration being re-executed). Replace the
-        // existing row with a single UPDATE, and only INSERT when no row
-        // exists. The previous DELETE+INSERT pair was not atomic: if the
-        // process died (or the INSERT failed, e.g. a description longer than
-        // VARCHAR(500)) between the two statements, the version's history row
-        // was already gone and the migration would silently re-execute.
-        String updateSql = "UPDATE " + TABLE_NAME +
-            " SET description = ?, type = ?, checksum = ?, installed_on = ?, execution_time = ?, success = ?, installed_by = ?" +
-            " WHERE version = ?";
+        // 裁定⑧：按版本键域的互斥写段——同版本并发执行被互斥拒绝，仅单节点执行并落账
+        // （FAILED 脏行覆盖 success 行的永久重试循环由串行化消除）
+        guard().withLock(GUARD_LOCK_VERSION_PREFIX + record.getVersion(), () -> {
+            // A version may already have a history row (e.g. a previous failed
+            // attempt, or a repeatable migration being re-executed). Replace the
+            // existing row with a single UPDATE, and only INSERT when no row
+            // exists. The previous DELETE+INSERT pair was not atomic: if the
+            // process died (or the INSERT failed, e.g. a description longer than
+            // VARCHAR(500)) between the two statements, the version's history row
+            // was already gone and the migration would silently re-execute.
+            String updateSql = "UPDATE " + TABLE_NAME +
+                " SET description = ?, type = ?, checksum = ?, installed_on = ?, execution_time = ?, success = ?, installed_by = ?" +
+                " WHERE version = ?";
 
-        long updated = jdbcTemplate.executeUpdate(
-            SQL.begin()
-                .querySpace(querySpace)
-                .name("update-migration-record")
-                .sql(updateSql,
-                    record.getDescription(),
-                    record.getType(),
-                    record.getChecksum(),
-                    new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
-                    record.getExecutionTime(),
-                    record.isSuccess(),
-                    record.getInstalledBy(),
-                    record.getVersion())
-                .end()
-        );
+            long updated = jdbcTemplate.executeUpdate(
+                SQL.begin()
+                    .querySpace(querySpace)
+                    .name("update-migration-record")
+                    .sql(updateSql,
+                        record.getDescription(),
+                        record.getType(),
+                        record.getChecksum(),
+                        new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
+                        record.getExecutionTime(),
+                        record.isSuccess(),
+                        record.getInstalledBy(),
+                        record.getVersion())
+                    .end()
+            );
 
-        if (updated > 0) {
-            return;
-        }
+            if (updated > 0) {
+                return;
+            }
 
-        String sql = "INSERT INTO " + TABLE_NAME +
-            " (version, description, type, checksum, installed_on, execution_time, success, installed_by) " +
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO " + TABLE_NAME +
+                " (version, description, type, checksum, installed_on, execution_time, success, installed_by) " +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        jdbcTemplate.executeUpdate(
-            SQL.begin()
-                .querySpace(querySpace)
-                .name("record-migration")
-                .sql(sql,
-                    record.getVersion(),
-                    record.getDescription(),
-                    record.getType(),
-                    record.getChecksum(),
-                    new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
-                    record.getExecutionTime(),
-                    record.isSuccess(),
-                    record.getInstalledBy())
-                .end()
-        );
+            try {
+                jdbcTemplate.executeUpdate(
+                    SQL.begin()
+                        .querySpace(querySpace)
+                        .name("record-migration")
+                        .sql(sql,
+                            record.getVersion(),
+                            record.getDescription(),
+                            record.getType(),
+                            record.getChecksum(),
+                            new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
+                            record.getExecutionTime(),
+                            record.isSuccess(),
+                            record.getInstalledBy())
+                        .end()
+                );
+            } catch (Exception insertConflict) {
+                // 裁定⑧：条件 INSERT 捕获唯一约束冲突回落 UPDATE 一次（有界）——多节点并发
+                // UPDATE 双 0 行时恰一 INSERT 成功、败者回落 UPDATE 覆盖，终态单行。
+                // upsert 覆盖语义完整保留（RP-1：禁「冲突即拒绝/insert-only」方向）。
+                long fallback = jdbcTemplate.executeUpdate(
+                    SQL.begin()
+                        .querySpace(querySpace)
+                        .name("record-migration-conflict-fallback")
+                        .sql(updateSql,
+                            record.getDescription(),
+                            record.getType(),
+                            record.getChecksum(),
+                            new java.sql.Timestamp(CoreMetrics.currentTimeMillis()),
+                            record.getExecutionTime(),
+                            record.isSuccess(),
+                            record.getInstalledBy(),
+                            record.getVersion())
+                        .end()
+                );
+                if (fallback != 1)
+                    throw insertConflict;
+            }
+        });
     }
 
     public MigrationRecord getMigrationByVersion(String version) {

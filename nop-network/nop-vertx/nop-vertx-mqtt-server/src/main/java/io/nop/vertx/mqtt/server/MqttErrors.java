@@ -13,8 +13,11 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface MqttErrors {
     String ARG_TOPIC = "topic";
+    String ARG_PORT = "port";
 
     ErrorCode ERR_MQTT_NOT_CONNECTED = define("nop.err.mqtt.not-connected", "MQTT连接已断开:topic={topic}");
 
     ErrorCode ERR_MQTT_PUBLISH_FAIL = define("nop.err.mqtt.publish-fail", "MQTT消息发布失败:topic={topic}");
+
+    ErrorCode ERR_MQTT_LISTEN_FAIL = define("nop.err.mqtt.listen-fail", "MQTT服务监听失败:port={port}");
 }

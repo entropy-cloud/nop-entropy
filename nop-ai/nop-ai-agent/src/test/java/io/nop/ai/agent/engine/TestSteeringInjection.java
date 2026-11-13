@@ -503,7 +503,6 @@ public class TestSteeringInjection {
         io.nop.ai.agent.runtime.InMemoryActorRuntime rt =
                 new io.nop.ai.agent.runtime.InMemoryActorRuntime(
                         engine::getSessionMailbox, FAST_POLL_MS, FAST_SHUTDOWN_MS);
-        rtRef.set(rt);
         engine.config().setActorRuntime(rt);
 
         AgentMessageRequest request = new AgentMessageRequest(

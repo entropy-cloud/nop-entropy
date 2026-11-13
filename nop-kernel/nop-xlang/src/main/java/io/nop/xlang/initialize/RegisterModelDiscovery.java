@@ -51,7 +51,7 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_MODEL_NO_NAME_ATTR;
 public class RegisterModelDiscovery {
     static final Logger LOG = LoggerFactory.getLogger(RegisterModelDiscovery.class);
 
-    static RegisterModelDiscovery _instance = new RegisterModelDiscovery();
+    static volatile RegisterModelDiscovery _instance = new RegisterModelDiscovery();
 
     public static RegisterModelDiscovery instance() {
         return _instance;

@@ -213,28 +213,40 @@ public class MetaQualityCheckpointScheduler {
             checkpointId = String.valueOf(cpId);
             // null context 安全：computeQualityScore 内部从不解引用 context（架构基线 §2.7.3.1 D3 R2 核实）
             return checkpointBizModel.executeCheckpoint(checkpointId, null, null);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             // MA7.5-01：checkpoint 级执行错误不向外抛——否则 invoker 转 JobFireResult.ERROR 后
             // LocalJobScheduler 将 job 永久置 FAILED（addJob(allowUpdate=true) 仅对 WAITING/SUSPENDED
             // 重排程，FAILED 不复活，唯一恢复手段是重启 JVM）。记录日志并返回正常结果，job 存活按 cron
             // 继续触发；配置修复后下一次触发即恢复。
+            //
+            // W-11（plan 2496 Phase 4）：捕获宽度从 Exception 放宽到 Throwable——Error 分支同样
+            // 不逃逸（否则 cron job 永久 FAILED、击穿 MA7.5-01「job 存活按 cron 继续触发」自愈契约
+            // 的 Exception 半边之外的 Error 半边），按 FATAL 级记录（观测升级）并仍返回错误结果 DTO，
+            // job 存活。
             if (isConcurrentRunRejection(e)) {
                 // R4.3（Minor-8）：cron tick 与手动执行并发被运行标记 fail-fast 拒绝——预期运维噪音，降级 WARN
                 // （区别于真实故障的 ERROR，避免 MA7.5-01 catch-all 转 ERROR 造成运维误读）
                 // P2-14：WARN 补异常末参（对齐同文件 ERROR 分支形态，保留并发拒绝原因的堆栈可诊断性）
                 LOG.warn("nop.meta.checkpoint-scheduler.scheduled-exec-skipped: checkpointId={} "
                         + "(already running, concurrent execution rejected fail-fast)", checkpointId, e);
-            } else {
+            } else if (e instanceof Exception) {
                 LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-failed: errorCode={} checkpointId={} error={}",
                         NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,
                         NopMetadataHelper.toErrorMessage(e), e);
+            } else {
+                // W-11 Error 半边：FATAL 级观测（非 Exception 的 Throwable——OOM/LinkageError 等），
+                // 不逃逸、不杀 job。
+                LOG.error("nop.meta.checkpoint-scheduler.scheduled-exec-fatal: errorCode={} checkpointId={} "
+                                + "fatal-errorClass={} (job kept alive per MA7.5-01; error not propagated) error={}",
+                        NopMetadataErrors.ERR_CHECKPOINT_SCHEDULE_FAILED.getErrorCode(), checkpointId,
+                        e.getClass().getName(), NopMetadataHelper.toErrorMessage(e), e);
             }
             return buildErrorResult(checkpointId, e);
         }
     }
 
     /** R4.3：运行期并发重复触发（ERR_CHECKPOINT_ALREADY_RUNNING）判定——仅该错误码降级 WARN。 */
-    private static boolean isConcurrentRunRejection(Exception e) {
+    private static boolean isConcurrentRunRejection(Throwable e) {
         return e instanceof NopException
                 && NopMetadataErrors.ERR_CHECKPOINT_ALREADY_RUNNING.getErrorCode()
                 .equals(((NopException) e).getErrorCode());
@@ -249,9 +261,9 @@ public class MetaQualityCheckpointScheduler {
      *
      * <p>P2-20（plan 2026-08-16-0549-2）：错误条目由原 {@code List<Map>} 冗余字段形态（键 {source:"scheduler",
      * error}）改为类型化 {@link ErrorDTO}——source="scheduler" / message=错误文本，逐键等价承接（对照表见
-     * owner doc P2-20 裁决记录）。
+     * owner doc P2-20 裁决记录）。W-11（plan 2496 Phase 4）：参数宽度随捕获宽度放宽到 {@link Throwable}。
      */
-    private static CheckpointExecutionResultDTO buildErrorResult(String checkpointId, Exception e) {
+    private static CheckpointExecutionResultDTO buildErrorResult(String checkpointId, Throwable e) {
         CheckpointExecutionResultDTO dto = new CheckpointExecutionResultDTO();
         dto.setCheckpointId(checkpointId);
         ErrorDTO err = new ErrorDTO();

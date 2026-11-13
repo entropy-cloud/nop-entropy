@@ -13,7 +13,6 @@ import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.util.SourceLocation;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
 import static io.nop.api.core.config.AppConfig.varRef;
@@ -94,9 +93,9 @@ public interface CoreConfigs {
     IConfigReference<Boolean> CFG_COMPONENT_RESOURCE_CACHE_NULL = varRef(s_loc, "nop.core.component.resource-cache.cache-null",
             Boolean.class, false);
 
-    @Description("组件编译缓存的保留时间，单位为毫秒")
+    @Description("组件编译缓存的保留时间。超时后整条目逐出并在下次访问时冷加载重建（漏检自愈通道），负值表示显式关闭该通道")
     IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT = varRef(s_loc,
-            "nop.core.component.resource-cache.timeout", Duration.class, null);
+            "nop.core.component.resource-cache.timeout", Duration.class, Duration.ofMinutes(5));
 
     IConfigReference<Boolean> CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE = varRef(s_loc,
             "nop.core.component.resource-cache.support-serialize", Boolean.class, true);
@@ -104,17 +103,18 @@ public interface CoreConfigs {
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL = varRef(s_loc,
             "nop.core.component.resource-cache.refresh-min-interval", Integer.class, 100);
 
+    @Description("check-changed失效判据的宽限期：文件修改时间距当前时刻在该时间段内（写入新鲜度锚）时，mtime相等的重复检查保守判定为已变更，避免同一mtime粒度tick内二次写入被相等比较漏检；旧mtime资源不受影响，不产生虚假重载。0表示关闭")
+    IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_CHANGE_GRACE_PERIOD = varRef(s_loc,
+            "nop.core.component.resource-cache.change-grace-period", Duration.class, Duration.ofSeconds(2));
+
+    @Description("装载等待上界（plan 2504 裁定②）：entry层装载状态机与LazyFn编译单飞的跨线程等待在等待图环检测"
+            + "竞态漏检窗内的兜底上限，超时抛类型化错误（携带等待链快照）。≤0表示不设上界（现行无界语义）")
+    IConfigReference<Integer> CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT = varRef(s_loc,
+            "nop.core.component.resource-cache.load-wait-timeout", Integer.class, 60_000);
+
     @Description("在启用tenant定制的情况下，最多允许多少个tenant的数据缓存在内存中")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE = varRef(s_loc,
             "nop.core.component.resource-cache.tenant-cache-container-size", Integer.class, 100);
-
-    @Description("缓存IResource.lastModified的调用结果，避免频繁发出系统调用")
-    IConfigReference<Integer> CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_SIZE = varRef(s_loc,
-            "nop.core.component.resource-timestamp-cache.size", Integer.class, 10000);
-
-    @Description("缓存IResource.lastModified调用结果的超时时间")
-    IConfigReference<Duration> CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_TIMEOUT = varRef(s_loc,
-            "nop.core.component.resource-timestamp-cache.timeout", Duration.class, Duration.of(100, ChronoUnit.MILLIS));
 
     @Description("虚拟文件系统的配置文件")
     IConfigReference<String> CFG_RESOURCE_VFS_CONFIG_FILE = varRef(s_loc, "nop.core.resource.vfs-config-file", String.class,

@@ -81,6 +81,15 @@ public class GraphQLMessageSubscriptionRegistrar {
         }
     }
 
+    /**
+     * 消息入口（2.3-C3-012 五入口之一）：tenant/locale 等请求头经
+     * {@code IGraphQLEngine.newRpcContext} 的内置 binder（裁定③统一入口）落盘到请求
+     * 关联的 IContext，入口本地零 binder 改码。
+     * <p>
+     * IMessageSubscriber 解包契约注记（CRA R1-04 裁定③随单，归消费线程上下文专题对账）：
+     * 本方法返回的 {@code CompletionStage} 依赖 IMessageSubscriber 实现方「消费方必须等待
+     * CompletionStage 完成」的解包契约——消费端若不等待即确认消息，执行失败不会触发重投。
+     */
     private Object onMessage(String topic, Object o, IMessageConsumeContext context) {
         String locale = null;
         try {

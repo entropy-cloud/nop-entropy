@@ -126,6 +126,57 @@ public class TestShardBuildCoordinator extends JunitAutoTestCase {
         codeIndexService.deleteIndex(indexId);
     }
 
+    // ==================== W-06 (plan 2565, adjudication D) ====================
+    // deleteIndex must clear NopCodeShardLedger rows in the same transaction: leftover rows let
+    // completeShard of a rebuilt indexId hit stale COMPLETED rows (early publish) or finalize
+    // against a deleted index (wrong failure message).
+    // NOTE (R1-m3): fixtures below never call beginShardBuild after deleteIndex — begin's own
+    // deleteLedger would erase the stale rows and distort the red proof.
+
+    /** W-06 leg 1 (red0): cross-lifecycle completion after deleteIndex must report unknown shardId */
+    @Test
+    void testDeleteIndexClearsLedgerCrossLifecycleUnknownShard() throws Exception {
+        String indexId = "w06_crosslife";
+        seedIndex(indexId);
+
+        ShardBuildCoordinator coordinator = newCoordinator();
+        coordinator.beginShardBuild(indexId, List.of("shard-A", "shard-B"));
+        coordinator.completeShard(indexId, "shard-A");
+
+        codeIndexService.deleteIndex(indexId);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> coordinator.completeShard(indexId, "shard-B"),
+                "post-deleteIndex completion must not hit the stale ledger row");
+        assertTrue(ex.getMessage().contains("unknown shardId"),
+                "expected unknown shardId failure, got: " + ex.getMessage());
+    }
+
+    /** W-06 leg 2 (red0): rebuild-then-complete must not early-publish from stale COMPLETED rows */
+    @Test
+    void testDeleteIndexClearsLedgerRebuildNoEarlyPublish() throws Exception {
+        String indexId = "w06_rebuild";
+        seedIndex(indexId);
+
+        ShardBuildCoordinator coordinator = newCoordinator();
+        coordinator.beginShardBuild(indexId, List.of("shard-A", "shard-B"));
+        coordinator.completeShard(indexId, "shard-A");
+        coordinator.completeShard(indexId, "shard-B");
+
+        codeIndexService.deleteIndex(indexId);
+        // rebuild the index entity WITHOUT beginShardBuild (R1-m3)
+        codeIndexService.indexFile(indexId, "app/Seed2.java",
+                "package app;\npublic class Seed2 { public void go2() {} }\n");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> coordinator.completeShard(indexId, "shard-A"),
+                "rebuilt index must not be publishable from stale COMPLETED ledger rows");
+        assertTrue(ex.getMessage().contains("unknown shardId"),
+                "expected unknown shardId failure, got: " + ex.getMessage());
+        assertFalse(indexStatus(indexId).equals(ShardBuildCoordinator.STATUS_COMPLETED),
+                "rebuilt index must not be early-published");
+    }
+
     private String indexStatus(String indexId) {
         IEntityDao<NopCodeIndex> dao = daoProvider.daoFor(NopCodeIndex.class);
         NopCodeIndex index = dao.getEntityById(indexId);

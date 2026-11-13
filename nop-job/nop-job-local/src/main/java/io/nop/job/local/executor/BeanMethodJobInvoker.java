@@ -113,7 +113,12 @@ public class BeanMethodJobInvoker implements IJobInvoker {
     CompletionStage<Object> invokeReflective(IFunctionModel fn, Object bean, Map<String, Object> methodParams) {
         try {
             return toCompletionStage(invokeMethod(fn, bean, methodParams));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // CRA 8.46 R4-06 W-08 (1.4-C2-007 residual): an Error thrown inside the
+            // bean method body must flow into the SAME failed-future channel as an
+            // Exception — the scheduler-side settleExecution path then terminates the
+            // job FAILED instead of the Error punching through to the executor
+            // facility (silently stuck RUNNING). Widen only the catch clause.
             return CompletableFuture.failedFuture(e);
         }
     }

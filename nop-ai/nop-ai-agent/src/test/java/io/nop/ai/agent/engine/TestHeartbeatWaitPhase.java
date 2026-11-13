@@ -67,6 +67,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * wait phase even starts); the scripted chat service distinguishes the
  * initial reasoning call from wakeup calls by count, and releases tool
  * futures from inside a later scripted call (running on the ReAct thread).
+ *
+ * <p><b>R4 rewrite (CRA 3.1-C7-014, plan 2501 Phase 4)</b>: the four
+ * hb-into-history pins (:260-262 / :656 / :748 / :783 at rewrite time) were
+ * rewritten as positive protection with the new semantics — <i>the wakeup
+ * REQUEST copies carry the heartbeat evidence (recorded via
+ * {@code ScriptedChatService.requests}), while the ctx TERMINAL history
+ * carries zero heartbeat fragments</i> (WAIT verdicts commit nothing; only
+ * terminal adjudications commit). The wakeup-behavior pins (LLM call counts)
+ * are preserved. Full-set recheck: {@code tokens()} maps "[heartbeat]" user
+ * messages to "hb"; usages at :255-262/:654-657/:743-748/:781-785 were the
+ * complete set (the dialect test builds its own synthetic history and is
+ * not a ctx pin).
  */
 public class TestHeartbeatWaitPhase {
 
@@ -131,12 +143,19 @@ public class TestHeartbeatWaitPhase {
      * Per-call scripted chat service: each call pops the next step; the side
      * action runs before the response returns (used to release tool futures
      * from inside the LLM call, i.e. on the ReAct thread).
+     *
+     * <p>R4 rewrite seam (C7-014, plan 2501 Phase 4): every issued request is
+     * recorded so tests can assert the positive-protection contract — the
+     * wakeup request COPIES carry the heartbeat evidence (the model protocol
+     * is satisfied on the transient copy), while ctx terminal history stays
+     * fragment-free.
      */
     static class ScriptedChatService implements IChatService {
         record Step(ChatResponse response, Runnable action) {
         }
 
         private final ConcurrentLinkedQueue<Step> steps = new ConcurrentLinkedQueue<>();
+        final ConcurrentLinkedQueue<ChatRequest> requests = new ConcurrentLinkedQueue<>();
         final AtomicInteger calls = new AtomicInteger();
 
         void enqueue(ChatResponse response, Runnable action) {
@@ -146,6 +165,7 @@ public class TestHeartbeatWaitPhase {
         @Override
         public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
             calls.incrementAndGet();
+            requests.add(request);
             Step step = steps.poll();
             if (step == null) {
                 throw new AssertionError("script exhausted at call " + calls.get());
@@ -216,7 +236,8 @@ public class TestHeartbeatWaitPhase {
                 .build();
     }
 
-    private static List<String> tokens(List<ChatMessage> messages) {
+    // package-private: shared with TestHeartbeatWakeupBudget_C7_014 (C7-014)
+    static List<String> tokens(List<ChatMessage> messages) {
         List<String> out = new ArrayList<>();
         for (ChatMessage m : messages) {
             if (m instanceof ChatToolCallMessage) {
@@ -232,6 +253,22 @@ public class TestHeartbeatWaitPhase {
             }
         }
         return out;
+    }
+
+    // ---- R4 rewrite helpers (C7-014, plan 2501 Phase 4) ----
+
+    // package-private: shared with TestHeartbeatWakeupBudget_C7_014 (C7-014)
+    static boolean isHeartbeatMessage(ChatMessage m) {
+        return m instanceof ChatUserMessage && m.getContent() != null
+                && m.getContent().startsWith("[heartbeat]");
+    }
+
+    /** Heartbeat evidence messages carried by the issued wakeup REQUEST copies. */
+    static long hbRequestCount(ScriptedChatService chat) {
+        return chat.requests.stream()
+                .flatMap(r -> r.getMessages().stream())
+                .filter(TestHeartbeatWaitPhase::isHeartbeatMessage)
+                .count();
     }
 
     // ---- ① two heartbeats then release → result in-place before heartbeats ----
@@ -258,7 +295,24 @@ public class TestHeartbeatWaitPhase {
         assertTrue(callIdx >= 0 && resultIdx == callIdx + 1,
                 "invariant ② timing: result right after its own tool_call, before wait-phase messages: " + tokens);
         long hbCount = tokens.stream().filter("hb"::equals).count();
-        assertTrue(hbCount >= 2, "at least two heartbeat messages expected: " + tokens);
+        // R4 rewrite (C7-014, plan 2501 Phase 4; old pin: hbCount >= 2 in ctx
+        // history): positive protection — the wakeup REQUEST copies carry the
+        // heartbeat evidence, and WAIT fragments never enter the ctx terminal
+        // history. The wakeup-behavior pin (LLM call count) is preserved.
+        assertTrue(hbRequestCount(chat) >= 2,
+                "at least two wakeup requests must carry the heartbeat evidence: "
+                        + hbRequestCount(chat));
+        for (ChatRequest r : chat.requests) {
+            List<ChatMessage> msgs = r.getMessages();
+            if (msgs.stream().anyMatch(TestHeartbeatWaitPhase::isHeartbeatMessage)) {
+                assertTrue(isHeartbeatMessage(msgs.get(msgs.size() - 1)),
+                        "the heartbeat evidence rides at the tail of its wakeup request copy: "
+                                + tokens(msgs));
+            }
+        }
+        assertEquals(0L, hbCount,
+                "WAIT heartbeat fragments must not enter the ctx terminal history "
+                        + "(request-copy only): " + tokens);
         assertTrue(chat.calls.get() >= 4, "wakeup LLM calls expected: " + chat.calls.get());
         // wakeup turns do not consume iteration budget: only the fan-out
         // completion advances currentIteration (initial turn → 1; the final
@@ -651,10 +705,15 @@ public class TestHeartbeatWaitPhase {
         assertEquals(AgentExecStatus.completed, result.getStatus(),
                 "fail-soft: a failed wakeup call must not fail the execution");
         assertTrue(result.getError() == null);
-        // the failed wakeup left no heartbeat message in ctx (reply+hb commit
-        // only happens on success)
-        assertTrue(tokens(ctx.getMessages()).stream().filter("hb"::equals).count() == 1,
-                "only the successful wakeup's heartbeat is in history: " + tokens(ctx.getMessages()));
+        // R4 rewrite (C7-014, plan 2501 Phase 4; old pin: only the successful
+        // wakeup's heartbeat is in history, count==1): neither the failed nor
+        // the (successful) WAIT wakeup may leave hb fragments in the ctx
+        // terminal history — the evidence rides the request copy.
+        assertEquals(0, tokens(ctx.getMessages()).stream().filter("hb"::equals).count(),
+                "no heartbeat fragment enters ctx — neither the failed nor the successful "
+                        + "WAIT wakeup: " + tokens(ctx.getMessages()));
+        assertTrue(hbRequestCount(chat) >= 1,
+                "the wakeup request copies still carried the heartbeat evidence");
     }
 
     // ---- multi-heartbeat wakeup request form: provider-legal under dialect conversion ----
@@ -745,7 +804,14 @@ public class TestHeartbeatWaitPhase {
         int resultIdx = tokens.indexOf("result:A1");
         assertTrue(callIdx >= 0 && resultIdx == callIdx + 1,
                 "engine path preserves in-place insertion: " + tokens);
-        assertTrue(tokens.contains("hb"), "heartbeat message flowed through the engine path");
+        // R4 rewrite (C7-014, plan 2501 Phase 4; old pin: tokens.contains("hb")
+        // — heartbeat flowed through the engine path): the evidence now flows
+        // on the wakeup request copies through the engine path, and WAIT
+        // fragments stay out of the terminal history.
+        assertTrue(hbRequestCount(chat) >= 1,
+                "heartbeat evidence flowed through the engine path on wakeup request copies");
+        assertFalse(tokens.contains("hb"),
+                "WAIT heartbeat fragments must not enter the terminal history: " + tokens);
     }
 
     // ---- ⑤ guardrail block on wakeup reply → adjudicated as WAIT ----
@@ -779,8 +845,14 @@ public class TestHeartbeatWaitPhase {
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
         List<String> tokens = tokens(ctx.getMessages());
-        // the blocked reply never entered ctx; the heartbeat message did
-        assertTrue(tokens.contains("hb"));
+        // R4 rewrite (C7-014, plan 2501 Phase 4; old pin: tokens.contains("hb")
+        // — blocked reply dropped but hb committed): a guardrail-blocked
+        // wakeup adjudicates as WAIT and commits NOTHING — the evidence rode
+        // the request copy, and the blocked reply never enters ctx either.
+        assertEquals(0, tokens.stream().filter("hb"::equals).count(),
+                "guardrail-blocked wakeup commits nothing to the terminal history: " + tokens);
+        assertTrue(hbRequestCount(chat) >= 1,
+                "the wakeup request copies still carried the heartbeat evidence");
         assertTrue(tokens.stream().noneMatch(t -> t.contains("BAD")),
                 "blocked wakeup reply must not enter history: " + tokens);
     }

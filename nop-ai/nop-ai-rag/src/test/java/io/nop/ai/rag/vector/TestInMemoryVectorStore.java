@@ -8,6 +8,8 @@ import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -90,6 +92,10 @@ class TestInMemoryVectorStore {
         query.setVector(new double[]{0, 1});
         List<VectorData> hits = store.search(query, opts("c1", null));
         assertEquals("a", hits.get(0).getMetadata("id"));
+        // plan 2520 C10-002 strength pin (唯一允许的既有钉同 diff 改写): the old entry
+        // must be REPLACED, not duplicated — a removeIf-then-add race keeps both.
+        assertEquals(1, hits.size(),
+                "upsert-by-id must replace: update must leave exactly one entry for the id");
     }
 
     @Test
@@ -154,5 +160,39 @@ class TestInMemoryVectorStore {
         VectorQueryBean query = new VectorQueryBean();
         query.setVector(new double[]{0, 1});
         assertTrue(store.search(query, opts("c1", null)).isEmpty());
+    }
+
+    // ---- C1-003 (plan 2520): same-id concurrent upsert must not duplicate ----
+
+    @Test
+    void concurrentUpsertSameIdProducesSingleEntry() throws Exception {
+        int trials = 10;
+        for (int trial = 0; trial < trials; trial++) {
+            InMemoryVectorStore store = new InMemoryVectorStore();
+            int threads = 4;
+            CountDownLatch start = new CountDownLatch(1);
+            CountDownLatch done = new CountDownLatch(threads);
+            for (int i = 0; i < threads; i++) {
+                Thread t = new Thread(() -> {
+                    try {
+                        start.await();
+                        store.store(vec("dup", null, 1, 0), opts("c1", null));
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+                t.start();
+            }
+            start.countDown();
+            assertTrue(done.await(10, TimeUnit.SECONDS), "trial " + trial + " timed out");
+
+            VectorQueryBean query = new VectorQueryBean();
+            query.setVector(new double[]{1, 0});
+            List<VectorData> hits = store.search(query, opts("c1", null));
+            assertTrue(hits.size() <= 1, "trial " + trial + ": concurrent same-id upsert produced "
+                    + hits.size() + " entries — removeIf+add compound upsert is not atomic (C1-003)");
+        }
     }
 }

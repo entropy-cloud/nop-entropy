@@ -183,6 +183,15 @@ class TestPulsarConsumeTask {
             when(producer.newMessage()).thenReturn((org.apache.pulsar.client.api.TypedMessageBuilder) typedBuilder);
             return producer;
         }
+
+        // 4.1-C8-007: the on-demand producer path is async now — the test stub routes the
+        // same mock producer through the creation seam (buildProducer stays for direct
+        // callers).
+        @Override
+        java.util.concurrent.CompletableFuture<org.apache.pulsar.client.api.Producer<?>>
+                createProducerAsync(String topic, org.apache.pulsar.client.api.Schema<?> schema) {
+            return java.util.concurrent.CompletableFuture.completedFuture(buildProducer(topic, schema));
+        }
     }
 
     private TestPulsarService preparedService(MessageSubscribeOptions options) throws Exception {

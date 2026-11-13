@@ -215,7 +215,7 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: link
-     * actionType=link时起作用。用来指定跳转地址，跟 url 不同的是，这是单页跳转方式，不会渲染浏览器，请指定 amis 平台内的页面。可用 ${xxx} 取值。
+     * actionType=link时起作用。用来指定跳转地址，跟 url 不同的是，这是单页跳转方式，不会渲染浏览器，请指定平台内页面地址。可用 ${xxx} 取值。
      */
     private java.lang.String _link ;
     
@@ -236,7 +236,7 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: onEvent
-     * AMIS框架专用，Flux不使用
+     * Deprecated: AMIS 框架专用（amis 渲染已整体 deprecated，仅 legacy 运行时使用），Flux 不使用。Flux 请使用 onClick。参见 docs-for-ai/04-reference/amis-legacy-deprecation.md
      */
     private java.util.Map<java.lang.String,java.lang.Object> _onEvent ;
     
@@ -859,7 +859,7 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: link
-     *  actionType=link时起作用。用来指定跳转地址，跟 url 不同的是，这是单页跳转方式，不会渲染浏览器，请指定 amis 平台内的页面。可用 ${xxx} 取值。
+     *  actionType=link时起作用。用来指定跳转地址，跟 url 不同的是，这是单页跳转方式，不会渲染浏览器，请指定平台内页面地址。可用 ${xxx} 取值。
      */
     
     public java.lang.String getLink(){
@@ -924,7 +924,7 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: onEvent
-     *  AMIS框架专用，Flux不使用
+     *  Deprecated: AMIS 框架专用（amis 渲染已整体 deprecated，仅 legacy 运行时使用），Flux 不使用。Flux 请使用 onClick。参见 docs-for-ai/04-reference/amis-legacy-deprecation.md
      */
     
     public java.util.Map<java.lang.String,java.lang.Object> getOnEvent(){

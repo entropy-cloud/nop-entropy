@@ -1,0 +1,36 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!--
+          CRA 8.49 R4-09（plan 2542）W-02 红② 模型：X 同时在 enterSteps 与 waitSteps 中——
+          步骤 prev 的 next 自动派生 waitSteps="prev" 到 X，同时 X 被列为 enterSteps。
+          修复前：GraphTaskStep 的 enter 直跑循环与 wait 回调双调度 X，body 双执行；
+          修复后：GraphStepAnalyzer 构建期硬失败 ERR_TASK_GRAPH_ENTER_WAIT_OVERLAP。
+        -->
+        <graph name="test" enterSteps="prev,X" exitSteps="X">
+            <steps>
+                <step name="prev" next="X">
+                    <source>
+                        return 1
+                    </source>
+                </step>
+
+                <step name="X">
+                    <input name="v">
+                        <source>
+                            STEP_RESULTS.prev.outputs.RESULT
+                        </source>
+                    </input>
+                    <source>
+                        return v + 1
+                    </source>
+                </step>
+            </steps>
+        </graph>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return 'OK'
+        </source>
+    </output>
+</task>

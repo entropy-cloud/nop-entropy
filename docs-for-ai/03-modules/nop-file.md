@@ -235,6 +235,10 @@ Bean ID：`nopFileStore`（同时 alias 为 `nopOrmEntityFileStore`）。
 - **filePath/isPublic 不可经 CRUD 更新**：源模型 `nop-file.orm.xml` 中两列声明 `updatable="false"`（xmeta 生成一致）。CRUD update 携带这两列的变更会被 meta 层丢弃（`validateForUpdate` 过滤 `isUpdatable()=false` 属性），落库值不变；内部插入路径（上传/复制创建新记录）不受影响。
 - **attach/detach 归属校验**：`DaoResourceFileStore.attachFile/detachFile` 校验当前用户（`IUserContext`）必须是记录创建者（`createdBy`）或 `admin` 角色，否则抛 `ERR_FILE_NO_ATTACH_PERMISSION`（`nop.err.file.no-attach-permission`）。`IUserContext` 为 null 的引擎内部调用放行（系统调用语义）。detach 会物理删除文件与记录，此校验同时封堵「劫持他人文件记录后触发物理销毁」路径。
 
+## 文件去重延迟清理并发契约（FILE-CC-001，plan 2526）
+
+`DaoResourceFileStore` 的文件去重删除为**两段式延迟清理**（裁定①，plan 2526）：判-删竞态窗口（isUniqueRef 判定唯一引用后、删除文件前，新引用并发挂接）以「宽限间隔（600s）后复验引用计数、计数归零才真删除」窄化——**残余窗口声明**：极慢提交（引用方事务提交晚于复验+宽限）仍可复现悬挂引用，窗口从微秒级窄化至宽限间隔而非闭合；复验失败按结构化 give-up WARN 可观测（重试 3 次上限）。`removeTempFileByOwner` 同族同修；`removeResource`/`saveFile` 路径零触碰。回归钉：`TestDaoResourceFileStoreDedupRace_W01`（闩锁构造性交错+变异锚定）。
+
 ## 自定义 MIME 映射
 
 通过 VFS 提供 `/nop/file/media-type.json`：

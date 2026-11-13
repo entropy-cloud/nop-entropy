@@ -123,6 +123,20 @@ public interface ILoginService extends IUserContextExtractor {
     String refreshToken(IUserContext userContext, AuthToken authToken);
 
     /**
+     * 异步刷新 accessToken（C4-007，plan 2508 裁定①）。入参与同步版 {@link #refreshToken}
+     * 同形，返回刷新终态后的 accessToken（不支持刷新或刷新被 IdP 以 error 拒绝时为 null，
+     * 与既有 error→null 语义一致）。
+     * <p>
+     * 默认实现为既有同步 {@link #refreshToken} 的 {@code FutureHelper.success} 包装——
+     * <b>兼容回退型</b> default：未 override 的实现保持现行同步行为（在调用线程完成刷新后
+     * 以已完成 stage 返回）。远程 IdP 实现（如 SSO）应 override 为纯异步链，
+     * 避免认证过滤器载体线程被远程调用阻塞。
+     */
+    default CompletionStage<String> refreshTokenAsync(IUserContext userContext, AuthToken authToken) {
+        return FutureHelper.success(refreshToken(userContext, authToken));
+    }
+
+    /**
      * 从请求头中提取认证信息并构建用户上下文。
      * <p>
      * 默认实现从 headers 中获取 Authorization 头，解析 token 后调用 getUserContextAsync 获取用户上下文。

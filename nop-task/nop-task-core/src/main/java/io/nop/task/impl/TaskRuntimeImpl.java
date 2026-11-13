@@ -24,6 +24,8 @@ import io.nop.task.metrics.EmptyTaskFlowMetrics;
 import io.nop.task.metrics.ITaskFlowMetrics;
 import io.nop.xlang.api.XLang;
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
@@ -33,6 +35,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
+    private static final Logger LOG = LoggerFactory.getLogger(TaskRuntimeImpl.class);
+
     private final Map<String, Object> attrs = new ConcurrentHashMap<>();
 
     private final ITaskFlowManagerImplementor taskManager;
@@ -101,6 +105,12 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
                         io.nop.task.TaskErrors.ERR_TASK_CANCELLED));
                 state.setTaskStatus(TaskConstants.TASK_STATUS_KILLED);
                 saveTaskState();
+            } else if (status != null && status != TaskConstants.TASK_STATUS_ACTIVE) {
+                // plan 2514 MA-01：cancel 放弃路径（非 SUSPENDED 非 ACTIVE 命中，如已终态重复取消）
+                // 显式 debug 留痕——分类裁定：挂起任务被 timeout-cancel 记 KILLED 非 TIMEOUT
+                // （TIMEOUT 语义保留给在飞步骤的 step-timeout，见 TaskImpl.driveTaskTerminal）
+                LOG.debug("nop.task.cancel-skipped:taskInstanceId={},status={},reason={}",
+                        state.getTaskInstanceId(), status, reason);
             }
         }
     }

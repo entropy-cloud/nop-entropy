@@ -332,6 +332,74 @@ loader（GraphQL 字段装载器）的权限声明有两条等价路径（P1-2.6
 
 仓库里确实存在直接 `dao()`、`updateEntityDirectly()`、`REQUIRES_NEW` 的实现，例如调度 store 层或个别历史 BizModel。它们可以作为“边界场景参考”，但不要当普通业务层模板复制。
 
+## GraphQL WS 订阅推送的执行载体（nop-service-framework，2.3-C8-001，plan 2498）
+
+服务层方法（BizModel action / subscription publisher）向 WS 会话推送时，**阻塞 socket send 不在调用线程或共享定时器线程执行**（单慢客户端 TCP 零窗口曾可钉死全平台 globalTimer，ρ=N·L/40 钉死面已消除）：
+
+- **会话级有界发送泵**：`JsonRpcWebSocketHandler`/`GraphQLSubscriptionManager` 的推送经 `WebSocketSendPump`（容量 128 有界队列、满则 DROP_NEWEST 并断开该会话 `close(1011)`）卸载至平台 `globalWorker` 池——序列化留在调用线程，仅阻塞写卸载；队列满 = 慢消费者会话被断开，不反压全局。
+- **keepalive 扇出 O(1)**：JVM 单条共享周期扫描链（`globalTimer().executeOn(globalWorker())` 遍历连接注册表），非每连接一条 timer 周期任务。
+- **边界**：WS 适配器层写超时（`getBasicRemote`→`getAsyncRemote` 族）为 Deferred，successor=R4-16/R4-17。测试锚点：`nop-graphql-core` `TestJsonRpcWsSendOffload_C8_001`/`TestSubscriptionPushOffload_C8_001`。
+
+## 异步 biz action 的上下文传播契约（nop-service-framework，C3-002/C3-007 同族，plan 2499）
+
+BizModel 异步 action（`callActionAsync` 及其执行链）的线程上下文契约——**异步续段不允许脱离请求 `IContext` 执行**（tenant/locale/trace/ORM 会话均按线程上下文解析，脱窗即读空或读残留）：
+
+- **受管提交**：异步 action 的任务提交必须经受管入口（携带调用方 context 快照传播 + 任务 finally detachContext），禁止裸 `executor.execute(...)` 绕过平台约定；`BizActionInvocation.proceedAsync` 在无线附着线程发起时 fail-fast（类型化错误，不静默新建附着）。
+- **异步出口挂接**：action 内 `thenCompose`/`thenAccept` 续段（出口泵、批量 loader、fetcher 变换）统一经 `ContextProvider.thenOnContext` 或 `IContext.execute` 执行窗口承载（见 `../04-reference/source-anchors.md` `CTX-001`）；TCC invoker 同口径——无线附着 fail-fast，恢复写回捕获的 context 对象而非完成线程的 `currentContext()`。
+- **入口统一**：非 HTTP 入口（gRPC/WS/消息/文件）经 `IGraphQLEngine.newRpcContext`（内置 ContextBinder 装配）从消息头构造 context，不自行拼装线程附着。
+
+测试锚点：`nop-graphql-core` `TestGraphQLExecutorContextPump_C3_002`/`TestTccContextInvokerFailFast_C3_008`、`nop-biz` `TestBizActionServiceManagedSubmit_C3_007`、`nop-graphql-orm` `TestAsyncBizActionOrmChain_P3_E2E`。
+
+## SSO token 刷新的异步化契约（nop-auth-sso，2.3-C4-007，plan 2508）
+
+认证过滤器对 SSO token 的半衰期刷新**不得在载体线程同步执行**（brownout 下 IdP HTTP 挂起按 RTT 钉满全局 worker 载体、全站确定性吞吐停摆面已消除；实现锚点见 `../04-reference/source-anchors.md` `AUTH-005`）：
+
+- **契约 API**：`ILoginService.refreshTokenAsync`（default 方法，默认实现回退同步 `refreshToken`——未升级的实现保持现行行为；SSO 实现经纯异步 HTTP 链 override）。
+- **请求超时**：刷新 HTTP 请求显式超时（键 `nop.auth.sso.refresh-token-timeout`，默认 10s；`≤0` = 回落客户端默认 30s）——无超时的 IdP 挂起不再钉死过滤器。
+- **链序与执行介质**：过滤器刷新终态（成功/error→null 降级/异常三路一致）后，设头/cookie 与下游 `next.get()` 续段**经 `runOnContext` 再入上下文任务队列执行**——不在 HTTP 客户端回调线程直执（下游 `currentContext()` ThreadLocal 依赖任务队列绑定）。
+- **降级语义**：刷新失败沿用既有 stale-serve（error→null）——fail-closed 不在本契约（如需按 ask-first 另行走查）。
+
+## 网关上游调用的准入上界契约（nop-gateway，2.3-C8-002，plan 2508）
+
+网关对上游 HTTP 的在途调用数**有并发上界**（429 重试 ×7 加法放大 + 90s 挂起窗的 OOM 轨迹已消除；实现锚点见 `../04-reference/source-anchors.md` `GW-001`）：
+
+- **准入**：主腿（含 429/5xx 重试挂起窗全程）与 fallback 腿共享并发许可池（键 `nop.gateway.upstream-max-inflight`，默认 1000；`≤0` = 不设上界档）；超限**类型化快速拒绝**（不排队不静默），且该拒绝为不可重试错误——不触发 fallback 级联。主腿重试次数受 `nop.gateway.upstream-max-retries`（默认 3；`≤0` = 零重试）。
+- **许可纪律**：获取在同步抛出点之后；全出口 finally/whenComplete 释放；重试挂起窗（内存持有窗）**不释放**许可。
+- **时间整形**：429 Retry-After 钳制后施加 equal jitter（delay/2 + U(0, delay/2)）——保留 ≥delay/2 上游恢复窗并打破同值 Retry-After 的同步重试波；`parseRetryAfter` 与 30s 钳制语义零变化。XPL/RPC/流式路由不入池。
+
+## 共享可变状态原子化与断连传播契约（nop-service-framework，2.3-C1/C2/C3 束，plan 2550）
+
+并发审计 12 工单束（R4-16）落定的服务层并发契约，修复面按唯一形态收敛：
+
+- **用户角色集**（`UserContextImpl.roles`）：角色集必须为并发 Set（`ConcurrentHashMap.newKeySet()`）；`setRoles` 入参**拷贝进并发 Set**（外部裸 HashSet 不得透传——惰性初始化不会转换非并发集合）。读侧（`isUserInRole`/`getRoles`/serialize）无锁一致视图。
+- **GraphQL 上下文**：`GraphQLExecutionContext.setRequest` 与 `getRequest` 同监视器（读写对称）；`dispatchAll` 的 loader dispatch（DB I/O）**必须在上下文监视器外**——synchronized 域内仅做快照+清空，快照后新注册的 loader 归下一轮。
+- **biz 引用缓存**（`BizObjHelper.loadByProp`）：`getIfPresent` 双检 + biz invoke（校验链+DB）**锁外执行** + `putIfAbsent` 原子回写（竞争失败方丢弃自建结果）。禁止把 biz invoke 写进缓存映射 lambda（锁内 I/O）。
+- **WS 订阅注册**（`JsonRpcWebSocketHandler`）：`activeOperations` 用 `putIfAbsent`——同 id 并发注册不覆盖首订阅（输家放弃自建 subscriber，冷 publisher 未 subscribe 即未执行）；流终止三路径对称：上游 onError 必发 jsonrpc 终止 error 帧；session-closed 后推送**取消上游订阅**；消息处理同步 RuntimeException 按 keepAlive 绝缘同型（结构化日志、不杀 handler）。
+- **订阅流上下文清理**（`GraphQLSubscriptionPublisher`）：onComplete/onError/**cancel** 三条终止路径都触发执行上下文 `complete()`（取消路径不 complete = 上下文清理回调泄漏）。
+- **gRPC 取消传播**（`GraphQLServerCallHandler`）：`onCancel` → abandoned WARN 记录 + 执行上下文 complete + 对在途 stage 的 best-effort Future 取消。底层 `CompletionStage` 组合链无取消点——真实中断需引擎级取消句柄（登记 watch-only，随引擎演进承接）。
+- **客户端断连传播（CL-025）**：`IHttpServerContext` 增加 `default boolean isClientAborted()`（不可观测档返回 false）与 `default void onClientAbort(Runnable)`（不可观测档无操作）。网关转发前与重试延迟触发前检查断连——已断连以 `CancellationException` 终止（不在 failover 可重试白名单，链路就此终止）；`GatewayHttpFilter` 注册 `onClientAbort` 关闭在途下游调用。实现面：Vertx 适配器真实检测（`request.isClosed()`/`response().closeHandler`）；**Servlet 6.0 无轮询式断连 API**（Connection API 为 6.1 特性），Servlet 适配器维持不可观测档。
+- **流式重订阅上界**（`BufferedStreamingPublisher`，键 `nop.graphql.stream.max-resubscribe-attempts` 默认 5，`≤0`=无限）：窗口内失败重订阅受次数上界 + 指数退避（100ms×2^n 封顶 5s，经注入缝确定性可测）；2509 的溢出终态/attempt-identity 语义零回改。
+- **会话刷新失败可观测**（`AbstractLoginService.flushUserContextAsync`）：保存失败 WARN（`nop.warn.auth.session-flush-fail`）且**不清 dirty**（成功才 clearDirty）——thenRun 形态的失败静默已消除；过滤器侧内层 stage 补失败消费。
+
+测试锚点：`nop-biz-auth-core` `TestUserContextRoles`/`TestMfaChallengeVisibility`/`TestSessionFlushFailure`；`nop-graphql-core` `TestGraphQLContextRequest`/`TestDispatchAllSnapshot`/`TestSubscriptionContextComplete`/`TestJsonRpcSubscriptionRegister`/`TestWsErrorSemantics`；`nop-biz` `TestBizObjHelperDoubleCheck`；`nop-gateway` `TestStreamResubscribeBound`/`TestClientAbortPropagation`。
+
+## 异步 action 执行器治理与 WS 活性面契约（nop-service-framework，2.3-C4/C8/C9 束 b，plan 2551）
+
+并发审计 12 工单束（R4-17）落定的执行器/资源卫生/热路径契约：
+
+- **xbiz 异步 action 执行器**（`BizActionService`）：缺省执行器 bean `defaultWorkExecutor` 必须存在（`DefaultWorkExecutor` 薄包装委托平台 `globalWorker`，不新建线程池）；`validateExecutors` 启动期类型校验——executor 名不可解析或 `bizSequential` 动作绑定非 `IPartitionedExecutor` 执行器均 fail-fast（列全违例动作名）。
+- **上游重试时间面**（`InvokeProcessor`）：重试延迟经平台 `globalTimer().executeOn(globalWorker())`（完成回调不落 timer 线程）；上游 fetch 显式超时（键 `nop.gateway.upstream-request-timeout`，缺省 30s）——挂起窗双重上界（Retry-After 30s 钳制 × 请求超时）。
+- **下载临时文件**（`DownloadHelper`/`DownloadTempReconciler`）：一次性清理失败必须 WARN（`nop.warn.download.temp-clean-fail`）；平台级对账周期扫描 `temp:/download` 整树（键 `nop.download.temp-reconcile-interval` 缺省 1h、`nop.download.temp-max-age` 缺省 24h，阈值必须 > `MAX_WAIT_MINUTES`，≤0 interval 显式关档）。
+- **JWKS 定位器**（`JWKPublicKeyLocator`）：kid 未命中走**单飞共享拉取**（在飞 future，monitor 不跨 IdP RTT）+ 显式超时（5s 缺省）；失败 grace——保留旧钥、不占速率窗（`lastRequestTime` 仅成功推进），无旧钥才 fail。
+- **流式聚合上界**（`OpenAiDeltaAccumulator`）：content 与每个 tool-call arguments 缓冲分别受字节上界（键 `nop.gateway.streaming.accumulate-max-bytes`，缺省 2MB），超限截断 + 一次性 WARN + 截断标记；`onStreamError` 清理 accumulator 引用。
+- **WS 订阅准入**（`JsonRpcWebSocketHandler`）：单连接上界配置化（键 `nop.graphql.ws.max-active-operations`，缺省 1000）+ 跨连接全局闸 `HighWatermarkSemaphore`（键 `nop.graphql.ws.global-max-subscriptions`，缺省 10000，≤0=不设上界档）——validSubscription 前 tryAcquire、终止清理点 release。
+- **WS 会话活性**：连续 3 次发送失败即复用 onClose 清理路径断连；pong 记账（`lastPongAt`）+ idle 超时断开（键 `nop.graphql.ws.idle-timeout`，缺省 120s，≤0=关档）；`onThrowable` 补订阅清理。
+- **流控分桶**（`DefaultFlowControlRunner`）：按 `resourceType:resource` 分桶的 IRateLimiter（原语零换型）——invoker/fetcher 双消耗站点不再共享同桶（1+K 稀释消除）；setter 置新速率重建全部桶。
+- **JWT 密钥热路径**（`JwtAuthTokenProvider`）：`keySnapshot` volatile 不可变快照（整表替换发布，`legacyKey` 并入快照）+ 锁外快检 DCL——每认证请求不再串行过单例监视器。
+- **SSE 透传快径**（`StreamingProcessor`）：无流元素变换档（`hasStreamElementTransform()==false`——拦截器无 onStreamElement 覆写且路由无映射）下 String 元素免 parse/再 serialize 往返，线缆字节与上游一致；带变换路由维持现路径。
+
+测试锚点：nop-biz `TestBizAsyncExecutorResolution`/`TestDownloadTempCleanup`；nop-gateway `TestUpstreamRetryTiming`/`TestDeltaAccumulatorBound`/`TestStreamingPassthrough`；nop-graphql-core `TestWsSubscriptionAdmission`/`TestWsSessionLiveness`；nop-rpc-core `TestFlowControlKeying`；nop-biz-auth-core `TestJwtEnsureKeysHotPath`；nop-auth-sso `TestJwkLocatorSingleflight`。
+
 ## 相关文档
 
 - `./architecture-principles.md` — 聚合根与数据库表的关系、DSL优先等跨切面原则

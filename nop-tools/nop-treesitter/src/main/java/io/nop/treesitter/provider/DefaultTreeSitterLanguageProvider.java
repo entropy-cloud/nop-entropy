@@ -43,15 +43,18 @@ public class DefaultTreeSitterLanguageProvider implements ITreeSitterLanguagePro
         if (name == null) {
             return null;
         }
-        Language cached = cache.get(name);
-        if (cached != null) {
-            return cached;
-        }
-        Language language = loadLanguage(name);
-        if (language != null) {
-            cache.put(name, language);
-        }
-        return language;
+        // Single-instance identity contract (plan 2531 W-05, adjudication 6):
+        // concurrent first touches of one grammar must converge on one decode.
+        // The compound get→load→put window let racing threads each build their
+        // own Language instance — breaking the incremental-parse identity
+        // chain (TSParser validates the language instance) and doubling the
+        // decoded tables. computeIfAbsent runs the loader under the map's bin
+        // lock: the decode is millisecond-scale and the loader never recurses
+        // into this cache (custom providers resolve before the blob path, and
+        // a third-party provider must not loop back into this provider's
+        // cache — a violation is an assembly error, not a supported shape).
+        // A null loader result still stores nothing and returns null.
+        return cache.computeIfAbsent(name, this::loadLanguage);
     }
 
     @Override

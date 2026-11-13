@@ -55,8 +55,9 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
             if (items.isEmpty())
                 return;
 
-            checkRetry(e, 0, context);
-
+            // 1.7-C7-004（plan 2545 W-10）：移除入口处的 checkRetry(e, 0) 预检查——它只 sleep 并
+            // 消耗一次重试计数却不消费，使实到尝试次数 = 声明 + 2（消费链 4 次 vs 加载链 3 次，
+            // 两条链计数还不一致）。重试语义统一由 retryConsume 的循环承载。
             if (snapshot != null)
                 items = snapshot.restore(items, context);
 
@@ -74,10 +75,6 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
         } finally {
             context.setSingleMode(singleMode);
         }
-    }
-
-    protected void checkRetry(Throwable e, int retryTimes, IBatchChunkContext context) {
-        RetryConsumeHelper.checkRetry(retryPolicy, e, retryTimes, context);
     }
 
     protected abstract void retryConsume(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot,

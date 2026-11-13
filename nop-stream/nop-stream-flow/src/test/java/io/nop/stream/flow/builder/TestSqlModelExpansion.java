@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,20 +78,31 @@ public class TestSqlModelExpansion {
     }
 
     @Test
-    public void fakeProviderExpandsModelContent() {
+    public void fakeProviderExpandsModelContent() throws Exception {
         StreamModel model = parseInline(
                 "<sql sinkBean=\"fakeSinkFn\">"
                         + "<source>ANY SQL TEXT — the fake compiler ignores it</source>"
                         + "</sql>");
+        io.nop.stream.flow.testing.CollectingSinkFunction<String> sink =
+                new io.nop.stream.flow.testing.CollectingSinkFunction<>();
+        InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver()
+                .register("fakeSrcFn", new io.nop.stream.flow.testing.TestSourceFunction())
+                .register("fakeSinkFn", sink);
 
-        StreamModelDslBuilder.of(model).build();
+        StreamModelDslBuilder.of(model, resolver).build().execute("fake-provider-product");
 
-        // B4: the SPI product REPLACED the parent content; the <sql> element is consumed
-        assertNull(model.getSql(), "the <sql> declaration is consumed by expansion");
-        assertEquals(3, model.getTransforms().size(), "fake product transforms replaced parent");
-        assertTrue(model.getTransforms().stream().anyMatch(t -> "fakeSrc".equals(t.getId())),
-                () -> "product transform ids: " + model.getTransforms());
-        assertEquals(2, model.getEdges().size(), "fake product edges replaced parent");
+        // B4, reshaped for CRA 8.45 R4-05 W-07 (zero-consumption contract): the
+        // caller-held model stays pristine — the <sql> element is NOT consumed (the
+        // expansion product lives on the builder's internal working copy). The
+        // former assertion observed the in-place expansion (post-build getSql()
+        // == null on the caller model), which the contract deliberately removed.
+        assertNotNull(model.getSql(), "build() must not consume the <sql> declaration");
+
+        // the SPI product still fully replaces the parent content — proven at the
+        // output level: the fake product's pipeline (fakeSrc → fakeMap → sink)
+        // assembled and carried the full fixed record sequence
+        assertEquals(io.nop.stream.flow.testing.TestSourceFunction.FIXED_DATA, sink.getCollected(),
+                "the fake SPI product's pipeline must replace the parent content and run");
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.nop.ai.tools.mcp;
 
 import io.nop.ai.api.mcp.McpConstants;
+import io.nop.ai.tools.utils.AiToolsHelper;
 import io.nop.ai.core.simplifier.JsonSimplifier;
 import io.nop.ai.core.simplifier.XNodeSimplifier;
 import io.nop.ai.core.api.xdef.AiXDefHelper;
@@ -149,12 +150,12 @@ public class AiFileTool {
                     XNode oldNode = XNodeParser.instance().parseFromResource(resource);
                     XDslKeys keys = XDslKeys.of(oldNode);
                     new DeltaMerger(keys).merge(oldNode, node, xdef, false);
-                    ResourceHelper.writeText(resource, oldNode.xml());
+                    writeLocalOrVfs(resource, oldNode.xml());
                 } else {
-                    ResourceHelper.writeText(resource, node.xml());
+                    writeLocalOrVfs(resource, node.xml());
                 }
             } else {
-                ResourceHelper.writeText(resource, content);
+                writeLocalOrVfs(resource, content);
             }
         } else {
             String fromPath = "/text/input." + fromFileType;
@@ -162,6 +163,21 @@ public class AiFileTool {
             DocumentConverterManager.instance().convertResource(inputResource, resource, fromFileType, toFileType, options);
         }
         return "SUCCESS";
+    }
+
+    /**
+     * plan 2557 C1-005 (ruling C): local {@link FileResource} saves go through
+     * the atomic temp+rename template ({@link AiToolsHelper#atomicWriteText}),
+     * so a crash or partial write never truncates the previous file content.
+     * The virtual-resource branch (VFS resource, non-local) keeps the original
+     * in-place write — the atomic template only applies to real local files.
+     */
+    private static void writeLocalOrVfs(IResource resource, String text) {
+        if (resource instanceof FileResource) {
+            AiToolsHelper.atomicWriteText(resource.toFile(), text);
+        } else {
+            ResourceHelper.writeText(resource, text);
+        }
     }
 
     /**

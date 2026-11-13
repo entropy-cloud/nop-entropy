@@ -202,6 +202,12 @@ class TestStateMigrationEndToEnd {
     /**
      * RocksDB backend E2E: Integer checkpoint → JSON persist → reload → register migration →
      * restore → getState(Long) → values converted from Integer to Long.
+     *
+     * <p>plan 2511 C5-002: this test pins the FULL-materialized migration
+     * semantics (the restore consumes the per-state schema headers of the
+     * full JSON snapshot form), so both legs explicitly opt out of the now-default
+     * incremental checkpoint path — the incremental-path migration leg is covered
+     * by {@link #rocksdbIncrementalIntegerToLongMigrationRoundTrip()}.
      */
     @Test
     void rocksdbIntegerToLongMigrationFullRoundTrip() throws Exception {
@@ -211,6 +217,8 @@ class TestStateMigrationEndToEnd {
         // 1. Build + persist Integer checkpoint
         RocksDBStateBackend stateBackend = new RocksDBStateBackend(origDbDir.toString(), 1);
         IKeyedStateBackend<String> backend = stateBackend.createKeyedStateBackend(String.class);
+        // C5-002 full-path opt-out leg: full-materialized migration semantics
+        ((RocksDBKeyedStateBackend<String>) backend).setIncrementalCheckpointEnabled(false);
         CompletedCheckpoint checkpoint = buildCheckpointWithIntegerState(backend);
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(storageDir.toString());
         String path = storage.storeCheckPoint(checkpoint);
@@ -251,6 +259,9 @@ class TestStateMigrationEndToEnd {
 
     /**
      * RocksDB control test: no migration registered → fail-fast.
+     *
+     * <p>plan 2511 C5-002: full-path opt-out leg — see
+     * {@link #rocksdbIntegerToLongMigrationFullRoundTrip()}.
      */
     @Test
     void rocksdbNoMigrationFailsFast() throws Exception {
@@ -259,6 +270,8 @@ class TestStateMigrationEndToEnd {
 
         RocksDBStateBackend stateBackend = new RocksDBStateBackend(origDbDir.toString(), 1);
         IKeyedStateBackend<String> backend = stateBackend.createKeyedStateBackend(String.class);
+        // C5-002 full-path opt-out leg: full-materialized migration semantics
+        ((RocksDBKeyedStateBackend<String>) backend).setIncrementalCheckpointEnabled(false);
         CompletedCheckpoint checkpoint = buildCheckpointWithIntegerState(backend);
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(storageDir.toString());
         String path = storage.storeCheckPoint(checkpoint);
@@ -281,5 +294,104 @@ class TestStateMigrationEndToEnd {
         StreamException ex = assertThrows(StreamException.class, () -> restoredBackend.getState(longDesc));
         assertEquals(ERR_STREAM_STATE_SCHEMA_MISMATCH.getErrorCode(), ex.getErrorCode());
         restoredBackend.close();
+    }
+
+    /**
+     * plan 2511 C5-002 (dual-path migration invariant): the INCREMENTAL
+     * checkpoint path must enforce the same migration-registry contract as the
+     * full JSON path — Integer incremental checkpoint → restore through the
+     * segment-store SST path → register migration → getState(Long) fires the
+     * migration and converts the restored values.
+     */
+    @Test
+    void rocksdbIncrementalIntegerToLongMigrationRoundTrip() throws Exception {
+        Path origDbDir = tempDir.toPath().resolve("orig-db-incr");
+        RocksDBStateBackend stateBackend = new RocksDBStateBackend(origDbDir.toString(), 1);
+        RocksDBKeyedStateBackend<String> backend =
+                (RocksDBKeyedStateBackend<String>) stateBackend.createKeyedStateBackend(String.class);
+        // Incremental is the C5-002 default; set explicitly for leg clarity.
+        backend.setIncrementalCheckpointEnabled(true);
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("counter", Integer.class);
+        backend.setCurrentKey("key1");
+        backend.getState(desc).update(100);
+        backend.setCurrentKey("key2");
+        backend.getState(desc).update(200);
+        StateSnapshot snapshot = backend.snapshotState();
+        backend.close();
+
+        io.nop.stream.core.checkpoint.storage.ISegmentStore store = materializeSegments(snapshot);
+        Path restoreDbDir = tempDir.toPath().resolve("restore-db-incr");
+        RocksDBKeyedStateBackend<String> restoredBackend =
+                new RocksDBKeyedStateBackend<>(restoreDbDir.toString(), String.class, 1, null);
+        restoredBackend.setSegmentStore(store);
+        restoredBackend.restoreState(snapshot);
+
+        StreamComponents components = new StreamComponents();
+        components.registerStateMigrationFunction("counter", new IntegerToLongMigration("counter"));
+        restoredBackend.setMigrationRegistry(components);
+
+        ValueStateDescriptor<Long> longDesc = new ValueStateDescriptor<>("counter", Long.class);
+        restoredBackend.setCurrentKey("key1");
+        ValueState<Long> state = restoredBackend.getState(longDesc);
+        assertEquals(Long.valueOf(100L), state.value());
+        assertEquals(Long.class, state.value().getClass());
+        restoredBackend.setCurrentKey("key2");
+        assertEquals(Long.valueOf(200L), restoredBackend.getState(longDesc).value());
+        assertEquals(Long.class, restoredBackend.getState(longDesc).value().getClass());
+        restoredBackend.close();
+    }
+
+    /**
+     * plan 2511 C5-002 (dual-path migration invariant): control leg — on the
+     * INCREMENTAL restore path, a schema mismatch WITHOUT a registered migration
+     * must fail fast with {@code ERR_STREAM_STATE_SCHEMA_MISMATCH}, exactly like
+     * the full JSON path (before the fix the incremental restore silently
+     * bypassed schema verification).
+     */
+    @Test
+    void rocksdbIncrementalNoMigrationFailsFast() throws Exception {
+        Path origDbDir = tempDir.toPath().resolve("orig-db-incr-ctrl");
+        RocksDBStateBackend stateBackend = new RocksDBStateBackend(origDbDir.toString(), 1);
+        RocksDBKeyedStateBackend<String> backend =
+                (RocksDBKeyedStateBackend<String>) stateBackend.createKeyedStateBackend(String.class);
+        backend.setIncrementalCheckpointEnabled(true);
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("counter", Integer.class);
+        backend.setCurrentKey("key1");
+        backend.getState(desc).update(100);
+        StateSnapshot snapshot = backend.snapshotState();
+        backend.close();
+
+        io.nop.stream.core.checkpoint.storage.ISegmentStore store = materializeSegments(snapshot);
+        Path restoreDbDir = tempDir.toPath().resolve("restore-db-incr-ctrl");
+        RocksDBKeyedStateBackend<String> restoredBackend =
+                new RocksDBKeyedStateBackend<>(restoreDbDir.toString(), String.class, 1, null);
+        restoredBackend.setSegmentStore(store);
+        restoredBackend.restoreState(snapshot);
+        // No migration registered
+
+        ValueStateDescriptor<Long> longDesc = new ValueStateDescriptor<>("counter", Long.class);
+        StreamException ex = assertThrows(StreamException.class, () -> restoredBackend.getState(longDesc));
+        assertEquals(ERR_STREAM_STATE_SCHEMA_MISMATCH.getErrorCode(), ex.getErrorCode());
+        restoredBackend.close();
+    }
+
+    /**
+     * Materializes the incremental snapshot's SST handles into a local segment
+     * store so the restore backend can resolve them (same fixture form as
+     * {@code TestRocksDBIncrementalRangeRestore}).
+     */
+    private io.nop.stream.core.checkpoint.storage.ISegmentStore materializeSegments(
+            StateSnapshot snapshot) throws Exception {
+        io.nop.stream.core.checkpoint.storage.ISegmentStore store =
+                new io.nop.stream.core.checkpoint.storage.LocalFileSegmentStore(
+                        tempDir.toPath().resolve("seg-store-" + System.nanoTime()));
+        Object marker = snapshot.getStateData().get(
+                io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult.MARKER_KEY);
+        io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult result =
+                (io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult) marker;
+        for (io.nop.stream.core.checkpoint.incremental.SharedStateHandle h : result.getSstHandles()) {
+            store.storeSegment(Path.of(h.getFilePath()), h.getContentHash());
+        }
+        return store;
     }
 }

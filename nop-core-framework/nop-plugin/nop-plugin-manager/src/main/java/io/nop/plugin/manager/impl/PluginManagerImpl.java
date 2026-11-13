@@ -10,6 +10,7 @@ import io.nop.core.model.object.DynamicObject;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.core.resource.deps.DefaultResourceChangeChecker;
 import io.nop.core.resource.deps.IResourceChangeChecker;
 import io.nop.core.resource.deps.ResourceChangeCheckResult;
 import io.nop.plugin.api.IPlugin;
@@ -20,6 +21,7 @@ import io.nop.plugin.manager.IPluginConfigProvider;
 import io.nop.plugin.manager.IPluginManager;
 import io.nop.plugin.manager.classloader.PluginClassLoader;
 import io.nop.plugin.manager.resolver.IPluginResourceResolver;
+import io.nop.plugin.support.AbstractPlugin;
 import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -40,8 +42,10 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID;
+import static io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_STATE;
 import static io.nop.plugin.api.PluginApiErrors.ERR_PLUGIN_DEFINITION_NOT_FOUND;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_DEFINITION_NOT_LOADED;
+import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_FORCE_UNLOAD_NOT_ALLOWED;
 import static io.nop.plugin.manager.PluginManagerErrors.ERR_PLUGIN_RELOAD_NOT_SUPPORTED;
 
 /**
@@ -143,51 +147,140 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
 
     @Override
     public void unloadPlugin(String pluginId) {
-        PluginHolder holder = plugins.get(pluginId);
-        if (holder != null) {
-            if (holder.plugin.isStateMachineAware()) {
-                // unload 守卫（定义内）：ACTIVATED/中间态时抛明确异常（可先 deactivate 再重试 unload）
-                holder.plugin.unload();
-            } else {
-                holder.plugin.stop();
+        // 锁矩阵（裁定①）：全程 reconcileLock——管理卸载与配置驱动的 reconcile 自动激活的
+        // 正向/镜像交错（孤儿活容器，C2-004）随 reconcileLock → lifecycleLock 单向序结构性消除
+        synchronized (reconcileLock) {
+            PluginHolder holder = plugins.get(pluginId);
+            if (holder != null) {
+                if (holder.plugin.isStateMachineAware()) {
+                    // unload 守卫（定义内）：ACTIVATED/中间态时抛明确异常（可先 deactivate 再重试 unload）
+                    holder.plugin.unload();
+                } else {
+                    holder.plugin.stop();
+                }
+                // classLoader 关闭与 holder 移除保持同侧（成功路径）执行：unload/stop 失败时异常上抛，
+                // 此处不执行——关闭后的 PluginClassLoader 无法加载任何类，而残留 holder 会因
+                // computeIfAbsent 阻断重新加载，插件将进入不可恢复的"僵尸"状态；失败路径保留
+                // classLoader 与注册表状态，保证 unload 可重试
+                plugins.remove(pluginId);
+                // unload 失败路径（ERR_PLUGIN_NOT_DEACTIVATED）不得清除 name 索引/订阅
+                unregisterNameIndex(pluginId, nameOf(holder.plugin));
+                unsubscribeGlobalConfig(pluginId);
+                IoHelper.safeCloseObject(holder.classLoader);
+                reconcile();
             }
-            // classLoader 关闭与 holder 移除保持同侧（成功路径）执行：unload/stop 失败时异常上抛，
-            // 此处不执行——关闭后的 PluginClassLoader 无法加载任何类，而残留 holder 会因
-            // computeIfAbsent 阻断重新加载，插件将进入不可恢复的"僵尸"状态；失败路径保留
-            // classLoader 与注册表状态，保证 unload 可重试
-            plugins.remove(pluginId);
-            // unload 失败路径（ERR_PLUGIN_NOT_DEACTIVATED）不得清除 name 索引/订阅
-            unregisterNameIndex(pluginId);
-            unsubscribeGlobalConfig(pluginId);
-            IoHelper.safeCloseObject(holder.classLoader);
-            reconcile();
         }
     }
 
     @Override
     public boolean activatePlugin(String pluginId) {
-        IPlugin plugin = requireLoaded(pluginId);
-        boolean result = plugin.activate();
-        // 生命周期操作成功路径：activate 后自动 reconcile（依赖本插件的定义级联激活/去激活）
-        reconcileAfterLifecycleChange(plugin);
-        return result;
+        // 锁矩阵（裁定①）：含 requireLoaded 校验段全程 reconcileLock（校验×卸载 TOCTOU 随
+        // 序列化消解）；activate（lifecycleLock）为合法正向获取
+        synchronized (reconcileLock) {
+            IPlugin plugin = requireLoaded(pluginId);
+            boolean result = plugin.activate();
+            // 生命周期操作成功路径：activate 后自动 reconcile（依赖本插件的定义级联激活/去激活）
+            reconcileAfterLifecycleChange(plugin);
+            return result;
+        }
     }
 
     @Override
     public CompletionStage<Void> deactivatePlugin(String pluginId) {
-        IPlugin plugin = requireLoaded(pluginId);
-        return FutureHelper.futureCall(() -> {
-            FutureHelper.syncGet(plugin.deactivate());
-            // 生命周期操作成功路径：deactivate 后自动 reconcile（依赖本插件的定义级联去激活/恢复）
-            reconcileAfterLifecycleChange(plugin);
-            return null;
-        });
+        // 锁矩阵（裁定①）：含 requireLoaded 校验段全程 reconcileLock；deactivate 持锁跨
+        // futureCall 任务体全时长（任务体在调用线程执行，与 doReconcile 的 deactivateIfActive
+        // syncGet 既有量级一致）
+        synchronized (reconcileLock) {
+            IPlugin plugin = requireLoaded(pluginId);
+            return FutureHelper.futureCall(() -> {
+                FutureHelper.syncGet(plugin.deactivate());
+                // 生命周期操作成功路径：deactivate 后自动 reconcile（依赖本插件的定义级联去激活/恢复）
+                reconcileAfterLifecycleChange(plugin);
+                return null;
+            });
+        }
     }
 
     private void reconcileAfterLifecycleChange(IPlugin plugin) {
         if (plugin instanceof VfsPluginDefinition) {
             reconcile();
         }
+    }
+
+    /**
+     * 状态机恢复 API（设计裁定②，C6-002）：中间态 {ACTIVATING, DEACTIVATING, FAILED, LOADED}
+     * 的唯一合法出口——经双轨定义层内部恢复方法（绕 unload 守卫，在定义层各自 lifecycleLock 内
+     * 原子落定 UNLOADED：残留资源逐段尽力清理、异常逐段留痕不阻断、lastActivationError 保留
+     * 供诊断），并完成 manager 侧清理（holder 移除 + name 索引/订阅清理 + classLoader 关闭 +
+     * 尾部 reconcile，与 {@link #unloadPlugin(String)} 成功路径同侧语义）。
+     *
+     * <p>契约：实现类公共方法，不上 IPluginManager 接口（跨模块公共契约面不扩张；仓内无
+     * beans.xml 装配点，宿主暴露面随装配落地走 follow-up 公共面走查通道）。ACTIVATED 类型化
+     * 拒绝（{@code ERR_PLUGIN_FORCE_UNLOAD_NOT_ALLOWED}）——健康活容器须先走 deactivatePlugin
+     * 正常通道，不强行销毁；UNLOADED/不存在幂等返回并记日志。定位 = 卡死态恢复 hatch，
+     * 非万能强杀。unload/activate 既有守卫零改动，本方法是中间态唯一不经守卫的出口。
+     *
+     * @param pluginId 插件 id
+     */
+    public void forceUnload(String pluginId) {
+        synchronized (reconcileLock) {
+            PluginHolder holder = plugins.get(pluginId);
+            if (holder == null) {
+                LOG.info("nop.plugin.force-unload-idempotent:pluginId={},reason=absent", pluginId);
+                return;
+            }
+            PluginState priorState = holder.plugin.getState();
+            if (priorState == PluginState.ACTIVATED) {
+                // 类型化拒绝（No Silent No-Op）：不强行销毁健康活容器，引导走正常 deactivate 通道
+                throw new NopException(ERR_PLUGIN_FORCE_UNLOAD_NOT_ALLOWED)
+                        .param(ARG_PLUGIN_ID, pluginId)
+                        .param(ARG_PLUGIN_STATE, priorState.name());
+            }
+            if (priorState == PluginState.UNLOADED) {
+                LOG.info("nop.plugin.force-unload-idempotent:pluginId={},reason=already-unloaded", pluginId);
+                return;
+            }
+            // 定义层内部恢复（Vfs 轨 package-private 同包 / AbstractPlugin 轨 public 内部契约——
+            // 各自在 lifecycleLock 内原子落定 UNLOADED；LOADED 受理 = 既有 unload 语义等价）。
+            // 锁内复核：前置态在 lifecycleLock 外读取，若受理时 ACTIVATING 而等锁期间在途激活已
+            // 成功落 ACTIVATED，定义层返回 false——不强杀健康活容器，与前置拒绝同码类型化拒绝、
+            // holder 保留（调用方走 deactivatePlugin 正常通道）
+            boolean recovered;
+            if (holder.plugin instanceof VfsPluginDefinition) {
+                recovered = ((VfsPluginDefinition) holder.plugin).recoverToUnloaded();
+            } else if (holder.plugin instanceof AbstractPlugin) {
+                recovered = ((AbstractPlugin) holder.plugin).recoverToUnloaded();
+            } else {
+                // 非 aware 插件无六态中间态：既有 unload 语义等价（stop 兼容路径清理）
+                holder.plugin.stop();
+                recovered = true;
+            }
+            if (!recovered) {
+                throw new NopException(ERR_PLUGIN_FORCE_UNLOAD_NOT_ALLOWED)
+                        .param(ARG_PLUGIN_ID, pluginId)
+                        .param(ARG_PLUGIN_STATE, PluginState.ACTIVATED.name());
+            }
+            plugins.remove(pluginId);
+            unregisterNameIndex(pluginId, nameOf(holder.plugin));
+            unsubscribeGlobalConfig(pluginId);
+            IoHelper.safeCloseObject(holder.classLoader);
+            // 诊断留痕：pluginId、前态、lastActivationError（保留值；逐段清理异常已由定义层
+            // 恢复方法 LOG 留痕，不吞不抛）
+            LOG.warn("nop.plugin.force-unload:pluginId={},priorState={},lastActivationError={}",
+                    pluginId, priorState, lastActivationErrorOf(holder.plugin));
+            // 尾部 reconcile（依赖方拓扑需重新评估；reconcileLock 可重入安全）
+            reconcile();
+        }
+    }
+
+    private static Throwable lastActivationErrorOf(IPlugin plugin) {
+        if (plugin instanceof VfsPluginDefinition) {
+            return ((VfsPluginDefinition) plugin).getLastActivationError();
+        }
+        if (plugin instanceof AbstractPlugin) {
+            return ((AbstractPlugin) plugin).getLastActivationError();
+        }
+        return null;
     }
 
     @Override
@@ -532,12 +625,29 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
         namesToPluginIds.computeIfAbsent(name, k -> ConcurrentHashMap.newKeySet()).add(plugin.getPluginId());
     }
 
-    private void unregisterNameIndex(String pluginId) {
-        for (Map.Entry<String, Set<String>> entry : namesToPluginIds.entrySet()) {
-            if (entry.getValue().remove(pluginId) && entry.getValue().isEmpty()) {
-                namesToPluginIds.remove(entry.getKey());
-            }
+    /**
+     * C1-018 辅助：仅 VfsPluginDefinition 持有 name 索引（jar 轨不登记）。
+     */
+    private String nameOf(IPlugin plugin) {
+        return plugin instanceof VfsPluginDefinition ? ((VfsPluginDefinition) plugin).getName() : null;
+    }
+
+    /**
+     * C1-018（plan 2549 裁定 D）：签名改 `(pluginId, name)`（调用方 reload/unload/uninstall 均持有
+     * definition 可传 name）；移除+判空清理在单 map `compute` 域内原子完成——原「全表遍历
+     * remove→isEmpty→remove」三步与 registerNameIndex 的 computeIfAbsent 并发时产生孤儿索引集，
+     * requires 门控静默失效。
+     */
+    private void unregisterNameIndex(String pluginId, String name) {
+        if (name == null) {
+            return;
         }
+        namesToPluginIds.compute(name, (k, ids) -> {
+            if (ids == null)
+                return null;
+            ids.remove(pluginId);
+            return ids.isEmpty() ? null : ids;
+        });
     }
 
     /**
@@ -566,33 +676,72 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
 
     private IPlugin loadPluginFromJar(ArtifactCoordinates coords) {
         String id = coords.toString();
-        return plugins.computeIfAbsent(id, k -> {
-            List<URL> urls = resourceResolver.resolvePluginResource(coords);
-            PluginClassLoader classLoader = new PluginClassLoader(urls.toArray(new URL[0]),
-                    this.getClass().getClassLoader());
+        // C2-005（plan 2549 裁定 D）双检①：已装载直接返回（bin 锁外）
+        PluginHolder existing = plugins.get(id);
+        if (existing != null) {
+            return existing.plugin;
+        }
 
-            IPlugin plugin = classLoader.loadPlugin();
+        // 锁外构建（原 computeIfAbsent lambda 体搬移）：HTTP 下载 + SHA256 + 类加载 + plugin
+        // start 全部不在 CHM bin 锁临界区内——消除「同 bin 串行化/长临界区」面。
+        // 2506 裁定③的 try 收窄 + 失败释放语义原样保留（N2 钉零回改义务继承）
+        List<URL> urls = resourceResolver.resolvePluginResource(coords);
+        PluginClassLoader classLoader = null;
+        IPlugin plugin = null;
+        boolean mapped = false;
+        try {
+            classLoader = newPluginClassLoader(urls);
+            plugin = classLoader.loadPlugin();
             Map<String, Object> config = pluginConfigProvider.getPluginConfig(coords);
-            try {
-                if (plugin.isStateMachineAware()) {
-                    plugin.load(config);
-                } else {
-                    plugin.start(coords.getGroupId(), coords.getArtifactId(), coords.getVersion(), config);
-                }
-                return new PluginHolder(plugin, classLoader);
-            } catch (RuntimeException e) {
-                try {
-                    if (plugin.isStateMachineAware()) {
-                        plugin.unload();
-                    } else {
-                        plugin.stop();
-                    }
-                } finally {
-                    IoHelper.safeCloseObject(classLoader);
-                }
-                throw e;
+            if (plugin.isStateMachineAware()) {
+                plugin.load(config);
+            } else {
+                plugin.start(coords.getGroupId(), coords.getArtifactId(), coords.getVersion(), config);
             }
-        }).plugin;
+
+            // C2-005 双检②：putIfAbsent 回写（构建全程在锁外）。竞争失败方（另一线程先映射）
+            // 按 2506 catch 语义回收插件（aware→unload / 非 aware→stop）后再关自建 classLoader
+            // ——只关 classLoader 会丢弃已 start 的插件（R1 MJ-3）
+            PluginHolder winner = plugins.putIfAbsent(id, new PluginHolder(plugin, classLoader));
+            if (winner != null) {
+                if (plugin.isStateMachineAware()) {
+                    plugin.unload();
+                } else {
+                    plugin.stop();
+                }
+                IoHelper.safeCloseObject(classLoader);
+                return winner.plugin;
+            }
+            mapped = true;
+            return plugin;
+        } catch (RuntimeException e) {
+            // 构建期失败：插件级兜底（非 aware stop / aware unload 幂等）+ classLoader 释放
+            // （2506 形态：不建映射、重试重建；N2「映射后失败」腿不经本路径，语义不变）
+            if (plugin != null) {
+                if (plugin.isStateMachineAware()) {
+                    plugin.unload();
+                } else {
+                    plugin.stop();
+                }
+            }
+            throw e;
+        } finally {
+            if (!mapped) {
+                IoHelper.safeCloseObject(classLoader);
+            }
+        }
+    }
+
+    /**
+     * PluginClassLoader 构造工厂钩子（裁定③断言缝）：构造点唯一化，方法体 = 原构造表达式
+     * 原样搬移，生产零变化。测试子类（同包 src/test/java/io/nop/plugin/manager/impl/）覆写
+     * 捕获实例，断言映射前失败路径已释放（{@code isClosed()}）——映射前失败不建映射，既有
+     * {@code classLoaderOf} 反射探针（从 holder 读）恒 null 不可用；既有探针继续服务 N2
+     * 「映射后失败」腿，两缝各司其职。钩子为 C2-005（R4-15 lambda 锁纪律重构）重构后仍成立
+     * 的缝（调用点随映射函数搬移，不依赖当前 lambda 形态）。
+     */
+    PluginClassLoader newPluginClassLoader(List<URL> urls) {
+        return new PluginClassLoader(urls.toArray(new URL[0]), this.getClass().getClassLoader());
     }
 
     /**
@@ -602,6 +751,10 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
      * 轮询线程（避免隐式生命周期与测试耦合）；宿主应用可定时调用（docs 记录接线方式）。
      *
      * <p>检查失败显式报告（日志）不吞；检查无变更 no-op（lastModified 相等不触发 reload）。
+     * 判据取载体的纯比较入口 {@link DefaultResourceChangeChecker#isLoadMismatch}：stat 型入口
+     * 的「写入年龄 &lt; 宽限期保守判 CHANGED」是模型缓存层重读策略（重读廉价、实例身份由缓存门
+     * 承载），插件 reload 为 deactivate/unload/load/activate 重量级迁移且定义对象身份对持有方
+     * 可观测，刚写入/刚加载的 plugin.xml 在宽限窗内不得被判为变更而伪重载。
      */
     public void checkChangedAndReload() {
         List<VfsPluginDefinition> defs = collectVfsDefinitions();
@@ -618,7 +771,7 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 LOG.error("nop.plugin.check-changed-fail:pluginId={}", def.getPluginId(), e);
                 continue;
             }
-            if (result.isChanged()) {
+            if (DefaultResourceChangeChecker.isLoadMismatch(def.getLastModified(), result.getLastModified())) {
                 LOG.info("nop.plugin.resource-changed:pluginId={}", def.getPluginId());
                 reloadPlugin(def.getPluginId());
             }
@@ -669,18 +822,21 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 newDef = loadVfsDefinition(pluginId);
             } catch (RuntimeException e) {
                 plugins.remove(pluginId);
-                unregisterNameIndex(pluginId);
+                unregisterNameIndex(pluginId, oldDef.getName());
                 unsubscribeGlobalConfig(pluginId);
                 LOG.error("nop.plugin.reload-load-fail:pluginId={}", pluginId, e);
                 throw e;
             }
-            plugins.remove(pluginId);
-            unregisterNameIndex(pluginId);
+            // C1-019（plan 2549 裁定 D）：成功路径消除「remove→put 窗口」——plugins map 用单
+            // `compute` 原子替换（无 null 窗口对无锁 loadPlugin 开放产生双活定义）。name 索引/
+            // 订阅沿用原「先摘旧后登新」顺序（reconcile 门控评估依赖正确索引；先登后摘会误删
+            // 同 pluginId 的新索引）。
+            unregisterNameIndex(pluginId, oldDef.getName());
             unsubscribeGlobalConfig(pluginId);
             newDef.load(definitionConfig);
             registerNameIndex(newDef);
             subscribeGlobalConfig(newDef);
-            plugins.put(pluginId, new PluginHolder(newDef, null));
+            plugins.compute(pluginId, (k, oldHolder) -> new PluginHolder(newDef, null));
 
             // 4. reconcile（重新门控激活；reconcileLock 可重入）
             reconcile();

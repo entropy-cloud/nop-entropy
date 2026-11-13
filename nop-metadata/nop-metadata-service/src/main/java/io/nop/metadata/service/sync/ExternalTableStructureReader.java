@@ -50,12 +50,30 @@ public class ExternalTableStructureReader {
      * @throws NopException 目标库方言首版不支持时显式抛出（携带 ERR_DATASOURCE_TYPE_NOT_SUPPORTED；非静默跳过）
      */
     public List<ExternalTableInfo> read(Connection conn, DatabaseMetaData metaData, String schemaPattern) {
+        List<ExternalTableInfo> tables = new ArrayList<>();
+        forEachTable(conn, metaData, schemaPattern, tables::add);
+        return tables;
+    }
+
+    /**
+     * W-09（plan 2528 裁定⑦）流式扫描入口：游标驱动的惰性逐表产出——每表读完列即交付消费方
+     * （upsert），峰值内存从「全 catalog 表×列物化」（万表×40 列≈100MB+ 量级）收敛为单表列集，
+     * 规模不再受进程堆约束（外部库规模决定）。第 k 表读列 scan 级失败时表 1..k−1 已交付
+     * （AR-17 部分持久化语义触发序更自然：先成功先落库）。
+     *
+     * <p>scan 级 SQLException 的 wrap 落点保持在本方法内部（AR-23⑤：ERR_EXTERNAL_TABLE_SCAN_FAILED
+     * 携真实 productName + 原始消息）——消费方逐表 errors 通道只承载 upsert 自身失败（M3）。
+     *
+     * @param consumer      逐表消费方（upsert；逐表失败由消费方自行隔离）
+     * @throws NopException 方言不支持 / scan 级故障（同 {@link #read}）
+     */
+    public void forEachTable(Connection conn, DatabaseMetaData metaData, String schemaPattern,
+                             java.util.function.Consumer<ExternalTableInfo> consumer) {
         String productName = requireSupportedDialect(metaData);
         String schema = normalizeSchema(schemaPattern);
 
         LOG.info("syncExternalTables scanning: dialect={}, schemaPattern={}", productName, schema);
 
-        List<ExternalTableInfo> tables = new ArrayList<>();
         ResultSet rs = null;
         try {
             // catalog=null 表示不过滤 catalog；tableNamePattern="%" 表示全部表
@@ -77,7 +95,8 @@ public class ExternalTableStructureReader {
                 // TABLE_SCHEM 缺失时回退到 schemaPattern 入参（防御性，保持原行为）
                 String columnSchema = (tableSchema != null && !tableSchema.isEmpty()) ? tableSchema : schema;
                 readColumns(metaData, columnSchema, tableName, info);
-                tables.add(info);
+                // W-09（裁定⑦）流式产出：每表读完列即交付——不再全量累积
+                consumer.accept(info);
             }
         } catch (SQLException e) {
             // AR-23⑤（R8.2）：扫描级故障（连接中断/权限/元数据异常）与"方言不支持"区分——
@@ -88,7 +107,6 @@ public class ExternalTableStructureReader {
         } finally {
             IoHelper.safeCloseObject(rs);
         }
-        return tables;
     }
 
     private void readColumns(DatabaseMetaData metaData, String schemaPattern, String tableName,

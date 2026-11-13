@@ -8,12 +8,13 @@
 package io.nop.cluster.nacos;
 
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.commons.lang.IDestroyable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ServiceInfo {
+public class ServiceInfo implements IDestroyable {
     private NacosNamingService.ServiceInfoListener listener;
 
     private List<ServiceInstance> serviceInstances = Collections.emptyList();
@@ -36,5 +37,18 @@ public class ServiceInfo {
 
     public void setListener(NacosNamingService.ServiceInfoListener listener) {
         this.listener = listener;
+    }
+
+    /**
+     * 4.2-MA-03（plan 2559 裁定 A②）: the instance cache is bounded with destroy-on-remove —
+     * when an entry is evicted (LRU) or cleared, its remote subscription must be torn down
+     * with it, otherwise evicted entries leak nacos listeners.
+     */
+    @Override
+    public void destroy() {
+        NacosNamingService.ServiceInfoListener l = this.listener;
+        if (l != null) {
+            l.unsubscribeQuietly();
+        }
     }
 }

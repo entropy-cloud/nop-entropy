@@ -78,6 +78,61 @@ public class AgentToolDispatcher {
      */
     private final Map<String, Long> toolTimeoutPolicy;
 
+    /**
+     * Plan 2519 (裁定⑦/C3-011): progress-tracker kill-channel wiring seam —
+     * the engine-side {@code IToolProgressTracker} is passed to the dispatcher
+     * by the executor assembly (ReActAgentExecutor constructor injection) so
+     * the mechanical timeout / cancelCall paths can reach the process-level
+     * kill channel (the same channel heartbeat abandon and background stop
+     * use). 判据写死: tracker wired ⇒ mechanical timeout and cancelCall MUST
+     * reach the kill channel; absent tracker ⇒ explicit
+     * {@code nop.ai.agent.tool-kill-unreachable} WARN + counter (never
+     * silent).
+     */
+    private volatile io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker;
+
+    /** Plan 2519 (裁定⑦): counter for unreachable kill-channel attempts. */
+    private static final java.util.concurrent.atomic.AtomicLong TOOL_KILL_UNREACHABLE_COUNT =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** Plan 2519 (裁定⑦): setter for the executor assembly wiring seam. */
+    public void setToolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker tracker) {
+        this.toolProgressTracker = tracker;
+    }
+
+    /** Plan 2519 (裁定⑦): test/diagnostics probe for kill-unreachable events. */
+    public static long toolKillUnreachableCount() {
+        return TOOL_KILL_UNREACHABLE_COUNT.get();
+    }
+
+    /**
+     * Plan 2519 (裁定⑦): process-level kill via the wired tracker. Trackers
+     * report {@code false} when the callId is unknown / already terminal —
+     * that outcome is explicitly recorded, never silent (rule 24; the defect
+     * state was "kill channel never reached from timeout paths at all").
+     */
+    private void cancelViaKillChannel(String callId, String trigger) {
+        io.nop.ai.agent.tool.IToolProgressTracker tracker = this.toolProgressTracker;
+        if (tracker == null) {
+            TOOL_KILL_UNREACHABLE_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.tool-kill-unreachable: no progress tracker wired — process-level "
+                    + "kill channel unreachable (mechanical cancel only): callId={}, trigger={}",
+                    callId, trigger);
+            return;
+        }
+        try {
+            if (!tracker.cancelExecution(callId)) {
+                TOOL_KILL_UNREACHABLE_COUNT.incrementAndGet();
+                LOG.warn("nop.ai.agent.tool-kill-unreachable: tracker reported cancelExecution=false "
+                        + "(call unknown / already terminal): callId={}, trigger={}", callId, trigger);
+            }
+        } catch (RuntimeException killEx) {
+            TOOL_KILL_UNREACHABLE_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.tool-kill-unreachable: tracker cancelExecution threw (explicit "
+                    + "record): callId={}, trigger={}", callId, trigger, killEx);
+        }
+    }
+
     public AgentToolDispatcher(IToolManager toolManager,
                                IAgentEngine engine,
                                IAgentMessenger messenger,
@@ -206,8 +261,13 @@ public class AgentToolDispatcher {
                 return false;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                for (CompletableFuture<ToolCallOutput> f : pending) {
-                    f.cancel(true);
+                for (Map.Entry<String, CompletableFuture<ToolCallOutput>> entry : futuresByCallId.entrySet()) {
+                    CompletableFuture<ToolCallOutput> f = entry.getValue();
+                    if (!f.isDone() && f.cancel(true)) {
+                        // Plan 2519 (裁定⑦): interruption reaches the process-level
+                        // kill channel (tracker wired ⇒ 必达 kill)
+                        cancelViaKillChannel(entry.getKey(), "tool wait phase interrupted");
+                    }
                 }
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
                         .param(ARG_DETAIL, "tool wait phase interrupted");
@@ -264,8 +324,12 @@ public class AgentToolDispatcher {
                     // quantum expired — loop re-checks the probe
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    for (CompletableFuture<ToolCallOutput> f : pendingFutures()) {
-                        f.cancel(true);
+                    for (Map.Entry<String, CompletableFuture<ToolCallOutput>> entry : futuresByCallId.entrySet()) {
+                        CompletableFuture<ToolCallOutput> f = entry.getValue();
+                        if (!f.isDone() && f.cancel(true)) {
+                            // Plan 2519 (裁定⑦): kill channel on wakeup-slice interrupt
+                            cancelViaKillChannel(entry.getKey(), "tool wakeup wait interrupted");
+                        }
                     }
                     throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
                             .param(ARG_DETAIL, "tool wait phase interrupted");
@@ -331,6 +395,12 @@ public class AgentToolDispatcher {
                 return false;
             }
             future.cancel(true);
+            // Plan 2519 (裁定⑦): javadoc 契约句与实现对齐 — cancelCall now
+            // reaches the process-level kill channel whenever a tracker is
+            // wired (same channel as heartbeat abandon / background stop);
+            // without a tracker the outcome is explicitly recorded
+            // (nop.ai.agent.tool-kill-unreachable), never a silent no-op.
+            cancelViaKillChannel(callId, "cancelCall");
             cancelledCallIds.add(callId);
             return true;
         }
@@ -426,7 +496,12 @@ public class AgentToolDispatcher {
                 session.callsByCallId.put(chatToolCall.getId(), chatToolCall);
                 // cap <= 0 = mechanical timeout disabled → no deadline bound
                 // (MAX_VALUE); a zero deadline would collapse the wait slice
-                // to a busy heartbeat loop
+                // to a busy heartbeat loop. C7-014 (plan 2501 Phase 4): this
+                // deadline is the terminator the heartbeat wakeup budget
+                // degrades to — once the executor's wakeup budget is
+                // exhausted, the wait loop relies on it (or, when disabled,
+                // on cancel/steer/forceStop — the documented escape hatch)
+                // instead of issuing more LLM wakeup calls.
                 session.deadlinesByCallId.put(chatToolCall.getId(),
                         capMs > 0 ? startMs + capMs : Long.MAX_VALUE);
                 session.startsByCallId.put(chatToolCall.getId(), startMs);
@@ -495,6 +570,16 @@ public class AgentToolDispatcher {
     }
 
     /**
+     * One-shot guard for the CRA 3.1-C4-011 visibility duty: a resolved
+     * timeout cap {@code <= 0} disables the per-tool mechanical timeout
+     * (backward-compatible escape hatch) — a hung tool body then occupies one
+     * {@code nop-ai-agent-dispatch} pool thread permanently. Warn once per
+     * dispatcher instance; never silently accept the configuration (Minimum
+     * Rules #24).
+     */
+    private volatile boolean zeroTimeoutCapWarned = false;
+
+    /**
      * Per-tool mechanical-timeout cap resolution (plan 2285 / design §三.5
      * layer 2): explicit policy override by exact tool name, then by any tool
      * tag, then the wildcard global cap, then the plain toolTimeoutMs default.
@@ -502,6 +587,18 @@ public class AgentToolDispatcher {
      * resolve to the default.
      */
     long resolveToolTimeoutMs(String toolName) {
+        long capMs = resolveToolTimeoutCapMs(toolName);
+        if (capMs <= 0 && !zeroTimeoutCapWarned) {
+            zeroTimeoutCapWarned = true;
+            LOG.warn("nop.ai.agent.tool.timeout-cap-disabled: resolved tool timeout cap is <= 0 "
+                    + "(tool={}, toolTimeoutMs={}) — the per-tool mechanical timeout is disabled "
+                    + "and a hung tool body will occupy one nop-ai-agent-dispatch pool thread "
+                    + "permanently (CRA 3.1-C4-011 visibility duty)", toolName, toolTimeoutMs);
+        }
+        return capMs;
+    }
+
+    private long resolveToolTimeoutCapMs(String toolName) {
         if (toolTimeoutPolicy != null && !toolTimeoutPolicy.isEmpty()) {
             Long byName = toolTimeoutPolicy.get(toolName);
             if (byName != null && byName > 0) {

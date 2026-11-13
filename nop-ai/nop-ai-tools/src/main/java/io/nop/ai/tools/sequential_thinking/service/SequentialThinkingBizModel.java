@@ -26,9 +26,18 @@ public class SequentialThinkingBizModel {
     private ThoughtStorage storage;
     private ThoughtAnalyzer analyzer;
     private String storageDirPath;
+    private int thoughtRetentionDays;
 
     public void setStorageDirPath(String storageDirPath) {
         this.storageDirPath = storageDirPath;
+    }
+
+    /**
+     * plan 2557 C6-007 (ruling E): TTL retention days for session files,
+     * config {@code nop.ai.tools.thought-retention-days}, default 0 = off.
+     */
+    public void setThoughtRetentionDays(int thoughtRetentionDays) {
+        this.thoughtRetentionDays = thoughtRetentionDays;
     }
 
     public void setThoughtStorage(ThoughtStorage storage) {
@@ -41,8 +50,11 @@ public class SequentialThinkingBizModel {
 
     @PostConstruct
     public void init() {
-        if (storage == null)
+        if (storage == null) {
             this.storage = new ThoughtStorage(storageDirPath);
+            // plan 2557 C6-007 (ruling E): TTL sweep throttle config, 0 = off
+            this.storage.setThoughtRetentionDays(thoughtRetentionDays);
+        }
         if (analyzer == null)
             this.analyzer = new ThoughtAnalyzer();
     }

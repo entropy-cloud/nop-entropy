@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- C4-008 F2 腿：errorBean init 阶段抛 Error（raw 逃逸 runTask catch(Exception)），图 future 永不完成（Error 孤儿），
+         由 join 超时档兜底收敛为失败终态。 -->
+    <bean id="okBean" class="test.io.entropy.beans.TestStartOkBean" destroy-method="destroyMe"/>
+    <bean id="errorBean" class="test.io.entropy.beans.TestStartFailErrorBean" depends-on="okBean"/>
+</beans>

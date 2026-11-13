@@ -17,11 +17,13 @@ import java.util.Objects;
 /**
  * WI2 (plan 2343 Phase 3): one include-list table = one split (adjudication R2 — the
  * split mechanism naturally takes over the B-layer table routing). The split carries
- * the INSTANCE-LEVEL CDC offset map (a base64-serializable copy of
+ * the INSTANCE-LEVEL CDC offset map (a base64-serializable copy of the per-server
+ * last-emitted positions, plan 2511 C8-001 — or, for legacy checkpoints, the
  * {@code NopStreamOffsetBackingStore} content at snapshot time): Debezium offsets are
  * connector-instance-granular and their Kafka-Connect keys are connector-shape
  * dependent, so per-table attribution is deliberately NOT attempted — every split of a
- * reader carries the same map copy, and restore takes the first one.
+ * reader carries the same map copy, and restore takes the numeric MINIMUM across
+ * offset-carrying splits (conservative replay — duplicate-not-lose).
  */
 public final class DebeziumTableSplit implements SourceSplit, Serializable {
 

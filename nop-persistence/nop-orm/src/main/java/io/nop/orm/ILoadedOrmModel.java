@@ -26,6 +26,12 @@ public interface ILoadedOrmModel extends AutoCloseable, ISqlCompileTool {
 
     void incRef();
 
+    /**
+     * 2.3-C1-004（plan 2552 裁定 B）：引用计数递增与关闭判定原子化——close 后返回 false
+     * （调用方放弃会话创建），消除 TOCTOU。单实现（LoadedOrmModel），模块内接口面。
+     */
+    boolean tryIncRefIfOpen();
+
     void decRef();
 
     default boolean isAnyEntityUseTenant() {

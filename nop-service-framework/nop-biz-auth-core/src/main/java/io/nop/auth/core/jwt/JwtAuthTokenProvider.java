@@ -37,8 +37,14 @@ public class JwtAuthTokenProvider implements IAuthTokenProvider {
     private String audience = "nop";
     private long legacyTokenGraceSeconds;
 
-    private final Map<String, Key> signKeys = new HashMap<>();
-    private Key legacyKey;
+    /**
+     * 2.3-C9-003（plan 2551 裁定 K）：密钥表为 volatile 不可变快照（整表替换发布）——原形态
+     * 非 volatile HashMap 经 synchronized ensureKeys 延迟初始化，热路径（每认证请求 parse/gen）
+     * 全部串行过单例监视器（锁内 isEmpty 快检可零成本消除）。{@code legacyKey} 一并并入不可变
+     * 快照（R2-n：parseToken 锁外读，留在旧形态=未安全发布可变字段）。仓内先例
+     * AiRateLimitGatewayInterceptor.buckets。
+     */
+    private volatile KeySnapshot keySnapshot = KeySnapshot.EMPTY;
 
     public String getEncKey() {
         return encKey;
@@ -80,70 +86,99 @@ public class JwtAuthTokenProvider implements IAuthTokenProvider {
         this.legacyTokenGraceSeconds = legacyTokenGraceSeconds;
     }
 
+    /** 不可变密钥快照（keys 表 + legacyKey 整表发布） */
+    static final class KeySnapshot {
+        static final KeySnapshot EMPTY = new KeySnapshot(Map.of(), null);
+
+        final Map<String, Key> signKeys;
+        final Key legacyKey;
+
+        KeySnapshot(Map<String, Key> signKeys, Key legacyKey) {
+            this.signKeys = signKeys;
+            this.legacyKey = legacyKey;
+        }
+    }
+
     /**
-     * 按令牌用途派生独立密钥。encKey 为空时使用随机UUID（单实例临时密钥，重启后失效）；
-     * 否则用 encKey + 各用途salt 派生确定密钥，同时派生旧版兼容密钥。
+     * 锁外快检（DCL）：快照非空即返回（热路径零锁）；否则进入 synchronized 二次确认并构建。
+     * 并发首调共享同一次派生（singleflight 语义——败者以胜者快照为准，失败可重试：
+     * 派生抛异常时快照保持 EMPTY，下个调用重新进入构建）。
      */
-    protected synchronized void ensureKeys() {
-        if (!signKeys.isEmpty())
+    protected void ensureKeys() {
+        if (!keySnapshot.signKeys.isEmpty())
             return;
 
-        if (StringHelper.isEmpty(encKey)) {
-            signKeys.put(KID_ACCESS, JwtHelper.hmacKey(StringHelper.generateUUID(), "nop-access"));
-            signKeys.put(KID_REFRESH, JwtHelper.hmacKey(StringHelper.generateUUID(), "nop-refresh"));
-            signKeys.put(KID_CODE, JwtHelper.hmacKey(StringHelper.generateUUID(), "nop-code"));
-        } else {
-            signKeys.put(KID_ACCESS, JwtHelper.hmacKey(encKey, "nop-access"));
-            signKeys.put(KID_REFRESH, JwtHelper.hmacKey(encKey, "nop-refresh"));
-            signKeys.put(KID_CODE, JwtHelper.hmacKey(encKey, "nop-code"));
-            legacyKey = JwtHelper.hmacKey(encKey, "nop");
+        synchronized (this) {
+            if (!keySnapshot.signKeys.isEmpty())
+                return;
+
+            Map<String, Key> keys = new HashMap<>();
+            Key legacy = null;
+            if (StringHelper.isEmpty(encKey)) {
+                keys.put(KID_ACCESS, JwtHelper.hmacKey(StringHelper.generateUUID(), "nop-access"));
+                keys.put(KID_REFRESH, JwtHelper.hmacKey(StringHelper.generateUUID(), "nop-refresh"));
+                keys.put(KID_CODE, JwtHelper.hmacKey(StringHelper.generateUUID(), "nop-code"));
+            } else {
+                keys.put(KID_ACCESS, JwtHelper.hmacKey(encKey, "nop-access"));
+                keys.put(KID_REFRESH, JwtHelper.hmacKey(encKey, "nop-refresh"));
+                keys.put(KID_CODE, JwtHelper.hmacKey(encKey, "nop-code"));
+                legacy = JwtHelper.hmacKey(encKey, "nop");
+            }
+            this.keySnapshot = new KeySnapshot(Map.copyOf(keys), legacy);
         }
+    }
+
+    /** 测试缝：access key 快照读取 */
+    Key getAccessTokenKeyForTest() {
+        ensureKeys();
+        return keySnapshot.signKeys.get(KID_ACCESS);
     }
 
     protected Key getKey(String kid) {
         ensureKeys();
-        return signKeys.get(kid);
+        return keySnapshot.signKeys.get(kid);
     }
 
     @Override
     public String generateAccessToken(IUserContext userContext, long expireSeconds) {
         ensureKeys();
-        return JwtHelper.genToken(signKeys.get(KID_ACCESS), KID_ACCESS, issuer, audience, JwtHelper.TOKEN_TYPE_ACCESS,
+        return JwtHelper.genToken(keySnapshot.signKeys.get(KID_ACCESS), KID_ACCESS, issuer, audience, JwtHelper.TOKEN_TYPE_ACCESS,
                 "a", userContext.getUserName(), userContext.getSessionId(), expireSeconds);
     }
 
     @Override
     public String generateAccessCode(IUserContext userContext, long expireSeconds) {
         ensureKeys();
-        return JwtHelper.genToken(signKeys.get(KID_CODE), KID_CODE, issuer, audience, JwtHelper.TOKEN_TYPE_CODE,
+        return JwtHelper.genToken(keySnapshot.signKeys.get(KID_CODE), KID_CODE, issuer, audience, JwtHelper.TOKEN_TYPE_CODE,
                 "c", userContext.getUserName(), userContext.getSessionId(), expireSeconds);
     }
 
     @Override
     public String generateRefreshToken(IUserContext userContext, long expireSeconds) {
         ensureKeys();
-        return JwtHelper.genToken(signKeys.get(KID_REFRESH), KID_REFRESH, issuer, audience, JwtHelper.TOKEN_TYPE_REFRESH,
+        return JwtHelper.genToken(keySnapshot.signKeys.get(KID_REFRESH), KID_REFRESH, issuer, audience, JwtHelper.TOKEN_TYPE_REFRESH,
                 "r", userContext.getUserName(), userContext.getSessionId(), expireSeconds);
     }
 
     @Override
     public AuthToken parseAuthToken(String accessToken) {
         ensureKeys();
+        ensureKeys();
         return JwtHelper.parseToken(accessToken, this::getKey, issuer, audience, JwtHelper.TOKEN_TYPE_ACCESS,
-                legacyKey, legacyTokenGraceSeconds);
+                keySnapshot.legacyKey, legacyTokenGraceSeconds);
     }
 
     @Override
     public AuthToken parseRefreshToken(String refreshToken) {
         ensureKeys();
         return JwtHelper.parseToken(refreshToken, this::getKey, issuer, audience, JwtHelper.TOKEN_TYPE_REFRESH,
-                legacyKey, legacyTokenGraceSeconds);
+                keySnapshot.legacyKey, legacyTokenGraceSeconds);
     }
 
     @Override
     public AuthToken parseAccessCode(String accessCode) {
         ensureKeys();
         return JwtHelper.parseToken(accessCode, this::getKey, issuer, audience, JwtHelper.TOKEN_TYPE_CODE,
-                legacyKey, legacyTokenGraceSeconds);
+                keySnapshot.legacyKey, legacyTokenGraceSeconds);
     }
 }

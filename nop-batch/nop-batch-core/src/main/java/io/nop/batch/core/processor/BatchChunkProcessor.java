@@ -15,9 +15,12 @@ import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.commons.util.MathHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 对chunk的缺省处理过程。它读取一个数据列表，然后调用consumer去处理该列表。 一般consumer的实现类为{@link io.nop.batch.core.consumer.BatchProcessorConsumer}，
@@ -26,10 +29,13 @@ import java.util.List;
  * @param <S> 输入数据类型
  */
 public class BatchChunkProcessor<S> implements IBatchChunkProcessorProvider.IBatchChunkProcessor<S> {
+    static final Logger LOG = LoggerFactory.getLogger(BatchChunkProcessor.class);
+
     private final IBatchLoader<S> loader;
     private final int batchSize;
     private final double jitterRatio;
     private final IBatchConsumer<S> consumer;
+    private final AtomicBoolean clampWarned = new AtomicBoolean();
 
     public BatchChunkProcessor(IBatchLoader<S> loader, int batchSize, double jitterRatio,
                                IBatchConsumer<S> consumer) {
@@ -86,8 +92,14 @@ public class BatchChunkProcessor<S> implements IBatchChunkProcessorProvider.IBat
             int range = (int) (batchSize * jitterRatio);
             ret += MathHelper.random().nextInt(-8, 8) * range / 8;
         }
-        if (ret <= 0)
+        if (ret <= 0) {
             ret = 1;
+            // C8-002（plan 2516 裁定③）：钳位可观测——batchSize<=0 是所有装配入口的共同终点，
+            // 静默钳位到1会掩盖配置错误并导致每行一 chunk 写放大。每任务仅告警一次，
+            // 对齐 nop.batch.orm-reader-no-query 静默兜底可观测先例。
+            if (clampWarned.compareAndSet(false, true))
+                LOG.warn("nop.warn.batch.batch-size-clamped-to-one:batchSize={}", batchSize);
+        }
         return ret;
     }
 }

@@ -8,6 +8,9 @@ public interface NopCodeErrors {
     String ARG_FILE_PATH = "filePath";
     String ARG_INDEX_ID = "indexId";
     String ARG_SYMBOL_ID = "symbolId";
+    String ARG_FILE_COUNT = "fileCount";
+    String ARG_TOTAL_BYTES = "totalBytes";
+    String ARG_LIMIT = "limit";
 
     ErrorCode ERR_NO_ANALYZER_FOR_FILE =
             define("nop.err.code.no-analyzer-for-file", "No analyzer registered for file: {filePath}", ARG_FILE_PATH);
@@ -29,6 +32,16 @@ public interface NopCodeErrors {
 
     ErrorCode ERR_CODE_SOURCE_CODE_TOO_LARGE =
             define("nop.err.code.source-code-too-large", "Source code exceeds maximum allowed size: {filePath}", ARG_FILE_PATH);
+
+    ErrorCode ERR_CODE_INDEX_FILE_COUNT_EXCEEDED =
+            define("nop.err.code.index-file-count-exceeded",
+                    "Index directory has too many files: indexId={indexId}, path={path}, fileCount={fileCount}, limit={limit}",
+                    ARG_INDEX_ID, ARG_PATH, ARG_FILE_COUNT, ARG_LIMIT);
+
+    ErrorCode ERR_CODE_INDEX_TOTAL_BYTES_EXCEEDED =
+            define("nop.err.code.index-total-bytes-exceeded",
+                    "Index directory exceeds cumulative size limit: indexId={indexId}, path={path}, totalBytes={totalBytes}, limit={limit}",
+                    ARG_INDEX_ID, ARG_PATH, ARG_TOTAL_BYTES, ARG_LIMIT);
 
     ErrorCode ERR_CODE_REBUILD_NOT_GIT_REPO =
             define("nop.err.code.rebuild-not-git-repo", "projectPath is not a git repository root: {path}", ARG_PATH);

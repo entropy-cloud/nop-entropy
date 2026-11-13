@@ -14,12 +14,12 @@ import io.nop.api.core.message.IMessageSubscription;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.graphql.core.ws.IWebSocketSession;
+import io.nop.graphql.core.ws.WebSocketSendPump;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Collection;
@@ -50,6 +50,13 @@ public class GraphQLSubscriptionManager {
 
     private final Map<String, SubscriptionInfo> subscriptionsById = new ConcurrentHashMap<>();
     private final Map<String, List<SubscriptionInfo>> subscriptionsByOperation = new ConcurrentHashMap<>();
+
+    /**
+     * Per-session bounded send pumps (2.3-C8-001, plan 2498 Phase 3): pushes are drained on
+     * the shared worker pool, order-preserving per session. Entries are removed when the
+     * session is observed closed or a push overflows; bounded by the live session count.
+     */
+    private final Map<IWebSocketSession, WebSocketSendPump> sendPumps = new ConcurrentHashMap<>();
     private IMessageSubscription messageSubscription;
 
     public void setMessageService(IMessageService messageService) {
@@ -200,21 +207,43 @@ public class GraphQLSubscriptionManager {
 
     /**
      * Push message to WebSocket client using JSON-RPC format
+     *
+     * <p>2.3-C8-001 (plan 2498 Phase 3): the blocking send is offloaded into a per-session
+     * bounded send pump draining on the shared worker pool, so a slow client can no longer
+     * block the message-distribution/publisher thread. Overflow disconnects the session and
+     * unregisters its subscription instead of back-pressuring shared platform carriers.
      */
-    protected void pushToClient(SubscriptionInfo subscription, String topic, Object message) throws IOException {
+    protected void pushToClient(SubscriptionInfo subscription, String topic, Object message) {
         IWebSocketSession session = subscription.getSession();
         if (session == null || session.isClosed()) {
+            sendPumps.remove(session);
             unregisterSubscription(subscription.getOperationId());
             return;
         }
 
-        // Build JSON-RPC response format (same as JsonRpcWebSocketHandler)
+        // Build JSON-RPC response format (same as JsonRpcWebSocketHandler).
+        // Serialize once on the caller thread (pure CPU); only the blocking socket write is offloaded.
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("jsonrpc", JSONRPC_VERSION);
         response.put("id", subscription.getOperationId());
         response.put("result", message);
+        String text = JsonTool.stringify(response);
 
-        session.sendMessage(JsonTool.stringify(response));
+        WebSocketSendPump pump = sendPumps.computeIfAbsent(session,
+                s -> new WebSocketSendPump(s, WebSocketSendPump.DEFAULT_CAPACITY));
+        boolean submitted = pump.submit(() -> {
+            try {
+                session.sendMessage(text);
+            } catch (Exception e) {
+                LOG.warn("nop.graphql.subscription-push-fail:opId={},topic={}",
+                        subscription.getOperationId(), topic, e);
+            }
+        });
+        if (!submitted) {
+            // session closed or send buffer overflowed (session disconnected by the pump)
+            sendPumps.remove(session);
+            unregisterSubscription(subscription.getOperationId());
+        }
     }
 
     /**
@@ -275,6 +304,7 @@ public class GraphQLSubscriptionManager {
         subscriptionsById.values().forEach(SubscriptionInfo::cancel);
         subscriptionsById.clear();
         subscriptionsByOperation.clear();
+        sendPumps.clear();
 
         LOG.info("nop.graphql.subscription-manager-destroyed");
     }

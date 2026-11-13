@@ -36,6 +36,7 @@ import io.nop.datav.dao.entity.NopDatavPanel;
 import io.nop.datav.dao.entity.NopDatavReportTask;
 import io.nop.datav.service.NopDatavConfigs;
 import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.NopDatavSchedulerAfterCommit;
 import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.filter.DashboardFilterDefExporter;
 import io.nop.datav.service.filter.DashboardFilterResolver;
@@ -143,8 +144,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
     }
 
     /**
-     * 关联 ReportTask（按 dashboardId）：置 status=DISABLED（先落库）并即时 unregisterTask（D3 双动作，
-     * 事务边界见 schedule-report-design.md §26——注销失败异常传播回滚整个删除）。
+     * 关联 ReportTask（按 dashboardId）：置 status=DISABLED（先落库）并注销 unregisterTask（D3 双动作，
+     * 事务边界见 schedule-report-design.md §26——裁定⑫：注销经 afterCommit 后置，回滚则不注销，
+     * 消除「回滚后行 ENABLED 而 job 已消失」的静默停摆窗口）。
      */
     private void disableReportTasksForDashboard(IDaoProvider daoProvider, String dashboardId, String operator) {
         IEntityDao<NopDatavReportTask> dao = daoProvider.daoFor(NopDatavReportTask.class);
@@ -156,13 +158,16 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 dao.updateEntityDirectly(task);
             }
             if (reportScheduler != null) {
-                reportScheduler.unregisterTask(task.getReportTaskId());
+                String reportTaskId = task.getReportTaskId();
+                NopDatavSchedulerAfterCommit.run(txn(), "disableReportTasksForDashboard:" + reportTaskId,
+                        () -> reportScheduler.unregisterTask(reportTaskId));
             }
         }
     }
 
     /**
-     * 关联 AlertRule（经 panel.dashboardId 定位）：置 status=DISABLED 并即时 unregisterRule。
+     * 关联 AlertRule（经 panel.dashboardId 定位）：置 status=DISABLED 并注销 unregisterRule
+     * （裁定⑫：afterCommit 后置，同 disableReportTasksForDashboard 形态）。
      */
     private void disableAlertRulesForPanels(IDaoProvider daoProvider, List<NopDatavPanel> panels, String operator) {
         if (panels.isEmpty()) {
@@ -183,7 +188,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 dao.updateEntityDirectly(rule);
             }
             if (alertScheduler != null) {
-                alertScheduler.unregisterRule(rule.getAlertRuleId());
+                String alertRuleId = rule.getAlertRuleId();
+                NopDatavSchedulerAfterCommit.run(txn(), "disableAlertRulesForPanels:" + alertRuleId,
+                        () -> alertScheduler.unregisterRule(alertRuleId));
             }
         }
     }
@@ -224,6 +231,15 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
     @Auth(permissions = "NopDatavDashboard:publishDashboard")
     public NopDatavDashboardSnapshot publishDashboard(@Name("id") String id, IServiceContext context) {
         NopDatavDashboard dashboard = requireEntity(id, "publishDashboard", context);
+
+        // 裁定⑦（plan 2026）：发布版本号行锁分配——父行 SELECT FOR UPDATE（事务尾释放）使同目标
+        // 并发发布串行化，calculateNextVersion 读 max+1 在锁内线性化（版本轴唯一性闭合）。
+        // isTransactionOpened 守护（沿 submitExecutionAfterCommit 先例）：@BizMutation 经 GraphQL
+        // 事务装饰器恒有事务；无事务直调（单测）无并发入口，跳过锁（lock 语句要求事务中执行）。
+        if (txn() != null && txn().isTransactionOpened(null)) {
+            dashboard = lockDashboardRowForPublish(dashboard);
+        }
+
 
         String snapshotContent = serializeDashboardContent(dashboard);
         long nextVersion = calculateNextVersion(id);
@@ -580,7 +596,16 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                                              DashboardPanelQueryCache cache) {
         return () -> {
             try {
-                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams, null, cache);
+                // 裁定②（plan 2026）：主查询路径行上界——cfg+1 探测（对齐导出先例），超限显式抛
+                // ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED（面板级失败条目，非静默截断）。
+                int maxRows = NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_ROWS_PER_PANEL.get();
+                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams,
+                        maxRows + 1, cache);
+                if (result.isHasDataset() && result.getRows().size() > maxRows) {
+                    throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED)
+                            .param(NopDatavErrors.ARG_ROW_COUNT, (long) result.getRows().size())
+                            .param(NopDatavErrors.ARG_MAX_ROWS, (long) maxRows);
+                }
                 return DashboardPanelDataItem.success(result);
             } catch (NopException e) {
                 return DashboardPanelDataItem.failure(panel.getPanelId(), e.getErrorCode(), safeMsg(e));
@@ -925,6 +950,39 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         NopDatavDashboardSnapshot latest = daoProvider()
                 .daoFor(NopDatavDashboardSnapshot.class).findFirstByQuery(query);
         return latest == null ? 1L : latest.getSnapshotVersion() + 1;
+    }
+
+    /**
+     * 裁定⑦（plan 2026）行锁获取：lockEntity 对 stale 实体（锁等待期间赢家已提交推进版本）经
+     * session 版本校验抛 entity-version-changed——语义即「等待期间父行被并发发布推进」→
+     * clear session 后 fresh 重载再锁（有界 3 次；fresh 载荷下重试窗口极窄）。重试耗尽按冲突上抛。
+     */
+    private NopDatavDashboard lockDashboardRowForPublish(NopDatavDashboard dashboard) {
+        IEntityDao<NopDatavDashboard> dao = daoProvider().daoFor(NopDatavDashboard.class);
+        for (int attempt = 0; ; attempt++) {
+            try {
+                dao.lockEntity(dashboard);
+                return dashboard;
+            } catch (Exception e) {
+                if (!isEntityVersionChanged(e) || attempt >= 2) {
+                    throw e;
+                }
+                orm().runInSession(session -> {
+                    session.clear();
+                    return null;
+                });
+                dashboard = dao.getEntityById(dashboard.getDashboardId());
+                if (dashboard == null) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static boolean isEntityVersionChanged(Exception e) {
+        return e instanceof io.nop.api.core.exceptions.NopException
+                && io.nop.orm.OrmErrors.ERR_ORM_ENTITY_VERSION_CHANGED.getErrorCode()
+                        .equals(((io.nop.api.core.exceptions.NopException) e).getErrorCode());
     }
 
     private NopDatavDashboardSnapshot findLatestSnapshot(String dashboardId) {

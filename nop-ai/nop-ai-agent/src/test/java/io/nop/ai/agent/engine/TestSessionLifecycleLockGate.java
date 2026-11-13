@@ -314,6 +314,65 @@ public class TestSessionLifecycleLockGate {
     }
 
     // ========================================================================
+    // 3.1-C7-015（plan 2556 裁定 J）: restoreSession lock gate
+    // ========================================================================
+
+    /**
+     * Adjudication-mandated restore lock-gate case: a failed slot acquisition
+     * (takeover lock held by another instance) must leave the session state
+     * UNCHANGED — no RUNNING transition and no SESSION_RESTORED event
+     * published. The RUNNING flip + event used to run BEFORE
+     * {@code acquireRestoreExecutionSlot}; per 3.1-C7-015 they moved after it
+     * (mirroring the resumeSession lock-gate discipline). Retry after release
+     * succeeds and publishes exactly one SESSION_RESTORED.
+     */
+    @Test
+    void restoreSession_lockHeldByAnother_keepsSessionStateUnchangedAndPublishesNothing() {
+        InMemorySessionStore store = new InMemorySessionStore();
+        TrackingTakeoverLock lock = new TrackingTakeoverLock();
+
+        AgentSession session = store.getOrCreate("restore-locked", "test-react-agent");
+        session.appendMessages(List.of(new ChatUserMessage("hi")));
+        session.setStatus(AgentExecStatus.pending);
+        AgentExecStatus preRestoreStatus = session.getStatus();
+
+        DefaultAgentEngine engine = newEngine(new CountingLedger(10), store);
+        engine.config().setSessionTakeoverLock(lock);
+        CollectingSubscriber subscriber = new CollectingSubscriber();
+        ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
+
+        assertTrue(lock.tryAcquire("restore-locked", "other-instance", 60_000L),
+                "precondition: another instance holds the takeover lock");
+
+        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
+                () -> engine.restoreSession("restore-locked", "operator-1", "test"),
+                "restoreSession must fail-fast when the lock is held by another instance");
+        assertTrue(ex.getMessage().contains("locked by another instance"),
+                "Exception must identify the lock conflict. Got: " + ex.getMessage());
+
+        // State unchanged: NO RUNNING transition on the failed restore.
+        assertEquals(preRestoreStatus, session.getStatus(),
+                "a failed restore must NOT transition the session to running "
+                        + "(3.1-C7-015: the RUNNING flip must happen only after the "
+                        + "execution slot is acquired)");
+        assertFalse(subscriber.hasType(AgentEventType.SESSION_RESTORED),
+                "a failed restore must NOT publish SESSION_RESTORED (the event is "
+                        + "the success signal)");
+        assertTrue(lock.isHeld("restore-locked"),
+                "the other instance's lease must survive the failed restore");
+
+        // End-to-end: after release, the retry restores and completes.
+        assertTrue(lock.release("restore-locked", "other-instance"));
+        AgentExecutionResult result = engine.restoreSession("restore-locked", "operator-1", "test")
+                .toCompletableFuture().join();
+        assertEquals(AgentExecStatus.completed, result.getStatus(),
+                "retry after lock release must restore and complete normally");
+        assertEquals(AgentExecStatus.completed, session.getStatus());
+        assertTrue(subscriber.hasType(AgentEventType.SESSION_RESTORED),
+                "the successful restore must publish SESSION_RESTORED");
+    }
+
+    // ========================================================================
     // Phase 3: wakeSession tenant context
     // ========================================================================
 

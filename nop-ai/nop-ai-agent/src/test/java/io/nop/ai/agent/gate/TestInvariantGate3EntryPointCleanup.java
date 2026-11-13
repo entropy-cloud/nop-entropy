@@ -93,9 +93,27 @@ public class TestInvariantGate3EntryPointCleanup {
             new EntryPoint("resume-governance-reset",
                     List.of(EntryPoint.in("engine/AgentSessionLifecycle.java",
                             "getDenialLedger().reset", "getPostDenialGuard().reset"))),
+            // ---- Plan 2519 (裁定② gate3 反向钉死改写, additive only): F4 terminal
+            // ---- cleanup list expansion — sessionStore + injection window rows.
             new EntryPoint("cancel-without-handle",
                     List.of(EntryPoint.in("engine/DefaultAgentEngine.java",
-                            "setStatus(AgentExecStatus.cancelled)", "getCheckpointManager().remove")))
+                            "setStatus(AgentExecStatus.cancelled)", "getCheckpointManager().remove"))),
+            new EntryPoint("session-store-terminal-cleanup",
+                    List.of(EntryPoint.in("engine/DefaultAgentEngine.java",
+                                    "removeTerminalSessionFromStore"),
+                            EntryPoint.in("engine/AgentSessionLifecycle.java",
+                                    "sessionStore.remove"),
+                            EntryPoint.in("session/InMemorySessionStore.java",
+                                    "public void remove"),
+                            EntryPoint.in("session/DBSessionStore.java",
+                                    "public void remove"),
+                            EntryPoint.in("session/FileBackedSessionStore.java",
+                                    "public void remove"))),
+            new EntryPoint("injection-target-registration-window",
+                    List.of(EntryPoint.in("engine/DefaultAgentEngine.java",
+                                    "runningInjectionTargets.put", "runningInjectionTargets.remove"),
+                            EntryPoint.in("engine/AgentSessionLifecycle.java",
+                                    "registerInjectionTarget", "unregisterInjectionTarget")))
     );
 
     // ========================================================================
@@ -173,5 +191,50 @@ public class TestInvariantGate3EntryPointCleanup {
         }
         assertTrue(violations.stream().anyMatch(v -> v.contains("fake-entry-point")),
                 "an entry-point without its acquire/release marker must be a violation; got: " + violations);
+    }
+
+    // ========================================================================
+    // Plan 2519 (裁定②/C10-003): parametrised runtime terminal-cleanup pin —
+    // assembly-level engine driven to a terminal status must actually empty
+    // the F4 container list (sessionStore + checkpoint), not merely declare
+    // the wiring. Additive pin: put-only (pre-fix) state is RED here.
+    // ========================================================================
+
+    @Test
+    void runtimeTerminalCleanup_emptiesSessionStoreAndCheckpointContainers() throws Exception {
+        io.nop.ai.agent.session.InMemorySessionStore store =
+                new io.nop.ai.agent.session.InMemorySessionStore();
+        java.nio.file.Path checkpointRoot =
+                java.nio.file.Files.createTempDirectory("gate3-terminal-cleanup");
+        io.nop.ai.agent.reliability.FileBackedCheckpointManager checkpoints =
+                new io.nop.ai.agent.reliability.FileBackedCheckpointManager(checkpointRoot);
+        io.nop.ai.agent.engine.DefaultAgentEngine engine =
+                new io.nop.ai.agent.engine.DefaultAgentEngine.Builder(null, null)
+                        .sessionStore(store)
+                        .checkpointManager(checkpoints)
+                        .build();
+        try {
+            String sessionId = "gate3-terminal-probe";
+            // Create a live session and a checkpoint container entry, then
+            // drive the engine to a terminal status via the
+            // cancel-without-handle convergence point (no execution needed).
+            store.getOrCreate(sessionId, "gate3-agent");
+            io.nop.ai.agent.reliability.Checkpoint cp =
+                    io.nop.ai.agent.reliability.Checkpoint.of(sessionId, "wm-gate3", 1,
+                            System.currentTimeMillis(), io.nop.ai.agent.reliability.CheckpointType.TOOL_EXECUTION,
+                            "tool", "call-1", null, null, 1, 10, null, null);
+            checkpoints.saveCheckpoint(cp);
+
+            engine.cancelSession(sessionId, "gate3 terminal cleanup probe", false)
+                    .toCompletableFuture().join();
+
+            assertTrue(store.getAll().isEmpty(),
+                    "裁定② wiring: terminal execution must remove the session from the store "
+                            + "(put-only pre-fix state is red here)");
+            assertTrue(checkpoints.getCheckpoints(sessionId).isEmpty(),
+                    "裁定② wiring: terminal execution must clear the checkpoint containers");
+        } finally {
+            engine.close();
+        }
     }
 }

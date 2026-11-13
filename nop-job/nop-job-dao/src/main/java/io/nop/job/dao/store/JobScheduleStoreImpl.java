@@ -91,6 +91,21 @@ public class JobScheduleStoreImpl implements IJobScheduleStore {
     @Override
     public void insertFireAndAdvanceSchedule(NopJobSchedule schedule, NopJobFire fire, Timestamp nextFireTime,
                                              Integer lastFireStatus) {
+        // CRA 8.46 R4-07 W-09 (1.4-C7-010, adjudication D): post-fence 值匹配复查——
+        // requireEntityById 重取 fresh schedule + nextFireTime==调用方实体持锁值
+        // (=lockDeadline)。双 planner 停顿窗场景：A 锁定后停顿 ≥lock-timeout → B
+        // 接管+advance → A 以过期实体续跑 → 复查失配 → WARN+本槽放弃（不插 fire
+        // 不推进计数——槽由 B 的 fire2 承载，触发延迟 ≤lock-timeout 非丢失）。
+        // 与 misfire 交界显式化：放弃分支不做补偿性插入（owner doc「不支持 Misfire
+        // 补偿」声明覆盖）。dispatch 先例 insertTasksAndMarkFireDispatching :103-121
+        // 的 requireEntityById+状态复查形态投影，零接口签名变更。
+        NopJobSchedule fresh = scheduleDao().requireEntityById(schedule.getJobScheduleId());
+        if (!java.util.Objects.equals(fresh.getNextFireTime(), schedule.getNextFireTime())) {
+            LOG.warn("nop.job.plan-slot-abandoned:fence-expired,scheduleId={},expected={},actual={}",
+                    schedule.getJobScheduleId(), schedule.getNextFireTime(), fresh.getNextFireTime());
+            return;
+        }
+
         if (hasWaitingFire(schedule.getJobScheduleId(), fire.getScheduledFireTime(), fire.getTriggerSource())) {
             LOG.info("nop.job.schedule.skip-duplicate-fire:scheduleId={},scheduledFireTime={}",
                     schedule.getJobScheduleId(), fire.getScheduledFireTime());

@@ -122,7 +122,7 @@ public class CoordinatorEndToEndBenchmark {
         // submatch 文本与 CLI 对齐：TEXT 口径不需要（plan 2273 R5），count 口径不解码行文本
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(corpusDir, pattern(), SearchCoordinator.Strategy.valueOf(strategy),
-                        false, List.of(), 0, includeLineText, false));
+                        false, List.of(), 0, includeLineText, false)).results();
         if (includeLineText) {
             ResultPrinter.print(textSink, results, ResultPrinter.OutputMode.TEXT);
             textSink.flush();

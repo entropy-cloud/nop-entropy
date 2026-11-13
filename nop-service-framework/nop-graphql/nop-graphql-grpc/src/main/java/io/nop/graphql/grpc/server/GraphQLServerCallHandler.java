@@ -24,10 +24,17 @@ import io.nop.graphql.grpc.status.GrpcStatusMapping;
 import io.nop.graphql.grpc.utils.GrpcHelper;
 
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
+    private static final Logger LOG = LoggerFactory.getLogger(GraphQLServerCallHandler.class);
+
     @VisibleForTesting
     static final String TOO_MANY_REQUESTS = "Too many requests";
     @VisibleForTesting
@@ -62,6 +69,9 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
             private boolean canInvoke = true;
             private boolean wasReady;
             private S request;
+            // 2.3-C3-009（plan 2550 裁定 C）：onCancel 接线所需的在途执行句柄
+            private volatile IGraphQLExecutionContext rpcCtx;
+            private volatile CompletionStage<ApiResponse<?>> rpcStage;
 
             @Override
             public void onMessage(S request) {
@@ -100,8 +110,11 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
                 IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(fieldDefinition.getOperationType(),
                         fieldDefinition.getOperationName(), req);
                 responseObserver.context = ctx;
+                this.rpcCtx = ctx;
+                CompletionStage<ApiResponse<?>> stage = graphQLEngine.executeRpcAsync(ctx);
+                this.rpcStage = stage;
 
-                graphQLEngine.executeRpcAsync(ctx).whenComplete((res, err) -> {
+                stage.whenComplete((res, err) -> {
                     if (err != null) {
                         responseObserver.onError(err);
                     } else {
@@ -124,8 +137,33 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
                 }
             }
 
+            /**
+             * 2.3-C3-009（plan 2550 裁定 C，R1-Blocker-2 机制改写）：客户端取消 →
+             * ①abandoned 记录（WARN，不写回客户端）②执行上下文 complete（清理订阅/
+             * 上下文，取消路径此前从不触发）③对在途 stage 的 best-effort 取消
+             * （{@code instanceof Future} 时 cancel(true)）。底层执行的真实中断需引擎级
+             * 取消句柄贯穿（CompletionStage 组合链无取消点）——登记 watch-only residual
+             * （plan 2550 Deferred）。
+             */
             @Override
             public void onCancel() {
+                CompletionStage<ApiResponse<?>> stage = this.rpcStage;
+                IGraphQLExecutionContext ctx = this.rpcCtx;
+                if (stage != null || ctx != null) {
+                    LOG.warn("nop.graphql.rpc-abandoned:operation={}", fieldDefinition.getOperationName());
+                    if (stage instanceof Future<?>) {
+                        ((Future<?>) stage).cancel(true);
+                    }
+                    if (ctx != null) {
+                        try {
+                            ctx.complete();
+                        } catch (Throwable t) {
+                            // 上下文清理失败不掩盖取消传播本身（gRPC 取消回调内二次异常会升级为 transport 错误）
+                            LOG.debug("nop.graphql.rpc-abandon-complete-fail:operation={}",
+                                    fieldDefinition.getOperationName(), t);
+                        }
+                    }
+                }
                 super.onCancel();
             }
 

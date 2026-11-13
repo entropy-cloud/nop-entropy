@@ -3,6 +3,7 @@ package io.nop.task.dao.store;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
@@ -18,7 +19,9 @@ import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
+import io.nop.task.TaskConfigs;
 import io.nop.task.TaskConstants;
+import io.nop.task.TaskErrors;
 import io.nop.task.model.TaskFlowModel;
 import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskOutputModel;
@@ -38,7 +41,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NOT_FOUND;
+import static io.nop.task.dao.entity._gen._NopTaskInstance.PROP_NAME_status;
 import static io.nop.task.dao.entity._gen._NopTaskInstance.PROP_NAME_taskInstanceId;
+import static io.nop.task.dao.entity._gen._NopTaskInstance.PROP_NAME_updateTime;
 import static io.nop.task.dao.entity._gen._NopTaskStepInstance.PROP_NAME_stepPath;
 
 /**
@@ -56,6 +62,17 @@ import static io.nop.task.dao.entity._gen._NopTaskStepInstance.PROP_NAME_stepPat
 public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateStore {
 
     static final Logger LOG = LoggerFactory.getLogger(DaoTaskStateStore.class);
+
+    // W-11（裁定 B）：滞留 ACTIVE 行读路径告警计数（静态守卫一次注册，WfTaskScanner 形态同构）
+    private static final java.util.concurrent.atomic.AtomicLong STALE_ACTIVE_LOADED =
+            new java.util.concurrent.atomic.AtomicLong();
+    private static final java.util.concurrent.atomic.AtomicBoolean STALE_GAUGE_REGISTERED =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    /**
+     * 节点身份（W-11）：配置缺省 null → 运行期解析为主机名+8 位随机后缀，实例内一次生成。
+     */
+    private String nodeId;
 
     /**
      * plan 261: errorBeanData 列允许的最大 JSON 长度（与 step 级 errMsg / stateBeanData precision 对齐）。
@@ -137,6 +154,9 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         entity.setStatus(TaskConstants.TASK_STATUS_ACTIVE);
         entity.setPriority(0);
         entity.setStartTime(CoreMetrics.currentTimestamp());
+        // W-11（CRA 8.49 R4-09，1.5-C7-009 裁定 B）：workerId 写入节点身份——task 行创建即属主
+        // 赋值，使崩溃残留 ACTIVE 行的属主可判定（修复前 workerId 全仓无生产赋值点）
+        entity.setWorkerId(resolveNodeId());
         taskDao().saveEntityDirectly(entity);
 
         return toTaskStateBean(entity);
@@ -144,6 +164,8 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
 
     @Override
     public ITaskState loadTaskState(String taskInstanceId, ITaskRuntime taskRt) {
+        // W-12（裁定 E）：SUSPENDED 滞留 gauge 首次使用路径注册（纯内存装配场景零查询面）
+        ensureSuspendedGauges();
         NopTaskInstance entity = taskDao().getEntityById(taskInstanceId);
         if (entity == null)
             return null;
@@ -152,17 +174,59 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         // 可在 cross-restart resume 时重建 transient 字段、校验状态一致性。
         TaskStateBean state = toTaskStateBean(entity);
         state.afterLoad(taskRt);
+        // W-11（裁定 B）：读路径滞留守卫——唯一恢复入口必然触达滞留行；只读留痕+计数 gauge，
+        // 恢复决策仍归显式 resume（与跨进程 resume 完整性暂缓裁定兼容，不自动恢复）
+        warnIfStaleActive(entity);
         return state;
     }
 
+    /**
+     * W-01（CRA 8.49 R4-09，1.5-C1-006 裁定 B）：task 行写与 {@link #saveStepState} 对称置于
+     * 条带锁内（复用既有 64 槽 ROW_LOCKS），并以锁内 fresh-read 终态守卫承载 first-terminal-wins
+     * ——同 taskInstanceId 双 runtime 并发终态保存时，先到终态赢单，输家内存 bean 向 DB 真值
+     * 收敛（修复前仅 DB 乐观锁收敛，裸 ERR_ORM_UPDATE_ENTITY_NOT_FOUND 冒泡且输家内存永久漂移）。
+     *
+     * <p>锁序（设计裁定 B §4.1）：全部生产调用点在 synchronized(taskState) 临界区内（TaskImpl
+     * 六处 + TaskRuntimeImpl SUSPENDED cancel→KILLED），获取序恒为 monitor→rowLock，单向无环；
+     * rowLock 临界区内仅 DAO helper + state.beforeSave 钩子，零监视器获取点。
+     * <b>禁则</b>：ITaskState.beforeSave 实现禁止回调 taskRt/taskState 的同步方法（回调即
+     * 「rowLock 内取监视器」反向序，ABBA 风险）。
+     */
     @Override
     public void saveTaskState(ITaskRuntime taskRt) {
         ITaskState state = taskRt.getTaskState();
+        synchronized (rowLock(state.getTaskInstanceId())) {
+            saveTaskStateInLock(taskRt, state);
+        }
+    }
+
+    /**
+     * task 行锁（W-01）：与 [05-02] 同数组复用——task 行锁与 step 行锁共享槽位为可接受的
+     * 过度串行化（同 saveStepState 注释语义）。
+     */
+    private static Object rowLock(String taskInstanceId) {
+        int hash = (taskInstanceId == null ? 0 : taskInstanceId.hashCode());
+        return ROW_LOCKS[(hash & 0x7fffffff) % ROW_LOCK_STRIPES];
+    }
+
+    private void saveTaskStateInLock(ITaskRuntime taskRt, ITaskState state) {
         NopTaskInstance entity = taskDao().getEntityById(state.getTaskInstanceId());
         boolean isNew = entity == null;
         if (isNew) {
             entity = taskDao().newEntity();
             entity.setTaskInstanceId(state.getTaskInstanceId());
+        } else {
+            // W-01（裁定 B）：first-terminal-wins 判定点=锁内 fresh read——DB 已终态且与本次待写
+            // 状态不同时，先到终态赢单：向内存 bean 收敛 DB 真值后跳写（闭合输家内存漂移面）
+            Integer dbStatus = entity.getStatus();
+            Integer pendingStatus = state.getTaskStatus();
+            if (dbStatus != null && isTerminalTaskStatus(dbStatus)
+                    && (pendingStatus == null || !pendingStatus.equals(dbStatus))) {
+                state.setTaskStatus(dbStatus);
+                LOG.warn("nop.task.task-state-terminal-converged:taskInstanceId={},dbStatus={},ignoredStatus={}",
+                        state.getTaskInstanceId(), dbStatus, pendingStatus);
+                return;
+            }
         }
         // plan 262: task 级 beforeSave hook，对称 step 级 saveStepState:202（在 copyStepStateToEntity 之前）。
         // 在既有状态拷贝到 entity 之前调用，使 custom task state bean 可参与 save 前归一化/清理性写入。
@@ -254,10 +318,18 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             entity.setEndTime(CoreMetrics.currentTimestamp());
         }
 
-        if (isNew)
-            taskDao().saveEntityDirectly(entity);
-        else
-            taskDao().updateEntityDirectly(entity);
+        try {
+            if (isNew)
+                taskDao().saveEntityDirectly(entity);
+            else
+                taskDao().updateEntityDirectly(entity);
+        } catch (NopException e) {
+            // W-01（裁定 B）：残余版本冲突（跨进程/同槽外窗口）typed 映射——裸 ORM 错误码冒泡面闭合
+            if (ERR_ORM_UPDATE_ENTITY_NOT_FOUND.getErrorCode().equals(e.getErrorCode()))
+                throw new NopException(TaskErrors.ERR_TASK_STATE_SAVE_CONFLICT, e)
+                        .param(TaskErrors.ARG_TASK_INSTANCE_ID, state.getTaskInstanceId());
+            throw e;
+        }
     }
 
     // ==================== Step state ====================
@@ -634,6 +706,139 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         Object persistVars = map.get("persistVars");
         if (persistVars instanceof Map)
             state.setPersistVarsSnapshot((Map<String, Object>) persistVars);
+    }
+
+    /**
+     * 节点身份（W-11 裁定 B）：配置优先，缺省主机名+8 位随机后缀，实例内一次生成——
+     * 同进程内属主必匹配、崩溃重启后必不匹配（属主活性判定无需心跳列）。
+     */
+    private String resolveNodeId() {
+        if (nodeId != null)
+            return nodeId;
+        IConfigReference<String> ref = TaskConfigs.CFG_TASK_NODE_ID;
+        String configured = ref == null ? null : ref.get();
+        if (StringHelper.isEmpty(configured)) {
+            String host;
+            try {
+                host = java.net.InetAddress.getLocalHost().getHostName();
+            } catch (Exception e) {
+                host = "unknown-host";
+            }
+            configured = host + "-" + StringHelper.generateUUID().substring(0, 8);
+        }
+        nodeId = configured;
+        return nodeId;
+    }
+
+    /**
+     * W-11（裁定 B）：滞留 ACTIVE 只读守卫——workerId 存在且非本节点身份即判定为崩溃残留，
+     * WARN 留痕 + gauge 增量；<b>不自动恢复</b>（恢复仍唯一经显式 resume，与跨进程 resume
+     * 完整性暂缓裁定兼容）。
+     */
+    private void warnIfStaleActive(NopTaskInstance entity) {
+        Integer status = entity.getStatus();
+        if (status == null || status != TaskConstants.TASK_STATUS_ACTIVE)
+            return;
+        String owner = entity.getWorkerId();
+        if (StringHelper.isEmpty(owner))
+            return;
+        String self = resolveNodeId();
+        if (owner.equals(self))
+            return;
+        registerStaleGauge();
+        STALE_ACTIVE_LOADED.incrementAndGet();
+        LOG.warn("nop.task.stale-active-task-loaded:taskInstanceId={},workerId={},currentNode={}",
+                entity.getTaskInstanceId(), owner, self);
+    }
+
+    private void registerStaleGauge() {
+        if (STALE_GAUGE_REGISTERED.compareAndSet(false, true)) {
+            io.micrometer.core.instrument.Gauge
+                    .builder("nop.task.stale-active-loaded", STALE_ACTIVE_LOADED,
+                            java.util.concurrent.atomic.AtomicLong::get)
+                    .description("Stale ACTIVE task rows loaded by a different worker (plan 2542 W-11)")
+                    .register(io.nop.commons.metrics.GlobalMeterRegistry.instance());
+        }
+    }
+
+    // ===== W-12（CRA 8.49 R4-09，1.5-C7-010 裁定 E）：SUSPENDED 滞留观测 gauge =====
+    //
+    // 「等人工」声明语义零触碰：gauge 为纯观测面，resume-when 仍唯一经显式 resume 求值。
+    // scrape 期执行索引聚合查询（status+updateTime 既有列，零 DDL）；查询失败返回 NaN
+    // 表示诚实缺席（非静默 0——静默 0 会让「无滞留」与「采集故障」不可区分）。
+
+    private static final Object SUSPENDED_GAUGE_LOCK = new Object();
+    private static volatile DaoTaskStateStore SUSPENDED_GAUGE_OWNER;
+
+    /**
+     * W-12（裁定 E）：gauge 两枚注册（kind=all|stale tag 区分）。由 state store 首次
+     * 使用路径触发，避免无 DB 依赖的纯内存装配场景引入查询。
+     *
+     * <p>幂等以「registry 已有 + 属主为当前实例」双条件判定——gauge 是函数式仪表，持有注册
+     * 时的 store 实例；容器/测试重建 store 后必须重绑，否则读取的是旧实例（陈旧数据源）。
+     */
+    private void ensureSuspendedGauges() {
+        io.micrometer.core.instrument.MeterRegistry registry =
+                io.nop.commons.metrics.GlobalMeterRegistry.instance();
+        synchronized (SUSPENDED_GAUGE_LOCK) {
+            if (SUSPENDED_GAUGE_OWNER == this
+                    && registry.find("nop.task.suspended-tasks").tag("kind", "all").gauge() != null)
+                return;
+            // 换属主（容器/测试重建 store）时两枚一并摘除再重绑——否则第二枚仍指向旧实例，
+            // 读取旧实例已关闭的 DAO（查询抛错 → NaN → 恒 0）而非当前数据源
+            for (io.micrometer.core.instrument.Gauge g
+                    : registry.find("nop.task.suspended-tasks").gauges())
+                registry.remove(g);
+            try {
+                io.micrometer.core.instrument.Gauge
+                        .builder("nop.task.suspended-tasks", this, DaoTaskStateStore::countSuspended)
+                        .tag("kind", "all")
+                        .description("SUSPENDED task rows (plan 2542 W-12)")
+                        .register(registry);
+                io.micrometer.core.instrument.Gauge
+                        .builder("nop.task.suspended-tasks", this, DaoTaskStateStore::countStaleSuspended)
+                        .tag("kind", "stale")
+                        .description("SUSPENDED task rows older than nop.task.suspended.stale-ms (plan 2542 W-12)")
+                        .register(registry);
+                SUSPENDED_GAUGE_OWNER = this;
+            } catch (RuntimeException e) {
+                // 注册失败不得阻断业务读路径，但必须留痕（下次调用重试）
+                LOG.warn("nop.task.suspended-gauge-register-failed", e);
+            }
+        }
+    }
+
+    /**
+     * scrape 期计数（只读聚合查询）；查询失败返回 NaN 表示诚实缺席（非静默 0——
+     * 静默 0 会让「无滞留」与「采集故障」不可区分）。
+     */
+    private double countSuspended() {
+        try {
+            return taskDao().countByQuery(suspendedQuery(null));
+        } catch (Exception e) {
+            LOG.warn("nop.task.suspended-count-failed:kind=all", e);
+            return Double.NaN;
+        }
+    }
+
+    private double countStaleSuspended() {
+        try {
+            Integer staleMs = TaskConfigs.CFG_TASK_SUSPENDED_STALE_MS.get();
+            long threshold = staleMs == null ? 86400000L : staleMs.longValue();
+            Timestamp cutoff = new Timestamp(CoreMetrics.currentTimeMillis() - threshold);
+            return taskDao().countByQuery(suspendedQuery(cutoff));
+        } catch (Exception e) {
+            LOG.warn("nop.task.suspended-count-failed:kind=stale", e);
+            return Double.NaN;
+        }
+    }
+
+    private static QueryBean suspendedQuery(Timestamp staleCutoff) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(PROP_NAME_status, TaskConstants.TASK_STATUS_SUSPENDED));
+        if (staleCutoff != null)
+            query.addFilter(FilterBeans.lt(PROP_NAME_updateTime, staleCutoff));
+        return query;
     }
 
     /**

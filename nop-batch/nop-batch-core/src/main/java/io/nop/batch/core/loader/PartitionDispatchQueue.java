@@ -130,6 +130,37 @@ public class PartitionDispatchQueue<T> {
         return capacity;
     }
 
+    /**
+     * 1.7-C8-008（plan 2546 W-09）：当前尚未被处理的记录数（积压深度）。lock 内快照。
+     */
+    public int getCount() {
+        lock.lock();
+        try {
+            return count;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * 1.7-C8-008（plan 2546 W-09）：当前可用许可数（= capacity - 在队未取）。
+     */
+    public int getAvailablePermits() {
+        return semaphore.availablePermits();
+    }
+
+    /**
+     * 1.7-C8-008（plan 2546 W-09）：当前活跃分区队列数。
+     */
+    public int getPartitionCount() {
+        lock.lock();
+        try {
+            return partitions.size();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public MapOfInt<List<T>> takeBatch(int batchSize, long threadId, Supplier<List<T>> fetcher) {
         Guard.checkArgument(batchSize > 0, "batchSize must be non negative");
         MutableInt remainSize = new MutableInt(batchSize);

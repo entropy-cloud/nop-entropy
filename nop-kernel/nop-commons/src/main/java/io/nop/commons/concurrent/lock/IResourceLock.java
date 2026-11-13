@@ -10,6 +10,7 @@ package io.nop.commons.concurrent.lock;
 import io.nop.api.core.time.CoreMetrics;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 
@@ -72,14 +73,18 @@ public interface IResourceLock extends Lock {
      *
      * @param waitTime  获取锁的最大等待时间(毫秒)
      * @param leaseTime 锁的持有时间(毫秒)
-     * @param action    需要执行的操作函数，接收锁到期时间戳参数，
-     *                  返回 true 表示操作成功，false 表示需要释放锁并重试
+     * @param action    需要执行的操作函数，接收锁到期时间参数。
+     *                  R4-32（C7-004）契约修订：该值为单调时钟相对值（CoreMetrics.nanoTime()
+     *                  语义，纳秒），仅可与同进程内 {@code CoreMetrics.nanoTime()} 的返回值比较
+     *                  或相减求剩余租期，不得持久化、不得与墙钟（currentTimeMillis/epoch）比较、
+     *                  不得跨进程传输。返回 true 表示操作成功，false 表示需要释放锁并重试
      * @return true 表示操作成功完成且锁仍持有，false 表示获取锁失败
      * @throws NullPointerException 如果操作函数为 null
      */
     default boolean tryLockAndExecute(long waitTime, long leaseTime, Function<Long, Boolean> action) {
         do {
-            long expireAt = CoreMetrics.currentTimeMillis() + leaseTime;
+            // R4-32（C7-004）：时钟源换为单调时钟；expireAt 与锁表内部 expireTime 同源（nanoTime 纳秒）
+            long expireAt = CoreMetrics.nanoTime() + TimeUnit.MILLISECONDS.toNanos(leaseTime);
             if (!tryLockWithLease(waitTime, leaseTime)) {
                 return false;
             }

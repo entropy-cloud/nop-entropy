@@ -51,8 +51,34 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     }
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
-    private static final long MAX_FILE_SIZE_BYTES = 1024 * 1024;
-    private static final int MAX_FILE_COUNT = 50000;
+
+    /**
+     * Input-envelope defaults (6.3-W-02 activation): oversized files are skipped and traversal
+     * stops at the file-count cap — both observable via {@link ProjectAnalysisResult#isTruncated()}
+     * and structured WARN. Test seam: instance fields + package-visible setters, production
+     * default = these compile-time constants. DEFAULT_BATCH_SIZE batching is unrelated and
+     * untouched.
+     */
+    static final long DEFAULT_MAX_FILE_SIZE_BYTES = 1024 * 1024;
+    static final int DEFAULT_MAX_FILE_COUNT = 50000;
+
+    private long maxFileSizeBytes = DEFAULT_MAX_FILE_SIZE_BYTES;
+    private int maxFileCount = DEFAULT_MAX_FILE_COUNT;
+
+    /** Test seam (TP-002 inject-small-threshold) — package-visible by design: ProjectAnalyzer is
+     * direct-new assembled (CodeIndexService.setRegistry / test channels), never an IoC bean. */
+    void setMaxFileSizeBytes(long maxFileSizeBytes) {
+        if (maxFileSizeBytes <= 0)
+            throw new IllegalArgumentException("maxFileSizeBytes must be positive, got: " + maxFileSizeBytes);
+        this.maxFileSizeBytes = maxFileSizeBytes;
+    }
+
+    /** Test seam (TP-002 inject-small-threshold) — package-visible by design, see setMaxFileSizeBytes. */
+    void setMaxFileCount(int maxFileCount) {
+        if (maxFileCount <= 0)
+            throw new IllegalArgumentException("maxFileCount must be positive, got: " + maxFileCount);
+        this.maxFileCount = maxFileCount;
+    }
 
     private final LanguageAdapterRegistry registry;
     /**
@@ -118,8 +144,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     }
 
     /**
-     * 基于 VFS 资源加载器的项目分析。使用 depthIterator 惰性遍历文件系统，
-     * 用 BatchQueue 缓冲分析结果，避免一次性加载所有文件到内存。
+     * 基于 VFS 资源加载器的项目分析。depthIterator 惰性遍历文件系统；BatchQueue 仅缓冲符号注册
+     * 节奏（满 batchSize 个文件后注册到全局符号表），分析结果本身仍全量累积。输入面包络由
+     * maxFileSizeBytes/maxFileCount 守卫：超限文件 skip、计数超限停止遍历（truncated 标志 + WARN）。
      */
     public ProjectAnalysisResult analyzeProject(IResourceLoader resourceLoader, String vfsPath, String filePattern) {
         LOG.info("Starting project analysis from VFS: {}", vfsPath);
@@ -129,6 +156,7 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
         SymbolTable globalSymbolTable = new SymbolTable();
         int[] fileCount = {0};
+        InputEnvelopeState envelope = new InputEnvelopeState();
 
         // BatchQueue 缓冲：满 batchSize 个文件后自动将符号注册到全局符号表
         BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(batchSize, batch -> {
@@ -173,8 +201,15 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
             if (fileAnalyzer == null) continue;
 
+            if (fileCountCapReached(fileCount[0], envelope, "project-scan")) {
+                break;
+            }
+
             try {
-                String sourceCode = resource.readText();
+                String sourceCode = readSourceChecked(resource, relativePath, envelope);
+                if (sourceCode == null) {
+                    continue; // oversized skip — explicit WARN emitted inside the read checkpoint
+                }
                 CodeFileAnalysisResult result = fileAnalyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     batchQueue.add(result);
@@ -186,12 +221,14 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         }
         batchQueue.flush();
 
-        LOG.info("Analyzed {} files from VFS, collected {} symbols", fileCount[0], globalSymbolTable.size());
+        LOG.info("Analyzed {} files from VFS, collected {} symbols, oversizedSkipped={}",
+                fileCount[0], globalSymbolTable.size(), envelope.oversizedSkipped);
 
         int[] callCounts = resolveCalls(fileResults, globalSymbolTable);
         ProjectStats stats = buildStats(fileResults, globalSymbolTable, callCounts[0], callCounts[1]);
 
         ProjectAnalysisResult result = new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        result.setTruncated(envelope.truncated);
         List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
         runSemanticExtractors(globalSymbolTable, result.buildCallGraph(), semanticEdges);
         runFileResultExtractors(fileResults, globalSymbolTable, semanticEdges);
@@ -203,13 +240,15 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
 
     public ProjectAnalysisResult analyzeProject(IResourceLoader resourceLoader, String vfsPath,
                                                   String filePattern, BatchCallback batchCallback) {
-        LOG.info("Starting streaming project analysis from VFS: {}", vfsPath);
+        LOG.info("Starting project analysis from VFS: {} (BatchQueue paces symbol registration;"
+                + " results are fully accumulated)", vfsPath);
 
         Set<String> allExtensions = collectExtensions();
 
         List<CodeFileAnalysisResult> allFileResults = new ArrayList<>();
         SymbolTable globalSymbolTable = new SymbolTable();
         int[] fileCount = {0};
+        InputEnvelopeState envelope = new InputEnvelopeState();
 
         BatchQueue<CodeFileAnalysisResult> batchQueue = new BatchQueue<>(batchSize, batch -> {
             for (CodeFileAnalysisResult result : batch) {
@@ -256,8 +295,15 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
             if (fileAnalyzer == null) continue;
 
+            if (fileCountCapReached(fileCount[0], envelope, "streaming-scan")) {
+                break;
+            }
+
             try {
-                String sourceCode = resource.readText();
+                String sourceCode = readSourceChecked(resource, relativePath, envelope);
+                if (sourceCode == null) {
+                    continue; // oversized skip — explicit WARN emitted inside the read checkpoint
+                }
                 CodeFileAnalysisResult result = fileAnalyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     batchQueue.add(result);
@@ -269,12 +315,14 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         }
         batchQueue.flush();
 
-        LOG.info("Streaming analysis: {} files, {} symbols", fileCount[0], globalSymbolTable.size());
+        LOG.info("Batched analysis: {} files, {} symbols, oversizedSkipped={}",
+                fileCount[0], globalSymbolTable.size(), envelope.oversizedSkipped);
 
         int[] callCounts = resolveCalls(allFileResults, globalSymbolTable);
         ProjectStats stats = buildStats(allFileResults, globalSymbolTable, callCounts[0], callCounts[1]);
 
         ProjectAnalysisResult result = new ProjectAnalysisResult(allFileResults, globalSymbolTable, stats);
+        result.setTruncated(envelope.truncated);
         List<CodeSemanticEdge> semanticEdges = new ArrayList<>();
         runSemanticExtractors(globalSymbolTable, result.buildCallGraph(), semanticEdges);
         runFileResultExtractors(allFileResults, globalSymbolTable, semanticEdges);
@@ -324,6 +372,46 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             allExtensions.addAll(adapter.getFileExtensions());
         }
         return allExtensions;
+    }
+
+    /** Per-run truncation tracking for the input-envelope guards (skip + truncated flag + WARN). */
+    private static final class InputEnvelopeState {
+        boolean truncated;
+        int oversizedSkipped;
+    }
+
+    /**
+     * Unified read checkpoint: every source-read site (two full-scan variants, incremental
+     * re-analysis, explicit file list, batch helper) enforces the file-size guard here, so
+     * oversized files are skipped with an explicit WARN — distinguishable from the silent
+     * analyzer-null continue branch — instead of being read whole into the heap, and the run
+     * is marked truncated.
+     */
+    private String readSourceChecked(IResource resource, String relativePath, InputEnvelopeState state) {
+        long length = resource.length();
+        if (length > maxFileSizeBytes) {
+            state.truncated = true;
+            state.oversizedSkipped++;
+            LOG.warn("nop.code.input-file-skipped-oversized:path={},size={},maxFileSizeBytes={} (oversized"
+                    + " file skipped, result set is partial)", relativePath, length, maxFileSizeBytes);
+            return null;
+        }
+        return resource.readText();
+    }
+
+    /**
+     * File-count guard: once the analyzed-file count reaches the cap, traversal stops (WARN +
+     * truncated flag) so the result set stays bounded.
+     */
+    private boolean fileCountCapReached(int analyzedCount, InputEnvelopeState state, String context) {
+        if (analyzedCount >= maxFileCount) {
+            state.truncated = true;
+            LOG.warn("nop.code.input-file-count-capped:analyzed={},maxFileCount={},context={} (file-count"
+                    + " cap reached, remaining files skipped, result set is partial)",
+                    analyzedCount, maxFileCount, context);
+            return true;
+        }
+        return false;
     }
 
     private int[] resolveCalls(List<CodeFileAnalysisResult> fileResults, SymbolTable globalSymbolTable) {
@@ -429,6 +517,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
             updatedFileMap.remove(deletedPath);
         }
 
+        InputEnvelopeState envelope = new InputEnvelopeState();
+        int analyzedCount = 0;
+
         // 重新分析变更文件
         for (String filePath : filesToReanalyze) {
             try {
@@ -442,10 +533,17 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                 if (analyzer == null) {
                     continue;
                 }
-                String sourceCode = res.readText();
+                if (fileCountCapReached(analyzedCount, envelope, "incremental-reanalysis")) {
+                    break;
+                }
+                String sourceCode = readSourceChecked(res, relativePath, envelope);
+                if (sourceCode == null) {
+                    continue; // oversized skip — explicit WARN emitted inside the read checkpoint
+                }
                 CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     updatedFileMap.put(relativePath, result);
+                    analyzedCount++;
                 }
             } catch (Exception e) {
                 LOG.warn("Failed to re-analyze file: {}", filePath, e);
@@ -473,7 +571,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
 
         ProjectStats stats = buildStats(fileResults, globalSymbolTable, callCounts[0], callCounts[1]);
 
-        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        ProjectAnalysisResult incrementalResult = new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        incrementalResult.setTruncated(envelope.truncated);
+        return incrementalResult;
     }
 
     /**
@@ -580,6 +680,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
     private ProjectAnalysisResult analyzeFiles(String projectRoot, List<String> files) throws IOException {
         List<CodeFileAnalysisResult> fileResults = new ArrayList<>();
         SymbolTable globalSymbolTable = new SymbolTable();
+        InputEnvelopeState envelope = new InputEnvelopeState();
+        int analyzedCount = 0;
 
         for (String filePath : files) {
             try {
@@ -593,10 +695,17 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                 if (analyzer == null) {
                     continue;
                 }
-                String sourceCode = res.readText();
+                if (fileCountCapReached(analyzedCount, envelope, "analyze-files")) {
+                    break;
+                }
+                String sourceCode = readSourceChecked(res, relativePath, envelope);
+                if (sourceCode == null) {
+                    continue; // oversized skip — explicit WARN emitted inside the read checkpoint
+                }
                 CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     fileResults.add(result);
+                    analyzedCount++;
                     for (CodeSymbol symbol : result.getSymbols()) {
                         String qn = symbol.getQualifiedName();
                         if (qn != null && !qn.isEmpty()) {
@@ -615,7 +724,9 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
         LOG.info("analyzeFiles: {} files, {} symbols, {} resolved calls",
                 fileResults.size(), globalSymbolTable.size(), callCounts[0]);
 
-        return new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        ProjectAnalysisResult result = new ProjectAnalysisResult(fileResults, globalSymbolTable, stats);
+        result.setTruncated(envelope.truncated);
+        return result;
     }
 
     /**
@@ -656,6 +767,8 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
      */
     private List<CodeFileAnalysisResult> analyzeBatch(List<String> files, String projectRoot) {
         List<CodeFileAnalysisResult> results = new ArrayList<>();
+        InputEnvelopeState envelope = new InputEnvelopeState();
+        int analyzedCount = 0;
         for (String filePath : files) {
             try {
                 IResource res = VirtualFileSystem.instance().getResource(filePath);
@@ -668,10 +781,17 @@ public class ProjectAnalyzer implements IProjectAnalyzer {
                 if (analyzer == null) {
                     continue;
                 }
-                String sourceCode = res.readText();
+                if (fileCountCapReached(analyzedCount, envelope, "analyze-batch")) {
+                    break;
+                }
+                String sourceCode = readSourceChecked(res, relativePath, envelope);
+                if (sourceCode == null) {
+                    continue; // oversized skip — explicit WARN emitted inside the read checkpoint
+                }
                 CodeFileAnalysisResult result = analyzer.analyze(relativePath, sourceCode);
                 if (result != null) {
                     results.add(result);
+                    analyzedCount++;
                 }
             } catch (Exception e) {
                 LOG.warn("Failed to analyze file: {}", filePath, e);

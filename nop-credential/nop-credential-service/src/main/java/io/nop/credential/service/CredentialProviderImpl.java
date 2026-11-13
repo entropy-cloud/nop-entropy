@@ -37,6 +37,7 @@ import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
 
 import java.sql.Timestamp;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,6 +72,8 @@ import java.util.function.Function;
  * </ul>
  */
 public class CredentialProviderImpl implements ICredentialProvider {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(CredentialProviderImpl.class);
 
     @Inject
     protected IDaoProvider daoProvider;
@@ -397,6 +400,14 @@ public class CredentialProviderImpl implements ICredentialProvider {
      *
      * <p>非临期直接返回（不持锁，非刷新取用可并发）；锁下双重检查保证并发取用同一凭证时
      * 刷新收敛为一次（跨副本经 DB 行锁 SELECT FOR UPDATE 互斥，Phase 3 Decision）。
+     *
+     * <p>5.1-I-02 轮换窗口语义（plan 2569）：轮换型 IdP 下，刷新 HTTP 成功即已作废旧
+     * refreshToken——若其后本事务持久化失败，补偿通道 {@link #compensateTokenFields} 以
+     * 独立事务单次重试持久化新 token；补偿亦失败（或补偿与原失败之间另一副本已并发写入
+     * 更新 token，补偿按非空合并覆盖）时凭证进入 fail-closed：下次刷新 invalid_grant →
+     * {@code ERR_CREDENTIAL_OAUTH_REAUTH_REQUIRED}（重新授权），不静默使用旧 token。
+     * 补偿捕获非 null 才触发（pre-updater 失败路径 NOT_FOUND/DELETED/disabled 复查均在
+     * updater 之前，结构上捕获必为 null，不误补偿）。
      */
     private Map<String, Object> refreshIfNearingExpiry(String credentialId, CredentialType type,
                                                        Map<String, Object> fields) {
@@ -410,6 +421,42 @@ public class CredentialProviderImpl implements ICredentialProvider {
             return fields; // 非临期：直接返回，不持锁
         }
 
+        // 5.1-I-02（plan 2569）：刷新成功但持久化失败（txn 提交失败等）的补偿捕获——
+        // updater 完成合并后记录 token 字段子集；pre-updater 失败（NOT_FOUND/DELETED/disabled
+        // 复查）发生在 updater 之前，捕获保持 null，结构上不触发补偿
+        AtomicReference<Map<String, Object>> refreshedTokens = new AtomicReference<>();
+        try {
+            return refreshInLock(credentialId, type, refreshedTokens);
+        } catch (RuntimeException e) {
+            Map<String, Object> captured = refreshedTokens.get();
+            if (captured != null) {
+                compensateTokenFields(credentialId, captured);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 补偿通道 seam（public 仅为同模块 focused 测试直驱；不属于 ICredentialProvider API 面——
+     * 引擎内部补偿语义）：以
+     * {@link #engineUpdateTokenFields} 独立事务单次重试持久化已刷新 token 字段。
+     * 成功 WARN（凭证未失联）；失败 ERROR（下次刷新 invalid_grant → REAUTH_REQUIRED）。
+     * 本方法不吞不换原异常——调用方仍上抛原失败（fail-closed 语义不放宽）。
+     * <p>已知边界（javadoc 契约）：补偿与原失败之间若另一副本并发刷新写入了更新 token，
+     * 本补偿按非空合并覆盖（写入较旧值）——轮换型 IdP 下该副本下次刷新同样触发
+     * invalid_grant → REAUTH_REQUIRED fail-closed，不产生静默旧 token 使用。
+     */
+    public void compensateTokenFields(String credentialId, Map<String, Object> tokenFields) {
+        try {
+            engineUpdateTokenFields(credentialId, tokenFields);
+            LOG.warn("nop.warn.credential.oauth-refresh-compensated:credentialId={}", credentialId);
+        } catch (RuntimeException e2) {
+            LOG.error("nop.err.credential.oauth-refresh-compensate-fail:credentialId={}", credentialId, e2);
+        }
+    }
+
+    private Map<String, Object> refreshInLock(String credentialId, CredentialType type,
+                                              AtomicReference<Map<String, Object>> refreshedTokens) {
         // 临期：进入行锁互斥路径（锁下双重检查——并发下后到者直接读到先行者刷新后的 token）
         return engineUpdateInLock(credentialId, current -> {
             Long curExpiresAt = asEpochMillis(current.get("expiresAt"));
@@ -444,8 +491,15 @@ public class CredentialProviderImpl implements ICredentialProvider {
                 response = oauthTokenClient.refresh(type.getOauth2().getTokenEndpoint(),
                         clientId, clientSecret, refreshToken);
             } catch (NopException e) {
-                // 刷新失败（invalid_grant 等）fail-closed：不静默使用旧 token、不静默返回空值
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_OAUTH_REFRESH_FAILED, e)
+                // 5.1-I-02（plan 2569）：invalid_grant（token 已作废/已被轮换消费）归一为
+                // REAUTH_REQUIRED（明确"需重新授权"信号）；其余错误维持 REFRESH_FAILED。
+                // 分型点在 OAuthTokenClient 的 ARG_OAUTH_ERROR 类型化 param，禁止字符串 contains 匹配
+                boolean invalidGrant = CredentialErrors.ARG_INVALID_GRANT.equals(
+                        e.getParam(CredentialErrors.ARG_OAUTH_ERROR));
+                // 刷新失败 fail-closed：不静默使用旧 token、不静默返回空值
+                throw new NopException(invalidGrant
+                        ? CredentialErrors.ERR_CREDENTIAL_OAUTH_REAUTH_REQUIRED
+                        : CredentialErrors.ERR_CREDENTIAL_OAUTH_REFRESH_FAILED, e)
                         .param(CredentialErrors.ARG_CREDENTIAL_ID, credentialId)
                         .param(CredentialErrors.ARG_ERROR, e.getMessage());
             }
@@ -465,6 +519,22 @@ public class CredentialProviderImpl implements ICredentialProvider {
             if (response.getScope() != null) {
                 merged.put("scope", response.getScope());
             }
+            // 补偿捕获：仅 token 相关字段子集（updater 完成合并后写入，失败路径不触发）
+            Map<String, Object> tokenOnly = new LinkedHashMap<>();
+            tokenOnly.put("accessToken", merged.get("accessToken"));
+            if (merged.get("refreshToken") != null) {
+                tokenOnly.put("refreshToken", merged.get("refreshToken"));
+            }
+            if (merged.get("expiresAt") != null) {
+                tokenOnly.put("expiresAt", merged.get("expiresAt"));
+            }
+            if (merged.get("tokenType") != null) {
+                tokenOnly.put("tokenType", merged.get("tokenType"));
+            }
+            if (merged.get("scope") != null) {
+                tokenOnly.put("scope", merged.get("scope"));
+            }
+            refreshedTokens.set(tokenOnly);
             return merged;
         });
     }

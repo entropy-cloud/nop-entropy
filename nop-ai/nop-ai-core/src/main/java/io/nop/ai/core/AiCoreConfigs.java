@@ -31,6 +31,28 @@ public interface AiCoreConfigs {
     IConfigReference<Integer> CFG_AI_SERVICE_READ_TIMEOUT =
             varRef(s_loc, "nop.ai.service.read-timeout", Integer.class, 60000);
 
+    @Description("LLM 流式调用的全程总期限（毫秒），默认10分钟。独立于 "
+            + "nop.ai.service.read-timeout（后者仅约束响应头到达）：provider 返回 200 后连接挂死时，"
+            + "聚合 future 在本期限内以显式错误终态（3.1-C7-001，两侧同批）。0 = 不启用总期限（不推荐）")
+    IConfigReference<Long> CFG_AI_SERVICE_STREAM_TOTAL_TIMEOUT =
+            varRef(s_loc, "nop.ai.service.stream-total-timeout", Long.class, 600_000L);
+
+    @Description("LLM 流式调用的 chunk 间 inactivity 上界（毫秒），默认2分钟。"
+            + "服务端静默（hang/代理黑洞/进程假死）超过本预算时聚合 future 以显式错误终态"
+            + "（3.1-C7-001，两侧同批；与传输层 idle 读超时构成双层预算）。0 = 不启用 inactivity 检测（不推荐）")
+    IConfigReference<Long> CFG_AI_SERVICE_STREAM_IDLE_TIMEOUT =
+            varRef(s_loc, "nop.ai.service.stream-idle-timeout", Long.class, 120_000L);
+
+    @Description("LLM 流式聚合的单次调用累积字符上界（text+reasoning+tool-call arguments 总和），"
+            + "默认200万。超界 fail-fast 终态化流（3.1-C5-001 聚合无界面）。0 = 不设上界（不推荐）")
+    IConfigReference<Integer> CFG_AI_SERVICE_STREAM_MAX_ACCUMULATED_CHARS =
+            varRef(s_loc, "nop.ai.service.stream-max-accumulated-chars", Integer.class, 2_000_000);
+
+    @Description("LLM 流式聚合的单次调用 tool-call 条目数上界（按线上 itemIndex 计），默认100。"
+            + "超界 fail-fast 终态化流（3.1-C5-001 线上可控键累加器无上界面）。0 = 不设上界（不推荐）")
+    IConfigReference<Integer> CFG_AI_SERVICE_STREAM_MAX_TOOL_CALLS =
+            varRef(s_loc, "nop.ai.service.stream-max-tool-calls", Integer.class, 100);
+
     @Description("AI 请求/响应持久化是否启用AES加密（nop.crypt.default-enc-key 或 setTextCipher 注入密钥）。"
             + "默认关闭以兼容历史明文文件；开启后新写入内容加密，旧明文文件仍可读取")
     IConfigReference<Boolean> CFG_AI_PERSIST_EXCHANGE_ENCRYPT =
@@ -40,6 +62,24 @@ public interface AiCoreConfigs {
             + "读取时惰性过期：缓存条目超过 TTL 视为 miss 并删除，不主动清扫")
     IConfigReference<Long> CFG_AI_SERVICE_CACHE_TTL =
             varRef(s_loc, "nop.ai.service.cache-ttl", Long.class, 0L);
+
+    @Description("AiChat 响应缓存的磁盘条目数上界（LRU 逐出，逐出回调删除缓存文件），"
+            + "默认1000。0 = 不设上界（不推荐）（3.1-C5-002，plan 2556 裁定 D）")
+    IConfigReference<Integer> CFG_AI_SERVICE_CACHE_MAX_ENTRIES =
+            varRef(s_loc, "nop.ai.service.cache-max-entries", Integer.class, 1000);
+
+    @Description("AiChat 响应缓存的单条磁盘大小上界（字节，序列化后量长，写入前检查）。"
+            + "超限放弃缓存并 WARN；读取时超过本上界的既有条目视为 miss 并删除。"
+            + "默认2MB（3.1-C5-002，plan 2556 裁定 D）")
+    IConfigReference<Long> CFG_AI_SERVICE_CACHE_MAX_ENTRY_BYTES =
+            varRef(s_loc, "nop.ai.service.cache-max-entry-bytes", Long.class, 2_097_152L);
+
+    @Description("熔断器失败记忆条目的惰性 TTL（毫秒），默认1小时。"
+            + "allowCall 临界区内清除超 TTL 的 OPEN / 带失败记忆的 CLOSED 条目"
+            + "（pristine 即时清理保持）；0 = 不启用 TTL（不推荐，无界豁免随本键收窄）"
+            + "（3.1-C7-007，plan 2556 裁定 I）")
+    IConfigReference<Long> CFG_AI_BREAKER_ENTRY_TTL =
+            varRef(s_loc, "nop.ai.breaker.entry-ttl-ms", Long.class, 3_600_000L);
 
     @Description("LLM 调用本地限流（llm.xml 配置了 rateLimit 时）的许可获取超时（毫秒）。"
             + "超时未获许可时抛 ERR_AI_RATE_LIMITED（携带 httpStatus=429，LlmErrorClassifier 判为 "
@@ -53,4 +93,11 @@ public interface AiCoreConfigs {
             + "两者皆空时 embedding 调用 fail-loud（无隐式 provider）")
     IConfigReference<String> CFG_AI_EMBEDDING_DEFAULT_LLM =
             varRef(s_loc, "nop.ai.embedding.default-llm", String.class, null);
+
+    @Description("聊天日志保留期（天），缺省 0 = 不清理（兼容默认，运维须自行管理磁盘包络）。"
+            + ">0 时 DefaultChatLogger 在写入路径上惰性删除早于 今天-保留期 的日期分区目录"
+            + "（布局 logDir/yyyy/MM-dd/，目录级删除），每日期至多全量扫描一次（once-per-date 节流）。"
+            + "清理为 best-effort，失败仅记日志，不影响日志写入主路径（3.1-MA-21，plan 2555 裁定 I）")
+    IConfigReference<Integer> CFG_AI_CHAT_LOG_RETENTION_DAYS =
+            varRef(s_loc, "nop.ai.chat-log.retention-days", Integer.class, 0);
 }

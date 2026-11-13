@@ -24,4 +24,10 @@ public interface NopBatchDaoErrors {
     ErrorCode ERR_BATCH_TASK_EXCEED_START_LIMIT = ErrorCode.define("nop.err.batch.task-exceed-start-limit",
             "批处理任务[{taskName}-{taskKey}]启动次数超过限制，不允许再次启动",
             ARG_TASK_NAME, ARG_TASK_KEY, ARG_TASK_ID, ARG_TASK_STATUS);
+
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
+
+    ErrorCode ERR_BATCH_LEDGER_CONFIG_INVALID = ErrorCode.define("nop.err.batch.ledger-config-invalid",
+            "批处理账本保留策略配置非法: {configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }

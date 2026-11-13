@@ -70,24 +70,39 @@ public interface IAsyncCache<K, V> extends ICacheManagement<K> {
     CompletionStage<V> computeIfAbsentAsync(@Nonnull K key, @Nonnull Function<? super K, ? extends V> mappingFunction);
 
     /**
-     * Returns the future of a map of the values associated with {@code keys}, creating or retrieving those values if
-     * necessary. The returned map contains entries that were already cached, combined with newly loaded entries; it
-     * will never contain null keys or values. If the any of the asynchronous computations fail, those entries will be
-     * automatically removed from this cache.
+     * Returns the future of a map of the values associated with {@code keys}.
      * <p>
-     * A single request to the {@code mappingFunction} is performed for all keys which are not already present in the
-     * cache. If another call to {@link #get} tries to load the value for a key in {@code keys}, that thread retrieves a
-     * future that is completed by this bulk computation. Note that multiple threads can concurrently load values for
-     * distinct keys.
+     * <b>行为依实现/配置分叉（1.7-C3-009 / plan 2547 裁定 F，按 live 实况逐个登记）</b>：
+     * <table>
+     *   <tr><th>实现 + 配置</th><th>未命中 key 的行为</th></tr>
+     *   <tr><td>{@code LocalCache} + {@code async=true}</td>
+     *       <td><b>整体失败</b>：以 {@code k -> null} 调用 Caffeine 的 {@code AsyncCache.getAll}，
+     *           Caffeine 拒绝 null 值映射，抛 {@code NullMapCompletionException}
+     *           （以 {@code CompletionStage} 的 {@code ExecutionException} 呈现）。
+     *           <b>不加载、也不返回部分结果</b>。</td></tr>
+     *   <tr><td>{@code LocalCache} + {@code async=false} + <b>有</b> loader</td>
+     *       <td><b>加载缺失 key</b> 并返回完整 map（{@code Caffeine.getAll} 语义）。</td></tr>
+     *   <tr><td>{@code LocalCache} + {@code async=false} + <b>无</b> loader；
+     *           {@code MapCache}；{@code ISyncCache} 的默认实现
+     *           （如 {@code EhcacheCache}/{@code HazelcastCache}）</td>
+     *       <td><b>仅返回已缓存条目</b>（缺席 map，未命中 key 不在结果中）。</td></tr>
+     * </table>
      * <p>
-     * Note that duplicate elements in {@code keys}, as determined by {@link Object#equals}, will be ignored.
+     * <b>调用方指引</b>：需要「miss 即加载」→ 用 {@link #computeIfAbsentAsync} 或
+     * {@link #getAsync}；只想要已缓存条目且不希望触发任何加载 → 优先用
+     * {@link ICache#getAllPresent(Collection)}（语义最明确，与实现无关）。
+     * <p>
+     * <b>契约变更说明</b>：原 javadoc 声称 "creating or retrieving those values if necessary"，
+     * 与 {@code LocalCache} 的 async 分支相反（既不加载、也不返回缺席 map，而是整体失败）。
+     * 本声明**按实况逐实现登记**，不再给出与实现无关的普遍承诺。
+     * 拒绝方案：①统一改为真加载（改变既有 async 契约）；②统一改为缺席 map（需换
+     * {@code getAllPresent} 语义，属行为变更，需另立判定）。
      *
      * @param keys the keys whose associated values are to be returned
-     * @return the future containing an unmodifiable mapping of keys to values for the specified keys in this cache
-     * @throws NullPointerException if the specified collection is null or contains a null element, or if the future returned by the
-     *                              {@link AsyncCacheLoader} is null
-     * @throws RuntimeException     or Error if the {@link AsyncCacheLoader} does so, if {@link AsyncCacheLoader#asyncLoadAll} returns
-     *                              {@code null}, or fails when constructing the future, in which case the mapping is left unestablished
+     * @return a future of the map produced by the concrete implementation per the table above
+     *         (may fail with {@code NullMapCompletionException} on {@code LocalCache}+async for
+     *         any uncached key; may contain fewer entries than {@code keys})
+     * @throws NullPointerException if the specified collection is null or contains a null element
      */
     @Nonnull
     CompletionStage<Map<K, V>> getAllAsync(Collection<? extends K> keys);

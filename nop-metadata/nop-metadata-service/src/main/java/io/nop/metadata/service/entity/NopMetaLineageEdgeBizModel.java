@@ -44,7 +44,7 @@ public class NopMetaLineageEdgeBizModel extends CrudBizModel<NopMetaLineageEdge>
     @InjectValue(value = "@cfg:nop.metadata.lineage.max-tables|0")
     protected int configuredMaxTables = 0;
 
-    private NopMetaLineageEdgeQueryAction queryAction;
+    private volatile NopMetaLineageEdgeQueryAction queryAction; // W-04（plan 2528 裁定③）
 
     private NopMetaLineageEdgeQueryAction queryAction() {
         if (queryAction == null) {

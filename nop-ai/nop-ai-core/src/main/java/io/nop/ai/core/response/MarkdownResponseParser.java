@@ -5,7 +5,8 @@ import io.nop.markdown.model.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 
 public class MarkdownResponseParser {
-    private static MarkdownResponseParser s_instance = new MarkdownResponseParser();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003）：volatile 保证换装可见 + 安全发布
+    private static volatile MarkdownResponseParser s_instance = new MarkdownResponseParser();
 
     protected MarkdownResponseParser() {
 

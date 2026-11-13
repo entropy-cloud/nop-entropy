@@ -1,5 +1,5 @@
 <!--
-@concurrency 同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
+@concurrency 并行执行chunk循环的线程数。设置executor时chunk任务提交到该线程池执行；未设置executor时兜底提交到平台共享cached线程池执行（池宽上界由配置项nop.commons.concurrent.cached-pool.maxPoolSize控制，缺省200，达界提交报错nop.err.commons.concurrent.cached-pool-saturated），并非串行执行。concurrency与fetchThreadCount超过配置项nop.batch.max-concurrency-cap（缺省200）时任务装配期报错（nop.err.batch.concurrency-exceeds-cap）
 @retryOneByOne 重试的时候是否逐个重试，还是一整批重试
 @singleMode表示批量读取数据，然后逐条处理、消费，而不是批量消费。
 @rateLimit 每秒最多处理多少条记录
@@ -111,7 +111,8 @@
         </file-reader>
 
         <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path" headerRowCount="int"
-                      dataSheetName="string" headerSheetName="string" trailerSheetName="string">
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string"
+                      maxCountExpr="expr">
             <filter>xpl-fn:(item,batchTaskCtx)=>boolean</filter>
 
             <headers>csv-list</headers>

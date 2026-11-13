@@ -33,6 +33,10 @@ public class CodeRelationGraph implements IGraph {
     private final Map<String, List<Edge>> outEdges;
     private final Map<String, List<Edge>> inEdges;
     private final Set<String> nodeIds;
+    // passive truncation flag (precedent: SymbolTable/CallGraph.isTruncated) — set by the
+    // loader when the cumulative edge cap stopped further batch pulls; purely observational,
+    // never changes projection behavior
+    private boolean truncated;
 
     public CodeRelationGraph(List<CodeEdgeData> edges) {
         Map<String, List<Edge>> out = new HashMap<>();
@@ -86,6 +90,18 @@ public class CodeRelationGraph implements IGraph {
      */
     public Set<String> nodeIds() {
         return Collections.unmodifiableSet(nodeIds);
+    }
+
+    /**
+     * Whether the source edge set of this projection was truncated by the loader's cumulative
+     * edge cap (graph results derived from a partial edge set — missing-family degradation).
+     */
+    public boolean isTruncated() {
+        return truncated;
+    }
+
+    public void setTruncated(boolean truncated) {
+        this.truncated = truncated;
     }
 
     @Override

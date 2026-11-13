@@ -1,6 +1,7 @@
 entity:
   label:
     NopReportDataset: 数据集定义
+    NopReportDatasetAuth: 数据集权限
     NopReportDatasetRef: 报表引用数据源
     NopReportDatasource: 数据源定义
     NopReportDatasourceAuth: 数据源访问权限
@@ -29,6 +30,16 @@ prop:
       sid: 主键
       status: 状态
       status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportDatasetAuth:
+      createTime: 创建时间
+      createdBy: 创建人
+      dsId: 主键
+      permissions: 许可权限
+      remark: 备注
+      roleId: 角色ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

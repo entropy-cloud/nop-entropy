@@ -55,4 +55,17 @@ public interface NopAiShellErrors {
 
     ErrorCode ERR_AI_SHELL_UNKNOWN_SYMBOL =
             define("nop.err.ai.shell.unknown-symbol", "unknown symbol: {msg}", ARG_MSG);
+
+    // ========================================================================
+    // plan 2557 C8-010 (ruling I) / C8-012 (ruling J): output/input envelope
+    // caps. Over-cap is fail-loud (explicit error), never silent truncation.
+    // ========================================================================
+
+    ErrorCode ERR_AI_SHELL_OUTPUT_CAP_EXCEEDED =
+            define("nop.err.ai.shell.output-cap-exceeded",
+                    "shell redirect output exceeded the maximum byte cap: {detail}", ARG_DETAIL);
+
+    ErrorCode ERR_AI_SHELL_INPUT_CAP_EXCEEDED =
+            define("nop.err.ai.shell.input-cap-exceeded",
+                    "shell input text exceeded the maximum total char cap: {detail}", ARG_DETAIL);
 }

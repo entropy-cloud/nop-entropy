@@ -82,6 +82,40 @@ public class TestSysEventBatchTrigger extends JunitBaseTestCase {
         assertNull(event.getLeaseOwner());
     }
 
+    /**
+     * C7-011（plan 2516 裁定⑧；C10-002 半；红⑧）：sys-event 触发链守卫接线断言。
+     * 缺陷态（红）：non-broadcast-consumer.batch.xml 无 saveState → stateStore 不接线 →
+     * (taskName,taskKey) 唯一键与启动闸门结构性旁路，nop_batch_task 零任务行（UUID 键死数据增长面）。
+     * 修复后（绿）：saveState=true + 固定常量 taskKeyExpr 接线后，每次执行真实经过启动闸门/
+     * 状态机写者——任务行以固定 taskKey 落库；allowStartIfComplete=true 保证 cron 重复触发可重入，
+     * 且每次执行复用同一任务行（不再每执行一行死数据，增长面由 C7-003 保留策略承接）。
+     */
+    @Test
+    public void testSysEventConsumerGuardWired_fixedTaskKeyRowWritten() {
+        service.subscribe("order-created", recordingConsumer(new ArrayList<>()), null);
+        service.send("order-created", request("Order", "A-100", "evt-g1"), null);
+
+        batchTaskRunner.execute("/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml");
+
+        // 守卫真实经过（接线验证 rule 23）：stateStore 写出固定 (taskName, taskKey) 任务行。
+        // 缺陷态：无任务行（saveState 未接线）→ 断言失败即红。
+        IEntityDao<io.nop.batch.dao.entity.NopBatchTask> taskDao =
+                daoProvider.daoFor(io.nop.batch.dao.entity.NopBatchTask.class);
+        io.nop.api.core.beans.query.QueryBean query = new io.nop.api.core.beans.query.QueryBean();
+        query.addFilter(io.nop.api.core.beans.FilterBeans.eq("taskName", "sys-event.non-broadcast-consumer"));
+        query.addFilter(io.nop.api.core.beans.FilterBeans.eq("taskKey", "non-broadcast"));
+        List<io.nop.batch.dao.entity.NopBatchTask> rows = taskDao.findAllByQuery(query);
+        assertEquals(1, rows.size(),
+                "saveState wiring must persist exactly one task row with the fixed taskKey");
+        assertEquals(io.nop.batch.dao.NopBatchDaoConstants.TASK_STATUS_COMPLETED, rows.get(0).getTaskStatus());
+
+        // 重复触发（cron 0/5 形态）：allowStartIfComplete=true 允许重入且仍单活跃（同一行，无 UUID 死数据）
+        service.send("order-created", request("Order", "B-200", "evt-g2"), null);
+        batchTaskRunner.execute("/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml");
+        assertEquals(1, taskDao.findAllByQuery(query).size(),
+                "repeated cron triggers must reuse the single fixed-key task row");
+    }
+
     private IMessageConsumer recordingConsumer(List<String> processed) {
         return new IMessageConsumer() {
             @Override

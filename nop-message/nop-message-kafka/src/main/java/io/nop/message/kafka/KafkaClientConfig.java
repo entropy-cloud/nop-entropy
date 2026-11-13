@@ -24,6 +24,7 @@ import java.util.Map;
  */
 @DataBean
 public class KafkaClientConfig {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(KafkaClientConfig.class);
     private String bootstrapServers;
     private String clientId;
     private Map<String, String> extraProps = new LinkedHashMap<>();
@@ -44,11 +45,28 @@ public class KafkaClientConfig {
         this.clientId = clientId;
     }
 
+    /**
+     * 4.1-C1-012（plan 2558 裁定 G）：返回冻结不可变视图——调用方无法经此活引用外泄可变集合。
+     * 「装配期专用」为 documented-only 契约：addExtraProperty 仍写 raw 字段（读侧视图化，无生命周期钩子）。
+     */
     public Map<String, String> getExtraProps() {
-        return extraProps;
+        return extraProps == null ? null : Map.copyOf(extraProps);
     }
 
     public void setExtraProps(Map<String, String> extraProps) {
         this.extraProps = extraProps;
+    }
+
+    /**
+     * 4.1-C1-012（plan 2558 裁定 G）：装配期专用写入口。null 值跳过 + WARN（Map.copyOf 视角不可含 null）。
+     */
+    public void addExtraProperty(String key, String value) {
+        if (key == null || value == null) {
+            LOG.warn("nop.warn.kafka.extra-prop-null-skip:key={},ignored=true", key);
+            return;
+        }
+        if (extraProps == null)
+            extraProps = new LinkedHashMap<>();
+        extraProps.put(key, value);
     }
 }

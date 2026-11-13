@@ -70,10 +70,33 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
         super.channelRegistered(ctx);
         this.executor = ctx.executor();
         this.channel = ctx.channel();
-        timer = executor.scheduleWithFixedDelay(this::checkTimeout, 100, 100, TimeUnit.MILLISECONDS);
+        // 定时清扫走守卫包装（sweepExpiredFutures）：Netty EventExecutor 的周期调度在任务体抛出
+        // Throwable 时会抑制后续轮次（清扫链死亡），Error 若逃逸还会进入 Netty 管线威胁 worker 线程
+        timer = executor.scheduleWithFixedDelay(this::sweepExpiredFutures, 100, 100, TimeUnit.MILLISECONDS);
     }
 
-    private void checkTimeout() {
+    /**
+     * Guarded wrapper around the timeout sweep (CRA 30-point table row #7, finding 2.1-C3-015).
+     * This site runs on a raw Netty {@code EventExecutor.scheduleWithFixedDelay}, which is outside the
+     * platform periodic-task insulation facility, so the site-side catch boundary is mandatory: a
+     * Throwable (including Error) escaping {@code checkTimeout} would suppress all later sweep rounds
+     * and leak {@link ResponseFuture}s (requests would never time out). The catch keeps the sweep chain
+     * alive and makes the failure observable through a structured English log; it never swallows the
+     * terminal-state duty of the sweep (expired futures are still completed exceptionally by the next
+     * successful round).
+     */
+    private void sweepExpiredFutures() {
+        try {
+            checkTimeout();
+        } catch (Throwable e) {
+            Channel ch = this.channel;
+            LOG.error("nop.err.netty.rpc-timeout-sweep-fail:remoteAddr={},localAddr={}",
+                    ch == null ? null : ch.remoteAddress(), ch == null ? null : ch.localAddress(), e);
+        }
+    }
+
+    // protected 仅为回归测试注入确定性 Error 提供接缝（本类无生产子类）
+    protected void checkTimeout() {
         long now = CoreMetrics.currentTimeMillis();
         NopException exp = null;
         Iterator<Map.Entry<Object, ResponseFuture>> it = futures.entrySet().iterator();

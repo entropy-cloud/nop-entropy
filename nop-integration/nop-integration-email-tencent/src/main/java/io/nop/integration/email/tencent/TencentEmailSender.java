@@ -14,6 +14,7 @@ import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.ses.v20201002.SesClient;
 import com.tencentcloudapi.ses.v20201002.models.SendEmailRequest;
 import com.tencentcloudapi.ses.v20201002.models.Simple;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.credential.api.CredentialData;
 import io.nop.credential.api.ICredentialProvider;
 import io.nop.integration.api.credential.CredentialResolutionSupport;
@@ -167,6 +168,9 @@ public class TencentEmailSender implements IEmailSender {
     public void sendEmail(EmailMessage mail) {
         ResolvedCredential credential = resolveCredential();
         SesClient client = createClient(credential);
+        // C6-019 判定修正（plan 2523 实施期核实）：SDK 3.1.213 AbstractClient 无 shutdown/
+        // close 可调（javap 亲证），internalRequest 走 HttpURLConnection 无共享连接池——
+        // 「连接池无界累积」前提不成立于当前依赖；SDK 升级复检义务已登记 cra-index。
         try {
             SendEmailRequest req = new SendEmailRequest();
 
@@ -192,7 +196,11 @@ public class TencentEmailSender implements IEmailSender {
                 LOG.warn("nop.send-email-exceed-limit", e);
                 return;
             }
-            LOG.error("nop.err.send-email-fail", e);
+            // 4.3-C3-025（plan 2561 裁定 G）：未知错误分支不再 LOG.error 静默吞噬——类型化上抛
+            // （对齐 JavaEmailSender/TencentSmsSender 重抛范式）。静默吞错误后调用方误认发送成功，
+            // MFA 验证码等关键链路丢失而不自知；EmailAddressIsNULL 与 FrequencyLimit 两个显式
+            // 分支保留（业务语义=跳过非失败）。
+            throw NopException.adapt(e);
         }
     }
 }

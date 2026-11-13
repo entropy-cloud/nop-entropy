@@ -356,6 +356,23 @@ public interface CoreErrors {
     ErrorCode ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL = define("nop.err.core.component.resource-cache-return-null",
             "装载资源文件返回结果为空:{resourcePath}", ARG_RESOURCE_PATH, ARG_RESOURCE);
 
+    ErrorCode ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED = define(
+            "nop.err.core.component.resource-cache.load-mtime-changed",
+            "资源文件在装载期间修改时间持续变化，保守重载重试超限:{resourcePath}", ARG_RESOURCE_PATH);
+
+    // plan 2504 裁定②：装载等待图环检测 + 有界等待兜底的类型化收敛（C2-001/C2-017 共用同一等待图机制）
+    ErrorCode ERR_COMPONENT_RESOURCE_LOAD_REENTRANT_LOOP = define(
+            "nop.err.core.component.resource-cache.load-reentrant-loop",
+            "同一线程重入装载形成循环依赖:{resourcePath}", ARG_RESOURCE_PATH);
+
+    ErrorCode ERR_COMPONENT_RESOURCE_LOAD_CIRCULAR_WAIT = define(
+            "nop.err.core.component.resource-cache.load-circular-wait",
+            "跨线程装载/编译等待形成循环依赖:{resourcePath},waitChain={depStack}", ARG_RESOURCE_PATH, ARG_DEP_STACK);
+
+    ErrorCode ERR_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT = define(
+            "nop.err.core.component.resource-cache.load-wait-timeout",
+            "装载/编译等待超过有界上界:{resourcePath},waitChain={depStack}", ARG_RESOURCE_PATH, ARG_DEP_STACK);
+
     ErrorCode ERR_COMPONENT_CACHE_DUPLICATE_REGISTRATION = define("nop.err.core.component.cache.duplicate-registration",
             "注册cache失败，同名的cache已存在:{cacheName}", ARG_CACHE_NAME);
 

@@ -565,6 +565,18 @@ import java.util.concurrent.Executor;
             return this;
         }
 
+        /**
+         * Plan 2501 Phase 4 (CRA 3.1-C7-014): per tool-wait-phase budget on
+         * heartbeat wakeup turns (LLM wakeup calls). Once exhausted, the wait
+         * degrades to pure mechanical waiting (deadline/cancel/steer/forceStop
+         * stay live). {@code <= 0} disables wakeup turns entirely. The engine
+         * wires the shipped default (20).
+         */
+        public ReActAgentExecutorBuilder maxHeartbeatTurns(int maxHeartbeatTurns) {
+            config.setMaxHeartbeatTurns(maxHeartbeatTurns);
+            return this;
+        }
+
         public ReActAgentExecutorBuilder toolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) {
             config.setToolTimeoutPolicy(toolTimeoutPolicy != null ? toolTimeoutPolicy : java.util.Collections.emptyMap());
             return this;

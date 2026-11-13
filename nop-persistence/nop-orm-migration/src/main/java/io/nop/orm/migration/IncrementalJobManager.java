@@ -15,15 +15,21 @@ import io.nop.stream.connector.debezium.DebeziumCdcSourceFunction;
 import io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSink;
 import io.nop.stream.core.datastream.DataStreamSource;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.orm.migration.MigrationErrors.ARG_CONNECTOR_TYPE;
+import static io.nop.orm.migration.MigrationErrors.ARG_JOB_ID;
 import static io.nop.orm.migration.MigrationErrors.ARG_REASON;
+import static io.nop.orm.migration.MigrationErrors.ERR_MIG_CHAIN_JOB_CONFLICT;
 import static io.nop.orm.migration.MigrationErrors.ERR_MIG_CONFIG_INVALID;
 import static io.nop.orm.migration.MigrationErrors.ERR_MIG_INCREMENTAL_NOT_SUPPORTED;
 
@@ -39,15 +45,28 @@ import static io.nop.orm.migration.MigrationErrors.ERR_MIG_INCREMENTAL_NOT_SUPPO
  * <p>位点契约（设计 §4.2）：每个链作业的 CDC 源首跑 offset 种子化为编排器钉定的 P0
  * （{@link DebeziumCdcSourceFunction#setInitialOffsets}），snapshot.mode=never 禁 initial
  * snapshot。链作业通过 env.execute 在独立线程长驻运行；ABORT/阶段推进由 {@link #stopAll}
- * 停止（cancel source → run 循环退出）。</p>
+ * 停止（cancel source → 有界 join → 超时 interrupt → 退出确认，plan 2518 裁定④）。</p>
+ *
+ * <p><b>并发契约（plan 2518）</b>：⑨ connector 名派生单点函数（qs 身份键 SSOT）+
+ * RunningChainJob 构造期携带 connectorName 与 Thread（发布先于 start）；④ 五段式 stop
+ * （cancel → 有界 join → interrupt → 宽限 join → 退出确认复核）；⑦ jobName 键派生纳入
+ * querySpace + runningJobs putIfAbsent fail-fast + 部分启动补偿回收。</p>
  */
 public class IncrementalJobManager {
+    private static final Logger LOG = LoggerFactory.getLogger(IncrementalJobManager.class);
 
     private final TargetShardMapping mapping;
     private final ShardChangeEventRouter router;
     private final ITargetSinkFactory sinkFactory;
     private final long checkpointIntervalMs;
     private final Map<String, RunningChainJob> runningJobs = new ConcurrentHashMap<>();
+    /** 单链停止 join 上界（裁定④，编排器 setter 配置化，零新 @cfg: 键）。 */
+    private volatile long chainStopJoinTimeoutMs = DEFAULT_CHAIN_STOP_JOIN_TIMEOUT_MS;
+
+    /** 链停止 join 缺省上界（裁定④缺省常量 10s）。 */
+    public static final long DEFAULT_CHAIN_STOP_JOIN_TIMEOUT_MS = 10_000L;
+    /** interrupt 后宽限 join 上界（裁定④退出确认复核前的短上界）。 */
+    static final long CHAIN_STOP_GRACE_JOIN_MS = 1_000L;
 
     /**
      * 目标 sink 工厂 seam：测试注入手动驱动 epoch 的 sink，生产装配 jdbc-2pc sink。
@@ -65,12 +84,43 @@ public class IncrementalJobManager {
     }
 
     /**
+     * 单链停止 join 上界注入（裁定④：编排器 setter 配置化，零新配置键）。
+     */
+    public void setChainStopJoinTimeoutMs(long chainStopJoinTimeoutMs) {
+        this.chainStopJoinTimeoutMs = chainStopJoinTimeoutMs;
+    }
+
+    /**
+     * 裁定⑨（C3-008 键派生单点化，qs 身份键 SSOT）：connector 名派生唯一入口——
+     * 输入（baseConnector, 目标数）→ 有序名清单（单目标 = base；多目标 = base-i 全枚举）。
+     * startFallbackChains 与 runVerify（编排器逐链探测）双入口都消费本函数，禁第二套派生。
+     */
+    public static List<String> deriveConnectorNames(String baseConnector, int targetCount) {
+        if (targetCount <= 0)
+            return Collections.emptyList();
+        if (targetCount == 1)
+            return Collections.singletonList(baseConnector);
+        List<String> names = new ArrayList<>(targetCount);
+        for (int i = 0; i < targetCount; i++) {
+            names.add(baseConnector + "-" + i);
+        }
+        return names;
+    }
+
+    /**
+     * 运行链快照（裁定⑥⑨：编排器 runVerify 前置 failure 检查与逐链 connector 名探测的消费面）。
+     */
+    public List<RunningChainJob> snapshotRunningJobs() {
+        return new ArrayList<>(runningJobs.values());
+    }
+
+    /**
      * 构造 Debezium 连接配置：snapshot.mode=never（全量由 nop-batch 承载，B1 契约）、
      * 白名单校验（connectorType 限 mysql/postgres）、连接参数来自 incremental.debezium。
      *
      * @param jobId           编排作业标识
      * @param config          作业配置
-     * @param connectorName   connector 名（回退形态按目标分片唯一化：&lt;name&gt;-&lt;序号&gt;）
+     * @param connectorName   connector 名（裁定⑨单点派生函数产出）
      * @param tableIncludeList 源物理表订阅清单（逗号分隔）
      */
     public DebeziumConfig buildCdcConfig(String jobId, MigrationJobConfig config, String connectorName,
@@ -108,11 +158,11 @@ public class IncrementalJobManager {
         return cdc;
     }
 
-    private static final org.slf4j.Logger LOG =
-            org.slf4j.LoggerFactory.getLogger(IncrementalJobManager.class);
-
     /**
      * 启动回退形态：每目标分片一个单 sink 链作业。返回已启动的作业清单。
+     *
+     * <p>裁定⑦（C3-001）：中途单链启动失败时回收已启动链（逐链五段式 stop），不留孤儿链；
+     * 相位后翻（ABORT 落账）由编排器在捕获异常后显式执行。</p>
      *
      * @param jobId        编排作业标识
      * @param config       作业配置（connector 名缺省取 incremental.connector-name）
@@ -125,6 +175,11 @@ public class IncrementalJobManager {
         String baseConnector = config.getIncrementalConnectorName() != null
                 ? config.getIncrementalConnectorName() : "mig-" + jobId;
         String tableIncludeList = String.join(",", sourceTableNames());
+        // 2.5-C3-012（plan 2554 裁定 J）：链启动前位点三方对齐 fail-fast（seed 表集 ⊆ 订阅清单）
+        CdcOffsetSeedBuilder.checkThreeWayAlignment(jobId, sourceTableNames(),
+                Arrays.asList(tableIncludeList.split(",")));
+        // 裁定⑨：connector 名派生单点消费（M>1 = base-i 枚举清单）
+        List<String> connectorNames = deriveConnectorNames(baseConnector, targets.size());
 
         // M1 前置验证留痕：fan-out 探测结果与 v1 拓扑裁定（缺省回退形态）显式记录
         MultiSinkTopologyProbe.ProbeResult probe = MultiSinkTopologyProbe.probe(targets.size());
@@ -133,15 +188,42 @@ public class IncrementalJobManager {
 
         for (int i = 0; i < targets.size(); i++) {
             PhysicalTable target = targets.get(i);
-            String connectorName = targets.size() == 1 ? baseConnector : baseConnector + "-" + i;
-            DebeziumConfig cdcConfig = buildCdcConfig(jobId, config, connectorName, tableIncludeList);
-            started.add(startChain(jobId, cdcConfig, target, positionP0));
+            try {
+                DebeziumConfig cdcConfig = buildCdcConfig(jobId, config, connectorNames.get(i),
+                        tableIncludeList);
+                started.add(startChain(jobId, cdcConfig, target, positionP0));
+            } catch (RuntimeException e) {
+                // 裁定⑦：部分启动补偿——回收已启动链（逐链五段式 stop，有界 join），不留孤儿链
+                compensateStartedChains(jobId, started);
+                throw e;
+            }
         }
         return started;
     }
 
+    private void compensateStartedChains(String jobId, List<RunningChainJob> started) {
+        for (RunningChainJob job : started) {
+            try {
+                job.stop(chainStopJoinTimeoutMs);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                LOG.warn("nop.orm.migration.chain-stop-interrupted:jobId={},jobName={}", jobId, job.getJobName());
+            }
+            runningJobs.remove(job.getJobName(), job);
+            if (job.getFailure() != null)
+                LOG.warn("nop.orm.migration.chain-failure-after-stop:jobId={},jobName={},failure={}",
+                        jobId, job.getJobName(), String.valueOf(job.getFailure()));
+        }
+        LOG.warn("nop.orm.migration.incremental-start-compensated:jobId={},recycledChains={}",
+                jobId, started.size());
+    }
+
     /**
      * 启动单条链作业（源种子化 P0 → filter 本目标行 → 单 jdbc-2pc sink）并长驻运行。
+     *
+     * <p>裁定④：Thread 在 start 之前构造并注入 RunningChainJob（发布先于启动，join 无
+     * stale-null 空转窗）；裁定⑦：jobName 键派生纳入 querySpace（qs 身份键单点族），
+     * runningJobs putIfAbsent fail-fast（同名重入类型化拒绝）。</p>
      */
     public RunningChainJob startChain(String jobId, DebeziumConfig cdcConfig, PhysicalTable target,
                                       SourcePosition positionP0) {
@@ -171,19 +253,36 @@ public class IncrementalJobManager {
         JdbcTwoPhaseCommitSink<ChangeEvent> sink = sinkFactory.createSink(target);
         stream.filter(event -> router.belongsTo(event, target)).sink(sink);
 
-        String jobName = "orm-migration-incremental-" + jobId + "-" + target.getTableName();
-        RunningChainJob running = new RunningChainJob(jobName, source);
+        // 裁定⑦：jobName 键派生纳入 querySpace（多 querySpace 同名目标表撞键覆盖消除）
+        String jobName = "orm-migration-incremental-" + jobId + "-" + target.getQuerySpace()
+                + "-" + target.getTableName();
+        // 裁定④：构造期注入——线程对象在 start 之前构造并发布（发布先于启动）；
+        // 句柄经 holder 在线程启动前注入（thread.start 之前 holder 已就绪，failure 观测无窗）
+        java.util.concurrent.atomic.AtomicReference<RunningChainJob> handleHolder =
+                new java.util.concurrent.atomic.AtomicReference<>();
         Thread thread = new Thread(() -> {
             try {
                 env.execute(jobName);
             } catch (Throwable e) {
-                running.failure.set(e);
+                RunningChainJob handle = handleHolder.get();
+                if (handle != null)
+                    handle.failure.set(e);
             }
         }, jobName);
         thread.setDaemon(true);
+        RunningChainJob running = new RunningChainJob(jobName, source, cdcConfig.getName(), thread);
+        handleHolder.set(running);
+        // 裁定⑦：putIfAbsent fail-fast——同名重入显式拒绝并回收本次已建资源（禁静默顶替旧句柄）
+        RunningChainJob previous = runningJobs.putIfAbsent(jobName, running);
+        if (previous != null) {
+            thread.start();
+            thread.interrupt();
+            throw new NopException(ERR_MIG_CHAIN_JOB_CONFLICT)
+                    .param(ARG_JOB_ID, jobId)
+                    .param(ARG_REASON, "duplicate incremental chain job name (querySpace identity"
+                            + " collision or reentry): " + jobName);
+        }
         thread.start();
-        running.thread = thread;
-        runningJobs.put(jobName, running);
         return running;
     }
 
@@ -197,30 +296,54 @@ public class IncrementalJobManager {
 
     /**
      * 停止全部链作业（ABORT/SWITCH 收敛后由编排器调用）。
+     *
+     * <p>裁定④：逐链串行五段式 stop、全部 join 完成后才清空注册表（「仅 cancel 立即 clear」
+     * 废止）；总时间预算 = 单链上界 × 链数（串行最简实现显式接受）。裁定⑥(b)：停链后逐链
+     * 残留 failure 复核——非空 WARN 留痕（停止协议异常终止可观测）。</p>
      */
     public void stopAll() {
         for (RunningChainJob job : runningJobs.values()) {
-            job.stop();
+            try {
+                job.stop(chainStopJoinTimeoutMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOG.warn("nop.orm.migration.chain-stop-interrupted:jobName={}", job.getJobName());
+            }
+            if (job.getFailure() != null)
+                LOG.warn("nop.orm.migration.chain-failure-after-stop:jobName={},failure={}",
+                        job.getJobName(), String.valueOf(job.getFailure()));
         }
         runningJobs.clear();
     }
 
     /**
-     * 运行中的链作业句柄：cancel source + 观测失败。
+     * 运行中的链作业句柄：cancel source + 有界 join + 观测失败（plan 2518 裁定④⑤⑦⑨）。
      */
     public static final class RunningChainJob {
         private final String jobName;
         private final DebeziumCdcSourceFunction source;
-        private volatile Thread thread;
+        /** 裁定⑨：链注册 connector 名（构造期携带，句柄上可观测）。 */
+        private final String connectorName;
+        /** 裁定④：构造期注入（发布先于 start），join 无 stale-null 空转窗。 */
+        private final Thread thread;
         final AtomicReference<Throwable> failure = new AtomicReference<>();
+        /** 裁定④（M4）：退出确认标记——interrupt 后仍未退出即置 false，编排重入被拒。 */
+        private volatile boolean exitConfirmed = true;
 
-        RunningChainJob(String jobName, DebeziumCdcSourceFunction source) {
+        RunningChainJob(String jobName, DebeziumCdcSourceFunction source, String connectorName,
+                        Thread thread) {
             this.jobName = jobName;
             this.source = source;
+            this.connectorName = connectorName;
+            this.thread = thread;
         }
 
         public String getJobName() {
             return jobName;
+        }
+
+        public String getConnectorName() {
+            return connectorName;
         }
 
         public DebeziumCdcSourceFunction getSource() {
@@ -232,14 +355,46 @@ public class IncrementalJobManager {
             return failure.get();
         }
 
-        public void stop() {
+        /** 链线程是否仍存活（裁定④退出确认复核面）。 */
+        public boolean isAlive() {
+            return thread.isAlive();
+        }
+
+        /** 裁定④（M4）：interrupt 后线程仍未确认退出即 false——编排重入 gateFailed 拒绝。 */
+        public boolean isExitConfirmed() {
+            return exitConfirmed;
+        }
+
+        /**
+         * 五段式停止（裁定④）：cancel → 有界 join → 超时 interrupt → 句柄保留 → 退出确认复核
+         * （宽限 join 后 isAlive 仍活即置「未退出」标记，后续编排重入被 gateFailed 拒绝——
+         * 防半终止链与新链双写同目标表）。
+         */
+        void stop(long joinTimeoutMillis) throws InterruptedException {
             source.cancel();
+            // 构造期注入后 thread 恒非 null；防御性判空仍显式留痕（禁静默跳过，rule 24）
+            if (thread == null) {
+                LOG.warn("nop.orm.migration.chain-thread-handle-missing:jobName={}", jobName);
+                return;
+            }
+            thread.join(joinTimeoutMillis);
+            if (thread.isAlive()) {
+                LOG.warn("nop.orm.migration.chain-stop-join-timeout:jobName={},timeoutMs={}",
+                        jobName, joinTimeoutMillis);
+                thread.interrupt();
+                thread.join(CHAIN_STOP_GRACE_JOIN_MS);
+                exitConfirmed = !thread.isAlive();
+            } else {
+                exitConfirmed = true;
+            }
         }
 
         public void join(long millis) throws InterruptedException {
-            Thread t = thread;
-            if (t != null)
-                t.join(millis);
+            if (thread == null) {
+                LOG.warn("nop.orm.migration.chain-thread-handle-missing:jobName={}", jobName);
+                return;
+            }
+            thread.join(millis);
         }
     }
 

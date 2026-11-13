@@ -92,17 +92,25 @@ public class StreamingProcessor {
             Flow.Publisher<Object> mappedPublisher;
             if (bufferEngaged) {
                 // 3. 缓冲 + 重订阅层（fetch + 映射链重跑留在本层内部；回调只产出新 HttpRequest）
+                // 缓冲接管形态：降级终态经 BufferedStreamingPublisher.deliverDegradedTerminal
+                // 显式交付（清缓冲 + 不经元素通路，plan 2509 裁定⑦(a) 宿主半边）
+                final BufferedStreamingPublisher[] bufferedHolder = new BufferedStreamingPublisher[1];
                 mappedPublisher = new BufferedStreamingPublisher(
                         httpClient, route, request, context, streaming, retryCallback, lifecycle,
-                        eventPublisher -> createMappedPublisher(eventPublisher, streaming, invocation, context),
+                        eventPublisher -> createMappedPublisher(eventPublisher, streaming, invocation, context,
+                                degraded -> {
+                                    if (bufferedHolder[0] != null)
+                                        bufferedHolder[0].deliverDegradedTerminal(degraded);
+                                }),
                         httpRequest);
+                bufferedHolder[0] = (BufferedStreamingPublisher) mappedPublisher;
             } else {
                 // 4. 获取Flow.Publisher
                 Flow.Publisher<IServerEventResponse> eventPublisher =
                         httpClient.fetchServerEventFlow(httpRequest, context);
 
-                // 5. 创建流式响应包装器
-                mappedPublisher = createMappedPublisher(eventPublisher, streaming, invocation, context);
+                // 5. 创建流式响应包装器（直通形态：降级保持既有 onNext+onComplete 行为零回归）
+                mappedPublisher = createMappedPublisher(eventPublisher, streaming, invocation, context, null);
             }
 
             // 6. 创建StreamingResponse并存储到context中
@@ -133,6 +141,17 @@ public class StreamingProcessor {
     private Flow.Publisher<Object> createMappedPublisher(
             Flow.Publisher<IServerEventResponse> sourcePublisher,
             GatewayStreamingModel streaming, IGatewayInvocation invocation, IGatewayContext context) {
+        return createMappedPublisher(sourcePublisher, streaming, invocation, context, null);
+    }
+
+    /**
+     * @param degradedSink 缓冲接管形态的显式降级终态交付缝（null = 直通形态，降级保持
+     *                     既有 onNext+onComplete 元素通路零回归）
+     */
+    private Flow.Publisher<Object> createMappedPublisher(
+            Flow.Publisher<IServerEventResponse> sourcePublisher,
+            GatewayStreamingModel streaming, IGatewayInvocation invocation, IGatewayContext context,
+            java.util.function.Consumer<Object> degradedSink) {
 
         return subscriber -> sourcePublisher.subscribe(new Flow.Subscriber<>() {
             private Flow.Subscription subscription;
@@ -148,12 +167,18 @@ public class StreamingProcessor {
             public void onNext(IServerEventResponse item) {
                 try {
                     Object element = item.getData();
-                    if (element instanceof String) {
+                    // 2.3-C9-005（plan 2551 裁定 L）：透传快径——无流元素变换档下 String 元素免
+                    // parse/再 serialize 往返（事件循环线程逐元素 JSON 往返的热路径消除）。
+                    // 带变换（拦截器/路由映射）路由维持现路径，语义零变化。
+                    boolean passthrough = element instanceof String && !invocation.hasStreamElementTransform();
+                    if (element instanceof String && !passthrough) {
                         element = JSON.parse(element.toString());
                     }
 
-                    // 1. 应用拦截器的onStreamElement
-                    element = invocation.proceedOnStreamElement(element, context);
+                    if (!passthrough) {
+                        // 1. 应用拦截器的onStreamElement
+                        element = invocation.proceedOnStreamElement(element, context);
+                    }
 
                     if (element != null) {
                         subscriber.onNext(element);
@@ -162,6 +187,9 @@ public class StreamingProcessor {
                     subscription.request(1);
 
                 } catch (Exception e) {
+                    // 错误分支补上游 cancel（plan 2509 C3-003 两态落点：映射链断流时回收
+                    // SSE 连接，防滞留至 EOF；缓冲层错误终态同语义，两处一处闭合）。
+                    subscription.cancel();
                     subscriber.onError(e);
                 }
             }
@@ -171,9 +199,15 @@ public class StreamingProcessor {
                 try {
                     Object element = invocation.proceedOnError(throwable, context);
                     if (element != null) {
-                        // 降级响应为正常终止信号：onNext + onComplete，而非 onError
-                        subscriber.onNext(element);
-                        subscriber.onComplete();
+                        if (degradedSink != null) {
+                            // 缓冲接管形态（plan 2509 裁定⑦(a)）：降级响应为显式降级终态——
+                            // 清缓冲 + 不经元素通路（不占 demand/不进 AttemptSubscriber 元素序列）
+                            degradedSink.accept(element);
+                        } else {
+                            // 直通形态：降级响应为正常终止信号：onNext + onComplete，而非 onError
+                            subscriber.onNext(element);
+                            subscriber.onComplete();
+                        }
                     } else {
                         subscriber.onError(throwable);
                     }

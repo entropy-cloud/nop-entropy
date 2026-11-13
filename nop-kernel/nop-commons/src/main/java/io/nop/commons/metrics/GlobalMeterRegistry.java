@@ -18,6 +18,10 @@ public class GlobalMeterRegistry {
     // 运行期可通过registerInstance替换，需要volatile保证跨线程可见
     static volatile MeterRegistry s_instance = new SimpleMeterRegistry();
 
+    // 4.4-MA-04（plan 2562 裁定 B②）：宿主（Quarkus 集成层）注册的实例引用，供
+    // unregisterInstance 判定撤销对象；null 表示当前无宿主注册待撤销
+    static volatile MeterRegistry s_registeredInstance;
+
     public static MeterRegistry instance() {
         return s_instance;
     }
@@ -32,5 +36,20 @@ public class GlobalMeterRegistry {
             s_instance.close();
             s_instance = instance;
         }
+        s_registeredInstance = instance;
+    }
+
+    /**
+     * 4.4-MA-04（plan 2562 裁定 B②）：撤销 {@link #registerInstance(MeterRegistry)}
+     * 的注册面。仅当当前实例仍是宿主注册的那个实例时生效（期间被再次替换则不动新值）。
+     * 不 close 宿主注册表——其生命周期归宿主（Arc/Quarkus）管理。缺省
+     * SimpleMeterRegistry 已在注册时被 close，故回退到新的缺省实例。
+     */
+    public static void unregisterInstance() {
+        MeterRegistry registered = s_registeredInstance;
+        if (registered == null || s_instance != registered)
+            return;
+        s_registeredInstance = null;
+        s_instance = new SimpleMeterRegistry();
     }
 }

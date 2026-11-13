@@ -1,6 +1,7 @@
 package io.nop.job.coordinator.engine;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
@@ -83,9 +84,28 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         applyScanIntervalMs(scanIntervalMs);
     }
 
+    // CRA 8.46 R4-07 W-08 (adjudication C.4): 非配置类持久失败的连续失败计数
+    // （graduated observability——成功即清零；缺省 10；≤0 禁用升级——观测旋钮非
+    // fail-fast 面）
+    private final java.util.concurrent.atomic.AtomicLong consecutiveCompleteFailCount =
+            new java.util.concurrent.atomic.AtomicLong();
+    private int completionFailEscalateThreshold = 10;
+
     @InjectValue("@cfg:nop.job.coordinator.completion.batch-size|100")
     public void setBatchSize(int batchSize) {
         applyBatchSize(batchSize);
+    }
+
+    @InjectValue("@cfg:nop.job.coordinator.completion.fail-escalate-threshold|10")
+    public void setCompletionFailEscalateThreshold(int threshold) {
+        // CRA 8.46 R4-07 W-08: ≤0 禁用升级（观测旋钮语义，非 fail-fast——观测面
+        // 静默关闭≠失败面静默关闭，两者不同质）
+        this.completionFailEscalateThreshold = threshold;
+    }
+
+    /** CRA 8.46 R4-07 W-08: 非配置类连续失败计数（graduated observability 面）。 */
+    public long getConsecutiveCompleteFailCount() {
+        return consecutiveCompleteFailCount.get();
     }
 
     @Override
@@ -107,7 +127,24 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
                 if (status != null) {
                     completedCount++;
                 }
+            } catch (NopException e) {
+                if (isTriggerConfigError(e)) {
+                    // CRA 8.46 R4-07 W-08 (1.4-C7-009, adjudication C.2): 配置类错误
+                    // 白名单分流——fire 终态化 FAILED + errorCode 判别，消除 5s 重捞
+                    // 无限重试环（17,280 WARN/天/fire→显式死亡）；schedule 计数推进
+                    // 在 completeSingleFire 内已按 FAILED 同步（F-m7 重分类）。
+                    markFireFailedForConfigError(fire, e);
+                    continue;
+                }
+                // plan 340 §2.7 (P2-6): include scheduleId so commit-time conflicts (e.g. schedule
+                // version bumped by a concurrent planner) are correlatable to schedules for the
+                // counter reconciler. The reconciler is the primary drift-convergence mechanism
+                // (see timeout-and-recovery-design.md §2); this warn makes the failure observable.
+                recordCompletionFailure(e);
+                LOG.warn("nop.job.completion.fire-complete-failed:fireId={},scheduleId={}",
+                        fire.getJobFireId(), fire.getJobScheduleId(), e);
             } catch (Exception e) {
+                recordCompletionFailure(e);
                 // plan 340 §2.7 (P2-6): include scheduleId so commit-time conflicts (e.g. schedule
                 // version bumped by a concurrent planner) are correlatable to schedules for the
                 // counter reconciler. The reconciler is the primary drift-convergence mechanism
@@ -118,9 +155,82 @@ public class JobCompletionProcessorImpl extends AbstractBatchScanner implements 
         }
         if (completedCount > 0) {
             completionMetrics.onFiresCompleted(completedCount);
+            consecutiveCompleteFailCount.set(0); // W-08: 成功即清零
         }
 
         return fires.size() >= batchSize;
+    }
+
+    /**
+     * CRA 8.46 R4-07 W-08 (adjudication C.1): 配置类错误白名单判定——NopException 且
+     * 错误码 ∈ 触发器配置损坏集（三既有码+新码 ERR_JOB_TRIGGER_CONFIG_INVALID）。
+     * 全 Throwable 宽度不采（DB 瞬态故障终态化 fire=假死面——被否决备选 1）。
+     */
+    static boolean isTriggerConfigError(NopException e) {
+        // NopException.getErrorCode() returns the String code (TestLocalJobScheduler :480 precedent)
+        String code = e.getErrorCode();
+        return code != null && (
+                code.equals(JobCoreErrors.ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL.getErrorCode())
+                || code.equals(JobCoreErrors.ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT.getErrorCode())
+                || code.equals(JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode())
+                || code.equals(JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID.getErrorCode()));
+    }
+
+    /** CRA 8.46 R4-07 W-08: 非配置类持久失败的连续失败计数（graduated observability）。 */
+    private void recordCompletionFailure(Throwable e) {
+        consecutiveCompleteFailCount.incrementAndGet();
+        long fails = consecutiveCompleteFailCount.get();
+        if (completionFailEscalateThreshold > 0 && fails == (long) completionFailEscalateThreshold) {
+            LOG.error("nop.job.completion.fail-escalate:consecutiveFails={}", fails, e);
+        }
+    }
+
+    /**
+     * CRA 8.46 R4-07 W-08 (adjudication C.2): 配置类错误终态化——fire=FAILED+
+     * errorCode 判别（`fetchRunningFires` RUNNING 过滤不再重捞——5s 重试环阻断）；
+     * schedule 计数按 FAILED 同步推进+重分类[F-m7]。
+     */
+    private void markFireFailedForConfigError(NopJobFire fire, NopException cause) {
+        try {
+            completeFireWithConfigError(fire, cause);
+        } catch (Exception e) {
+            LOG.warn("nop.job.completion.config-error-finalize-failed:fireId={}",
+                    fire.getJobFireId(), e);
+        }
+    }
+
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
+    @SingleSession
+    protected void completeFireWithConfigError(NopJobFire fire, NopException cause) {
+        NopJobFire managed = fireStore.getFireById(fire.getJobFireId());
+        if (managed == null || JobFireStateMachine.isTerminal(managed.getFireStatus())) {
+            return;
+        }
+        long now = scheduleStore.getCurrentTime();
+        managed.setFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
+        managed.setEndTime(new Timestamp(now));
+        managed.setDurationMs(DateHelper.durationMs(managed.getStartTime(), managed.getEndTime()));
+        managed.setErrorCode(JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID.getErrorCode());
+        String localized = ErrorMessageManager.instance().getLocalizedDescription(null,
+                JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID.getErrorCode());
+        managed.setErrorMessage(localized != null ? localized
+                : JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID.getDescription());
+
+        NopJobSchedule schedule = scheduleStore.tryLoadSchedule(fire.getJobScheduleId());
+        if (schedule != null) {
+            schedule.setActiveFireCount(Math.max(defaultInt(schedule.getActiveFireCount()) - 1, 0));
+            schedule.setLastEndTime(managed.getEndTime());
+            schedule.setLastFireStatus(_NopJobCoreConstants.FIRE_STATUS_FAILED);
+            schedule.setLastDurationMs(managed.getDurationMs());
+            schedule.setTotalFireCount(defaultLong(schedule.getTotalFireCount()) + 1);
+            // F-m7: FAILED 重分类
+            schedule.setFailFireCount(defaultLong(schedule.getFailFireCount()) + 1);
+            // nextFireTime 保持 null（计算失败不写下一轮）——FIXED_DELAY 静默死亡
+            // 形态消除为「FAILED fire+错误码+ERROR 日志」显式死亡（裁定 C.2）
+        }
+        LOG.error("nop.job.completion.config-error-finalized:fireId={},scheduleId={},code={}",
+                fire.getJobFireId(), fire.getJobScheduleId(),
+                JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID.getErrorCode());
     }
 
     @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)

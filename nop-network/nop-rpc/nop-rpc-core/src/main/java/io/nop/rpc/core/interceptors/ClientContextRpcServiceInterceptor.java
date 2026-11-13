@@ -14,6 +14,7 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.api.core.rpc.IRpcServiceInvocation;
 
@@ -89,8 +90,15 @@ public class ClientContextRpcServiceInterceptor implements IRpcServiceIntercepto
 
     @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(IRpcServiceInvocation inv) {
-        transfer(inv.getRequest());
-        return inv.proceedAsync();
+        try {
+            transfer(inv.getRequest());
+            return inv.proceedAsync();
+        } catch (Throwable e) {
+            // 4.3-MA-15（plan 2560 裁定 H）：transfer 内 TIMEOUT_EXPIRED 等同步抛改为
+            // failed future——「返回 CompletionStage 的方法不得同步抛」契约统一包络；
+            // 同步 intercept() 路径不受本包络影响（契约只约束异步返回形态）
+            return FutureHelper.reject(e);
+        }
     }
 
     public ApiResponse<?> intercept(IRpcServiceInvocation inv) {

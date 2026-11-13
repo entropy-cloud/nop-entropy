@@ -17,25 +17,21 @@ import io.nop.core.lang.eval.IEvalScope;
  * XDSL {@code <source>xpl</source>} body (an {@link IEvalFunction}) to the
  * corresponding {@code io.nop.stream.core} function interface.
  *
- * <p>Each invocation gets a fresh child scope derived from a shared root scope
- * so that {@code event}/{@code out}/{@code ctx} bindings do not leak across
- * invocations. Exceptions thrown by the xpl body propagate to the caller
- * unchanged (no silent swallow).
+ * <p>Fresh-root discipline (CRA 8.45 R4-05 W-05 / 1.3-C1-002): every invocation
+ * gets its OWN root scope (allocated via {@link EvalExprProvider#newEvalScope()}),
+ * so there is no JVM-level shared eval state at all — variables bound at invocation
+ * time cannot leak across invocations, and even a future caller that mistakenly
+ * retains a scope across records can only pollute itself, never the whole JVM.
+ * Exceptions thrown by the xpl body propagate to the caller unchanged (no silent
+ * swallow).
  */
 public final class XplFunctionSupport {
 
     private XplFunctionSupport() {
     }
 
-    /**
-     * A root scope retained across invocations. {@link IEvalFunction} bodies compiled
-     * from xpl may capture state (e.g. compiled closures) but variables bound at
-     * invocation time must live in per-call child scopes.
-     */
-    private static final IEvalScope ROOT_SCOPE = EvalExprProvider.newEvalScope();
-
     public static IEvalScope newCallScope() {
-        return ROOT_SCOPE.newChildScope();
+        return EvalExprProvider.newEvalScope();
     }
 
     /**
@@ -43,12 +39,17 @@ public final class XplFunctionSupport {
      * snapshots ({@code sideInputs.<id>} access) plus any future build-time-frozen
      * bindings. The map's entries are bound as scope variables; {@code null} bindings
      * behave exactly like {@link #newCallScope()}.
+     *
+     * <p>The bindings map must be a build-time frozen read-only snapshot (see
+     * {@code StreamModelDslBuilder#materializeSideInputs} — CRA 8.45 R4-05 W-01);
+     * it is adopted as-is (zero per-record copy) and every write into it fails typed
+     * with {@link UnsupportedOperationException}.
      */
     public static IEvalScope newCallScope(java.util.Map<String, Object> bindings) {
         if (bindings == null || bindings.isEmpty()) {
-            return ROOT_SCOPE.newChildScope();
+            return EvalExprProvider.newEvalScope();
         }
-        return ROOT_SCOPE.newChildScope(bindings);
+        return EvalExprProvider.newEvalScope().newChildScope(bindings);
     }
 
     /**

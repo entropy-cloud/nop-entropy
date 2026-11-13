@@ -82,6 +82,12 @@ public class TaskExecutor {
     private final ExecutorService executorService;
 
     /**
+     * The fixed pool size (C4-001 guard a: LOCAL submission fails fast when the
+     * topology subtask total exceeds this bound).
+     */
+    private final int poolSize;
+
+    /**
      * Map of all submitted tasks, keyed by a unique task identifier.
      */
     private final Map<String, Task> submittedTasks;
@@ -115,6 +121,7 @@ public class TaskExecutor {
 
         this.executorService = Executors.newFixedThreadPool(poolSize,
                 NopStreamThreadFactory.named("stream-task-executor-"));
+        this.poolSize = poolSize;
         this.submittedTasks = new ConcurrentHashMap<>();
         this.submittedSubtaskTasks = new ConcurrentHashMap<>();
         this.taskFutures = new ConcurrentHashMap<>();
@@ -377,6 +384,96 @@ public class TaskExecutor {
     }
 
     /**
+     * W-11 (CRA 8.41 R4-01, ruling D.3): cooperative-cancel sweep for LOCAL
+     * teardown — mirrors the runtime's {@code SupervisionLoop.cancelTaskWithMailbox}
+     * recipe (core cannot reference runtime, so the 2-step shape is inlined):
+     * mailbox {@code signalCancel()} (flag + wake mail) THEN {@code cancel()}
+     * (state transition + thread interrupt), for every submitted subtask task.
+     *
+     * <p>Without this sweep a task blocked in user code had NO terminal exit path:
+     * graceful {@code shutdown()} neither cancels nor interrupts, so a consumer
+     * blocked off an interrupt-response point spun forever holding its
+     * source/sink connections (finding 1.1-C4-006). The cancel signal reaches the
+     * task at its next cooperative safe point (mailbox drain / interruptible
+     * wait) and drives it to the CANCELED terminal state.
+     *
+     * <p>After the sweep, waits bounded ({@code awaitTimeoutMs}) for every task
+     * to reach a terminal state (COMPLETED / FAILED / CANCELED); budget expiry
+     * (or 0 = wait disabled) only WARNs — {@code shutdownNow()} remains the
+     * caller's next step. Idempotent: already-terminal tasks cancel() as a
+     * no-op, and the sweep on an empty executor returns immediately.
+     *
+     * @param awaitTimeoutMs bounded terminal-state wait budget in milliseconds;
+     *                       0 disables the wait (cancel signals still delivered);
+     *                       negative values fail fast typed
+     */
+    public void cancelSubtasks(long awaitTimeoutMs) {
+        if (awaitTimeoutMs < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "cancelAwaitTimeoutMs")
+                    .param(ARG_DETAIL, "must be >= 0 (0 disables the bounded terminal wait), got: "
+                            + awaitTimeoutMs);
+        }
+        if (submittedSubtaskTasks.isEmpty()) {
+            return;
+        }
+        List<SubtaskTask> tasks = new ArrayList<>(submittedSubtaskTasks.values());
+        for (SubtaskTask task : tasks) {
+            io.nop.stream.core.execution.task.StreamTaskInvokable invokable =
+                    task.getSubtask().getInvokable();
+            if (invokable != null) {
+                invokable.getMailboxExecutor().signalCancel();
+            }
+            task.cancel();
+        }
+        if (awaitTimeoutMs == 0) {
+            LOG.info("cancelSubtasks: cancel signals delivered to {} task(s); bounded terminal wait disabled",
+                    tasks.size());
+            return;
+        }
+        // Wait bounded for the terminal states, without propagating this thread's
+        // interrupted status into the sleep loop (the caller is often ALREADY
+        // interrupted — that is the W-11 trigger path); restore it afterwards.
+        boolean interrupted = Thread.interrupted();
+        try {
+            long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(awaitTimeoutMs);
+            List<SubtaskTask> pending = tasks;
+            while (!pending.isEmpty()) {
+                long remainingMs = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime());
+                if (remainingMs <= 0) {
+                    break;
+                }
+                Thread.sleep(Math.min(50, remainingMs));
+                pending = new ArrayList<>();
+                for (SubtaskTask task : tasks) {
+                    if (!task.isFinished()) {
+                        pending.add(task);
+                    }
+                }
+            }
+            if (!pending.isEmpty()) {
+                StringBuilder names = new StringBuilder();
+                for (SubtaskTask task : pending) {
+                    if (names.length() > 0) {
+                        names.append(", ");
+                    }
+                    names.append(task.getTaskName()).append("(state=").append(task.getState()).append(')');
+                }
+                LOG.warn("cancelSubtasks: {} subtask(s) not terminal within {}ms — shutdownNow remains the "
+                        + "interrupt fallback: {}", pending.size(), awaitTimeoutMs, names);
+            }
+        } catch (InterruptedException e) {
+            interrupted = true;
+            LOG.warn("cancelSubtasks: interrupted during the bounded terminal wait; "
+                    + "shutdownNow remains the interrupt fallback");
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
      * Shuts down the executor immediately.
      *
      * <p>This method:
@@ -424,6 +521,14 @@ public class TaskExecutor {
      */
     public boolean isTerminated() {
         return executorService.isTerminated();
+    }
+
+    /**
+     * @return the fixed pool size (C4-001 guard a: the LOCAL submission guard
+     *         compares the topology subtask total against this bound)
+     */
+    public int getPoolSize() {
+        return poolSize;
     }
 
     /**

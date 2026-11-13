@@ -263,6 +263,8 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      scanHolderId: Scan Holder ID
+      scanLeaseTime: Scan Lease Time
       wfInstance: Workflow Instance
       wfInstance.title: Workflow Instance
       subWfInstance: Sub Workflow Instance

@@ -40,6 +40,12 @@ public class OrmModelSwitchedMessageWriter implements IModelSwitchedMessageWrite
     public void writeModelSwitched(String sessionId, String fromModel, String toModel,
                                    String routingReason, String complexity, long seq) {
         if (sessionId == null) {
+            // 3.1-C3-029（plan 2556 裁定 C）: the writer's internal throws STAY —
+            // isolation happens at the call site (nop-ai-agent
+            // ReActAgentExecutor.isolateDbSideEffect wraps every
+            // writeModelSwitched / usageRecorder.record invocation). The writer
+            // keeps fail-loud semantics; the ReAct main flow is guarded by the
+            // caller, not by swallowing here.
             throw new NopAiException("OrmModelSwitchedMessageWriter.writeModelSwitched: sessionId must not be null");
         }
 
@@ -49,19 +55,28 @@ public class OrmModelSwitchedMessageWriter implements IModelSwitchedMessageWrite
         metadata.put("routingReason", routingReason);
         metadata.put("complexity", complexity);
 
-        NopAiSessionMessage message = daoProvider.daoFor(NopAiSessionMessage.class).newEntity();
-        message.setId(StringHelper.generateUUID());
-        message.setSessionId(sessionId);
-        message.setRole(ROLE_MODEL_SWITCHED);
-        message.setSeq(seq);
-        message.setContent("model-switched: " + fromModel + " -> " + toModel);
-        message.setMetadata(JsonTool.stringify(metadata));
-        message.setVersion(0);
-        message.setCreatedBy("ai-agent");
-        message.setUpdatedBy("ai-agent");
-        message.setCreateTime(CoreMetrics.currentTimestamp());
-        message.setUpdateTime(CoreMetrics.currentTimestamp());
-        daoProvider.daoFor(NopAiSessionMessage.class).saveEntityDirectly(message);
+        try {
+            NopAiSessionMessage message = daoProvider.daoFor(NopAiSessionMessage.class).newEntity();
+            message.setId(StringHelper.generateUUID());
+            message.setSessionId(sessionId);
+            message.setRole(ROLE_MODEL_SWITCHED);
+            message.setSeq(seq);
+            message.setContent("model-switched: " + fromModel + " -> " + toModel);
+            message.setMetadata(JsonTool.stringify(metadata));
+            message.setVersion(0);
+            message.setCreatedBy("ai-agent");
+            message.setUpdatedBy("ai-agent");
+            message.setCreateTime(CoreMetrics.currentTimestamp());
+            message.setUpdateTime(CoreMetrics.currentTimestamp());
+            daoProvider.daoFor(NopAiSessionMessage.class).saveEntityDirectly(message);
+        } catch (RuntimeException e) {
+            // 3.1-C3-029（plan 2556 裁定 C）: the throw STAYS (fail-loud) — only
+            // normalized to NopAiException so the caller-side isolation layer
+            // (nop-ai-agent ReActAgentExecutor.isolateDbSideEffect) sees one
+            // consistent exception type. No swallowing here.
+            throw new NopAiException("OrmModelSwitchedMessageWriter.writeModelSwitched: DB write failed "
+                    + "(isolation contract: caller isolates — see ReActAgentExecutor.isolateDbSideEffect)", e);
+        }
 
         LOG.debug("OrmModelSwitchedMessageWriter: persisted model-switched message for session '{}' "
                 + "(from={}, to={}, seq={})", sessionId, fromModel, toModel, seq);

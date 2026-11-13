@@ -29,6 +29,7 @@
         <property name="realm" value="@cfg:nop.auth.sso.realm"/>
         <property name="clientId" value="@cfg:nop.auth.sso.client-id" />
         <property name="clientSecret" value="@cfg:nop.auth.sso.client-secret|" />
+        <property name="refreshTokenTimeout" value="@cfg:nop.auth.sso.refresh-token-timeout|10000"/>
 
         <property name="tokenUrl"
                   value="/realms/{realm}/protocol/openid-connect/token"/>

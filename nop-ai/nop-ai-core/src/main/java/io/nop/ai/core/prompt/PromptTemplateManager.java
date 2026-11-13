@@ -16,10 +16,17 @@ public class PromptTemplateManager implements IPromptTemplateManager {
     @Override
     public IPromptTemplate loadPromptTemplateFromPath(String promptPath) {
         PromptModel promptModel = (PromptModel) ResourceComponentManager.instance().loadComponentModel(promptPath);
+        // 3.1-MA-13（plan 2555 裁定 C / C1-001）：check-then-set 收敛为 per-model 锁内
+        // 双检记忆化（promptTemplate 字段 volatile），并发首用至多构造一次模板
         IPromptTemplate promptTemplate = promptModel.getPromptTemplate();
         if (promptTemplate == null) {
-            promptTemplate = new ModelBasedPromptTemplate(promptModel);
-            promptModel.setPromptTemplate(promptTemplate);
+            synchronized (promptModel) {
+                promptTemplate = promptModel.getPromptTemplate();
+                if (promptTemplate == null) {
+                    promptTemplate = new ModelBasedPromptTemplate(promptModel);
+                    promptModel.setPromptTemplate(promptTemplate);
+                }
+            }
         }
         return promptTemplate;
     }

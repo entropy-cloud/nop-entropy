@@ -17,6 +17,12 @@ import java.nio.file.StandardOpenOption;
  *
  * <p>空文件契约（plan 2273 A7）：空文件（size=0）不做映射，{@link #getSegment()} 返回 null，
  * 调用方须以 {@link #getSize()} 判空后再使用 segment。
+ *
+ * <p>外部截断边界声明（plan 2564 W-03，声明边界而非承诺消除）：映射存活期内文件被外部
+ * 截断/变短的行为<b>未定义</b>——越新 EOF 的段访问可能触发 fault（POSIX SIGBUS，JVM 实测
+ * 转换为 {@link InternalError} 形态）或（如 macOS UBS）静默续供旧页。调用方（SearchCoordinator
+ * 任务边界）负责将该形态转换为携带文件相对路径的 NopRgException（"search fault while
+ * scanning: &lt;rel&gt;"）；TOCTOU 窗口本体只读、无数据损坏面，不修（设计裁定 B 限缩）。
  */
 public final class MappedFileReader implements AutoCloseable {
     private final FileChannel channel;

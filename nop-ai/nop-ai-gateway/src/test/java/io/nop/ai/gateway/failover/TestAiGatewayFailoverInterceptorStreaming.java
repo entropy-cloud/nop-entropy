@@ -312,8 +312,10 @@ class TestAiGatewayFailoverInterceptorStreaming {
         assertEquals(1, fake.requests.size(), "probe must admit the primary candidate directly");
         assertEquals(CircuitState.CLOSED, breaker.getState("gw-test2:gw-model-2"),
                 "probe success (recordSuccess) must restore CLOSED");
-        assertEquals(CircuitState.HALF_OPEN, breaker.getState("gw-anthropic:gw-claude-model"),
-                "probed-but-not-called candidate stays HALF_OPEN");
+        // plan 2509 裁定⑦(b)：allowCall 收口至选择点——未被本请求触及的候选不被探活
+        // （幻影 probe 槽结构性消除），维持 OPEN。
+        assertEquals(CircuitState.OPEN, breaker.getState("gw-anthropic:gw-claude-model"),
+                "untouched candidate must not be probed (no phantom probe slot; allowCall moved to selection)");
         assertTrue(collector.completed);
         assertNull(collector.error);
         assertEquals(List.of("probe-ok"), collector.texts);

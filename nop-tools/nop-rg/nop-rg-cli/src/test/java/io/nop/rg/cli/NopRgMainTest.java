@@ -2,7 +2,7 @@ package io.nop.rg.cli;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.rg.core.coordinator.FileMatches;
+import io.nop.rg.core.coordinator.SearchOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -200,12 +200,48 @@ public class NopRgMainTest {
                 ErrorCode.define("TEST_SIMULATED_CORE_FAILURE", "simulated core failure"));
         NopRgMain failing = new NopRgMain() {
             @Override
-            Map<String, FileMatches> search(Path root) {
+            SearchOutcome search(Path root) {
                 throw simulated;
             }
         };
         RunResult result = runMain(failing, "needle", tempDir.toString());
         assertEquals(2, result.exitCode());
         assertTrue(result.stderr().contains("nop-rg:"), "STDERR=[" + result.stderr() + "]");
+    }
+
+    /**
+     * W-05 部分成功语义 CLI 腿（plan 2564）：SearchOutcome.errors 非空 → stderr 逐条
+     * 「nop-rg: error scanning {rel}: {message}」+ exit 2；部分结果照常输出（rg 报错继续对齐）。
+     */
+    @Test
+    public void testPartialFailureErrorsPrintedPerLineWithExit2() throws IOException {
+        buildTree();
+        NopRgMain partial = new NopRgMain() {
+            @Override
+            SearchOutcome search(Path root) {
+                return new SearchOutcome(Map.of(), List.of(
+                        new io.nop.rg.core.coordinator.FileError("locked.txt", "stat file failed: /x/locked.txt"),
+                        new io.nop.rg.core.coordinator.FileError("denied.txt", "map file failed: /x/denied.txt")));
+            }
+        };
+        RunResult result = runMain(partial, "needle", tempDir.toString());
+        assertEquals(2, result.exitCode(), "有错误项必须 exit 2");
+        assertTrue(result.stderr().contains("nop-rg: error scanning locked.txt: stat file failed"),
+                "STDERR=[" + result.stderr() + "]");
+        assertTrue(result.stderr().contains("nop-rg: error scanning denied.txt: map file failed"),
+                "stderr 必须逐条输出全部错误项: " + result.stderr());
+    }
+
+    /**
+     * W-05 无错误项时维持既有 0/1 语义（错误通道不得污染正常退出码）。
+     */
+    @Test
+    public void testNoErrorsKeepsHitMissExitSemantics() throws IOException {
+        buildTree();
+        RunResult hit = run("needle", tempDir.toString());
+        assertEquals(0, hit.exitCode());
+        RunResult miss = run("nonexistent-pattern-xyz", tempDir.toString());
+        assertEquals(1, miss.exitCode());
+        assertFalse(miss.stderr().contains("error scanning"));
     }
 }

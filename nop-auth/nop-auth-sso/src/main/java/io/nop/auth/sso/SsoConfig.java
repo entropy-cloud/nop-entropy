@@ -30,6 +30,16 @@ public class SsoConfig {
     private int publicKeyCacheTtl = 3600;
     private String jwksUrl;
 
+    /**
+     * 刷新 token 请求的显式超时（毫秒），配置键 {@code nop.auth.sso.refresh-token-timeout}，
+     * 经 sso-defaults.beans.xml 的 nopSsoConfig bean 逐属性 {@code @cfg:} 引用注入。
+     * 默认 10000ms（IdP token 刷新为轻量 POST，10s ≈ 20-100× 正常 RTT 且低于客户端
+     * 默认 readTimeout 30s）。≤0 = 不设显式请求超时（回落客户端部署级默认，
+     * HttpClientConfig readTimeout 30s 兜底）——LOCK-001「默认有界 + ≤0 豁免档」两档语义。
+     * 字段默认值与 beans.xml {@code @cfg:} 行内默认一致，防双源漂移（C4-007，plan 2508 裁定①）。
+     */
+    private int refreshTokenTimeout = 10000;
+
     public String getAuthServerUrl() {
         return authServerUrl;
     }
@@ -116,6 +126,17 @@ public class SsoConfig {
     }
 
 
+    /** 2.3-C4-008（plan 2551 closure audit Minor-5）：JWKS 拉取显式超时毫秒（缺省 5000；≤0=客户端缺省） */
+    private long jwksFetchTimeoutMillis = 5000L;
+
+    public long getJwksFetchTimeoutMillis() {
+        return jwksFetchTimeoutMillis;
+    }
+
+    public void setJwksFetchTimeoutMillis(long jwksFetchTimeoutMillis) {
+        this.jwksFetchTimeoutMillis = jwksFetchTimeoutMillis;
+    }
+
     public int getMinTimeBetweenJwksRequests() {
         return minTimeBetweenJwksRequests;
     }
@@ -130,6 +151,14 @@ public class SsoConfig {
 
     public void setPublicKeyCacheTtl(int publicKeyCacheTtl) {
         this.publicKeyCacheTtl = publicKeyCacheTtl;
+    }
+
+    public int getRefreshTokenTimeout() {
+        return refreshTokenTimeout;
+    }
+
+    public void setRefreshTokenTimeout(int refreshTokenTimeout) {
+        this.refreshTokenTimeout = refreshTokenTimeout;
     }
 
     public String getJwksUrl() {

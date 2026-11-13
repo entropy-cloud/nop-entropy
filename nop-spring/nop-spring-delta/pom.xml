@@ -22,5 +22,12 @@
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>4.1.0</version>
         </dependency>
+
+        <!-- 4.4-M7（plan 2562）：本模块首次引入测试树，显式补充测试依赖 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

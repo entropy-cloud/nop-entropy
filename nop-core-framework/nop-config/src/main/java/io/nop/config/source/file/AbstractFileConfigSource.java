@@ -41,13 +41,23 @@ public abstract class AbstractFileConfigSource implements IConfigSource {
 
     public AbstractFileConfigSource(Collection<String> paths, long refreshInterval) {
         this.paths = paths.stream().map(Paths::get).collect(Collectors.toList());
+        // 2.2-C6-003（plan 2506 裁定⑤）：先加载成功再调度——初始装载失败时构造器直接抛错，
+        // 尚未注册任何周期任务（原缺陷 = 先调度后加载，失败后半构造对象被 globalTimer 周期任务
+        // 持有，任务无引用可取消，泄漏窗口覆盖全运行期）。构造期 loadConfig 的失败语义不变
+        // （仍然上抛，启动期 fail-fast）。
+        this.vars = loadConfig();
         if (refreshInterval > 0) {
-            this.refreshFuture = GlobalExecutors.globalTimer().scheduleWithFixedDelay(this::refreshConfig,
-                    refreshInterval, refreshInterval, TimeUnit.MILLISECONDS);
+            // 2.2-C4-001（plan 2497 Phase 2）：调度槽/执行体解耦——globalTimer 只承载触发（调度槽），
+            // 刷新任务体（loadConfig 内 Files.walk 目录遍历 = 阻塞 I/O、时长无上界）经 executeOn
+            // hop 到 globalWorker 执行，NFS/stale mount 挂起只占用 worker 池并退化为周期性失败重试，
+            // 不再占死共享 timer 线程。两站点同口径（G32，设计 pool-facility-hardening.md §3.1.4）；
+            // worker 提交拒绝经绝缘链终态可见（BindScheduledExecutor 周期方法路由绝缘核心）。
+            this.refreshFuture = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())
+                    .scheduleWithFixedDelay(this::refreshConfig, refreshInterval, refreshInterval,
+                            TimeUnit.MILLISECONDS);
         } else {
             refreshFuture = null;
         }
-        this.vars = loadConfig();
     }
 
     void refreshConfig() {

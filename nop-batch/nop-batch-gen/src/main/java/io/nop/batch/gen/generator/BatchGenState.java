@@ -41,15 +41,20 @@ public class BatchGenState {
         return model.getOutputVars();
     }
 
-    public boolean hasNext() {
+    /**
+     * 1.7-C1-002（plan 2545 W-02）：游标载体为共享可变状态，consume 阶段由多 chunk 线程
+     * 在 LoaderState 锁外并发驱动（sequential + useBatchRequestGenerator + concurrency>1）。
+     * 全部读写收进本对象监视器——粒度即游标载体本身，天然正确。
+     */
+    public synchronized boolean hasNext() {
         return genCount < totalCount;
     }
 
-    public long getGenCount() {
+    public synchronized long getGenCount() {
         return genCount;
     }
 
-    public int getSubIndex() {
+    public synchronized int getSubIndex() {
         return subIndex;
     }
 
@@ -61,7 +66,7 @@ public class BatchGenState {
         return model.isSequential();
     }
 
-    public Object next(IBatchGenContext context, boolean produce) {
+    public synchronized Object next(IBatchGenContext context, boolean produce) {
         if (!hasNext())
             throw new IllegalStateException("nop.err.batch.generator-already-finished");
 

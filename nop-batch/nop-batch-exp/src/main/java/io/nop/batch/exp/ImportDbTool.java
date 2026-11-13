@@ -213,6 +213,9 @@ public class ImportDbTool {
     }
 
     public void execute() {
+        // 1.7-C8-010（plan 2546 W-11）：线程占用上界校验（纯静态，无 DB；资源段之前）
+        DbToolConcurrencyValidator.validateImportExecutorConfig(config);
+
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
         if (stateFile != null) {
@@ -223,23 +226,28 @@ public class ImportDbTool {
             }
         }
 
-        syncConfigWithDb();
-
-        this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
-
-        IThreadPoolExecutor executor;
-        if (config.getThreadCount() > 1) {
-            executor = DefaultThreadPoolExecutor.newExecutor("import-db", config.getThreadCount(), Integer.MAX_VALUE);
-        } else {
-            executor = SyncThreadPoolExecutor.INSTANCE;
-        }
-
-        IEvalScope scope = XLang.newEvalScope();
-
-        if (config.getBeforeImport() != null)
-            config.getBeforeImport().invoke(scope);
-
+        // 1.7-C6-003/C6-007（plan 2545 W-07/W-08）：资源段全部纳入 try——原实现
+        // syncConfigWithDb（内部创建 HikariDataSource 并置 needClose=true）与 beforeImport
+        // 均在 try 之外，任一抛出即 finally 不可达 → 整个连接池（连接/socket FD/housekeeping
+        // 线程）泄漏，常驻进程内每次失败累积一个池。
+        IThreadPoolExecutor executor = null;
         try {
+            syncConfigWithDb();
+
+            this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
+
+            if (config.getThreadCount() > 1) {
+                // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
+                executor = DefaultThreadPoolExecutor.newExecutor("import-db", config.getThreadCount(), 10000);
+            } else {
+                executor = SyncThreadPoolExecutor.INSTANCE;
+            }
+
+            IEvalScope scope = XLang.newEvalScope();
+
+            if (config.getBeforeImport() != null)
+                config.getBeforeImport().invoke(scope);
+
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : config.getTables()) {
                 if (!isImportable(tableConfig))
@@ -259,13 +267,19 @@ public class ImportDbTool {
             if (stateStore != null)
                 stateStore.complete();
         } finally {
-            executor.destroy();
+            if (executor != null) {
+                // 1.7-C6-004（plan 2545 W-09）：destroy=shutdown 不等待——失败路径返回后兄弟表任务
+                // 仍在后台运行会并发续写状态文件，而 CLI 已返回错误码。有界等待使「返回即已停」成立。
+                executor.destroy();
+                DbToolTerminationHelper.waitTerminated(executor, "nop.import-db.executor-terminate-timeout");
+            }
             if (needClose) {
                 IoHelper.safeClose(dataSource);
                 dataSource = null;
             }
         }
     }
+
 
     private boolean isImportable(ImportTableConfig tableConfig) {
         if (config.getCheckImportable() == null)
@@ -288,6 +302,10 @@ public class ImportDbTool {
         if (loader == null) {
             return;
         }
+
+        // 1.7-C8-004（plan 2546 W-07）：补 taskName——否则 import 表任务全部落 task.name=default，
+        // 表级可观测性丢失（ExportDbTool 已有同形接线）。
+        builder.taskName(tableConfig.getName());
 
         int concurrency = getConcurrency(tableConfig);
         builder.concurrency(concurrency);

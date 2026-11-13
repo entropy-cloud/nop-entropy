@@ -80,6 +80,26 @@ final class RocksDBSnapshotSerDe {
     //  snapshot
     // ------------------------------------------------------------------------
 
+    /**
+     * plan 2511 C5-002: counts the total number of entries a full-scan snapshot
+     * would materialize — one row per non-map state, one row per user-map entry
+     * group. Raw row count over every column family (upper bound, TTL excluded):
+     * cheap iteration without any value deserialization, so the
+     * {@code snapshot-materialize-max-entries} guard can reject oversized
+     * full-scan snapshots BEFORE any heap materialization happens.
+     */
+    static long countSnapshotEntries(RocksDBKeyedStateBackend<?> backend) {
+        long count = 0;
+        for (ColumnFamilyHandle cf : backend.getCfHandles().values()) {
+            try (RocksIterator it = backend.getDb().newIterator(cf)) {
+                for (it.seekToFirst(); it.isValid(); it.next()) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
     @SuppressWarnings("unchecked")
     static StateSnapshot snapshotState(RocksDBKeyedStateBackend<?> backend) throws Exception {
         Map<String, Object> states = backend.getStates();
@@ -122,6 +142,178 @@ final class RocksDBSnapshotSerDe {
         if (shardCount > 1) {
             info.put("shardCount", shardCount);
         }
+    }
+
+    // ------------------------------------------------------------------------
+    //  plan 2511 C5-002: dual-path migration invariant (incremental checkpoints)
+    // ------------------------------------------------------------------------
+
+    /**
+     * Schema-header-only view ({@code stateType}/{@code valueType}/
+     * {@code schemaChecksum}/... — no entry payloads) of every registered state,
+     * embedded into INCREMENTAL checkpoints so the incremental restore path can
+     * reconstruct the restored descriptors and run the same
+     * migration-registry / {@code ERR_STREAM_STATE_SCHEMA_MISMATCH} verification
+     * the full-JSON path derives from its materialized state headers. The
+     * per-state dispatch mirrors {@link #snapshotOneState}; only the header
+     * fields the restore-side descriptor reconstruction reads are emitted.
+     */
+    static Map<String, Object> snapshotStateSchemas(RocksDBKeyedStateBackend<?> backend) {
+        Map<String, Object> states = backend.getStates();
+        Map<String, Object> schemas = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : states.entrySet()) {
+            String stateName = entry.getKey();
+            Object stateObj = entry.getValue();
+            schemas.put(stateName, schemaHeader(backend, stateObj));
+        }
+        return schemas;
+    }
+
+    /**
+     * Registers the restored schema headers carried by an INCREMENTAL snapshot
+     * ({@code "schemas"} written by {@link #snapshotStateSchemas}) on the
+     * backend, so {@code getOrCreateState} can verify schema compatibility (and
+     * apply a registered migration or fail fast) on the first live
+     * {@code getXxxState(...)} after an incremental restore. Legacy incremental
+     * snapshots without the header are tolerated (no-op).
+     */
+    @SuppressWarnings("unchecked")
+    static void registerRestoredSchemas(RocksDBKeyedStateBackend<?> backend,
+                                        Map<String, Object> stateData) throws Exception {
+        Object schemasObj = stateData.get("schemas");
+        if (!(schemasObj instanceof Map)) {
+            return;
+        }
+        Map<String, Object> schemas = (Map<String, Object>) schemasObj;
+        for (Map.Entry<String, Object> entry : schemas.entrySet()) {
+            String stateName = entry.getKey();
+            Object headerObj = entry.getValue();
+            if (!(headerObj instanceof Map)) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Incremental checkpoint schema header for state '" + stateName
+                                + "' is not a map (got "
+                                + (headerObj == null ? "null" : headerObj.getClass().getName()) + ")");
+            }
+            Map<String, Object> info = (Map<String, Object>) headerObj;
+            String stateType = (String) info.get("stateType");
+            if (stateType == null) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Incremental checkpoint schema header for state '" + stateName
+                                + "' carries no stateType");
+            }
+            StateDescriptor<?> descriptor = restoredDescriptorFromHeader(backend, stateName, info, stateType);
+            backend.putRestoredSchema(stateName, stateType, descriptor);
+        }
+    }
+
+    /** Rebuilds the restored (old-schema) descriptor from one schema header — the same
+     * descriptor-building logic the full-JSON restore branches use. */
+    @SuppressWarnings("unchecked")
+    private static StateDescriptor<?> restoredDescriptorFromHeader(RocksDBKeyedStateBackend<?> backend,
+                                                                   String stateName,
+                                                                   Map<String, Object> info,
+                                                                   String stateType) throws Exception {
+        switch (stateType) {
+            case "ValueState":
+                return new ValueStateDescriptor<>(stateName, loadValueClass(info));
+            case "MapState": {
+                Class<Object> valueClass = loadValueClass(info);
+                Class<Object> mapKeyClass = null;
+                String keyTypeName = resolveTypeName(info, "mapKeyTypeName", "mapKeyType");
+                if (keyTypeName != null) {
+                    mapKeyClass = loadClass(keyTypeName);
+                }
+                return new MapStateDescriptor<>(stateName, mapKeyClass, valueClass);
+            }
+            case "ListState":
+            case "InternalListState":
+                return new ListStateDescriptor<>(stateName, loadValueClass(info));
+            case "ReducingState":
+            case "AppendingState": {
+                Class<Object> valueClass = loadValueClass(info);
+                Class<? extends SimpleAccumulator<Object>> accumulatorClass =
+                        loadAccumulatorClass(resolveTypeName(info, "accumulatorTypeName", "accumulatorType"));
+                return new ReducingStateDescriptor<>(stateName, valueClass, accumulatorClass);
+            }
+            case "AggregatingState":
+            case "InternalAggregatingState": {
+                Class<Object> recordedClass = loadValueClass(info);
+                String aggregateFunctionTypeName = (String) info.get("aggregateFunctionType");
+                AggregateFunction<Object, Object, Object> aggregateFunction =
+                        resolveAggregateFunction(backend, stateName, aggregateFunctionTypeName);
+                Class<Object> valueClass = (Class<Object>) AccumulatorTypeInference
+                        .inferAccumulatorType(aggregateFunction, recordedClass);
+                return new AggregatingStateDescriptor<>(stateName, aggregateFunction, valueClass);
+            }
+            default:
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Unknown stateType '" + stateType
+                                + "' in the incremental checkpoint schema header of state '" + stateName + "'");
+        }
+    }
+
+    /** Header-only counterpart of {@link #snapshotOneState}'s per-state dispatch. */
+    private static Map<String, Object> schemaHeader(RocksDBKeyedStateBackend<?> backend, Object stateObj) {
+        if (stateObj instanceof RocksDBInternalListState) {
+            RocksDBInternalListState<?, ?, ?> st = (RocksDBInternalListState<?, ?, ?>) stateObj;
+            return baseHeader("InternalListState", st.descriptor, null, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBListState) {
+            RocksDBListState<?> st = (RocksDBListState<?>) stateObj;
+            return baseHeader("ListState", st.descriptor, null, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBInternalAggregatingState) {
+            RocksDBInternalAggregatingState<?, ?, ?, ?, ?> st =
+                    (RocksDBInternalAggregatingState<?, ?, ?, ?, ?>) stateObj;
+            Map<String, Object> extra = new LinkedHashMap<>();
+            extra.put("aggregateFunctionType", st.descriptor.getAggregateFunction().getClass().getName());
+            return baseHeader("InternalAggregatingState", st.descriptor, extra, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBAggregatingState) {
+            RocksDBAggregatingState<?, ?, ?> st = (RocksDBAggregatingState<?, ?, ?>) stateObj;
+            Map<String, Object> extra = new LinkedHashMap<>();
+            extra.put("aggregateFunctionType", st.descriptor.getAggregateFunction().getClass().getName());
+            return baseHeader("AggregatingState", st.descriptor, extra, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBValueState) {
+            RocksDBValueState<?> st = (RocksDBValueState<?>) stateObj;
+            return baseHeader("ValueState", st.descriptor, null, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBMapState) {
+            RocksDBMapState<?, ?> st = (RocksDBMapState<?, ?>) stateObj;
+            Map<String, Object> extra = new LinkedHashMap<>();
+            extra.put("mapKeyType", st.descriptor.getKeyClass().getName());
+            return baseHeader("MapState", st.descriptor, extra, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBInternalAppendingState) {
+            RocksDBInternalAppendingState<?, ?, ?> st = (RocksDBInternalAppendingState<?, ?, ?>) stateObj;
+            Map<String, Object> extra = new LinkedHashMap<>();
+            extra.put("accumulatorType", st.descriptor.getAccumulatorType().getName());
+            return baseHeader("AppendingState", st.descriptor, extra, backend.getShardCount());
+        }
+        if (stateObj instanceof RocksDBReducingState) {
+            RocksDBReducingState<?> st = (RocksDBReducingState<?>) stateObj;
+            Map<String, Object> extra = new LinkedHashMap<>();
+            extra.put("accumulatorType", st.descriptor.getAccumulatorType().getName());
+            return baseHeader("ReducingState", st.descriptor, extra, backend.getShardCount());
+        }
+        // Same fail-fast contract as snapshotOneState: an unknown state object
+        // must not silently lose its schema header (silent corruption).
+        throw new StreamException(ERR_STREAM_STATE_ERROR)
+                .param(ARG_DETAIL, "Unknown state type during incremental schema snapshot: "
+                        + stateObj.getClass().getName());
+    }
+
+    private static Map<String, Object> baseHeader(String stateType, StateDescriptor<?> descriptor,
+                                                  Map<String, Object> extra, int shardCount) {
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("stateType", stateType);
+        info.put("valueType", descriptor.getValueType().getName());
+        if (extra != null) {
+            info.putAll(extra);
+        }
+        embedSchemaFingerprint(info, stateType, descriptor, shardCount);
+        return info;
     }
 
     @SuppressWarnings("unchecked")

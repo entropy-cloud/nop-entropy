@@ -37,8 +37,19 @@ public final class DefaultSelectionStrategy implements ISelectionStrategy {
             if (attempted != null && attempted.contains(candidate)) {
                 continue;
             }
-            if (!health.healthOf(candidate).isAvailable()) {
-                // 熔断 OPEN / 并发饱和：跳过（不记失败）。
+            CandidateHealth ch = health.healthOf(candidate);
+            if (ch.isConcurrencySaturated()) {
+                // 并发饱和：跳过（不记失败）。
+                continue;
+            }
+            if (!ch.isAvailable() && !ch.isAllowCall()) {
+                // 熔断 OPEN 且冷却未满（allowCall 投影 false）：跳过（不记失败）。
+                continue;
+            }
+            // 权威状态迁移 allowCall（plan 2509 裁定⑦(b)）：选中后、返回前唯一调用点——
+            // OPEN 冷却期满候选经冷却复查恢复可达（HALF_OPEN 放行探活）；探针在飞/冷却未满
+            // → false → 跳过该候选尝试其余；全部被拒 = 无可用候选（既有不可用路径，调用方 fail-loud）。
+            if (!health.allowCall(candidate)) {
                 continue;
             }
             return candidate;

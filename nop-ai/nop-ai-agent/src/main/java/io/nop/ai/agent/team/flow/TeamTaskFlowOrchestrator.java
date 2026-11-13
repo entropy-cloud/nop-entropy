@@ -166,7 +166,8 @@ public class TeamTaskFlowOrchestrator {
      * {@code TeamTaskSchedulerDaemon.setMemberSpawner} and the other Layer 4
      * extension-point setter patterns). Reads go through the field directly.
      */
-    private IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
 
     /**
      * Pluggable per-task member router (plan 244 /
@@ -184,7 +185,8 @@ public class TeamTaskFlowOrchestrator {
      * {@link #setMemberSpawner} and the other Layer 4 extension-point
      * setter patterns). Reads go through the field directly.
      */
-    private ITaskMemberRouter taskMemberRouter = DefaultTaskMemberRouter.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile ITaskMemberRouter taskMemberRouter = DefaultTaskMemberRouter.noOp();
 
     /**
      * Dedicated executor for {@link SpawnMemberAgentTaskStep}'s supplyAsync
@@ -203,7 +205,8 @@ public class TeamTaskFlowOrchestrator {
      * ({@link #ownedSpawnExecutor}) sized to the spawn concurrency cap; that
      * owned pool is released by {@link #close()}.
      */
-    private Executor spawnStepExecutor;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile Executor spawnStepExecutor;
 
     /**
      * Tracks the spawn-step executor pool created by this orchestrator (when
@@ -222,7 +225,8 @@ public class TeamTaskFlowOrchestrator {
      * per-member {@code orTimeout} in {@link MemberFanOutDispatcher} and as
      * a daemon-level overall deadline on {@link #executeAsync}.
      */
-    private long memberExecTimeoutMs = DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile long memberExecTimeoutMs = DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
 
     public TeamTaskFlowOrchestrator(IAgentEngine agentEngine, ITeamTaskStore taskStore,
                                     ITeamManager teamManager) {
@@ -447,14 +451,41 @@ public class TeamTaskFlowOrchestrator {
      */
     public void close() {
         if (ownedSpawnExecutor != null) {
-            ownedSpawnExecutor.shutdownNow();
+            // Plan 2519 (裁定④/C4-015): bounded drain — shutdown() (queued
+            // tasks retained) → awaitTermination(2s, live budget) →
+            // shutdownNow() → never-started queued runnables are explicitly
+            // recorded (nop.ai.agent.spawn-drain-discard WARN + counter). The
+            // queued spawn tasks' dispatch futures settle through the
+            // coordinator drain point; here the discard is observable, never
+            // silent (rule 24). Discarding queued spawn work at stop is the
+            // designed semantics; silent discard is the defect.
+            ownedSpawnExecutor.shutdown();
             try {
-                ownedSpawnExecutor.awaitTermination(2, TimeUnit.SECONDS);
+                if (!ownedSpawnExecutor.awaitTermination(2, TimeUnit.SECONDS)) {
+                    ownedSpawnExecutor.shutdownNow();
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                ownedSpawnExecutor.shutdownNow();
+            }
+            java.util.List<Runnable> neverRan = ownedSpawnExecutor.shutdownNow();
+            if (!neverRan.isEmpty()) {
+                SPAWN_DRAIN_DISCARD_COUNT.addAndGet(neverRan.size());
+                LOG.warn("nop.ai.agent.spawn-drain-discard: {} queued spawn task(s) discarded at "
+                        + "orchestrator close (bounded drain exhausted; dispatch futures settle "
+                        + "through the drain point — never a silent discard)", neverRan.size());
             }
             ownedSpawnExecutor = null;
         }
+    }
+
+    /** Plan 2519 (裁定④): discard counter facet of spawn-drain-discard. */
+    private static final java.util.concurrent.atomic.AtomicLong SPAWN_DRAIN_DISCARD_COUNT =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** Plan 2519 (裁定④): test/diagnostics probe for drain discards. */
+    public static long spawnDrainDiscardCount() {
+        return SPAWN_DRAIN_DISCARD_COUNT.get();
     }
 
     /**
@@ -466,15 +497,21 @@ public class TeamTaskFlowOrchestrator {
      * not artificially starved while staying bounded.
      */
     private Executor resolveSpawnExecutor() {
+        // Plan 2519 (CL-036): check-then-act made atomic — two concurrent
+        // spawn nodes could double-create the pool (leaked threads). The
+        // double-check fast path keeps the injected-executor route lock-free
+        // (DefaultAgentEngine.getAgentExecutor synchronized precedent).
         if (spawnStepExecutor != null) {
             return spawnStepExecutor;
         }
-        if (ownedSpawnExecutor == null) {
-            int poolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
-            ThreadFactory factory = new SpawnWorkerThreadFactory();
-            ownedSpawnExecutor = Executors.newFixedThreadPool(poolSize, factory);
+        synchronized (this) {
+            if (ownedSpawnExecutor == null) {
+                int poolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
+                ThreadFactory factory = new SpawnWorkerThreadFactory();
+                ownedSpawnExecutor = Executors.newFixedThreadPool(poolSize, factory);
+            }
+            return ownedSpawnExecutor;
         }
-        return ownedSpawnExecutor;
     }
 
     /**
@@ -583,6 +620,7 @@ public class TeamTaskFlowOrchestrator {
         // on structural fast-failures (null teamId / no tasks / unknown team
         // / cyclic blockedBy), identical to the pre-241 execute().
         BuiltGraph built = buildGraphForExecution(teamId);
+        this.currentRun = built;
 
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(built.task, false, null);
 
@@ -660,6 +698,15 @@ public class TeamTaskFlowOrchestrator {
                                             + "overall timeout — the graph may still be executing: teamId={}",
                                     teamId, cancelEx);
                         }
+                        // Plan 2519 (裁定⑤): session-level convergence cancel on
+                        // top of the graph cancel — taskRt.cancel stops graph
+                        // progress but does NOT terminate member sessions
+                        // already submitted to the engine. Walk the per-flow
+                        // member-session registry (data plane, populated by
+                        // the spawn steps at dispatch time) and cancelSession
+                        // each member (forced). Single-member failure never
+                        // interrupts the sweep (per-member explicit record).
+                        cancelFlowMemberSessions(teamId);
                         LOG.warn("TeamTaskFlowOrchestrator: team flow exceeded overall deadline of {}ms "
                                         + "(maxDepth={}, memberExecTimeoutMs={}) for teamId={} — underlying "
                                         + "graph cancelled, reporting honest failure",
@@ -674,6 +721,39 @@ public class TeamTaskFlowOrchestrator {
 
         return result;
     }
+
+    /**
+     * Plan 2519 (裁定⑤): overall-deadline convergence cancel — session-level
+     * cancelSession (forced) for every spawned member session registered in
+     * this run's recorder. Single-member failure is explicitly recorded (WARN
+     * + counter {@code nop.ai.agent.member-cancel-failed}) and never aborts
+     * the sweep (rule 24); a benign already-terminal outcome (evicted/terminal
+     * session) is skipped silently (the engine returns a completed future).
+     */
+    private void cancelFlowMemberSessions(String teamId) {
+        BuiltGraph run = currentRun;
+        if (run == null) {
+            return;
+        }
+        for (String memberSessionId : run.recorder.spawnedMemberSessionsSnapshot()) {
+            try {
+                agentEngine.cancelSession(memberSessionId,
+                        "team flow overall deadline exceeded", true)
+                        .toCompletableFuture().join();
+            } catch (Exception cancelEx) {
+                LOG.warn("nop.ai.agent.member-cancel-failed: failed to cancel member session at "
+                                + "overall deadline (explicit record, sweep continues): teamId={}, "
+                                + "memberSessionId={}", teamId, memberSessionId, cancelEx);
+            }
+        }
+    }
+
+    /**
+     * Plan 2519 (裁定⑤): the in-flight run's graph holder — set at
+     * executeAsync entry so the deadline branch can reach the run's recorder
+     * (per-flow member-session registry owner = orchestrator, built stage).
+     */
+    private volatile BuiltGraph currentRun;
 
     /**
      * Shared graph-build path used by both {@link #execute(String)} (via

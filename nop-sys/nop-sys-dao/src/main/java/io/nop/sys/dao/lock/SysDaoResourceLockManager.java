@@ -144,10 +144,13 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
                 if (existing != null) {
                     // 如果已过期，则尝试删除
                     if (isExpired(existing, clock)) {
-                        // 按主键列逐列构造删除条件。复合主键生成 (A,B)=? 的行比较在部分数据库上无法绑定参数
+                        // 按主键列逐列构造删除条件。复合主键生成 (A,B)=? 的行比较在部分数据库上无法绑定参数。
+                        // holderId条件防互斥无声破坏（C2-001）：重建锁行version恒为0，仅version条件会命中
+                        // 并删掉竞争者刚插入的新锁行，双方各自认为持锁
                         SQL sql = SQL.begin().deleteFrom().append(NopSysLock.class.getName())
                                 .where().eq(NopSysLock.PROP_NAME_lockName, existing.getLockName())
                                 .and().eq(NopSysLock.PROP_NAME_lockGroup, existing.getLockGroup())
+                                .and().eq(NopSysLock.PROP_NAME_holderId, existing.getHolderId())
                                 .and().eq(NopSysLock.PROP_NAME_version, existing.getVersion()).end();
                         if (session.executeUpdate(sql) > 0)
                             return null;
@@ -232,15 +235,23 @@ public class SysDaoResourceLockManager extends AbstractDaoHandler implements IRe
             // 注意set子句的eq之间必须显式comma()：无分隔符会生成"set a=?b=?"的非法EQL（原代码即如此，
             // tryResetLease从未被测试执行过，属超出审计的连带修复）。holderId防护：新行version同为0，
             // 仅version条件会被旧持有者续约改写
+            Timestamp newExpireAt = new Timestamp(clock.getMaxCurrentTimeMillis() + leaseTime);
             SQL sql = SQL.begin().update(NopSysLock.class.getName())
                     .set()
                     .eq(NopSysLock.PROP_NAME_version, entity.getVersion() + 1).comma()
-                    .eq(NopSysLock.PROP_NAME_expireAt, new Timestamp(clock.getMaxCurrentTimeMillis() + leaseTime))
+                    .eq(NopSysLock.PROP_NAME_expireAt, newExpireAt)
                     .where().eq(NopSysLock.PROP_NAME_lockName, entity.getLockName())
                     .and().eq(NopSysLock.PROP_NAME_lockGroup, entity.getLockGroup())
                     .and().eq(NopSysLock.PROP_NAME_holderId, entity.getHolderId())
                     .and().eq(NopSysLock.PROP_NAME_version, entity.getVersion()).end();
-            return session.executeUpdate(sql) == 1;
+            if (session.executeUpdate(sql) == 1) {
+                // DB续约成功必须回写内存实体（C2-002）：isHoldingLock的version相等判定与releaseLock的
+                // version删除条件都依赖回写，否则第二次续约起必然失败且锁删不掉
+                entity.setVersion(entity.getVersion() + 1);
+                entity.setExpireAt(newExpireAt);
+                return true;
+            }
+            return false;
         });
     }
 

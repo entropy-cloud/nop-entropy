@@ -19,12 +19,14 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,6 +83,12 @@ class TestKafkaTwoPhaseCommitSinkLifecycle {
                 ProducerRecord<String, byte[]> record) {
             calls.add("send:" + record.key());
             return super.send(record);
+        }
+
+        @Override
+        public void close(Duration timeout) {
+            calls.add("close");
+            super.close(timeout);
         }
     }
 
@@ -209,5 +217,57 @@ class TestKafkaTwoPhaseCommitSinkLifecycle {
                 "the identity guard must fire when the producer is built");
         assertTrue(String.valueOf(ex).contains("transactional.id"),
                 "error must name the guarded property: " + ex);
+    }
+
+    /**
+     * CRA 1.2 C6-001 regression: the transactional producer must be released on task
+     * termination. close() aborts the open (next-epoch) transaction left by the barrier,
+     * closes the producer, and is idempotent. The runtime teardown reaches this via
+     * {@code StreamSinkOperator.close} → {@code AutoCloseable} userFunction.
+     */
+    @Test
+    void closeAbortsOpenTransactionAndClosesProducerIdempotently() throws Exception {
+        FakeProducer producer = new FakeProducer();
+        KafkaTwoPhaseCommitSink<String> sink = newSink(producer);
+        sink.beginTransaction();
+        sink.invoke("a");
+        sink.saveState(1L); // barrier: commit + begin(next) — a transaction is open again
+
+        sink.close();
+        // trailing "flush" = MockProducer-internal, riding its own abortTransaction
+        assertEquals(List.of("abort", "flush", "close"),
+                producer.calls.subList(producer.calls.size() - 3, producer.calls.size()),
+                "close must abort the open transaction, then close the producer");
+
+        int callsAfterFirstClose = producer.calls.size();
+        sink.close();
+        assertEquals(callsAfterFirstClose, producer.calls.size(), "the second close must be a no-op");
+    }
+
+    /** close() before any record: no producer exists yet — a no-op, no NPE, no producer calls. */
+    @Test
+    void closeWithoutProducerIsNoop() {
+        FakeProducer producer = new FakeProducer();
+        KafkaTwoPhaseCommitSink<String> sink = newSink(producer);
+        assertDoesNotThrow(sink::close);
+        assertEquals(List.of(), producer.calls, "no producer, nothing to abort or close");
+    }
+
+    /**
+     * close() after rollback: no transaction is open any more, so close must not abort a
+     * second time — but the producer itself must still be closed.
+     */
+    @Test
+    void closeAfterRollbackSkipsAbortButClosesProducer() throws Exception {
+        FakeProducer producer = new FakeProducer();
+        KafkaTwoPhaseCommitSink<String> sink = newSink(producer);
+        sink.beginTransaction();
+        sink.invoke("x");
+        sink.rollback(); // abort happens here; no transaction open afterwards
+
+        sink.close();
+        // trailing "flush" = MockProducer-internal, riding the rollback's abortTransaction
+        assertEquals(List.of("init", "begin", "send:x", "abort", "flush", "close"), producer.calls,
+                "exactly one abort (from rollback); close still releases the producer");
     }
 }

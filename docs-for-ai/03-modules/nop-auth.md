@@ -87,6 +87,26 @@
 | `nop.auth.defaultPublic` | `true` | 所有路径默认公开，仅 authPaths 中的需认证 |
 | `nop.auth.rate-limit.store-type` | `local` | 发码限流后端（`local`/`db`/`redis`）；集群取 `db`（无 Redis）或 `redis` |
 | `nop.auth.login-attempt.store-type` | `local` | 登录失败计数后端（`local`/`db`/`redis`）；集群取 `db`（无 Redis）或 `redis` |
+| `nop.auth.ledger.retention-days` | `30` | 六族账本保留期（天）；`0`=显式禁用周期清理；负值启动期 fail-fast（见「账本保留策略」） |
+| `nop.auth.ledger.cleanup-interval` | `1h` | 账本清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.auth.ledger.delete-batch-size` | `1000` | 账本单轮单表删除上限（有界拾取 + IN 批删）；非正数启动期 fail-fast |
+
+## 账本保留策略（5.1-MA-01，plan 2502）
+
+认证六族账本表由 `NopAuthLedgerCleaner` 生命周期链周期清扫（IoC 单例 bean `nopAuthLedgerCleaner` → `LifeCycleSupport` `@PostConstruct start()` → 周期调度，taskName=`nop-auth-ledger-cleanup`）。参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md（R01 族级保留策略，平台内部文档——按 docs-for-ai 边界规则不直接链接），模块配置键：
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.auth.ledger.retention-days` | 30 | 保留期（天）；`0`=显式禁用周期清理；负值启动期 fail-fast |
+| `nop.auth.ledger.cleanup-interval` | 1h | 清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.auth.ledger.delete-batch-size` | 1000 | 单轮单表删除上限（有界拾取 + IN 批删）；非正数启动期 fail-fast |
+
+清理谓词与保留语义（七族一处实现、处置一致；5.1 第七面随 plan 2569 并入）：
+
+- **NopAuthSession**：锚列 `lastAccessTime`（主锚）+ `logoutTime` 判别（已终结行），超期整行删除——行删除即令牌载荷（accessToken/refreshToken/cacheData）清除。
+- **五族短 TTL 临时行**（mfa_challenge / sms_code / email_code / rate_limit_counter / login_attempt）：锚列 `expireAt`（epoch 毫秒），谓词 `expireAt < now − retention`——过期后滞留超过保留窗才清扫（宁长勿短）；跨键批量清扫，不再依赖键复访触发惰性删除。
+- **trusted-device 过期行清扫（第七族，plan 2569 并入）**：`NopAuthMfaTrustedDevice` 锚列 `expireAt`（Timestamp/DATETIME 语义列，独立 Timestamp 变体通道，谓词绑定同 session 族形态）——过期行随周期清扫，未过期行保留（max-count 口径不受影响）。plan 2502 R1 摘除（Deferred/R3-01 successor）随 2026-11-13 ask-first 授权兑现。
+- 清理失败显式可见：失败轮 ERROR（`nop.auth.ledger.cleanup-fail`）+ 失败计数，周期链由绝缘层保障不断链；错配置（负保留期/非正批删上限/周期低于 60s）启动期 fail-fast（`nop.err.auth.ledger-config-invalid`）。
 
 ## 认证路径规则
 
@@ -108,6 +128,7 @@
 | 登记通道验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`verifyChannelProof`） |
 | 共享因子校验组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaFactorVerifier.java` |
 | 可信设备共享组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaTrustedDeviceManager.java`（指纹计算 + 豁免判定 + 登记 + 撤销矩阵统一落点） |
+| 六族账本保留清理 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/cleanup/NopAuthLedgerCleaner.java`（5.1-MA-01 周期清扫，bean 装配 `auth-service.beans.xml`） |
 | EmailCodeStore 接口 | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/mfa/store/EmailCodeStore.java`（SmsCodeStore 同形平行接口；Local 在 core，Db/Redis 在 nop-auth-service） |
 | WebAuthn 验证器组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/WebAuthnAuthenticator.java`（封装 Yubico webauthn-server-core，库类型不外溢） |
 | MFA challenge payload 契约辅助 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaChallengeHelper.java`（登录级 challenge 创建三触点收敛：checkMfaRequired / MfaLoginPolicyServiceImpl 副本共用 `createLoginChallenge`） |
@@ -414,6 +435,16 @@ MFA 敏感表**禁止通用 CRUD 写**：八张表的 BizModel（共同基类 `M
 **setting.phone 出参脱敏（A2-followup-1 D1-7，结构性排除）**：`NopAuthMfaSetting` 的 phone 列 ORM tagSet `not-pub` + xmeta 保留文件兜底 `published=false`——通用查询面（findPage/get）输出**不含** phone 字段（GraphQL schema 无该 field，选择即校验失败）；biz 面 `getMfaStatus` 的 maskPhone 脱敏输出不变；服务内部 dao 读取（登录/发码链）不受影响。注意 ORM `masked` 标签仅作用于 SQL 日志参数脱敏，不构成出参脱敏机制——出参可见性由 `not-pub` → `published=false` 链承载。
 
 **联系方式变更治理（A2-followup-1 W12 路由项 3）**：`NopAuthUser` 的 phone/email 经通用 CRUD（save/update preparer 路径，ORM 脏属性判定）修改被分级：非 admin 登录调用方（含修改本人行）→ `ERR_AUTH_CONTACT_CHANGE_NOT_ALLOWED`（联系方式变更需管理员或专用流程）；admin → 放行 + `user:contact-changed` 审计事件（改人留痕，不落明文新旧值）；无登录态内部调用（批量导入/数据准备）→ 放行。非联系字段（nickname 类）通用修改行为不变。用户自助 changePhone/changeEmail 专用正门（含 proof/MFA ceremony）未提供——需变更联系方式的用户联系管理员。租户变体面 `NopAuthUser_tenant` 复用同一 BizModel，同口径覆盖。
+
+**Redis 账本键 TTL 附着补偿语义（5.1-MA-02，plan 2569）**：Redis 族账本键（login-fail / send-code 限流 / mfa-challenge / sms-code / email-code 失败计数）的 `INCRBY`+`PEXPIRE` 附着失败（瞬时网络故障曾使键以无 TTL 形态残留——attempt 锁号键永不清理需人工 DEL）经统一通道 `RedisTtlGuard.attachTtl` 收敛：附着失败 → 补偿删除键 + ERROR（`nop.auth.redis-ttl-attach-fail-compensate-delete`）后原样上抛。按族语义声明：attempt 族计数丢失无害（登录本已失败，下次递增重设 TTL）；limiter 族当日配额重置（劣于毒键锁死配额，日键有界）；code 族重取验证码（无害）。键不以无 TTL 形态残留。
+
+**可信设备并发纪律（5.1-MA-04，plan 2569）**：`register` 新行路径以 per-user 锁串行化（`IResourceLockManager`，ref `nopAuthSessionFlushLockManager`；原 check-then-insert 并发不同 deviceHash 曾双双越过 max-count → 越界行）；`isExempted` 的 lastUsedAt 更新为条件 UPDATE（`where sid=? and expireAt > now`，并发删除后 update-on-deleted 曾抛 `ERR_ORM_UPDATE_ENTITY_NOT_FOUND` 500，现 affected=0 静默 false）。时点语义声明：因子撤销后至多毫秒~秒级窗口内，已读入豁免判定的在途登录仍可豁免（豁免判定与撤销矩阵无跨请求事务互斥，fail-safe 由同 hash UK 与固定窗口承载）。
+
+**账本清扫第七族（5.1 第七面，plan 2569/2502 移交兑现）**：`NopAuthLedgerCleaner` 由六族扩为七族——`NopAuthMfaTrustedDevice` 过期行（expireAt 为 Timestamp 列，独立 Timestamp 变体通道）随周期清扫；未过期行保留（max-count 口径不受影响）。
+
+**SSO 登出 IdP 聚合（5.1-I-06，plan 2569）**：`OAuthLoginServiceImpl.doLogout`（非 SSO_CALLBACK 分支）IdP 登出外呼纳入 `waitAll` 聚合 + 失败 ERROR（`nop.err.auth.sso-logout-idp-fail`）+ 随聚合 future 传播——**对外行为变化声明**：IdP 外呼失败时本地登出已成功但整体 logout future 失败（原形态半成功不可见；实施期深化发现原顺序下上下文读取晚于本地移除，IdP 登出请求从未发出）；客户端重试登出幂等无害（已吊销 token parseAuthToken 返回 null → success）。
+
+**Dao-cache 会话 flush 契约（2.3-C1-010，plan 2568）**：`nop.auth.login.use-dao-user-context-cache` 部署下，`DaoUserContextCache.saveUserContextAsync` 为 per-session 单飞（`IResourceLockManager`，bean `nopAuthSessionFlushLockManager` 缺省本地实现，可换分布式实现）内的**基线条件 UPDATE**：乐观条件 = `getUserContextAsync` 读时捕获的 DB 行基线（refreshToken + lastAccessTime）+ `logoutType=0` 守卫。affected=0 且行存在 → 副本过期（token 已被其他副本旋转/行已登出），**放弃写入**并 WARN（`nop.auth.session-flush-stale-abandoned`）——本请求内非 token 字段修改（nickName/roles 等 cacheData 内容）不落库；副本 request-scoped、下请求重读 DB，丢失窗口为单请求内变更，fail-safe（DB 中 token 权威）优先于 last-writer-wins。affected=0 且行不存在 → 登录路径同会话 insert 待 flush，回退实体改写（行未提交前对其他写者不可见）。仅落库成功后 `clearDirty`；flush 异常 ERROR（`nop.auth.session-flush-fail`）——`AuthHttpServerFilter` 丢弃 flush 返回值，日志为唯一观测面。checkExpired 过期标记同为显式条件 UPDATE（仅未登出行）。回归钉：`TestDaoUserContextCacheConditionalFlush`（红① 过期副本不回滚旋转 token / 红④ 并发过期副本 flush / 绿① logout 后放弃 / 绿② 全字段落库 / 基线字段不进 cacheData 白名单钉）。
 
 ## 相关文档
 

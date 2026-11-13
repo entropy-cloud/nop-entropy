@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -39,6 +40,7 @@ public final class FakeTscPeer {
     }
 
     private void run() throws IOException {
+        reportPid();
         switch (mode) {
             case "exit-before-ready" -> System.exit(3);
             case "no-typescript" -> emit(map("type", "ready", "node", "v25.0.0"));
@@ -47,8 +49,23 @@ public final class FakeTscPeer {
         serveRequests();
     }
 
+    /**
+     * Zero-product-seam process accounting (plan 2531 red① assertion 4):
+     * every incarnation appends its pid next to the marker file so a test
+     * can assert through {@link ProcessHandle} that no spawned peer survives
+     * a recycle or a close (the orphaned-process face of W-01/W-11).
+     */
+    private void reportPid() throws IOException {
+        if (markerFile == null) {
+            return;
+        }
+        Files.writeString(Path.of(markerFile + ".pid"), ProcessHandle.current().pid() + "\n",
+                StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
     private Map<String, Object> ready() {
-        return map("type", "ready", "node", "v25.3.0", "typescript", "9.9.9-fake");
+        return map("type", "ready", "node", "v25.3.0", "typescript", "9.9.9-fake",
+                "protocolVersion", TscProtocol.PROTOCOL_VERSION);
     }
 
     private void serveRequests() throws IOException {
@@ -67,9 +84,60 @@ public final class FakeTscPeer {
                 // The once-modes leave their marker behind before hanging or
                 // crashing, so the recycled incarnation knows the failure
                 // already happened and answers normally.
-                if ("hang-once-then-ok".equals(mode) && !markerExists()) {
+                if ("hang-respond-past-deadline".equals(mode) && !markerExists()) {
                     touchMarker();
+                    // Branch-A poison source: the response is streamed in
+                    // paced chunks, so the frame is still crossing the pipe
+                    // when the query deadline fires; the recycle's SIGKILL
+                    // strands a partial line in the pipe, and the old
+                    // reader's put for it necessarily lands after the
+                    // replacement generation's spawn — a generation-unfenced
+                    // bridge lets the stale frame poison the fresh handshake
+                    // queue. The pacing total far exceeds the deadline, so
+                    // the timeout is deterministic.
+                    System.out.print("{\"id\":" + id + ",\"ok\":true,\"result\":{\"type\":\"");
+                    System.out.flush();
+                    for (int i = 0; i < 200; i++) {
+                        System.out.print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                        System.out.flush();
+                        try {
+                            Thread.sleep(2);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    // unreachable in practice: the recycle kills this
+                    // incarnation mid-frame
+                    System.out.println("\"}}");
                     parkForever();
+                }
+                if ("hang-silent-past-deadline".equals(mode) && !markerExists()) {
+                    touchMarker();
+                    // Branch-B poison source: no response, so the recycle
+                    // kills the process and the closing pipe makes the old
+                    // reader offer its EOF — which a generation-unfenced
+                    // bridge lets terminate the fresh handshake.
+                    parkForever();
+                }
+                if ("error-stale-id".equals(mode) && !markerExists()) {
+                    touchMarker();
+                    // Correlation violation: the error frame carries a
+                    // non-in-flight id (the helper's synthetic frames do the
+                    // same with id=-1) — the consumer side must detect the
+                    // mismatch, recycle, and name the peer's code.
+                    System.out.println(encode(error(id + 1000, "STALE_ROUTE",
+                            "error frame answering a different request")));
+                    System.out.flush();
+                    continue;
+                }
+                if ("half-frame-then-die".equals(mode) && !markerExists()) {
+                    touchMarker();
+                    // Stream-desync poison (W-12): half a JSON line, no
+                    // newline, then death — the decode side must treat the
+                    // unparseable frame as a recycle-worthy failure.
+                    System.out.print("{\"id\":" + id + ",\"ok\":tr");
+                    System.out.flush();
+                    System.exit(5);
                 }
                 if (shouldCrashQuery()) {
                     touchMarker();

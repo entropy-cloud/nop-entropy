@@ -4,6 +4,7 @@ import io.nop.job.core.JobCoreErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.ServiceInstance;
@@ -12,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
+import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
@@ -47,16 +49,40 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     private IJobCancelHandler cancelHandler;
     private IJobAlarmHandler alarmHandler;
     private INamingService namingService;
+    private RpcPollTaskManager rpcPollTaskManager;
     private volatile String workerServiceName;
     private final AtomicBoolean livenessDisabledWarned = new AtomicBoolean(false);
+    // CRA 8.46 R4-07 W-03 (adjudication A.3): liveness 观测计数（镜像 2496 计数器
+    // 家族形态——零平台 metric 注册接线，owner doc §五 观测行承载）
+    private final java.util.concurrent.atomic.AtomicLong suspiciousDeferredCount =
+            new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong suspiciousStaleForcedCount =
+            new java.util.concurrent.atomic.AtomicLong();
     private long dispatchTimeoutMs = 300000;
     private long executionTimeoutMs = -1;
     private long taskDispatchWaitTimeoutMs = 600000;
+
+    // CRA 8.46 R4-07 W-03 (1.4-C7-003, adjudication A): SUSPICIOUS 复查顺延窗口的
+    // stale 上限（毫秒）。>0 启用（缺省 60000=12 轮@5s scan-interval）；≤0 装配期
+    // fail-fast——防护面静默禁用即伪防线。stale 锚=task.updateTime（SUSPICIOUS 行
+    // 写入后无后续写点：迟到结果被 isConcurrentlyFinalized 拒绝、强转前无 cancel）。
+    private long suspiciousStaleMs = 60000;
 
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
         this.taskStore = taskStore;
     }
+    @InjectValue("@cfg:nop.job.coordinator.timeout.suspicious-stale-ms|60000")
+    public void setSuspiciousStaleMs(long ms) {
+        // CRA 8.46 R4-07 W-03: ≤0 = 防护面静默禁用即伪防线——装配期 fail-fast
+        if (ms <= 0) {
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.coordinator.timeout.suspicious-stale-ms")
+                    .param(JobCoreErrors.ARG_VALUE, ms);
+        }
+        this.suspiciousStaleMs = ms;
+    }
+
 
     @Inject
     public void setFireStore(IJobFireStore fireStore) {
@@ -87,6 +113,32 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     @Inject
     public void setNamingService(@Nullable INamingService namingService) {
         this.namingService = namingService;
+    }
+
+    /**
+     * plan 2513 1.4-C4-001 裁定①(c)：rpcPoll 条目 DB 终态回传通道。checker 置 task TIMEOUT
+     * 终态后经 manager package-private resolveFromAuthority 回传 in-memory future——否则
+     * 「DB 已 TIMEOUT 而 rpcPoll entry future 悬挂」的原缺陷形态残留。同包直连零跨模块 API；
+     * 未装配（null，如单元测试直构）时回传通道关闭，checker 置终态主流程不受影响。
+     */
+    @Inject
+    public void setRpcPollTaskManager(RpcPollTaskManager rpcPollTaskManager) {
+        this.rpcPollTaskManager = rpcPollTaskManager;
+    }
+
+    /**
+     * 裁定①(c) 回传降级路径：回传失败不阻断 checker 置终态主流程，ERROR 留痕非静默（rule 24）。
+     */
+    private void notifyPollManagerTaskTimeout(NopJobTask task) {
+        if (rpcPollTaskManager == null) {
+            return;
+        }
+        try {
+            rpcPollTaskManager.resolveFromAuthority(task.getJobTaskId(),
+                    JobFireResult.ERROR(new ErrorBean(ERR_JOB_TIMEOUT.getErrorCode())));
+        } catch (Exception e) {
+            LOG.error("nop.job.timeout.poll-manager-notify-failed:taskId={}", task.getJobTaskId(), e);
+        }
     }
 
     /** 容器接线验证（同 getTaskBuilders 的 test-access 先例）：存活链是否实际装配。 */
@@ -258,6 +310,37 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                         && !JobTaskStateMachine.isSuspicious(statusBefore)) {
                     continue;
                 }
+                // CRA 8.46 R4-07 W-03 (1.4-C7-003, adjudication A.1): SUSPICIOUS
+                // 复查顺延——强转前复查本轮存活集：worker 已恢复则顺延本轮（不
+                // cancel 不强转——消除「注册中心瞬态抖动→健康 worker 在途执行被
+                // 误杀」的 5s 棘轮窗）；顺延受 stale 上限约束（60s 有界终局）。
+                // aliveWorkerIds==null（liveness 禁用轮）按裁定 A 决策 2 不变式：
+                // 本轮不复查不强转，仅 stale 超限强转。真实消失场景两轮窗不变。
+                if (JobTaskStateMachine.isSuspicious(task.getTaskStatus())) {
+                    boolean defer;
+                    if (aliveWorkerIds != null
+                            && task.getWorkerInstanceId() != null
+                            && aliveWorkerIds.contains(task.getWorkerInstanceId())) {
+                        defer = true;
+                    } else if (aliveWorkerIds != null) {
+                        defer = false; // 既有强转路径原样（复查不命中）
+                    } else {
+                        defer = true; // liveness 禁用轮：不复查不强转（F-M1 决策 2 不变式）
+                    }
+                    long updateTime = task.getUpdateTime() != null
+                            ? task.getUpdateTime().getTime() : 0L;
+                    // clock source = scheduleStore.getCurrentTime()（既有 max 时钟——
+                    // C7-008 零新时钟源纪律，与 scanTaskTimeouts 同源）
+                    boolean stale = suspiciousStaleMs > 0
+                            && scheduleStore.getCurrentTime() - updateTime > suspiciousStaleMs;
+                    if (stale) {
+                        suspiciousStaleForcedCount.incrementAndGet();
+                        // stale 强转：fall through to tryMarkTimeout (SUSPICIOUS branch)
+                    } else if (defer) {
+                        suspiciousDeferredCount.incrementAndGet();
+                        continue;
+                    }
+                }
                 tryMarkTimeout(task, fireMap, scheduleMap);
             } catch (Exception e) {
                 LOG.error("nop.job.timeout.task-check-failed:taskId={}", task.getJobTaskId(), e);
@@ -287,11 +370,27 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
                     alive.add(inst.getInstanceId());
                 }
             }
+            // CRA 8.46 R4-07 W-03 (adjudication A.2): 「非空但全部 unhealthy」→ null
+            // （发现服务本轮不可信，禁用 liveness 判定）——与既有三处 null 分支语义
+            // 对齐；空集非 null 会使集群全部在途 task 被判「worker 全灭」棘轮标记。
+            if (alive.isEmpty()) {
+                return null;
+            }
             return alive;
         } catch (Exception e) {
             LOG.warn("nop.job.timeout.resolve-workers-failed", e);
             return null;
         }
+    }
+
+    /** CRA 8.46 R4-07 W-03: SUSPICIOUS 顺延次数（liveness 观测面）。 */
+    public long getSuspiciousDeferredCount() {
+        return suspiciousDeferredCount.get();
+    }
+
+    /** CRA 8.46 R4-07 W-03: stale 超限强制强转次数（顺延上界兜底观测面）。 */
+    public long getSuspiciousStaleForcedCount() {
+        return suspiciousStaleForcedCount.get();
     }
 
     private void tryMarkSuspiciousIfWorkerGone(NopJobTask task, Set<String> aliveWorkerIds) {
@@ -452,6 +551,9 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
             LOG.warn("nop.job.timeout.suspicious-update-conflict:taskId={}", task.getJobTaskId());
         }
 
+        // 裁定①(c)：TIMEOUT 写点①（worker-liveness SUSPICIOUS→TIMEOUT 链）回传 rpcPoll entry future
+        notifyPollManagerTaskTimeout(task);
+
         LOG.info("nop.job.timeout.suspicious-to-timeout:taskId={},workerId={}", task.getJobTaskId(), task.getWorkerInstanceId());
     }
 
@@ -467,7 +569,13 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
             return;
         }
 
-        if (!JobTaskStateMachine.isRunning(taskStatus)) {
+        // CRA 8.46 R4-07 W-10 (1.4-C7-011, adjudication H.2): CLAIMED 行同应用墙钟
+        // （startTime=claim 时刻写入 :109-112——R7 时钟口径）。仅作用已配超时形态
+        // （下方三选一对 CLAIMED 同段生效；未配超时的 CLAIMED/RUNNING 均不入墙钟
+        // ——plan 340 :615 钉语义不受损）。C10-006 肯定性回收（同 diff）：crash 残留
+        // CLAIMED 行经此路径转 TIMEOUT（worker 存活与否与墙钟正交——R7）。
+        if (!JobTaskStateMachine.isRunning(taskStatus)
+                && !JobTaskStateMachine.isClaimed(taskStatus)) {
             return;
         }
 
@@ -525,6 +633,9 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         if (!taskStore.updateTask(task)) {
             LOG.warn("nop.job.timeout.task-update-conflict:taskId={}", task.getJobTaskId());
         }
+
+        // 裁定①(c)：TIMEOUT 写点②（schedule.timeoutSeconds / 全局 execution-timeout-ms 墙钟链）回传 rpcPoll entry future
+        notifyPollManagerTaskTimeout(task);
     }
 
     private int defaultInt(Integer value) {

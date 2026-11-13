@@ -48,6 +48,14 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG = define("nop.err.job.trigger.invalid-range-config",
             "Invalid schedule time range: minScheduleTime must be <= maxScheduleTime, min={minScheduleTime}, max={maxScheduleTime}",
             ARG_MIN_SCHEDULE_TIME, ARG_MAX_SCHEDULE_TIME);
+    // CRA 8.46 R4-07 W-08 (adjudication C): 配置类触发器错误统一码——承载坏
+    // pauseCalendarSpec JSON 等不可精确归类到三既有触发器码的配置损坏面
+    ErrorCode ERR_JOB_TRIGGER_CONFIG_INVALID = define("nop.err.job.trigger.config-invalid",
+            "Invalid trigger configuration: {reason}", "reason");
+
+    // CRA 8.46 R4-07 W-01 (adjudication G.1): 批量上报超上限（批面非单条面——独立码判别）
+    ErrorCode ERR_JOB_LOG_BATCH_EXCEED_LIMIT = define("nop.err.job.log.batch-exceed-limit",
+            "Task log batch size exceeds limit: {detail}", "detail");
 
     // Error codes stored in task/fire errorCode field - status markers, not thrown exceptions.
     // Using the same string values for backward compatibility with stored data and test assertions.

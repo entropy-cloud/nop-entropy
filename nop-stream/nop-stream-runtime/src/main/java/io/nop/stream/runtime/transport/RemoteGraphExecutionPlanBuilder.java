@@ -399,6 +399,17 @@ public class RemoteGraphExecutionPlanBuilder {
      * outgoing edge carries a side-output tag id, the tag-aware constructor routes
      * tagged emissions to their tag edge and keeps main records off tag edges. Vertices
      * without tag edges keep the legacy constructors (zero regression).
+     *
+     * <p>W-07 (CRA 8.42 R4-02, ruling C.2 / F-3 — point-wise tightening): the six
+     * invokable constructions in this remote build path inject NO side-output
+     * registry (left null explicitly). A side-output read miss on a remotely built
+     * task answers the existing {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER} fail-fast —
+     * exactly the split-process semantics (side-output consumers were never reachable
+     * across processes); the embedded same-JVM remote form is tightened to match it
+     * (the registry is execution-context-local, and this builder carries none).
+     * In-library usage has no "sink closure x embedded remote execution" combination
+     * (all existing tests run LOCAL or direct wiring) — the semantic change is
+     * registered in the owner doc (JVM-local to execution-context-local).
      */
     private static StreamTaskInvokable createInvokable(OperatorChain chain,
                                                        RemoteWriters writers,

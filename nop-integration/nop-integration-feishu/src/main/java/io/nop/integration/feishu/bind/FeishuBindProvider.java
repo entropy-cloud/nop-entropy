@@ -50,8 +50,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p><b>No silent no-op</b>: missing {@code code}, unknown ticket, expired
  * ticket, and a failed identity exchange all throw {@link NopFeishuException}
  * rather than returning a null/empty result. The ticket is consumed
- * (single-use) only AFTER a successful server-side identity resolution, so a
- * transient exchange failure can be retried on the same live ticket.
+ * atomically (single-use, 4.3-MA-11 plan 2560 裁定 D) BEFORE the identity
+ * exchange so concurrent same-ticket callbacks yield exactly one
+ * BINDING_COMPLETED; a failed exchange re-inserts the ticket (putIfAbsent
+ * ABA-guard) so a transient failure can still be retried on the same live
+ * ticket — re-insert failure means the ticket was concurrently consumed and
+ * this attempt fails terminally.
  *
  * <p><b>Layering</b>: depends only on {@code nop-integration-api} (the
  * {@code IChannelBindProvider} contract) + the Feishu client types from the
@@ -169,24 +173,37 @@ public class FeishuBindProvider implements IChannelBindProvider {
             throw new NopFeishuException(
                     "FeishuBindProvider.onChannelScanCallback: ticketId must not be null/empty");
         }
-        TicketEntry entry = tickets.get(ticketId);
+        // 4.3-MA-11（plan 2560 裁定 D，选项 (b)）：remove 原子摘除即胜出——并发同
+        // ticket 回调恰一消费（败者 get 即 null，typed 失败）；exchange 失败时以
+        // putIfAbsent 回插（ABA 守卫：不覆盖他者写入），保住已文档化的「failed
+        // exchange 可在同一 live ticket 上重试」语义；回插失败 = 已被并发消费 →
+        // 本次 typed 失败即终态。
+        TicketEntry entry = tickets.remove(ticketId);
         if (entry == null) {
             throw new NopFeishuException(
                     "FeishuBindProvider.onChannelScanCallback: unknown or expired ticket: " + ticketId);
         }
         if (entry.isExpired()) {
-            tickets.remove(ticketId);
             throw new NopFeishuException(
                     "FeishuBindProvider.onChannelScanCallback: ticket expired: " + ticketId);
         }
 
         // Server-side identity resolution (G12-13-03): code -> user_access_token
-        // -> open_id. Runs BEFORE the ticket is consumed so a failed exchange
-        // (network error, Feishu 5xx) can be retried on the same live ticket.
-        String openId = resolveOpenIdServerSide(code);
-
-        // consume the ticket (single-use binding flow)
-        tickets.remove(ticketId);
+        // -> open_id. Runs AFTER the atomic consume (exactly-once under concurrent
+        // callbacks); a failed exchange re-inserts the ticket (putIfAbsent) so the
+        // retry-on-same-live-ticket contract is preserved.
+        String openId;
+        try {
+            openId = resolveOpenIdServerSide(code);
+        } catch (RuntimeException e) {
+            if (tickets.putIfAbsent(ticketId, entry) != null) {
+                throw new NopFeishuException(
+                        "FeishuBindProvider.onChannelScanCallback: ticket consumed by a concurrent callback"
+                                + " during the failed exchange: " + ticketId,
+                        e);
+            }
+            throw e;
+        }
 
         ChannelBindResult result = new ChannelBindResult();
         result.setExtId(openId);

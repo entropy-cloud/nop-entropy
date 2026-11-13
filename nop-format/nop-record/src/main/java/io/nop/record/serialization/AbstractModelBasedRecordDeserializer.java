@@ -11,6 +11,7 @@ import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.record.RecordConstants;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.match.IPeekMatchRule;
 import io.nop.record.model.FieldRepeatKind;
@@ -33,12 +34,14 @@ import static io.nop.record.RecordErrors.ARG_ATTRIBUTE_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
 import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_MAX_LENGTH;
 import static io.nop.record.RecordErrors.ARG_POS;
 import static io.nop.record.RecordErrors.ARG_REAL_READ_POS;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_ATTRIBUTE_NOT_IMPLEMENTED;
 import static io.nop.record.RecordErrors.ERR_RECORD_COLLECTION_NO_PROGRESS;
 import static io.nop.record.RecordErrors.ERR_RECORD_COLLECTION_SIZE_EXCEED_LIMIT;
+import static io.nop.record.RecordErrors.ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
@@ -214,6 +217,10 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                     field.getLength(),
                     err -> newError(err, in, context).param(ARG_FIELD_NAME, field.getName()));
         }
+        if (length > RecordConstants.DEFAULT_MAX_FIELD_LENGTH)
+            throw newError(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG, in, context)
+                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_LENGTH, length).param(ARG_MAX_LENGTH, RecordConstants.DEFAULT_MAX_FIELD_LENGTH);
         return length;
     }
 
@@ -223,9 +230,13 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             Object lengthValue = typeMeta.getLengthExpr().call3(null, in, record, context, context.getEvalScope());
 
             length = ConvertHelper.toPrimitiveInt(lengthValue,
-                    typeMeta.getLength(),
+                    length,
                     err -> newError(err, in, context).param(ARG_TYPE_NAME, typeMeta.getName()));
         }
+        if (length > RecordConstants.DEFAULT_MAX_FIELD_LENGTH)
+            throw newError(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG, in, context)
+                    .param(ARG_TYPE_NAME, typeMeta.getName())
+                    .param(ARG_LENGTH, length).param(ARG_MAX_LENGTH, RecordConstants.DEFAULT_MAX_FIELD_LENGTH);
         return length;
     }
 

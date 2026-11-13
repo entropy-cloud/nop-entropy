@@ -95,4 +95,20 @@ public interface DaoConfigs {
             + "配置为非正数启动即抛ERR_DAO_SHARD_CONFIG_INVALID")
     IConfigReference<Integer> CFG_ORM_SHARD_FANOUT_MAX_ROWS = varRef(s_loc,
             "nop.orm.shard.fanout-max-rows", Integer.class, 10000);
+    /**
+     * 2.3-C5-001/C5-005（plan 2553 裁定 L）：findAll 族全量物化行数上界（抽取器级——迭代期
+     * 超限即抛，不约束到 post-hoc）。≤0 = 不设上界档（现行语义）。覆盖 ⑥⑦⑧⑨ 汇聚点
+     * （ISqlExecutor.findAll 单点）。
+     */
+    @Description("findAll 全量物化行数上界（≤0=不设上界；抽取器级迭代期抛出）")
+    IConfigReference<Integer> CFG_DAO_FIND_ALL_MAX_ROWS =
+            varRef(s_loc, "nop.dao.find-all-max-rows", Integer.class, 0);
+
+    /**
+     * 2.3-C5-002（plan 2553 裁定 M）：查询缓存单条目行数上界（超限放弃缓存 + WARN；瞬态物化
+     * 分配不设界——IDataSet 无行数原语，守卫约束持久缓存内存）。≤0 = 不设上界档。
+     */
+    @Description("查询缓存单条目行数上界（≤0=不设上界；超限放弃缓存）")
+    IConfigReference<Integer> CFG_DAO_QUERY_CACHE_MAX_ROWS =
+            varRef(s_loc, "nop.dao.query-cache-max-rows", Integer.class, 0);
 }

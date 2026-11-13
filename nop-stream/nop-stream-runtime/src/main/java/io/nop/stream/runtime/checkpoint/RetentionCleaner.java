@@ -73,6 +73,12 @@ class RetentionCleaner {
      * retention run that starts later (eventual consistency of the ≤ maxRetained
      * invariant — the LAST completion's retention is never lost to coalescing).
      */
+    // W-13 site ⑨ (CRA 8.41 R4-01, ruling E.1): completion-cadence cleanup-failure
+    // WARN suppression; recovery = a retention pass that did not throw. Per-site
+    // instance (the cleaner IS the site). Initialized in the constructor — jobId
+    // is a blank final assigned there.
+    private final io.nop.stream.runtime.support.PeriodicFailureSuppressor cleanupFailureSuppressor;
+
     private final java.util.concurrent.atomic.AtomicBoolean retentionRecheckNeeded =
             new java.util.concurrent.atomic.AtomicBoolean(false);
 
@@ -86,6 +92,8 @@ class RetentionCleaner {
         this.config = config;
         this.checkpointStorage = checkpointStorage;
         this.jobId = jobId;
+        this.cleanupFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "retention.cleanup-failed:" + jobId, 30_000L);
         this.pipelineId = pipelineId;
         this.checkpointSegments = checkpointSegments;
     }
@@ -184,8 +192,25 @@ class RetentionCleaner {
             // the manifest plane may exceed the bound independently (e.g. pre-fix
             // leftover manifests while the checkpoint plane already converged).
             pruneEpochManifestsForObservedPipelines(allCheckpoints, maxRetained);
+            // W-13 site ⑨ recovery: a pass that did not throw clears the window.
+            if (cleanupFailureSuppressor.success()
+                    == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                LOG.info("Retention cleanup recovered for job {} (failure window cleared)", jobId);
+            }
         } catch (Exception e) {
-            LOG.warn("Failed to cleanup old checkpoints", e);
+            // W-13 site ⑨ (CRA 8.41 R4-01, ruling E.1): three-state suppression on
+            // the completion-cadence cleanup WARN (first full / window aggregate /
+            // cleared on the next clean pass).
+            io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                    cleanupFailureSuppressor.failure(e);
+            if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                LOG.warn("Failed to cleanup old checkpoints", e);
+            } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                LOG.warn("Retention cleanup failures for job {} — {} suppressed in the last {}ms window; "
+                                + "last: {}",
+                        jobId, cleanupFailureSuppressor.getLastWindowSuppressedCount(),
+                        cleanupFailureSuppressor.getWindowMs(), cleanupFailureSuppressor.getLastSummary());
+            }
         }
     }
 

@@ -107,4 +107,66 @@ public interface ICircuitBreaker {
      * @param modelKey non-null composite model identity ({@code provider:model})
      */
     void recordFailure(String modelKey);
+
+    // ========================================================================
+    // Probe generation token (3.1-C7-005, plan 2556 裁定 G) — module-internal
+    // SPI extension (not part of the nop-*-api protected surface).
+    // ========================================================================
+
+    /**
+     * Sentinel generation meaning "no token captured" (un-upgraded caller).
+     */
+    long GENERATION_UNKNOWN = -1L;
+
+    /**
+     * Current probe generation for the given model key (3.1-C7-005, plan 2556
+     * 裁定 G): the caller captures it together with the {@code true} result of
+     * {@link #allowCall(String)} — for the engine's coordinator, on the
+     * <b>FINAL routed model key</b> — and hands it back to the gen-aware
+     * {@link #recordSuccess(String, long)} / {@link #recordFailure(String, long, Throwable)}
+     * so a probe receipt that escaped past a later generation (probe-timeout
+     * escape re-admitting a newer probe) can be detected and discarded.
+     *
+     * <p>Default for implementations that do not support generations:
+     * {@code -1} ({@link #GENERATION_UNKNOWN}).
+     *
+     * @param modelKey non-null composite model identity ({@code provider:model})
+     * @return the current generation token; never meaningful across
+     *         implementations — always paired with the same breaker instance
+     */
+    default long currentGeneration(String modelKey) {
+        return GENERATION_UNKNOWN;
+    }
+
+    /**
+     * Generation-aware success recording (3.1-C7-005, plan 2556 裁定 G). A
+     * receipt whose generation does not match the breaker's current generation
+     * for the key is a <b>stale escaped receipt</b>: it must be discarded with
+     * a WARN and must not flip any breaker state.
+     *
+     * <p>Compat fallback (explicitly adjudicated): a caller passing
+     * {@link #GENERATION_UNKNOWN} ({@code -1}) — i.e. one that captured no
+     * token — falls back to the legacy {@link #recordSuccess(String)}
+     * semantics (unknown generation is trusted, WARN-once at most).
+     *
+     * @param modelKey non-null composite model identity ({@code provider:model})
+     * @param gen      the generation token captured at {@link #allowCall(String)}
+     */
+    default void recordSuccess(String modelKey, long gen) {
+        recordSuccess(modelKey);
+    }
+
+    /**
+     * Generation-aware failure recording (3.1-C7-005, plan 2556 裁定 G); stale
+     * receipt and compat-fallback semantics as in
+     * {@link #recordSuccess(String, long)}.
+     *
+     * @param modelKey non-null composite model identity ({@code provider:model})
+     * @param gen      the generation token captured at {@link #allowCall(String)}
+     * @param err      the failure cause (may be used by implementations for
+     *                 diagnostics; may be {@code null})
+     */
+    default void recordFailure(String modelKey, long gen, Throwable err) {
+        recordFailure(modelKey);
+    }
 }

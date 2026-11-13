@@ -34,7 +34,12 @@ public final class NopMetadataHelper {
         return v == null ? null : v.toString();
     }
 
-    public static String toErrorMessage(Exception e) {
+    /**
+     * W-11 (plan 2496 Phase 4): parameter widened from {@code Exception} to
+     * {@code Throwable} so the checkpoint scheduling Error branch can reuse the same
+     * message extraction; all existing Exception callers are source-compatible.
+     */
+    public static String toErrorMessage(Throwable e) {
         String msg = e.getMessage();
         if (msg != null) return msg;
         if (e instanceof NopException) return ((NopException) e).getErrorCode();

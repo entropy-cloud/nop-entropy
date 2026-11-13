@@ -31,6 +31,7 @@ import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreErrors;
+import io.nop.wf.core.WfConfigs;
 import io.nop.wf.core.engine.IWorkflowExecutor;
 import io.nop.wf.core.service.WorkflowServiceSpi;
 import io.nop.wf.core.store.IWorkflowStepRecord;
@@ -218,11 +219,26 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
 
         boolean transferBySelf = request.getFromUserId().equals(ctx.getUserId());
 
+        // plan 2541 W-02（1.5-MA-07，裁定 D）：请求级 maxBatch 上界——分页取 maxBatch+1 条,
+        // 发现超限即 typed 拒绝（不静默截断：截断外步骤被静默滞留比全量载入更危险——沿
+        // 2514 §五 setLimit 一次截断否决同理由）；部分成功语义（successCount+failedItems）
+        // 逐字保留。防重入不做（maxBatch+游标已消除无界物化与单请求长事务——裁定 D 落款）
+        int maxBatch = WfConfigs.CFG_WF_TRANSFER_MAX_BATCH.get();
+        if (maxBatch <= 0)
+            throw new NopException(NopWfCoreErrors.ERR_WF_INVALID_TRANSFER_CONFIG)
+                    .param(NopWfCoreErrors.ARG_CONFIG_NAME, "nop.wf.transfer.max-batch")
+                    .param(NopWfCoreErrors.ARG_CONFIG_VALUE, maxBatch);
+
         List<WfTransferFailedItemBean> failedItems = new ArrayList<>();
         int successCount = 0;
 
         List<? extends IWorkflowStepRecord> stepRecords = workflowStore.findActivatedStepsByOwner(
-                request.getFromUserId(), request.getWfIds());
+                request.getFromUserId(), request.getWfIds(), maxBatch + 1, null);
+        if (stepRecords.size() > maxBatch) {
+            throw new NopException(NopWfCoreErrors.ERR_WF_TRANSFER_BATCH_EXCEED)
+                    .param(NopWfCoreErrors.ARG_OWNER_ID, request.getFromUserId())
+                    .param(NopWfCoreErrors.ARG_MAX_BATCH, maxBatch);
+        }
 
         for (IWorkflowStepRecord stepRecord : stepRecords) {
             WfReference wfRef = new WfReference("_", null, stepRecord.getWfId());

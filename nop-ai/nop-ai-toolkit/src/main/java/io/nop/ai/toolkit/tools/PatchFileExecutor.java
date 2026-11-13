@@ -20,6 +20,12 @@ public class PatchFileExecutor implements IToolExecutor {
 
     public static final String TOOL_NAME = "patch-file";
 
+    /**
+     * 3.2-C8-008（plan 2557 裁定 H）：全文件读回帽——原 {@code Integer.MAX_VALUE}
+     * 无界，改复用 ApplyDelta 的 10M 字符帽族。
+     */
+    public static final int MAX_READ_CHARS = 10_000_000;
+
     @Override
     public String getToolName() {
         return TOOL_NAME;
@@ -50,7 +56,7 @@ public class PatchFileExecutor implements IToolExecutor {
                 return AiToolCallResult.errorResult(call.getId(), "File does not exist: " + path);
             }
 
-            TextResult fileResult = fs.readText(path, Integer.MAX_VALUE);
+            TextResult fileResult = fs.readText(path, MAX_READ_CHARS);
             String originalContent = fileResult.getContent();
 
             UnifiedDiff diff = UnifiedDiffParser.parseSingleDiff(diffContent);

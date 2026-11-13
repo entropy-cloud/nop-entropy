@@ -129,6 +129,43 @@ public class ChatBiSessionManager {
     }
 
     /**
+     * 裁定⑩（plan 2026）：有界历史加载——LIMIT 下推到数据集（seq 降序取最近 N 条后按原升序语义
+     * 返回，排序契约不变、物化集有界），注入侧双上界（max-turns/max-chars）裁剪保留为第二层。
+     * chatToQuery 注入路径消费本方法（CL-010：全量加载后裁剪 → 有界加载，每请求成本不随会话
+     * 长度线性增长）。getChatSessionHistory 用户可见路径保留全量（owner doc 包络声明）。
+     */
+    public List<NopDatavChatMessage> loadRecentMessages(String sessionId, int limit) {
+        // LIMIT 以 seq 窗口谓词下推（findAllByQuery 的 EQL 通道不应用 QueryBean.limit——
+        // setLimit 仅 findFirst 语义生效）：单行读会话当前最大 seq，再以 seq >= maxSeq-limit+1
+        // 范围查询升序取回——物化集恰有界（最多 limit 条），两次索引查询。
+        IEntityDao<NopDatavChatMessage> dao = daoProvider.daoFor(NopDatavChatMessage.class);
+        QueryBean lastQuery = new QueryBean();
+        lastQuery.addFilter(FilterBeans.eq("sessionId", sessionId));
+        lastQuery.addOrderField("seq", true);
+        lastQuery.setLimit(1);
+        NopDatavChatMessage last = dao.findFirstByQuery(lastQuery);
+        if (last == null) {
+            return java.util.Collections.emptyList();
+        }
+        int minSeq = Math.max(1, last.getSeq() - Math.max(0, limit) + 1);
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.and(
+                FilterBeans.eq("sessionId", sessionId),
+                FilterBeans.ge("seq", minSeq)));
+        query.addOrderField("seq", false);
+        return dao.findAllByQuery(query);
+    }
+
+    /**
+     * 裁定⑩（plan 2026）：注入路径 LIMIT 推导式——每轮 2 条消息（user+assistant）+1 容错，
+     * 派生自有历史轮数上界配置。
+     */
+    public int recentMessageLimitForInjection() {
+        int maxTurns = io.nop.datav.service.NopDatavConfigs.CFG_DATAV_CHATBI_HISTORY_MAX_TURNS.get();
+        return Math.max(1, maxTurns * 2 + 1);
+    }
+
+    /**
      * 追加一轮对话（user 消息 seq=k + assistant 消息 seq=k+1）。
      *
      * <p>assistant 消息留存 answer 文本 + 结构化结果 JSON（columns/rows/iterations，裁定 S4 数据留存）。

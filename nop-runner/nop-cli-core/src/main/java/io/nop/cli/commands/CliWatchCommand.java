@@ -8,6 +8,7 @@
 package io.nop.cli.commands;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ICancellable;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -94,9 +95,19 @@ public class CliWatchCommand implements Callable<Integer> {
     public Integer call() {
         WatcherHandle handle = newFileWatcher();
         FileWatcher watcher = handle.watcher;
+        ICancellable registration = null;
         try {
-            return doWatch(watcher);
+            registration = doWatch(watcher);
+            return 0;
         } finally {
+            // MA-02: the watch() registration must be unwatched on every exit path. cancel()
+            // removes only this invocation's keys (NioFileWatchService.unwatch is idempotent),
+            // so the injected (shared) watch service stays alive; a locally owned service is
+            // additionally stopped below. Null guard: watch() not reached when the script is
+            // missing or the first run throws (R2-m4).
+            if (registration != null) {
+                registration.cancel();
+            }
             if (handle.locallyOwned) {
                 // only a locally created watch service is owned by this invocation
                 watcher.stop();
@@ -104,7 +115,7 @@ public class CliWatchCommand implements Callable<Integer> {
         }
     }
 
-    private Integer doWatch(FileWatcher watcher) {
+    private ICancellable doWatch(FileWatcher watcher) {
         Map<String, Object> state = new ConcurrentHashMap<>();
 
         if (outputDir == null) outputDir = FileHelper.currentDir();
@@ -121,9 +132,10 @@ public class CliWatchCommand implements Callable<Integer> {
     // Always execute script once before starting watch loop
         processEvents(xpl, Collections.emptyList(), state);
 
-        watcher.watch(Arrays.asList(watchDirs).stream().map(File::getAbsolutePath).collect(Collectors.toList()),
-                fileNamePatterns == null ? null : Arrays.asList(fileNamePatterns),
-                debounceWait, events -> processEvents(xpl, events, state));
+        ICancellable registration =
+                watcher.watch(Arrays.asList(watchDirs).stream().map(File::getAbsolutePath).collect(Collectors.toList()),
+                        fileNamePatterns == null ? null : Arrays.asList(fileNamePatterns),
+                        debounceWait, events -> processEvents(xpl, events, state));
 
         try {
             System.in.read();
@@ -132,10 +144,16 @@ public class CliWatchCommand implements Callable<Integer> {
             LOG.debug("nop.cli.watch: input read ended, stopping watch", e);
         }
 
-        return 0;
+        return registration;
     }
 
-    private void processEvents(XplModel xpl, Collection<FileChangeEvent> events, Map<String, Object> state) {
+    /**
+     * Package-private: test seam (plan 2563 I-C4-002 / R1-M6). A script failure is logged at
+     * ERROR level and swallowed so the watch loop survives and later event batches are still
+     * processed (aligned with CliWatchZipCommand's catch+LOG.error shape; failure is visible,
+     * unlike the previous silent bubble into FileWatcher.triggerChange).
+     */
+    void processEvents(XplModel xpl, Collection<FileChangeEvent> events, Map<String, Object> state) {
         IEvalScope scope = XLang.newEvalScope();
 
         if (input != null) {
@@ -147,6 +165,10 @@ public class CliWatchCommand implements Callable<Integer> {
         scope.setLocalValue("globalState", state);
         scope.setLocalValue("watchDirs", watchDirs);
         scope.setLocalValue("outputDir", outputDir);
-        xpl.invoke(scope);
+        try {
+            xpl.invoke(scope);
+        } catch (Exception e) {
+            LOG.error("nop.cli.watch.process-events-failed", e);
+        }
     }
 }

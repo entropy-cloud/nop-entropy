@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- C4-008 F5 腿：delayFailBean 的 delay-method 在启动成功分支回调中抛出异常，
+         原实现静默（started 永不翻转零日志），修复后统一走失败终态。 -->
+    <bean id="delayFailBean" class="test.io.entropy.beans.TestStartFailDelayBean" ioc:delay-method="delayMe"/>
+</beans>

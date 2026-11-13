@@ -38,7 +38,9 @@ public class RpcTaskMonitor extends LifeCycleSupport {
     private final Map<String, RpcTask> activeTasks = new ConcurrentHashMap<>();
 
     private IRpcTaskStatusStore statusStorage;
-    private ICancellable cancellable;
+    // 4.3-MA-13（plan 2560 裁定 F）：doStop 线程与 checkTaskStatus 轮次线程并发读写，
+    // volatile 保证 cancel 句柄跨线程可见（doStop 不错过最新轮次的 cancellable）
+    private volatile ICancellable cancellable;
 
     private int monitorInterval = 10000;
 
@@ -114,7 +116,9 @@ public class RpcTaskMonitor extends LifeCycleSupport {
         if (res != null && res.isOk()) {
             task.setCheckFailCount(0);
         } else {
-            task.setCheckFailCount(task.getCheckFailCount() + 1);
+            // 4.3-MA-13（plan 2560 裁定 F）：多任务回调并发落在同一 RpcTask 上的失败计数
+            // 递增走 AtomicInteger 原子 RMW 单点，跨轮次丢失更新面消除
+            task.incrementCheckFailCount();
         }
         ProcessResult result = statusStorage.saveTaskStatus(task, res, err);
         if (result == ProcessResult.STOP) {

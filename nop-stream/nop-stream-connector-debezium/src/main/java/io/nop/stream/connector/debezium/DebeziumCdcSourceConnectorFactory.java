@@ -19,6 +19,7 @@ import io.nop.stream.core.source.Source;
 
 import java.util.List;
 
+import static io.nop.stream.core.connector.registry.ConnectorParamKind.INT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.OBJECT;
 
 /**
@@ -45,7 +46,11 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSplitSour
                     ConnectorParamDescriptor.optional("credentialProvider", OBJECT,
                             "ICredentialProvider for credential:{id}#{field} references on "
                                     + "databaseUser/databasePassword (item 20 / D4; optional — "
-                                    + "fail-closed when references exist without it)")))
+                                    + "fail-closed when references exist without it)"),
+                    ConnectorParamDescriptor.optional("maxRecordBytes", INT,
+                            "CRA 8.43 R4-03 W-12: per-record byte envelope at the queue entry "
+                                    + "(default 16MB — string/byte-carrier direct-measure lower "
+                                    + "bound; overflow fails the task typed)")))
             .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
@@ -64,6 +69,9 @@ public final class DebeziumCdcSourceConnectorFactory implements IStreamSplitSour
         DebeziumConfig debeziumConfig = config.requireObject("config", DebeziumConfig.class);
         io.nop.credential.api.ICredentialProvider provider =
                 config.getObject("credentialProvider", io.nop.credential.api.ICredentialProvider.class);
-        return new DebeziumCdcSource(debeziumConfig, provider);
+        Integer maxRecordBytes = config.getInt("maxRecordBytes");
+        return new DebeziumCdcSource(debeziumConfig, provider,
+                maxRecordBytes != null ? maxRecordBytes.longValue()
+                        : DebeziumCdcSourceReader.DEFAULT_MAX_RECORD_BYTES);
     }
 }

@@ -25,7 +25,9 @@ import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN;
 
 public class PromptSyntaxStdDomainHandler implements IStdDomainHandler {
-    public static PromptSyntaxStdDomainHandler INSTANCE = new PromptSyntaxStdDomainHandler();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003 同族清扫）：volatile——唯一库内写点为启动期
+    // AiCoreInitializer.initialize()，volatile 化为零成本保守加固
+    public static volatile PromptSyntaxStdDomainHandler INSTANCE = new PromptSyntaxStdDomainHandler();
 
     @Override
     public String getName() {

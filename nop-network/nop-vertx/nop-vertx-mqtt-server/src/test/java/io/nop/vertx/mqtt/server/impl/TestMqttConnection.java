@@ -96,9 +96,12 @@ public class TestMqttConnection {
         MqttEndpoint endpoint = newEndpoint(recorder);
         RecordingHandler handler = new RecordingHandler();
 
-        new MqttConnection(endpoint, handler);
+        MqttConnection connection = new MqttConnection(endpoint, handler);
+        // C6-020 窗口①修复（plan 2523，唯一允许的既有钉改写）：accept() 移出构造函数，
+        // 由 VertxMqttServer.acceptEndpoint 在 addConnection 注册之后调用（先注册后 CONNACK）。
+        // 语义钉保持：CONNACK 仍必须在连接建立期发出，否则客户端永远无法完成连接。
+        connection.accept();
 
-        // MQTT 服务端必须调用 accept() 向客户端发送 CONNACK，否则客户端永远无法完成连接
         assertTrue(recorder.invoked("accept"), "MqttConnection must call endpoint.accept() on connect");
 
         // 修复不得丢失既有的断连/消息处理订阅逻辑

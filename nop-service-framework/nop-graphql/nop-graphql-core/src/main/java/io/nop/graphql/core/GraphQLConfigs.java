@@ -75,4 +75,24 @@ public interface GraphQLConfigs {
     @Description("时间戳类型是否返回毫秒信息")
     IConfigReference<Boolean> CFG_GRAPHQL_IGNORE_MILLIS_IN_TIMESTAMP =
             varRef(s_loc, "nop.graphql.ignore-millis-in-timestamp", Boolean.class, true);
+    /**
+     * 2.3-C8-007（plan 2551 裁定 H①）：单连接 WS 订阅数上界（缺省 1000 = 现行硬编码值）。
+     * 原 setter 零生产调用方；handler 直读本键（端点为宿主 CDI bean，Nop 注解不生效）。
+     */
+    IConfigReference<Integer> CFG_GRAPHQL_WS_MAX_ACTIVE_OPERATIONS =
+            varRef(s_loc, "nop.graphql.ws.max-active-operations", Integer.class, 1000);
+
+    /**
+     * 2.3-C8-007（plan 2551 裁定 H②）：跨连接全局订阅闸（缺省 10000；≤0=null=不设上界档）。
+     * 单一机制 HighWatermarkSemaphore：validSubscription 前全局 tryAcquire、订阅终止 release。
+     */
+    IConfigReference<Integer> CFG_GRAPHQL_WS_GLOBAL_MAX_SUBSCRIPTIONS =
+            varRef(s_loc, "nop.graphql.ws.global-max-subscriptions", Integer.class, 10000);
+
+    /**
+     * 2.3-C8-009（plan 2551 裁定 J②）：WS 会话 idle 超时秒——keepAlive 扫描对超时无 pong 会话
+     * 主动断开（缺省 120s；≤0=关档）。
+     */
+    IConfigReference<Integer> CFG_GRAPHQL_WS_IDLE_TIMEOUT_SECONDS =
+            varRef(s_loc, "nop.graphql.ws.idle-timeout", Integer.class, 120);
 }

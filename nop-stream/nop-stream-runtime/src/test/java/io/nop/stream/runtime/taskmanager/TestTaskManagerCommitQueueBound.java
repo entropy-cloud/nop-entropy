@@ -71,7 +71,7 @@ class TestTaskManagerCommitQueueBound {
             tm.receiveAssignment(new TaskAssignment(
                     "job-cc10-a", "v-sink", 0, node, "att-1", token, System.currentTimeMillis(), 1));
             CountingParticipant participant = new CountingParticipant(blocker);
-            tm.installInvokable("job-cc10-a", "v-sink", 0, new CommitSinkInvokable(participant));
+            tm.installInvokable("job-cc10-a", "v-sink", 0, new CommitSinkInvokable(participant), token);
             awaitTaskRunning(tm);
 
             // Deterministic saturation: ONLY the first commit blocks. Park the
@@ -130,7 +130,7 @@ class TestTaskManagerCommitQueueBound {
             tm.receiveAssignment(new TaskAssignment(
                     "job-cc10-b", "v-sink", 0, node, "att-1", token, System.currentTimeMillis(), 1));
             CountingParticipant participant = new CountingParticipant(blocker);
-            tm.installInvokable("job-cc10-b", "v-sink", 0, new CommitSinkInvokable(participant));
+            tm.installInvokable("job-cc10-b", "v-sink", 0, new CommitSinkInvokable(participant), token);
             awaitTaskRunning(tm);
             // 阻塞的 commit 由 finally 的 blocker.countDown() + stop() 收口释放；
             // 不再用定时释放线程制造 1.5s 固定窗口——本用例的断言（队列上界 +

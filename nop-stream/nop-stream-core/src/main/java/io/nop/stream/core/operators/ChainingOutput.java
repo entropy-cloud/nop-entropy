@@ -43,6 +43,15 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
      */
     private final Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers;
 
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): the execution-context-local registry
+     * carried from the owning invokable (nullable — the remote/分进程 build path
+     * leaves it null, and its miss answers the existing NO_CONSUMER fail-fast).
+     * Non-final: the invokable's {@code setSideOutputRegistry} injection point
+     * propagates the env registry after wiring.
+     */
+    private volatile io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry;
+
     public ChainingOutput(Input<T> input) {
         this(input, null);
     }
@@ -53,10 +62,22 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
 
     public ChainingOutput(Input<T> input, String operatorName,
                           Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers) {
+        this(input, operatorName, sideOutputConsumers, null);
+    }
+
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): full form carrying the
+     * execution-context-local side-output registry (the owning env's instance).
+     * Inert until the fallback lookup below migrates off the static map.
+     */
+    public ChainingOutput(Input<T> input, String operatorName,
+                          Map<OutputTag<?>, Consumer<StreamRecord<?>>> sideOutputConsumers,
+                          io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry) {
         this.input = input;
         this.operatorName = operatorName;
         this.sideOutputConsumers = sideOutputConsumers != null
                 ? sideOutputConsumers : new HashMap<>();
+        this.sideOutputRegistry = sideOutputRegistry;
     }
 
     /**
@@ -66,6 +87,19 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
     @SuppressWarnings("unchecked")
     public <X> void registerSideOutputConsumer(OutputTag<X> outputTag, Consumer<StreamRecord<X>> consumer) {
         sideOutputConsumers.put(outputTag, (Consumer<StreamRecord<?>>) (Consumer<?>) consumer);
+    }
+
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): injects the owning execution's
+     * side-output registry. Called only by the owning {@code StreamTaskInvokable}
+     * (which tracks the ChainingOutputs it wired) — public because the invokable
+     * lives in another package (both are module-internal impl leaves).
+     */
+    public void setSideOutputRegistry(io.nop.stream.core.datastream.SideOutputRegistry registry) {
+        // ChainingOutput's collect is invoked on the task thread while the
+        // injection happens on the plan-build/supervision thread; a plain field
+        // write of a reference is safe (no compound state).
+        this.sideOutputRegistry = registry;
     }
 
     @Override
@@ -116,12 +150,14 @@ public class ChainingOutput<T> implements Output<StreamRecord<T>> {
         Consumer<StreamRecord<X>> consumer =
                 (Consumer<StreamRecord<X>>) (Consumer<?>) sideOutputConsumers.get(outputTag);
         if (consumer == null) {
-            // G-2+09e① (plan 369 Phase 2): fall back to the SideOutputRegistry —
-            // a consumer registered at plan time via getSideOutput(tag).sink(...)
-            // was never wired into this task's local map, but it IS a valid
-            // registration for this JVM (embedded/local execution).
+            // W-07 (CRA 8.42 R4-02, ruling C.2): fall back to the execution-context-local
+            // registry carried from the owning env (a consumer registered at assembly via
+            // getSideOutput(tag).sink(...) landed in THAT env's instance). A null registry
+            // (remote/分进程 build path) misses here and answers the existing
+            // NO_CONSUMER fail-fast — the split-process semantics, now explicit for
+            // the embedded same-JVM remote form too (adjudication C.2/F-3 tightening).
             consumer = (Consumer<StreamRecord<X>>) (Consumer<?>)
-                    io.nop.stream.core.datastream.SideOutputRegistry.get(outputTag.getId());
+                    (sideOutputRegistry != null ? sideOutputRegistry.get(outputTag.getId()) : null);
         }
         if (consumer == null) {
             throw new StreamRuntimeException(ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER)

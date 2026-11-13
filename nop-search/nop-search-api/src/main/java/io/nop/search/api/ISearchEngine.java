@@ -15,6 +15,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * Search engine abstraction (plan 2563 MA-01 thread contract declaration).
+ *
+ * <p><b>Thread contract</b>: implementations must coordinate per-topic concurrent access such
+ * that
+ * <ul>
+ * <li>writes on the same topic ({@code addDocs}/{@code removeDocs}/{@code removeTopic}) are
+ * serialized per topic;</li>
+ * <li>read spans (acquire..release of a topic's searcher) exclude topic removal: after
+ * {@code removeTopic} or a failed-batch {@code rollback} closes a topic's SearcherManager,
+ * no in-flight read may observe {@code AlreadyClosedException};</li>
+ * <li>after {@code destroy}, further access on any topic is rejected with a typed error
+ * instead of silently rebuilding index resources.</li>
+ * </ul>
+ */
 public interface ISearchEngine {
     String DEFAULT_TOPIC = "default";
 

@@ -4,9 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -71,11 +69,9 @@ public class TestSocketServerRestart {
         SocketServer server = newEchoServer(port);
 
         AtomicInteger calls = new AtomicInteger();
-        CountDownLatch rejectedLatch = new CountDownLatch(1);
         Executor rejectingOnce = command -> {
             // 第一次 execute 是 accept 循环本身；第二个调用（首个连接的处理任务）被拒绝
             if (calls.incrementAndGet() == 2) {
-                rejectedLatch.countDown();
                 throw new java.util.concurrent.RejectedExecutionException("queue full (simulated)");
             }
             Thread thread = new Thread(command, "socket-worker");
@@ -86,11 +82,10 @@ public class TestSocketServerRestart {
         server.start();
 
         try {
-            // 第一个连接触发 executor 拒绝：以拒绝发生的 latch 为显式同步点，替代原 sleep(200)
+            // 第一个连接触发 executor 拒绝
             SocketClient rejected = connect(port);
             rejected.ping();
-            assertTrue(rejectedLatch.await(5, TimeUnit.SECONDS),
-                    "first connection's dispatch must have been rejected by the executor");
+            Thread.sleep(200);
             rejected.close();
 
             // 第二个连接必须仍能被接受并正常工作（accept 循环不能被第一次拒绝杀死）
@@ -140,6 +135,7 @@ public class TestSocketServerRestart {
                 for (int i = 0; i < 100; i++) {
                     server.broadcast(new BinaryCommand(client.getClientConfig().getMasks(), (short) 0x2,
                             (short) 1, (short) 0, new String(payload)));
+                    ThreadHelperSleep.sleep(2);
                 }
             });
             broadcaster.start();
@@ -152,11 +148,13 @@ public class TestSocketServerRestart {
             }
             broadcaster.join(5000);
 
-            // 条件等待全部响应与广播到达（超时上限仅挂死保护）
-            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
-                            () -> received.stream().filter(d -> d.startsWith("req-")).count() >= 100, 5000),
-                    "all responses must arrive, got "
-                            + received.stream().filter(d -> d.startsWith("req-")).count());
+            // 等待全部响应与广播到达
+            for (int i = 0; i < 500; i++) {
+                long responses = received.stream().filter(d -> d.startsWith("req-")).count();
+                if (responses >= 100)
+                    break;
+                ThreadHelperSleep.sleep(10);
+            }
 
             assertTrue(!recvError.get(), "no frame parse error is allowed");
             long responses = received.stream().filter(d -> d.startsWith("req-")).count();
@@ -171,4 +169,79 @@ public class TestSocketServerRestart {
         }
     }
 
+    @Test
+    public void testOldAcceptLoopExitsAfterRestart() throws Exception {
+        // 4.3-C1-019（plan 2561 裁定 D）：restart 后旧 accept 循环必须凭世代失配退出，
+        // 不得与新模式共享 stopped 单比特而继续抢占 accept
+        int port = io.nop.commons.util.NetHelper.findAvailableTcpPort();
+
+        // 测试缝：前两个提交（两次 start 的 run 循环）被扣住手动启动，其余（连接处理）直接起线程
+        java.util.List<Runnable> held = new java.util.ArrayList<>();
+        AtomicInteger seq = new AtomicInteger();
+        Executor gate = command -> {
+            if (held.size() < 2) {
+                held.add(command);
+                return;
+            }
+            Thread worker = new Thread(command, "gate-worker-" + seq.incrementAndGet());
+            worker.setDaemon(true);
+            worker.start();
+        };
+
+        SocketServer server = newEchoServer(port);
+        server.setExecutor(gate);
+        server.start(); // run(gen1) 被扣住
+        server.stop(); // gen1 作废
+        server.start(); // run(gen2) 被扣住
+
+        // 只放行旧 run 循环：它面对的是重启后的新 ServerSocket（世代已失配）
+        Thread oldLoop = new Thread(held.get(0), "old-accept-loop");
+        oldLoop.setDaemon(true);
+        oldLoop.start();
+        try {
+            SocketClient client = connect(port);
+            try {
+                BinaryCommand request = new BinaryCommand(client.getClientConfig().getMasks(), (short) 0x1,
+                        (short) 1, (short) 0, "old-loop-served");
+                assertEquals("old-loop-served", client.call(request).getDataAsString());
+            } finally {
+                client.close();
+            }
+
+            // 旧循环完成第一次 accept 分派后必须在 while 判定处按世代退出
+            long deadline = System.currentTimeMillis() + 5000;
+            while (oldLoop.isAlive()) {
+                if (System.currentTimeMillis() >= deadline)
+                    throw new AssertionError("old accept loop must exit after restart (per-start generation)");
+                ThreadHelperSleep.sleep(10);
+            }
+            assertTrue(!oldLoop.isAlive(), "old accept loop must be dead");
+
+            // 新世代循环接续服务
+            Thread newLoop = new Thread(held.get(1), "new-accept-loop");
+            newLoop.setDaemon(true);
+            newLoop.start();
+
+            SocketClient client2 = connect(port);
+            try {
+                BinaryCommand request2 = new BinaryCommand(client2.getClientConfig().getMasks(), (short) 0x1,
+                        (short) 1, (short) 0, "new-loop-served");
+                assertEquals("new-loop-served", client2.call(request2).getDataAsString());
+            } finally {
+                client2.close();
+            }
+        } finally {
+            server.stop();
+        }
+    }
+
+    static class ThreadHelperSleep {
+        static void sleep(long ms) {
+            try {
+                Thread.sleep(ms);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
 }

@@ -246,18 +246,24 @@ public class DefinitionConfigProvider implements IConfigProvider {
 
     @Override
     public Runnable subscribeChange(String pattern, IConfigChangeListener listener) {
-        CopyOnWriteArrayList<IConfigChangeListener> list =
-                listeners.computeIfAbsent(pattern, k -> new CopyOnWriteArrayList<>());
-        list.add(listener);
+        // C2-007（plan 2549 裁定 C）：订阅/退订双侧 listeners.compute——add/remove/isEmpty 清理皆在
+        // 映射函数内（CHM per-key 原子）。原「computeIfAbsent×get/remove/isEmpty→remove 交错」会把
+        // 并发新订阅连同旧 list 一起摘除（孤儿 list → 配置通知永久失聪）。
+        listeners.compute(pattern, (k, list) -> {
+            if (list == null)
+                list = new CopyOnWriteArrayList<>();
+            list.add(listener);
+            return list;
+        });
         Runnable globalCleanup = globalProvider.subscribeChange(pattern, listener);
         return () -> {
-            CopyOnWriteArrayList<IConfigChangeListener> l = listeners.get(pattern);
-            if (l != null) {
+            listeners.compute(pattern, (k, l) -> {
+                if (l == null)
+                    return null;
                 l.remove(listener);
-                if (l.isEmpty()) {
-                    listeners.remove(pattern);
-                }
-            }
+                // isEmpty 清理在映射函数内完成：不产生「新订阅挂在已被摘除的 list 上」的孤儿
+                return l.isEmpty() ? null : l;
+            });
             if (globalCleanup != null) {
                 globalCleanup.run();
             }

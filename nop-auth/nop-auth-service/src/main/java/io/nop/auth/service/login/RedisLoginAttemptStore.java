@@ -7,8 +7,8 @@
  */
 package io.nop.auth.service.login;
 
-import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.login.ILoginAttemptStore;
+import io.nop.auth.service.support.RedisTtlGuard;
 import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlService;
 
@@ -29,6 +29,8 @@ import java.time.Duration;
  * {@code reset(value)} + TTL 重设实现。
  */
 public class RedisLoginAttemptStore implements ILoginAttemptStore {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RedisLoginAttemptStore.class);
 
     public static final String KEY_PREFIX = "auth:login-fail:";
 
@@ -59,7 +61,8 @@ public class RedisLoginAttemptStore implements ILoginAttemptStore {
     public void setLoginFailCount(String key, int count) {
         INosqlCounter counter = nosql.counter(redisKey(key));
         counter.reset(count);
-        setTtl(redisKey(key));
+        // 5.1-MA-02（plan 2569）：TTL 附着失败补偿删除，键不得残留无 TTL 形态
+        RedisTtlGuard.attachTtl(nosql, redisKey(key), loginFailTimeout, LOG);
     }
 
     @Override
@@ -72,15 +75,10 @@ public class RedisLoginAttemptStore implements ILoginAttemptStore {
         INosqlCounter counter = nosql.counter(redisKey(key));
         long v = counter.increment(1);
         if (v == 1L) {
-            // 首次递增设 TTL（PEXPIRE；后续递增不刷新——与 RedisMfaChallengeStore 同款裁定）
-            setTtl(redisKey(key));
+            // 首次递增设 TTL（PEXPIRE；后续递增不刷新——与 RedisMfaChallengeStore 同款裁定）。
+            // 5.1-MA-02（plan 2569）：附着失败补偿删除（无 TTL 键曾永不清理 = 人工 DEL 解锁）
+            RedisTtlGuard.attachTtl(nosql, redisKey(key), loginFailTimeout, LOG);
         }
         return v > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) v;
-    }
-
-    private void setTtl(String redisKey) {
-        if (loginFailTimeout == null || loginFailTimeout.isNegative() || loginFailTimeout.isZero())
-            return;
-        FutureHelper.syncGet(nosql.setTimeoutAsync(redisKey, loginFailTimeout.toMillis()));
     }
 }

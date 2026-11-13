@@ -13,7 +13,8 @@ import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.orm.OrmConfigs.CFG_ORM_MODEL_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 
 public class TenantAwareOrmModelProvider implements IOrmModelProvider {
-    private ILoadedOrmModel ormModel;
+    // plan 2517 R2-14 裁定②（C1-003）：volatile 发布边，同 DefaultOrmModelProvider 口径
+    private volatile ILoadedOrmModel ormModel;
 
     private final ICache<String, ILoadedOrmModel> tenantCaches;
 
@@ -38,8 +39,9 @@ public class TenantAwareOrmModelProvider implements IOrmModelProvider {
 
     @Override
     public void clearCache() {
-        this.ormModel = loader.apply(null);
+        // plan 2517 R2-14 裁定②：clear 先于新模型赋值发布（同 DefaultOrmModelProvider 顺序口径）
         this.tenantCaches.clear();
+        this.ormModel = loader.apply(null);
     }
 
     @Override

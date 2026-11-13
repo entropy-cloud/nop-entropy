@@ -13,7 +13,11 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface JsErrors {
 
+    String ARG_MAX_WAITING_TASKS = "maxWaitingTasks";
+
     ErrorCode ERR_JS_ERROR = define("nop.err.js.error","脚本执行错误");
     ErrorCode ERR_JS_CONTEXT_ALREADY_CLOSED =
             define("nop.err.js.context-already-closed", "JS执行环境已经被关闭，不能再执行操作");
+    ErrorCode ERR_JS_WORKER_QUEUE_FULL =
+            define("nop.err.js.worker-queue-full", "JS worker task queue reached the maximum number of waiting tasks, submission rejected to bound backlog");
 }

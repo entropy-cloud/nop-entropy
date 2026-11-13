@@ -65,8 +65,10 @@
         <property name="loadBalance" ref="nopLoadBalance_random"/>
     </bean>
 
+    <!-- 4.2-C8-001/CL-017（plan 2559 裁定 G 同 diff 勘正）：roundRobin chooser 原误绑
+         nopLoadBalance_random（假保护即缺陷），勘正为 nopLoadBalance_roundRobin -->
     <bean id="nopServerChooser_roundRobin" parent="nopServerChooser_base">
-        <property name="loadBalance" ref="nopLoadBalance_random"/>
+        <property name="loadBalance" ref="nopLoadBalance_roundRobin"/>
     </bean>
 
     <bean id="nopServerChooser_leastActive" parent="nopServerChooser_base">
@@ -86,6 +88,8 @@
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
         <property name="serverChooser" ref="nopServerChooser_default"/>
+        <!-- 4.2-C8-001（plan 2559 裁定 G(c) 装配）：活跃计数 adapter 新 bean 引用 -->
+        <property name="loadBalanceAdapter" ref="nopServiceLoadBalanceAdapter"/>
         <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
@@ -133,6 +137,8 @@
 
     <bean id="nopClusterRpcServiceInvoker" class="io.nop.rpc.cluster.ClusterRpcServiceInvoker" primary="true">
         <property name="serverChooser" ref="nopServerChooser_default"/>
+        <!-- 4.2-C8-001（plan 2559 裁定 G(c) 装配）：活跃计数 adapter -->
+        <property name="loadBalanceAdapter" ref="nopServiceLoadBalanceAdapter"/>
         <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="retryCount" value="@cfg:nop.rpc.proxy.client-retry-count|1"/>
         <property name="allowedServiceNames" value="@cfg:nop.rpc.proxy.allowed-service-names|"/>

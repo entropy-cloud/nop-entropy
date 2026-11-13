@@ -244,6 +244,27 @@ public class ChatServiceFailoverAdapter implements IChatService {
         }
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
         stage.whenComplete((resp, err) -> {
+            try {
+                whenCompleteBody(future, request, router, cancelToken, attempt, candidate, sunk, resp, err,
+                        startNanos);
+            } catch (Throwable t) {
+                // MA-05 护栏（裁定⑦(c)）：回调体内异常不得吞入无人消费的从属 stage——
+                // future 必达异常终态（NopException 语义按异常完成传播保持）。
+                future.completeExceptionally(t);
+            }
+        });
+        return future;
+    }
+
+    /**
+     * {@code callAsyncWithOptions} 的 whenComplete 回调体（MA-05 护栏外提，调用方 try/catch
+     * (Throwable) 兜底）：全终止路径 release + 成功/失败分支决策。
+     */
+    private void whenCompleteBody(CompletableFuture<ChatResponse> future, ChatRequest request,
+                                  ModelClassRouter router, ICancelToken cancelToken, int attempt,
+                                  ModelClassCandidate candidate, ChatOptions sunk,
+                                  ChatResponse resp, Throwable err, long startNanos) {
+        {
             // 全终止路径 release（M-2）：成功、失败切换、NON_TRANSIENT、async 异常。
             registry.release(candidate.getProvider(), candidate.getAccountKey());
             if (metrics != null) {
@@ -271,8 +292,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
                                 .param(NopAiCoreErrors.ARG_MSG, "delegate callAsync returned null response"),
                         startNanos);
             }
-        });
-        return future;
+        }
     }
 
     /**
@@ -282,6 +302,13 @@ public class ChatServiceFailoverAdapter implements IChatService {
                                         ModelClassRouter router, ICancelToken cancelToken, int attempt,
                                         ModelClassCandidate candidate, ChatOptions sunk,
                                         ChatResponse response, Throwable error, long startNanos) {
+        // C3-003 取消短路（裁定⑦(d)）：调用方取消不记账、不耗预算、不重试——
+        // cancelToken 已取消或 cause 链含 CancellationException → completeExceptionally。
+        // 注记（仅注记不修）：「取消」独立 ErrorClassification 归 3.1/nop-ai-core 侧（R2-16 对接）。
+        if (isCancellation(cancelToken, error)) {
+            future.completeExceptionally(cancelCause(cancelToken, error));
+            return;
+        }
         if (metrics != null) {
             // 每次 attempt 失败均计数（切换类 / NON_TRANSIENT / CACHE_STATE_LOST / 预算耗尽），
             // 取消路径不经过本方法。
@@ -333,12 +360,42 @@ public class ChatServiceFailoverAdapter implements IChatService {
                 .whenComplete((r, e) -> completeRelay(future, r, e));
     }
 
+    /**
+     * C3-003 取消判定：调用方令牌已取消，或异常 cause 链含 {@link CancellationException}。
+     */
+    private static boolean isCancellation(ICancelToken cancelToken, Throwable error) {
+        if (cancelToken != null && cancelToken.isCancelled()) {
+            return true;
+        }
+        Throwable cause = error;
+        while (cause != null) {
+            if (cause instanceof CancellationException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    private static Throwable cancelCause(ICancelToken cancelToken, Throwable error) {
+        if (error instanceof CancellationException) {
+            return error;
+        }
+        return new CancellationException(cancelToken != null && cancelToken.getCancelReason() != null
+                ? cancelToken.getCancelReason() : "call cancelled");
+    }
+
     private static void completeRelay(CompletableFuture<ChatResponse> future,
                                       ChatResponse response, Throwable error) {
-        if (error != null) {
-            future.completeExceptionally(error);
-        } else {
-            future.complete(response);
+        try {
+            if (error != null) {
+                future.completeExceptionally(error);
+            } else {
+                future.complete(response);
+            }
+        } catch (Throwable t) {
+            // MA-05 护栏（裁定⑦(c)）：relay 兜底必达终态，不留未完成 future。
+            future.completeExceptionally(t);
         }
     }
 

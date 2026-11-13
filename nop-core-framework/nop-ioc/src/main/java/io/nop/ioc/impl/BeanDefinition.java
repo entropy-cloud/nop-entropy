@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 public class BeanDefinition implements IBeanDefinition {
@@ -80,10 +81,29 @@ public class BeanDefinition implements IBeanDefinition {
 
     /**
      * 正在执行 createInstance（含构造器参数解析）的线程，用于检测构造器循环依赖。
-     * 单例路径在 synchronized(beanDef) 临界区内标记/清除；同线程重入即存在构造器环，
+     * 单例路径在 per-BD {@link #creationLock} 临界区内标记/清除；同线程重入即存在构造器环，
      * 此时 bean 尚未进入 scope、无法走早期暴露机制，放任递归会静默产生重复单例。
+     *
+     * <p>volatile 承载跨线程等待域的 owner 载体（plan 2507 裁定②）：等待者线程在
+     * {@code BeanContainerImpl} 的锁外等待路径读取本字段以登记 LoadWaitGraph 等待边，
+     * 必须与临界区内的写构成 happens-before，否则环检出退化为大概率命中。</p>
      */
-    private Thread inCreationThread;
+    private volatile Thread inCreationThread;
+
+    /**
+     * per-BeanDefinition 创建临界区锁（plan 2507 裁定②）：迁移自全仓唯一 synchronized(beanDef)
+     * 站点（BeanContainerImpl.getBean0）。锁对象随 BeanDefinition 生命周期，不新增全局锁。
+     * ReentrantLock 与 monitor 重入语义一致，同线程递归 getBean 行为不变。
+     */
+    private final ReentrantLock creationLock = new ReentrantLock();
+
+    Thread getInCreationThread() {
+        return inCreationThread;
+    }
+
+    ReentrantLock getCreationLock() {
+        return creationLock;
+    }
 
     boolean isInCreationByCurrentThread() {
         return inCreationThread == Thread.currentThread();
@@ -132,7 +152,8 @@ public class BeanDefinition implements IBeanDefinition {
 
     private String trace;
 
-    private Cancellable subscriptionCleanup;
+    // C1-004（plan 2549 裁定 C）：volatile——destroyBean 清理与异步 subscribeConfigChange 写入跨线程可见
+    private volatile Cancellable subscriptionCleanup;
 
     private boolean intercepted;
     private boolean removed;
@@ -273,6 +294,15 @@ public class BeanDefinition implements IBeanDefinition {
 
         for (BeanProperty prop : props.values()) {
             prop.getValueResolver().collectDepends(deps);
+        }
+
+        // C2-013（plan 2549 裁定 E）：AOP 拦截器 bean 依赖边入拓扑图——concurrentStart 下
+        // setupInstance 会注入拦截器实例，拦截器未 init 时宿主不得先建（环入口 +1 面）
+        List<BeanInterceptorModel> interceptors = beanModel.getIocInterceptors();
+        if (interceptors != null) {
+            for (BeanInterceptorModel interceptor : interceptors) {
+                deps.add(interceptor.getBean());
+            }
         }
     }
 
@@ -571,7 +601,9 @@ public class BeanDefinition implements IBeanDefinition {
             }
 
             return producedBeanInstance;
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // C2-009（plan 2549 裁定 E）：Error 也走失败广播——不广播会使实例滞留 STATUS_CREATED，
+            // 后续获取者只能走有界等待超时（得超时而非根因）
             if (producedBeanInstance != null) {
                 producedBeanInstance.markPropSetFailed(e);
             }
@@ -618,7 +650,8 @@ public class BeanDefinition implements IBeanDefinition {
             addInterceptors(bean, scope, container, beanCtx);
 
             producedBeanInstance.markPropSet();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // C2-009：同口径——Error 进失败广播（markPropSetFailed notifyAll + initError）
             producedBeanInstance.markPropSetFailed(e);
             if (e instanceof NopException) {
                 NopException nopErr = (NopException) e;
@@ -707,13 +740,41 @@ public class BeanDefinition implements IBeanDefinition {
                 bean = ((ProducedBeanInstance) bean).getCreatedBean();
             }
             LOG.info("ioc.destroy-bean:{}", this);
-            if (subscriptionCleanup != null) {
-                subscriptionCleanup.cancel();
-                subscriptionCleanup = null;
+            // C1-004（plan 2549 裁定 C）：清理与 subscribeConfigChange 写入同 synchronized 域，
+            // 消除锁外 check-then-act（stop 与异步订阅启动竞争 → 配置监听泄漏 + 死 bean 复活）
+            synchronized (this) {
+                if (subscriptionCleanup != null) {
+                    subscriptionCleanup.cancel();
+                    subscriptionCleanup = null;
+                }
             }
-            if (destroyMethod != null)
-                destroyMethod.call0(bean, DisabledEvalScope.INSTANCE);
-            runXpl(beanModel.getIocDestroy(), bean, container, beanScope);
+            // C6-007（plan 2549 裁定 F，执行期勘正）：destroyMethod 与 ioc:destroy 逐方法隔离
+            // ——一个抛错不再跳过另一个；**首异常在末尾重抛**（No-Silent 契约：插件 deactivate 等
+            // 调用方依赖 destroy 抛错落定 FAILED 态；容器 stop 层已有 try/catch 收集，此处吞掉会
+            // 破坏 TestPluginStateRecovery 的失败传播契约）
+            Throwable firstError = null;
+            if (destroyMethod != null) {
+                try {
+                    destroyMethod.call0(bean, DisabledEvalScope.INSTANCE);
+                } catch (Throwable ex) {
+                    LOG.error("nop.err.ioc.destroy-method-fail:bean={}", getId(), ex);
+                    if (firstError == null)
+                        firstError = ex;
+                }
+            }
+            try {
+                runXpl(beanModel.getIocDestroy(), bean, container, beanScope);
+            } catch (Throwable ex) {
+                LOG.error("nop.err.ioc.ioc-destroy-fail:bean={}", getId(), ex);
+                if (firstError == null)
+                    firstError = ex;
+            }
+            if (firstError instanceof RuntimeException)
+                throw (RuntimeException) firstError;
+            if (firstError instanceof Error)
+                throw (Error) firstError;
+            if (firstError != null)
+                throw NopException.adapt(firstError);
         }
     }
 
@@ -776,13 +837,16 @@ public class BeanDefinition implements IBeanDefinition {
                     };
 
                     for (String configVar : prop.getReactiveConfigVars()) {
-                        if (subscriptionCleanup == null)
-                            subscriptionCleanup = new Cancellable();
-                        Runnable cleanup = configProvider.subscribeChange(configVar, propChangeListener);
-                        subscriptionCleanup.appendOnCancelTask(cleanup);
-                        if (refreshListener != null)
-                            subscriptionCleanup
-                                    .appendOnCancelTask(configProvider.subscribeChange(configVar, refreshListener));
+                        // C1-004：写入与 destroyBean 清理同 synchronized(this) 域（check-then-set 原子化）
+                        synchronized (this) {
+                            if (subscriptionCleanup == null)
+                                subscriptionCleanup = new Cancellable();
+                            Runnable cleanup = configProvider.subscribeChange(configVar, propChangeListener);
+                            subscriptionCleanup.appendOnCancelTask(cleanup);
+                            if (refreshListener != null)
+                                subscriptionCleanup
+                                        .appendOnCancelTask(configProvider.subscribeChange(configVar, refreshListener));
+                        }
                     }
                 }
             }

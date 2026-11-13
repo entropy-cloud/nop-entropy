@@ -2,10 +2,10 @@ package io.nop.rg.cli;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
-import io.nop.rg.core.coordinator.FileMatches;
-import io.nop.rg.core.coordinator.LineMatch;
+import io.nop.rg.core.coordinator.FileError;
 import io.nop.rg.core.coordinator.SearchCommand;
 import io.nop.rg.core.coordinator.SearchCoordinator;
+import io.nop.rg.core.coordinator.SearchOutcome;
 import picocli.CommandLine;
 
 import java.io.BufferedOutputStream;
@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -94,13 +93,22 @@ public class NopRgMain implements Callable<Integer> {
                 // 录制启动失败（--jfr 路径非法等）同样经外层 finally 销毁初始化（plan 2273 A2 对称清理）
                 AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
                 try {
-                    Map<String, FileMatches> results = search(root);
+                    SearchOutcome outcome = search(root);
                     // plan 2273 R1：64KB 缓冲 + 收尾一次性 flush，替代 autoflush 逐行 flush（字节序列不变）
                     PrintWriter out = new PrintWriter(
                             new BufferedOutputStream(System.out, OUTPUT_BUFFER_BYTES), false);
-                    ResultPrinter.print(out, results, ResultPrinter.resolveMode(json, filesWithMatches, count));
+                    ResultPrinter.print(out, outcome.results(), ResultPrinter.resolveMode(json, filesWithMatches, count));
                     out.flush();
-                    return results.isEmpty() ? 1 : 0;
+                    // plan 2564 W-05：部分成功语义——错误项 stderr 逐条 + exit 2（消费 plan 2276 G2
+                    // 既有契约），部分结果照常输出；无错误维持 0/1 语义
+                    if (!outcome.errors().isEmpty()) {
+                        for (FileError error : outcome.errors()) {
+                            System.err.println("nop-rg: error scanning " + error.relativePath()
+                                    + ": " + error.message());
+                        }
+                        return 2;
+                    }
+                    return outcome.results().isEmpty() ? 1 : 0;
                 } finally {
                     if (recording != null) {
                         try {
@@ -124,10 +132,11 @@ public class NopRgMain implements Callable<Integer> {
     }
 
     /**
-     * 组装搜索命令并执行（plan 2268 Phase 3：自 call() 提取的搜索编排段，逻辑不变）。
-     * 包私有供测试覆写（plan 2276 G2：裸 NopException → exit 2 契约）。
+     * 组装搜索命令并执行（plan 2268 Phase 3：自 call() 提取的搜索编排段）。
+     * 包私有供测试覆写（plan 2276 G2：裸 NopException → exit 2 契约）；
+     * plan 2564 W-05 起返回 {@link SearchOutcome} 部分成功联合结果。
      */
-    Map<String, FileMatches> search(Path root) {
+    SearchOutcome search(Path root) {
         SearchCoordinator coordinator = new SearchCoordinator(
                 threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
                 !noIgnore, false);

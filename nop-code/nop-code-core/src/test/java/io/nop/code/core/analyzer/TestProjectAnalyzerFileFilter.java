@@ -188,5 +188,28 @@ class TestProjectAnalyzerFileFilter {
                 .map(CodeFileAnalysisResult::getFilePath).collect(Collectors.toList());
         assertTrue(paths.stream().anyMatch(p -> p.endsWith("Small.java")),
                 "Small.java should be analyzed");
+
+        // W-02 activation: the test name is now literal — an oversized file is skipped (WARN +
+        // truncated flag), not silently read whole into the heap. Small threshold injected so no
+        // >1MB fixture is needed (TP-002 inject-small-threshold form).
+        StringBuilder big = new StringBuilder("public class Big {");
+        for (int i = 0; i < 20; i++) {
+            big.append("\n    // padding line to exceed the injected max file size threshold ");
+        }
+        big.append("\n}");
+        Files.writeString(tempDir.resolve("Big.java"), big.toString());
+
+        ProjectAnalyzer cappedAnalyzer = new ProjectAnalyzer(registry);
+        cappedAnalyzer.setMaxFileSizeBytes(64);
+        var cappedResult = cappedAnalyzer.analyzeProject(vfsPath());
+
+        List<String> cappedPaths = cappedResult.getFileResults().stream()
+                .map(CodeFileAnalysisResult::getFilePath).collect(Collectors.toList());
+        assertFalse(cappedPaths.stream().anyMatch(p -> p.endsWith("Big.java")),
+                "oversized file must be skipped, not analyzed");
+        assertTrue(cappedPaths.stream().anyMatch(p -> p.endsWith("Small.java")),
+                "file within the cap must still be analyzed");
+        assertTrue(cappedResult.isTruncated(),
+                "skipping an oversized file must set the truncation flag");
     }
 }

@@ -8,6 +8,7 @@
 package io.nop.commons.concurrent.lock;
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.time.IClock;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.lock.impl.LocalResourceLockManager;
@@ -16,7 +17,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +35,42 @@ public class TestLocalLockManager {
     LocalResourceLockManager lockManager;
 
     private ManualClock clock;
+    // R4-32（plan 2566）：单调时钟双针 stub——两个原真实 sleep 用例（C10-test-protection :370
+    // 「时钟源不敏感」判定随换源改形）改 stub 推进，保护力保持（断言同一过期/续租语义）+ 回拨腿新增
+    static class StubClock implements IClock {
+        long wallMillis = 1_700_000_000_000L;
+        long nanoTicks = 1_000_000_000L;
+
+        void advanceNanos(long deltaNanos) {
+            nanoTicks += deltaNanos;
+        }
+
+        void rollbackWall(long deltaMillis) {
+            wallMillis -= deltaMillis;
+        }
+
+        @Override
+        public long currentTimeMillis() {
+            return wallMillis;
+        }
+
+        @Override
+        public long nanoTime() {
+            return nanoTicks;
+        }
+
+        @Override
+        public LocalDate currentDate() {
+            return LocalDate.now();
+        }
+
+        @Override
+        public LocalDateTime currentDateTime() {
+            return LocalDateTime.now();
+        }
+    }
+
+    StubClock stubClock;
 
     @BeforeEach
     public void setUp() {
@@ -45,6 +86,7 @@ public class TestLocalLockManager {
         CoreMetrics.registerClock(CoreMetrics.defaultClock());
         if (lockManager != null)
             lockManager.destroy();
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
     }
 
     @Test
@@ -114,8 +156,12 @@ public class TestLocalLockManager {
 
     @Test
     public void testTryResetLeaseOnExpired() {
-        IResourceLockState state = lockManager.tryLockWithLease("reset-b", "h1", 100, 100, null);
+        // R4-32 改形：真实 sleep 250ms → stub 单调推进 250ms（语义不变：租约过期续租失败）
+        stubClock = new StubClock();
+        CoreMetrics.registerClock(stubClock);
+        IResourceLockState state = lockManager.tryLockWithLease("reset-b", "h1", 0, 100, null);
         assertTrue(state != null);
+        stubClock.advanceNanos(TimeUnit.MILLISECONDS.toNanos(250));
 
         // 推进虚拟时间越过租约到期点：租约已过期，续租应失败
         clock.advance(250);
@@ -125,13 +171,26 @@ public class TestLocalLockManager {
 
     @Test
     public void testIsHoldingLockOnExpired() {
-        IResourceLockState state = lockManager.tryLockWithLease("hold-b", "h1", 100, 100, null);
+        // R4-32 改形：真实 sleep 250ms → stub 单调推进；并新增墙钟回拨腿（回拨不使过期租约复活）
+        stubClock = new StubClock();
+        CoreMetrics.registerClock(stubClock);
+        IResourceLockState state = lockManager.tryLockWithLease("hold-b", "h1", 0, 100, null);
         assertTrue(state != null);
+        stubClock.advanceNanos(TimeUnit.MILLISECONDS.toNanos(250));
 
         // 推进虚拟时间越过租约到期点：已过期的锁不应被报告为持有
         clock.advance(250);
         assertTrue(!lockManager.isHoldingLock(state));
         assertTrue(lockManager.getLockState("hold-b") == null);
+
+        // 回拨腿新增：墙钟回拨不能复活已过期的租约——回拨后重新获取租约，
+        // 其有效期仍按单调流逝正常过期（不受回拨影响）
+        stubClock.rollbackWall(3_600_000);
+        IResourceLockState state2 = lockManager.tryLockWithLease("hold-b", "h2", 0, 100, null);
+        assertTrue(state2 != null);
+        assertTrue(lockManager.isHoldingLock(state2));
+        stubClock.advanceNanos(TimeUnit.MILLISECONDS.toNanos(150));
+        assertTrue(!lockManager.isHoldingLock(state2));
     }
 
     @Test

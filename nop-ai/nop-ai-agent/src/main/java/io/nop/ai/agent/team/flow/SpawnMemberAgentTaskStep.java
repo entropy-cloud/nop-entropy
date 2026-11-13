@@ -300,6 +300,9 @@ public class SpawnMemberAgentTaskStep extends AbstractTaskStep {
                                 + ", teamId=" + task.getTeamId()
                                 + ", reason=" + spawnResult.getReason());
             case DISPATCHED:
+                // Plan 2519 (裁定⑤): register the spawned session with the
+                // per-flow registry (data plane for convergence cancel).
+                recorder.recordSpawnedSession(spawnResult.getSpawnedSessionId());
                 // Spawner executed the agent; inspect the wrapped result to
                 // decide complete vs. fail (shared semantics with the daemon's
                 // completeOrAbandonAfterExecution, decision 3).

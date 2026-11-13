@@ -226,4 +226,11 @@ interface MiscErrors extends NopMetadataArgs {
                     "Automation processing failed (isolated, batch continues): entityType={entityType} "
                             + "entityId={entityId} -- {error}",
                     ARG_ENTITY_TYPE, ARG_ENTITY_ID, ARG_ERROR);
+
+    // ===== 账本保留策略（5.5-W-02，plan 2502；fail-fast 包络——错配置启动期拒绝不降级） =====
+
+    ErrorCode ERR_LEDGER_CONFIG_INVALID =
+            ErrorCode.define("nop.err.metadata.ledger-config-invalid",
+                    "Invalid metadata ledger retention config: {configKey}={configValue}",
+                    ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }

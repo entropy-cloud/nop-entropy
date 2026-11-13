@@ -30,7 +30,8 @@ public class LoadedOrmModel implements ILoadedOrmModel {
     private final Map<String, IEntityPersister> entityPersisters;
     private final Map<String, ICollectionPersister> collectionPersisters;
     private final SqlExprMetaCache sqlExprMetaCache;
-    private IOrmInterceptor ormInterceptor;
+    // plan 2517 R2-14 裁定②：volatile 化（写点 setOrmInterceptor 经 getOrmModel 热路径跨线程可见）
+    private volatile IOrmInterceptor ormInterceptor;
 
     private volatile boolean needClose;
     private final AtomicInteger refCount = new AtomicInteger();
@@ -153,22 +154,45 @@ public class LoadedOrmModel implements ILoadedOrmModel {
         }
     }
 
+    /**
+     * 2.3-C1-004（plan 2552 裁定 B，R1-Major-1 锁域修订）：close 的 needClose 写 +
+     * refCount<=0 销毁判定、decRef 零判定、inc 侧 tryIncRefIfOpen 全部收进同一监视器——
+     * 仅锁 inc 侧不闭合 TOCTOU（close 写 needClose 后锁外读 refCount 的交错仍存活）。
+     * 三处均低频，无争用成本。
+     */
     @Override
     public void close() {
-        this.needClose = true;
-        // 如果仍有引用，则延迟销毁
-        if (refCount.get() <= 0)
-            doClose();
+        synchronized (this) {
+            this.needClose = true;
+            // 如果仍有引用，则延迟销毁
+            if (refCount.get() <= 0)
+                doClose();
+        }
     }
 
     public void incRef() {
-        refCount.incrementAndGet();
+        synchronized (this) {
+            refCount.incrementAndGet();
+        }
+    }
+
+    @Override
+    public boolean tryIncRefIfOpen() {
+        synchronized (this) {
+            if (needClose) {
+                return false;
+            }
+            refCount.incrementAndGet();
+            return true;
+        }
     }
 
     public void decRef() {
-        if (refCount.decrementAndGet() == 0) {
-            if (needClose) {
-                doClose();
+        synchronized (this) {
+            if (refCount.decrementAndGet() == 0) {
+                if (needClose) {
+                    doClose();
+                }
             }
         }
     }

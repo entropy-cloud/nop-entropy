@@ -22,7 +22,6 @@ import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
 
 class RocksDBListState<T> extends AbstractRocksDBState implements ListState<T> {
 
@@ -49,34 +48,26 @@ class RocksDBListState<T> extends AbstractRocksDBState implements ListState<T> {
     }
 
     /**
-     * Stage 33: full-scan migration. Each column-family entry holds a serialized
-     * list. Iterate every entry, deserialize the list, migrate each element, and
-     * write the migrated list back under the same key.
+     * Stage 33 full-scan migration, CRA 8.43 R4-03 W-05 streaming shape: each
+     * column-family entry holds a serialized list. Rows stream one at a time
+     * through the shared {@link AbstractRocksDBState#applyMigrationStreaming}
+     * helper — read the row, deserialize its list, migrate each element, and
+     * write the migrated list back under the same key. No whole-CF
+     * keys+lists heap materialization (the pre-fix shape deserialized EVERY
+     * row's list before migrating anything).
      */
     @Override
     @SuppressWarnings("unchecked")
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
         StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        List<byte[]> keys = new ArrayList<>();
-        List<List<Object>> lists = new ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            for (it.seekToFirst(); it.isValid(); it.next()) {
-                keys.add(it.key());
-                lists.add(RocksDBValueSerDe.deserializeList(it.value(), descriptor.getValueType()));
+        applyMigrationStreaming(backend, cfHandle, "RocksDB ListState", storedValue -> {
+            List<Object> list = RocksDBValueSerDe.deserializeList(storedValue, descriptor.getValueType());
+            List<Object> migrated = new ArrayList<>();
+            for (Object old : list) {
+                migrated.add(old != null ? fn.migrate(old) : null);
             }
-        }
-        try {
-            for (int i = 0; i < keys.size(); i++) {
-                List<Object> list = lists.get(i);
-                List<Object> migrated = new ArrayList<>();
-                for (Object old : list) {
-                    migrated.add(old != null ? fn.migrate(old) : null);
-                }
-                backend.getDb().put(cfHandle, keys.get(i), RocksDBValueSerDe.serialize(migrated));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to migrate RocksDB ListState", e);
-        }
+            return RocksDBValueSerDe.serialize(migrated);
+        });
     }
 
     @Override

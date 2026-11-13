@@ -99,13 +99,12 @@ public class MessageRpcClient extends LifeCycleSupport implements IRpcService {
             CompletionStage<ApiResponse<?>> promise = (CompletionStage<ApiResponse<?>>) channelState.prepareSend(id,
                     request, timeout);
 
-            if (cancelToken != null) {
-                final Object requestId = id;
-                cancelToken.appendOnCancel(reason -> {
+            // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
+            // 按 promise 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
+            final Object requestId = id;
+            FutureHelper.bindCancelToken(cancelToken, reason ->
                     channelState.onFailure(requestId,
-                            new NopException(ERR_RPC_CANCELLED).param(ARG_CANCEL_REASON, reason));
-                });
-            }
+                            new NopException(ERR_RPC_CANCELLED).param(ARG_CANCEL_REASON, reason)), promise);
 
             try {
                 messageService.sendAsync(topic, request, options).whenComplete((r, err) -> {

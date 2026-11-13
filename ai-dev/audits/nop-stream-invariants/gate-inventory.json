@@ -97,6 +97,7 @@
       "io.nop.stream.core.operators.windowing.OverWindowOperator": {
         "methods": [
           "bufferedKeys",
+          "close",
           "copyForSubtask",
           "keyedBufferEntries",
           "keyedStore",
@@ -194,6 +195,7 @@
       "io.nop.stream.core.operators.join.EquiJoinOperator": {
         "methods": [
           "bufferedCount",
+          "close",
           "copyForSubtask",
           "keyedAnyMatched",
           "keyedBufferEntries",
@@ -221,6 +223,8 @@
           "getOrCreateRetentionExecutor",
           "incrementTriggerFailures",
           "markTaskCompleted",
+          "notifyParticipantsFinishCommit",
+          "onLeaderDeactivated",
           "pruneOldestCheckpointHistory",
           "registerSourceEnumeratorVertex",
           "registerTask",
@@ -230,11 +234,14 @@
           "restoreFromCheckpoint",
           "restoreLatestEpochManifest",
           "restoreSharedStateRegistry",
+          "retryFailedCommits",
           "setAbortHandler",
           "setCheckpointHistoryMaxEntries",
+          "setCommitRetryEscalationHandler",
           "setCurrentFingerprint",
           "setIncrementalCheckpointEnabled",
           "setJobEventBus",
+          "setLeaderActive",
           "setSegmentStore",
           "setTasksToAcknowledge",
           "shutdown",
@@ -284,6 +291,7 @@
           "assignTask",
           "registerCoordinator",
           "registerNode",
+          "removeJobTaskAssignments",
           "removeTaskAssignment",
           "renewLease"
         ]
@@ -291,8 +299,10 @@
       "io.nop.stream.runtime.cluster.JdbcClusterRegistry": {
         "methods": [
           "assignTask",
+          "cleanupTaskAssignments",
           "registerCoordinator",
           "registerNode",
+          "removeJobTaskAssignments",
           "removeTaskAssignment",
           "renewLease"
         ]
@@ -303,6 +313,7 @@
           "evictExpiredNodes",
           "registerCoordinator",
           "registerNode",
+          "removeJobTaskAssignments",
           "removeTaskAssignment",
           "renewLease"
         ]

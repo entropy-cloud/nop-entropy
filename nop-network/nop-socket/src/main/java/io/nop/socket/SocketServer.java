@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
@@ -43,6 +44,9 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
     private ICommandHandler handler;
     private Executor executor;
     private volatile boolean stopped;
+    // 4.3-C1-019（plan 2561 裁定 D）：per-start accept 世代——run 循环退出判定不再复用共享单比特 stopped，
+    // restart 后旧 accept 循环凭世代失配退出，不误杀/抢占新循环
+    private final AtomicLong acceptGeneration = new AtomicLong();
     private ServerSocket socket;
     private final AtomicInteger connectionCount = new AtomicInteger();
     private final LongAdder recvCmdCount = new LongAdder();
@@ -141,7 +145,9 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
         }
         // 支持重启：清停止标志后重新进入 accept 循环
         stopped = false;
-        executor.execute(this::run);
+        // 4.3-C1-019（plan 2561 裁定 D）：本次 start 分配新的 accept 世代，run 循环退出判定按世代进行
+        long generation = acceptGeneration.incrementAndGet();
+        executor.execute(() -> run(generation));
     }
 
     @Override
@@ -149,6 +155,8 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
         LOG.info("nop.socket.stop-server:host={},port={}", config.getHost(), config.getPort());
 
         stopped = true;
+        // 4.3-C1-019（plan 2561 裁定 D）：stop 即作废当前 accept 世代，旧 run 循环立刻失配退出
+        acceptGeneration.incrementAndGet();
         closeAllConnections();
         IoHelper.safeCloseObject(socket);
         socket = null;
@@ -206,6 +214,10 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
     }
 
     void run() {
+        run(acceptGeneration.get());
+    }
+
+    void run(long generation) {
         do {
             try {
                 Socket client = socket.accept();
@@ -232,13 +244,14 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
                     removeSocket(client);
                 }
             } catch (Exception e) {
-                if (stopped)
+                // 4.3-C1-019（plan 2561 裁定 D）：世代失配（restart 后旧循环）同样立即退出
+                if (stopped || acceptGeneration.get() != generation)
                     break;
                 // 瞬时 accept 异常（如 fd 耗尽）不应终止整个 accept 循环
                 LOG.error("nop.socket.accept-fail", e);
                 ThreadHelper.sleep(1000);
             }
-        } while (!stopped);
+        } while (!stopped && acceptGeneration.get() == generation);
         LOG.info("nop.socket.server-exit:host={},port={}", config.getHost(), config.getPort());
     }
 

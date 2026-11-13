@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- C4-008 F4 腿：hangBean init 永久阻塞（夹具门闩），验证 join 有界超时兜底。 -->
+    <bean id="okBean" class="test.io.entropy.beans.TestStartOkBean" destroy-method="destroyMe"/>
+    <bean id="hangBean" class="test.io.entropy.beans.TestStartHangInitBean" init-method="initMe"
+          depends-on="okBean"/>
+</beans>

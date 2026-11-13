@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- pin1b：delay-method 失败按 failNextDelay 门控；restart 代际竞态注入点 -->
+    <bean id="raceBean" class="test.io.entropy.beans.TestRaceFailDelayBean" ioc:delay-method="delayMe"/>
+</beans>

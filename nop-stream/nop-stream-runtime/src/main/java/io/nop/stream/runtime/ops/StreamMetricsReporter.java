@@ -57,6 +57,13 @@ public class StreamMetricsReporter {
     private final String target;
     private final Path filePath;
 
+    // K1-补遗 (CRA 8.41 R4-01, ruling E.1 coverage row 11): interval-cadence
+    // report-failure WARN suppression — a persistently failing scrape/file write
+    // would otherwise emit one WARN per interval forever. Per-site instance.
+    private final io.nop.stream.runtime.support.PeriodicFailureSuppressor reportFailureSuppressor =
+            new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                    "stream-metrics-reporter.report-failed", 30_000L);
+
     private ScheduledExecutorService scheduler;
 
     public StreamMetricsReporter(long intervalMs, String target, Path filePath) {
@@ -115,8 +122,26 @@ public class StreamMetricsReporter {
             } else {
                 LOG.info("nop-stream metrics snapshot:\n{}", text);
             }
+            // K1-补遗 recovery (CRA 8.41 R4-01, ruling E.1 row 11): a report that
+            // did not throw clears the window.
+            if (reportFailureSuppressor.success()
+                    == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                LOG.info("StreamMetricsReporter report recovered (failure window cleared)");
+            }
         } catch (Exception e) {
-            LOG.warn("StreamMetricsReporter failed to report metrics: {}", e.toString());
+            // K1-补遗 (ruling E.1 coverage row 11 — the plan 勘误 3 "zero hits"
+            // note was overturned): three-state suppression on the interval-cadence
+            // report-failure WARN; the first entry keeps the original shape.
+            io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                    reportFailureSuppressor.failure(e);
+            if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                LOG.warn("StreamMetricsReporter failed to report metrics: {}", e.toString());
+            } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                LOG.warn("StreamMetricsReporter report failures — {} suppressed in the last {}ms window; "
+                                + "last: {}",
+                        reportFailureSuppressor.getLastWindowSuppressedCount(),
+                        reportFailureSuppressor.getWindowMs(), reportFailureSuppressor.getLastSummary());
+            }
         }
     }
 

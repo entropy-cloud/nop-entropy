@@ -44,6 +44,12 @@ public class ShellRunner implements IShellRunner {
 
     static final Logger LOG = LoggerFactory.getLogger(ShellRunner.class);
 
+    /**
+     * destroy() 后等待子进程退出的有界宽限预算（毫秒）：仍未退出则升级 destroyForcibly()，
+     * 使忽略 SIGTERM 的子进程不再「上报已终止实际存活」。有意以常量承载，不引入配置键。
+     */
+    public static final long DESTROY_GRACE_TIMEOUT_MILLIS = 2000L;
+
     public static ShellResult runCommand(String command) {
         return runCommand(command, FileHelper.currentDir());
     }
@@ -77,30 +83,36 @@ public class ShellRunner implements IShellRunner {
         // 提前声明，catch 块中用于区分超时销毁引发的 IOException 与命令自身失败
         final AtomicBoolean stopped = new AtomicBoolean();
 
+        // C6-004: process 引用提升到外层 try 之前，使外层 finally 兜底销毁覆盖
+        // newProcess 之后的全部窗口（异常/中断/collector 抛错/超时子路径以及
+        // scheduleTimeout/collectError 调度拒绝窗）；newProcess 自身失败时为 null，兜底 no-op
+        Process process = null;
+
         try {
             long beginTime = CoreMetrics.nanoTime();
 
-            final Process process = this.newProcess(command);
+            final Process created = this.newProcess(command);
+            process = created;
 
             final Future<?> timerFuture = scheduleTimeout(command, () -> {
-                safeDestroy(command, process, stopped);
+                safeDestroy(command, created, stopped);
                 return null;
             });
 
-            final Future<?> errorFuture = collectError(command, process, stopped, collector);
+            final Future<?> errorFuture = collectError(command, created, stopped, collector);
 
             try {
                 if (command.getInputBytes() != null) {
                     try {
-                        IoHelper.write(process.getOutputStream(), command.getInputBytes(), null);
+                        IoHelper.write(created.getOutputStream(), command.getInputBytes(), null);
                     } finally {
                         // 写入 stdin 后必须关闭，让读到 EOF 的子进程（cat/wc/grep 等）正常退出，
                         // 否则进程会一直等待更多输入，导致 readOutput 永久挂起
-                        IoHelper.safeClose(process.getOutputStream());
+                        IoHelper.safeClose(created.getOutputStream());
                     }
                 }
 
-                readOutput(process, command, collector, stopped);
+                readOutput(created, command, collector, stopped);
 
                 // stopped表示已经超时，在超时处理器中会关闭进程
                 if (!stopped.get()) {
@@ -109,13 +121,13 @@ public class ShellRunner implements IShellRunner {
                         long diff = endTime - CoreMetrics.nanoTime();
                         if (diff < 0)
                             diff = 0;
-                        boolean b = process.waitFor(diff, TimeUnit.NANOSECONDS);
+                        boolean b = created.waitFor(diff, TimeUnit.NANOSECONDS);
                         if (b)
-                            return onExit(process.exitValue());
+                            return onExit(created.exitValue());
 
                         stopped.set(true);
                     } else {
-                        return onExit(process.waitFor());
+                        return onExit(created.waitFor());
                     }
                 }
             } finally {
@@ -136,6 +148,12 @@ public class ShellRunner implements IShellRunner {
                         .param(ARG_COMMAND, command.getCommandString());
             }
             throw new NopException(ERR_SHELL_EXEC_COMMAND_FAIL, e).param(ARG_COMMAND, command.getCommandString());
+        } finally {
+            // C6-004: 外层兜底销毁。幂等论证：成功路径 waitFor 已返回、进程已退出，
+            // destroy 对已退出进程为 no-op；超时主路径 safeDestroy 已执行，二次 destroy 幂等；
+            // stopped 置位幂等。safeDestroy 自身异常 catch 后留痕，不吞不抛。
+            if (process != null)
+                safeDestroy(command, process, stopped);
         }
 
         throw new NopException(ERR_SHELL_EXEC_COMMAND_TIMEOUT).param(ARG_TIMEOUT, command.getTimeout())
@@ -265,6 +283,15 @@ public class ShellRunner implements IShellRunner {
         IoHelper.safeClose(process.getErrorStream());
         try {
             process.destroy();
+            // C6-004: destroyForcibly 升级——destroy(SIGTERM) 后有界等待仍未退出则强杀(SIGKILL)，
+            // 覆盖超时回调与外层兜底两调用侧。等待期间占用调度线程的代价已裁定接受（设计裁定⑥）。
+            if (!process.waitFor(DESTROY_GRACE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+                LOG.warn("nop.warn.shell.process-destroy-grace-timeout:command={}", command.getCommandString());
+                process.destroyForcibly();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.error("nop.err.shell.process-destroy-fail", e);
         } catch (Exception e) {
             LOG.error("nop.err.shell.process-destroy-fail", e);
         }

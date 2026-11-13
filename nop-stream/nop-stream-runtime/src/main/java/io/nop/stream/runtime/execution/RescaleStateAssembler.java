@@ -26,6 +26,7 @@ import io.nop.stream.core.checkpoint.OperatorStateMapping;
 import io.nop.stream.core.checkpoint.TaskEpochSnapshot;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.core.common.state.shard.KeyGroupAssignment;
@@ -269,6 +270,21 @@ static TaskStateSnapshot buildRescaledTaskState(
         for (Map.Entry<String, Object> ke : oldState.getKeyedStates().entrySet()) {
             Map<String, Object> dataMap = toStateDataMap(ke.getValue());
             if (dataMap == null) continue;
+            // plan 2511 C5-002 (no-silent-skip rule 24): an incremental checkpoint
+            // marker cannot be merged/range-filtered here — the assembler only
+            // consumes the full-form "states" map. A job whose coordinator runs
+            // incremental mode while the assembler must rescale its keyed state is
+            // an unsupported combination: fail fast with guidance instead of
+            // silently dropping the marker (silent keyed-state loss on restore).
+            if (dataMap.containsKey(IncrementalSnapshotResult.MARKER_KEY)) {
+                throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED)
+                        .param(ARG_DETAIL, "Keyed state '" + ke.getKey()
+                                + "' carries an incremental checkpoint marker, which the rescale/restore "
+                                + "assembler cannot merge (it only consumes full-form keyed snapshots). "
+                                + "Either run the job with a non-incremental checkpoint coordinator "
+                                + "(default) so task backends snapshot in full form, or restore the "
+                                + "incremental checkpoint through a backend-level ISegmentStore restore path");
+            }
             Object statesObj = dataMap.get("states");
             if (!(statesObj instanceof Map)) continue;
             Map<String, Object> statesMap = (Map<String, Object>) statesObj;

@@ -72,17 +72,23 @@ public class TestLintDeadlineExecutor {
 
     @Test
     public void installIsIdempotentAndDelegatesToTheInstallTimeExecutor() {
+        // reverse-protection #2 migration (plan 2531 adjudication 2): the
+        // former "install must own the global executor slot" pin now carries
+        // the full ownership contract — the run's install holds the slot
+        // through a chain-scanned wrapper, and the paired uninstall restores
+        // the exact pre-install snapshot with no wrapper residue.
         IExpressionExecutor prior = EvalExprProvider.getGlobalExecutor();
         IExpressionExecutor base = prior;
         while (base instanceof LintDeadlineExecutor wrapped) {
             base = wrapped.delegate();
         }
         EvalExprProvider.registerGlobalExecutor(base);
+        LintDeadlineExecutor.install();
+        LintDeadlineExecutor.install();
         try {
-            LintDeadlineExecutor.install();
             IExpressionExecutor first = EvalExprProvider.getGlobalExecutor();
             assertInstanceOf(LintDeadlineExecutor.class, first,
-                    "install must own the global executor slot");
+                    "install must own the global executor slot while the run is live");
             assertSame(base, ((LintDeadlineExecutor) first).delegate(),
                     "the wrapper must delegate to the executor captured at install time, "
                             + "not hardwire DefaultExpressionExecutor");
@@ -91,31 +97,41 @@ public class TestLintDeadlineExecutor {
             assertSame(first, EvalExprProvider.getGlobalExecutor(),
                     "a second install must not stack another wrapper");
         } finally {
-            EvalExprProvider.registerGlobalExecutor(base);
+            LintDeadlineExecutor.uninstall();
+            LintDeadlineExecutor.uninstall();
+            LintDeadlineExecutor.uninstall();
         }
+        assertSame(base, EvalExprProvider.getGlobalExecutor(),
+                "uninstall must restore the pre-install snapshot");
     }
 
     // ==================== passthrough: no deadline -> untouched semantics ====================
 
     @Test
     public void noDeadlinePassesThroughWithUnchangedSemantics() {
-        IExpressionExecutor prior = EvalExprProvider.getGlobalExecutor();
         LintDeadlineExecutor.install();
-        RecordingExecutor recorder = new RecordingExecutor(EvalExprProvider.getGlobalExecutor());
-        EvalExprProvider.registerGlobalExecutor(recorder);
         try {
-            IEvalAction action = XScriptCompiler.compile(RULE, "let x = 1; x + 2");
-            IEvalScope scope = XLang.newEvalScope();
-            Object result = action.invoke(scope.newChildScope());
+            IExpressionExecutor installed = EvalExprProvider.getGlobalExecutor();
+            RecordingExecutor recorder = new RecordingExecutor(installed);
+            EvalExprProvider.registerGlobalExecutor(recorder);
+            // the recorder is a mid-run foreign write: the inner restore puts
+            // the installed wrapper back before the run's own uninstall
+            try {
+                IEvalAction action = XScriptCompiler.compile(RULE, "let x = 1; x + 2");
+                IEvalScope scope = XLang.newEvalScope();
+                Object result = action.invoke(scope.newChildScope());
 
-            assertEquals(3, ((Number) result).intValue(),
-                    "the wrapper must not alter evaluation results");
-            assertEquals(1, recorder.invocations,
-                    "passthrough adds exactly one hop at the global entry: the delegate owns the "
-                            + "whole subtree, exactly as the pre-wrapper executor would");
-            assertNull(recorder.firstDeadline, "no deadline key was in scope");
+                assertEquals(3, ((Number) result).intValue(),
+                        "the wrapper must not alter evaluation results");
+                assertEquals(1, recorder.invocations,
+                        "passthrough adds exactly one hop at the global entry: the delegate owns the "
+                                + "whole subtree, exactly as the pre-wrapper executor would");
+                assertNull(recorder.firstDeadline, "no deadline key was in scope");
+            } finally {
+                EvalExprProvider.registerGlobalExecutor(installed);
+            }
         } finally {
-            EvalExprProvider.registerGlobalExecutor(prior);
+            LintDeadlineExecutor.uninstall();
         }
     }
 
@@ -123,7 +139,6 @@ public class TestLintDeadlineExecutor {
 
     @Test
     public void expiredDeadlineAbortsExplicitlyAtTheWrapper() {
-        IExpressionExecutor prior = EvalExprProvider.getGlobalExecutor();
         LintDeadlineExecutor.install();
         try {
             IEvalAction action = XScriptCompiler.compile(RULE, "let x = 1; x + 2");
@@ -138,44 +153,54 @@ public class TestLintDeadlineExecutor {
             assertEquals(20, e.budgetMs());
             assertTrue(e.getMessage().contains(RULE), "the abort names the rule: " + e.getMessage());
         } finally {
-            EvalExprProvider.registerGlobalExecutor(prior);
+            LintDeadlineExecutor.uninstall();
         }
     }
 
     @Test
     public void expiredDeadlineAbortsThroughTheEngineInjectionPath() {
         LintDeadlineExecutor.install();
-        XScriptEngine engine = new XScriptEngine(RULE, "warning", XScriptCompiler.compile(RULE, "let x = 1;"));
-        XScriptDeadline expired = new XScriptDeadline(RULE, 20, System.nanoTime() - 1L);
+        try {
+            XScriptEngine engine = new XScriptEngine(RULE, "warning", XScriptCompiler.compile(RULE, "let x = 1;"));
+            XScriptDeadline expired = new XScriptDeadline(RULE, 20, System.nanoTime() - 1L);
 
-        XScriptTimeoutException e = assertThrows(XScriptTimeoutException.class,
-                () -> engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, expired),
-                "engine-injected deadlines must reach the wrapper and abort");
-        assertTrue(e.getMessage().contains(RULE), e.getMessage());
+            XScriptTimeoutException e = assertThrows(XScriptTimeoutException.class,
+                    () -> engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, expired),
+                    "engine-injected deadlines must reach the wrapper and abort");
+            assertTrue(e.getMessage().contains(RULE), e.getMessage());
+        } finally {
+            LintDeadlineExecutor.uninstall();
+        }
     }
 
     // ==================== injection: host-side values reach the execution path ====================
 
     @Test
     public void injectedDeadlineValuesAreVisibleOnTheExecutionPath() {
-        IExpressionExecutor prior = EvalExprProvider.getGlobalExecutor();
         LintDeadlineExecutor.install();
-        RecordingExecutor recorder = new RecordingExecutor(EvalExprProvider.getGlobalExecutor());
-        EvalExprProvider.registerGlobalExecutor(recorder);
         try {
-            XScriptEngine engine = new XScriptEngine(RULE, "warning",
-                    XScriptCompiler.compile(RULE, "report({ message: 'ok' });"));
-            XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 250);
-            XScriptEngine.MatchOutcome outcome = engine.executeMatch(
-                    tree.root(), new MetaVarEnv(), sourceMap, deadline);
+            IExpressionExecutor installed = EvalExprProvider.getGlobalExecutor();
+            RecordingExecutor recorder = new RecordingExecutor(installed);
+            EvalExprProvider.registerGlobalExecutor(recorder);
+            // the recorder is a mid-run foreign write: the inner restore puts
+            // the installed wrapper back before the run's own uninstall
+            try {
+                XScriptEngine engine = new XScriptEngine(RULE, "warning",
+                        XScriptCompiler.compile(RULE, "report({ message: 'ok' });"));
+                XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 250);
+                XScriptEngine.MatchOutcome outcome = engine.executeMatch(
+                        tree.root(), new MetaVarEnv(), sourceMap, deadline);
 
-            assertEquals(1, outcome.diagnostics().size(), "the script ran to completion");
-            assertEquals(deadline.deadlineNanos(), recorder.firstDeadline,
-                    "the wrapper saw exactly the injected deadline");
-            assertEquals(RULE, recorder.firstRuleId);
-            assertEquals(250, recorder.firstBudget);
+                assertEquals(1, outcome.diagnostics().size(), "the script ran to completion");
+                assertEquals(deadline.deadlineNanos(), recorder.firstDeadline,
+                        "the wrapper saw exactly the injected deadline");
+                assertEquals(RULE, recorder.firstRuleId);
+                assertEquals(250, recorder.firstBudget);
+            } finally {
+                EvalExprProvider.registerGlobalExecutor(installed);
+            }
         } finally {
-            EvalExprProvider.registerGlobalExecutor(prior);
+            LintDeadlineExecutor.uninstall();
         }
     }
 
@@ -203,21 +228,25 @@ public class TestLintDeadlineExecutor {
     @Test
     public void expiryMidLoopProvesPerBackEdgeInterception() {
         LintDeadlineExecutor.install();
-        XScriptEngine engine = new XScriptEngine(RULE, "warning", XScriptCompiler.compile(RULE, """
-                let i = 0;
-                while (i < 1000000000) {
-                  i = i + 1;
-                }
-                """));
-        // a 10^9-iteration interpreter loop cannot complete within 50ms, and
-        // the deadline starts before the first entry, so the abort must come
-        // from a back edge after mid-loop expiry
-        XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 50);
+        try {
+            XScriptEngine engine = new XScriptEngine(RULE, "warning", XScriptCompiler.compile(RULE, """
+                    let i = 0;
+                    while (i < 1000000000) {
+                      i = i + 1;
+                    }
+                    """));
+            // a 10^9-iteration interpreter loop cannot complete within 50ms, and
+            // the deadline starts before the first entry, so the abort must come
+            // from a back edge after mid-loop expiry
+            XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 50);
 
-        XScriptTimeoutException e = assertThrows(XScriptTimeoutException.class,
-                () -> engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, deadline),
-                "the loop must be cut from inside, at a nested executor entry");
-        assertTrue(e.getMessage().contains(RULE), e.getMessage());
+            XScriptTimeoutException e = assertThrows(XScriptTimeoutException.class,
+                    () -> engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, deadline),
+                    "the loop must be cut from inside, at a nested executor entry");
+            assertTrue(e.getMessage().contains(RULE), e.getMessage());
+        } finally {
+            LintDeadlineExecutor.uninstall();
+        }
     }
 
     // ==================== depth guard: runaway nesting aborts explicitly ====================
@@ -225,48 +254,60 @@ public class TestLintDeadlineExecutor {
     @Test
     public void evaluationDepthBeyondTheLimitAbortsExplicitly() {
         LintDeadlineExecutor.install();
-        XScriptEngine engine = new XScriptEngine(RULE, "warning",
-                XScriptCompiler.compile(RULE, "let d = node.kind()" + "+ 1".repeat(40)));
+        try {
+            XScriptEngine engine = new XScriptEngine(RULE, "warning",
+                    XScriptCompiler.compile(RULE, "let d = node.kind()" + "+ 1".repeat(40)));
 
-        // generous budget: the abort must come from the depth guard, not expiry
-        XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 1000);
-        NopLintException e = assertThrows(NopLintException.class,
-                () -> engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, deadline),
+            // generous budget: the abort must come from the depth guard, not expiry
+            XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 1000);
+            NopLintException e = assertThrows(NopLintException.class,
+                    () -> engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, deadline),
                 "nesting beyond 32 executor entries must abort the script");
-        assertTrue(e.getMessage().contains("depth"), e.getMessage());
-        assertInstanceOf(NopLintException.class, e);
-        assertTrue(!(e instanceof XScriptTimeoutException),
-                "a depth abort is the script-failure path, not a timeout");
+            assertTrue(e.getMessage().contains("depth"), e.getMessage());
+            assertInstanceOf(NopLintException.class, e);
+            assertTrue(!(e instanceof XScriptTimeoutException),
+                    "a depth abort is the script-failure path, not a timeout");
+        } finally {
+            LintDeadlineExecutor.uninstall();
+        }
     }
 
     @Test
     public void shallowNestingRunsWithinTheDepthLimit() {
         LintDeadlineExecutor.install();
-        XScriptEngine engine = new XScriptEngine(RULE, "warning",
-                XScriptCompiler.compile(RULE, "let d = node.kind() + 1 + 1"));
-        XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 1000);
+        try {
+            XScriptEngine engine = new XScriptEngine(RULE, "warning",
+                    XScriptCompiler.compile(RULE, "let d = node.kind() + 1 + 1"));
+            XScriptDeadline deadline = XScriptDeadline.startNow(RULE, 1000);
 
-        XScriptEngine.MatchOutcome outcome = engine.executeMatch(
-                tree.root(), new MetaVarEnv(), sourceMap, deadline);
-        assertTrue(outcome.diagnostics().isEmpty(), "the control script completes normally");
+            XScriptEngine.MatchOutcome outcome = engine.executeMatch(
+                    tree.root(), new MetaVarEnv(), sourceMap, deadline);
+            assertTrue(outcome.diagnostics().isEmpty(), "the control script completes normally");
+        } finally {
+            LintDeadlineExecutor.uninstall();
+        }
     }
 
     @Test
     public void depthAccountingIsBalancedAfterAnAbort() {
         LintDeadlineExecutor.install();
-        XScriptEngine engine = new XScriptEngine(RULE, "warning",
-                XScriptCompiler.compile(RULE, "let d = node.kind()" + "+ 1".repeat(40)));
         try {
-            engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, XScriptDeadline.startNow(RULE, 1000));
-        } catch (Exception expected) {
-            // the depth abort under test
-        }
+            XScriptEngine engine = new XScriptEngine(RULE, "warning",
+                    XScriptCompiler.compile(RULE, "let d = node.kind()" + "+ 1".repeat(40)));
+            try {
+                engine.executeMatch(tree.root(), new MetaVarEnv(), sourceMap, XScriptDeadline.startNow(RULE, 1000));
+            } catch (Exception expected) {
+                // the depth abort under test
+            }
 
         // the same thread must still evaluate normally: the per-thread depth
         // counter unwound through the abort
         IEvalAction action = XScriptCompiler.compile(RULE, "let x = 1; x + 2");
         Object result = action.invoke(XLang.newEvalScope().newChildScope());
         assertEquals(3, ((Number) result).intValue());
+        } finally {
+            LintDeadlineExecutor.uninstall();
+        }
     }
 
     /**

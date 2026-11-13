@@ -9,8 +9,10 @@ import java.util.Map;
  * The Java half of the tsc bridge wire protocol (design 06 §5.3, item 20
  * Decision): newline-delimited JSON frames over the resident process's
  * stdin/stdout. One startup ready frame carries the peer's Node and
- * typescript versions (the handshake rejects a peer whose typescript
- * binding is missing or unidentifiable); every request is a JSON object
+ * typescript versions plus the wire protocol version (the handshake rejects
+ * a peer whose typescript binding is missing or unidentifiable, and one
+ * whose protocol version does not match this bridge's release); every
+ * request is a JSON object
  * with a correlation {@code id} and an {@code op} field, and every response
  * either carries {@code ok:true} plus the op's result fields or
  * {@code ok:false} plus a structured {@code error:{code,message}} frame.
@@ -22,6 +24,14 @@ public final class TscProtocol {
      * The ready-frame discriminator.
      */
     public static final String READY_TYPE = "ready";
+
+    /**
+     * The wire protocol version the ready frame must report (plan 2531
+     * adjudication 7): a helper script from another checkout is an explicit,
+     * diagnosable handshake failure instead of a silent protocol drift.
+     * Released in lockstep with the helper's ready frame.
+     */
+    public static final String PROTOCOL_VERSION = "1";
 
     private TscProtocol() {
     }
@@ -79,6 +89,13 @@ public final class TscProtocol {
                     + "binding (node " + text(frame, "node") + "); install the 'typescript' package "
                     + "next to the helper script (ai-dev/tools devDependency)");
         }
+        String protocolVersion = text(frame, "protocolVersion");
+        if (!PROTOCOL_VERSION.equals(protocolVersion)) {
+            throw new TscBridgeUnavailableException("tsc bridge handshake failed: peer protocol version '"
+                    + protocolVersion + "' does not match this bridge's protocol version "
+                    + PROTOCOL_VERSION + " (the helper script and the Java bridge are released "
+                    + "together; a cross-checkout tsc-bridge-server.mjs is the usual cause)");
+        }
     }
 
     /**
@@ -123,6 +140,19 @@ public final class TscProtocol {
                     "tsc bridge request " + id + " failed: " + errorMap.get("message"));
         }
         return new TscQueryException("BAD_FRAME", "error frame without error object: " + frame);
+    }
+
+    /**
+     * The error code of a failed response frame, or null when the frame
+     * carries no structured error object — the diagnosis carrier for a
+     * correlation-mismatched error frame.
+     */
+    public static String errorCodeOf(Map<String, Object> frame) {
+        Object error = frame.get("error");
+        if (error instanceof Map<?, ?> errorMap && errorMap.get("code") != null) {
+            return String.valueOf(errorMap.get("code"));
+        }
+        return null;
     }
 
     /**

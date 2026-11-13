@@ -1,71 +1,129 @@
 package io.nop.autotest.core.mock;
 
-import io.nop.api.core.exceptions.NopException;
+import io.nop.autotest.core.AutoTestErrors;
+import io.nop.autotest.core.exceptions.AutoTestException;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.ThreadPoolConfig;
 import io.nop.commons.concurrent.executor.ThreadPoolStats;
 import io.nop.commons.functional.Functionals;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Manual-drive mock of {@link IScheduledExecutor} for tests. Time is modeled by an internal
+ * virtual clock: submissions are anchored against {@code System.nanoTime()} plus a manually
+ * advanced offset ({@link #expireTasks(long)}), and deadlines decay accordingly. No real thread
+ * is started; task bodies only run when the test calls {@link #triggerNext()}.
+ *
+ * <p><b>Boundary declaration (design adjudication D / R1-B2)</b>: periodic kinds
+ * ({@link MockTaskKind#SCHEDULED_AT_FIXED_RATE} / {@link MockTaskKind#SCHEDULED_WITH_FIXED_DELAY})
+ * are manually driven for a <b>single round only</b> and are not re-armed after execution. This
+ * mock does <b>not</b> honor the {@link IScheduledExecutor} periodic contract (task-body exception
+ * insulation, fixed-delay exponential backoff 1s~60s, fixed-rate pacing) because it has no real
+ * thread to drive time-based re-arm semantics. Callers must not use this mock to assert periodic
+ * insulation/backoff behavior.
+ */
 public class MockScheduledExecutor implements IScheduledExecutor {
     private String name;
     private volatile boolean started = true;
     private final DelayQueue<MockTask> tasks = new DelayQueue<>();
+    private final long baseNanos = System.nanoTime();
+    private long virtualOffsetNanos = 0L;
 
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Advances the internal virtual clock by the given offset in milliseconds (R2-M3 semantic
+     * pin: this advances the clock anchor used by subsequent enqueue anchoring and getDelay
+     * decay; it does not run task bodies - use {@link #triggerNext()} for that).
+     */
+    public synchronized void expireTasks(long millis) {
+        virtualOffsetNanos += TimeUnit.MILLISECONDS.toNanos(millis);
+    }
+
+    private long nowNanos() {
+        return System.nanoTime() - baseNanos + virtualOffsetNanos;
+    }
+
+    private void checkStarted() {
+        if (!started)
+            throw new AutoTestException(AutoTestErrors.ERR_AUTOTEST_EXECUTOR_DESTROYED);
+    }
+
+    private void addTask(Callable<?> callable, long delay, TimeUnit unit, MockTaskKind kind,
+                         CompletableFuture<Object> promise) {
+        checkStarted();
+        MockTask task = new MockTask(callable, nowNanos() + unit.toNanos(delay), this::nowNanos, kind, promise);
+        tasks.add(task);
+        // cleanup callback fires on cancel / exceptional / normal completion alike
+        promise.whenComplete((ret, err) -> tasks.remove(task));
+    }
+
     @Override
     public synchronized <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         CompletableFuture<V> promise = new CompletableFuture<>();
-        MockTask task = new MockTask(callable, delay, 0, MockTaskKind.ONCE, promise);
-        tasks.add(task);
-        return promise.exceptionally(err -> {
-            tasks.remove(task);
-            throw NopException.adapt(err);
-        });
+        addTask(callable, delay, unit, MockTaskKind.ONCE, castPromise(promise));
+        return promise;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private CompletableFuture<Object> castPromise(CompletableFuture<?> promise) {
+        return (CompletableFuture) promise;
     }
 
     @Override
-    public synchronized Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+    public synchronized Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period,
+                                                      TimeUnit unit) {
         CompletableFuture<Void> promise = new CompletableFuture<>();
-        MockTask task = new MockTask(Functionals.asCallable(command, null), initialDelay,
-                period, MockTaskKind.SCHEDULED_AT_FIXED_RATE, promise);
-        tasks.add(task);
-        return promise.exceptionally(err -> {
-            tasks.remove(task);
-            throw NopException.adapt(err);
-        });
+        addTask(Functionals.asCallable(command, null), initialDelay, unit, MockTaskKind.SCHEDULED_AT_FIXED_RATE,
+                castPromise(promise));
+        return promise;
     }
 
     @Override
-    public Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
+    public synchronized Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay,
+                                                         TimeUnit unit) {
         CompletableFuture<Void> promise = new CompletableFuture<>();
-        MockTask task = new MockTask(Functionals.asCallable(command, null), initialDelay,
-                delay, MockTaskKind.SCHEDULED_WITH_FIXED_DELAY, promise);
-        tasks.add(task);
-        return promise.exceptionally(err -> {
-            tasks.remove(task);
-            throw NopException.adapt(err);
-        });
+        addTask(Functionals.asCallable(command, null), initialDelay, unit, MockTaskKind.SCHEDULED_WITH_FIXED_DELAY,
+                castPromise(promise));
+        return promise;
     }
 
+    /**
+     * Manually drives the single next expired task, if any. For periodic kinds the task is run
+     * once and removed (no re-arm, see the class-level boundary declaration).
+     */
     public Object triggerNext() {
-        MockTask task = pollTask();
+        MockTask task;
+        synchronized (this) {
+            task = pollTask();
+        }
         if (task == null)
             return null;
-        return task.call();
+        // the task body runs OUTSIDE the executor monitor (like a real executor, whose facility
+        // locks are never held while user code runs): holding the monitor here inverted lock
+        // order against RateLimitExecutorImpl.debounce's CHM compute lambda (plan 2563 MA-03
+        // overlap leg deadlock, fixed here)
+        Object ret = task.call();
+        if (task.getTaskKind() != MockTaskKind.ONCE) {
+            synchronized (this) {
+                tasks.remove(task);
+            }
+        }
+        return ret;
     }
 
     protected synchronized MockTask pollTask() {
-        MockTask task = tasks.poll();
-        return task;
+        return tasks.poll();
     }
 
     @Override
@@ -99,8 +157,18 @@ public class MockScheduledExecutor implements IScheduledExecutor {
     }
 
     @Override
-    public void destroy() {
+    public synchronized void destroy() {
         started = false;
+        // drain the queue (including not-yet-expired entries): every pending task's promise
+        // settles exceptionally. DelayQueue.poll() only yields expired entries, so iterate.
+        List<MockTask> drained = new ArrayList<>();
+        for (Iterator<MockTask> it = tasks.iterator(); it.hasNext(); ) {
+            drained.add(it.next());
+            it.remove();
+        }
+        for (MockTask task : drained) {
+            task.completeExceptionally(new AutoTestException(AutoTestErrors.ERR_AUTOTEST_EXECUTOR_DESTROYED));
+        }
     }
 
     @Override

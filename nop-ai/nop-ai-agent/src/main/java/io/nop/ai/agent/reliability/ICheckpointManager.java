@@ -120,6 +120,19 @@ public interface ICheckpointManager {
     }
 
     /**
+     * Plan 2519 (裁定②/C5-015 F4): session-lifecycle-terminal cleanup —
+     * evicts the in-memory containers AND purges the persisted per-session
+     * journal/snapshot state (the session will never be restored again).
+     * Contrast with {@link #remove(String)}, which only clears the in-memory
+     * cache (completed executions keep their persisted journal reachable for
+     * the multi-turn continuation contract). Default: plain remove (memory
+     * only) so backends without a persisted-journal face need no change.
+     */
+    default void purgeTerminal(String sessionId) {
+        remove(sessionId);
+    }
+
+    /**
      * Plan 2284 (WI3): retrieve all checkpoints recorded for a session, in
      * save order. Consumed by the restore path's open-tool-call diff
      * ({@code OpenToolCallResolver.filterNeverCommitted} — crash-recovery

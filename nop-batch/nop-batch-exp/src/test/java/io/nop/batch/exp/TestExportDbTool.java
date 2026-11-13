@@ -79,6 +79,53 @@ public class TestExportDbTool extends JunitBaseTestCase {
         input.close();
     }
 
+    /**
+     * C8-002（plan 2516 裁定③；C10-004）：export-db 缺省 batchSize=0 缺陷路径回归。
+     * 缺陷态：batchSize=0 直传 builder，被 BatchChunkProcessor 静默钳位到 1 → 每行一 chunk
+     * （chunk 计数与 per-chunk INFO/状态写放大，2 行即 2 个 chunk）。修复后：ExportDbTool 复制
+     * ImportDbTool 的 >0 守卫（守卫对称），缺省 0 不再进入钳位路径，builder 落缺省 batchSize=100，
+     * 数据零丢失。钳位面（batchSize<=0 → 1 + 每任务一次 WARN）由 nop-batch-core
+     * BatchChunkProcessor.adjustBatchSize 承接（exp 模块无 chunk 计数注入面，放大面断言登记为
+     * 变异/回退论证：守卫消除 Export 链唯一的 0 值投递路径，与 ImportDbTool 守卫同型）。
+     */
+    @Test
+    public void testExportDefaultBatchSize_guardSymmetry() throws IOException {
+        initData();
+        insertData();
+
+        ExportDbTool tool = new ExportDbTool();
+
+        IResource resource = classpathResource("config/test.export-db-xlsx.xml");
+        ExportDbConfig config = (ExportDbConfig) DslModelHelper.loadDslModel(resource);
+        // 显式构造缺陷缺省路径：batchSize=0（装配缺省值）
+        config.setBatchSize(0);
+
+        JdbcConnectionConfig conn = new JdbcConnectionConfig();
+        conn.setDriverClassName(DaoConfigs.CFG_DATASOURCE_DRIVER_CLASS_NAME.get());
+        conn.setJdbcUrl(DaoConfigs.CFG_DATASOURCE_JDBC_URL.get());
+        conn.setUsername(DaoConfigs.CFG_DATASOURCE_USERNAME.get());
+        conn.setPassword(DaoConfigs.CFG_DATASOURCE_PASSWORD.get());
+        config.setJdbcConnection(conn);
+
+        File outputDir = new File(getTargetDir(), "export-default-batchsize-output");
+        outputDir.mkdirs();
+        config.setOutputDir(outputDir.getAbsolutePath());
+
+        tool.setConfig(config);
+        tool.execute();
+
+        // 守卫落缺省后数据零丢失（chunk 放大消除不改变导出结果正确性）
+        File xlsxFile = new File(outputDir, "test_export.xlsx");
+        assertTrue(xlsxFile.exists(), "xlsx file should exist");
+
+        ExcelResourceIO<Map<String, Object>> excelIO = new ExcelResourceIO<>();
+        excelIO.setHeaders(List.of("ID", "NAME", "VAL"));
+        IRecordInput<Map<String, Object>> input = excelIO.openInput(new FileResource(xlsxFile), null);
+        input.beforeRead(new HashMap<>());
+        assertEquals(2, input.readAll().size(), "all rows must be exported under default batchSize");
+        input.close();
+    }
+
     void initData() {
         jdbcTemplate.executeUpdate(new SQL(
                 "create table test_export (" +

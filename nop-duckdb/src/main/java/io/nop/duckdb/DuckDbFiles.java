@@ -63,6 +63,13 @@ public final class DuckDbFiles {
      * serialized CSV, so string columns with numeric content may be typed as numbers - this is
      * the documented bridge behavior.
      *
+     * <p>Temp file pairing (5.6-W-05, plan 2529 ruling 3): creation and lifetime are merged -
+     * the temp CSV is deleted in a finally that covers both the conversion and the read
+     * segments, on success and on failure alike. {@code deleteOnExit} is deliberately NOT
+     * used: the JVM-exit hook grows monotonically (no removal API) and is redundant once the
+     * finally covers the success path. A hard JVM kill can still leave a bounded number of
+     * temp CSVs on the failure path; the step failure alerting is the cleanup trigger.
+     *
      * @return ingested row count
      */
     public static long readXlsx(Connection conn, String xlsxPath, String tableName) {
@@ -70,17 +77,25 @@ public final class DuckDbFiles {
         File tempCsv;
         try {
             tempCsv = Files.createTempFile("duckdb-xlsx-", ".csv").toFile();
-            tempCsv.deleteOnExit();
+        } catch (IOException e) {
+            throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_IO_FAILED, e)
+                    .param(NopDuckDbErrors.ARG_FILE_PATH, xlsxPath)
+                    .param(NopDuckDbErrors.ARG_REASON, "temp csv creation failed: " + e.getMessage());
+        }
+        try {
             Table table = new XlsxReader().read(XlsxReadOptions.builder(xlsxPath).build());
             table.write().csv(tempCsv.getAbsolutePath());
-        } catch (IOException | RuntimeException e) {
+            return readCsv(conn, tempCsv.getAbsolutePath(), tableName);
+        } catch (NopDuckDbException e) {
+            // readCsv's own module errors propagate with their original code untouched
+            throw e;
+        } catch (RuntimeException e) {
             throw new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_IO_FAILED, e)
                     .param(NopDuckDbErrors.ARG_FILE_PATH, xlsxPath)
                     .param(NopDuckDbErrors.ARG_REASON, "xlsx bridge conversion failed: " + e.getMessage());
-        }
-        try {
-            return readCsv(conn, tempCsv.getAbsolutePath(), tableName);
         } finally {
+            // result ignored: on the success path readCsv has already released its handle,
+            // so the delete is safe on Windows as well
             //noinspection ResultOfMethodCallIgnored
             tempCsv.delete();
         }
@@ -178,7 +193,13 @@ public final class DuckDbFiles {
         }
     }
 
-    private static boolean tableExists(Connection conn, String tableName) {
+    /**
+     * Existence predicate shared by the ingest guard ({@link #readExternal}) and the
+     * materialize guard ({@code DuckDbSqlTaskStep.materialize}, 5.6-W-03). Package-visible
+     * so both guards use the single judgment source (no duplicated query shape drift);
+     * the surrounding error wrapping stays at the call site.
+     */
+    static boolean tableExists(Connection conn, String tableName) {
         try (Statement st = conn.createStatement();
              ResultSet rs = st.executeQuery("SELECT count(*) FROM " + TABLE_EXISTS_TABLE
                      + " WHERE table_name = '" + escapePath(tableName) + "'")) {

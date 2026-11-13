@@ -1,13 +1,17 @@
 package io.nop.stream.core.execution;
 
 import io.nop.stream.core.testsupport.TestAwait;
+import io.nop.stream.core.execution.buffer.BufferPool;
+import io.nop.stream.core.execution.buffer.IBufferPool;
 import io.nop.stream.core.execution.materialization.IMaterializationPoint;
 import io.nop.stream.core.execution.materialization.InMemoryMaterializationPoint;
 import io.nop.stream.core.execution.materialization.MaterializedElement;
+import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -20,41 +24,44 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Stage 44 successor 4 Phase 2: producer overflow-bypass (解除死锁 1,
- * failover-design.md §9.4).
+ * FAM-1 / C10-005 (plan 2510 R2-07, adjudication 10d): this test class previously
+ * pinned the overflow-bypass DEFECT as delivered semantics ("producer does not
+ * block + store receives all overflow elements") — the fake protection identified
+ * by C10-test-protection M7, rewritten in the same diff as the fix.
  *
- * <p>Verifies that when materialization is enabled, {@link ResultPartition#write}
- * does NOT block on {@code queue.put} when the queue is full — the producer
- * thread remains RUNNABLE (not WAITING/BLOCKED) and the overflow data is safely
- * held in the materialization store (ready for consumer-side replay).
- *
- * <p>Zero-regression: with no materialization point, the original blocking
- * {@code queue.put} is preserved.
+ * <p>New contract (adjudication 10b/10c): pool + materialization queue-full → the
+ * producer BLOCKS (backpressure restored), the permit is NOT released (no silent
+ * bypass of the IBufferPool bound), the store (checkpoint-scoped recovery plane,
+ * unbounded by default) mirrors every in-flight record,
+ * and after the consumer drains, every element arrives exactly-once. The
+ * zero-regression test {@code noMaterialization_writeBlocksWhenFull_zeroRegression}
+ * is preserved unchanged.
  */
 public class TestResultPartitionOverflowBypass {
 
     /**
-     * (a) + (b): queue full + materialization enabled → write does not block;
-     * overflow elements land in the materialization store.
+     * (FAM-1 rewritten, was {@code overflowBypass_producerDoesNotBlockAndDataLandsInMaterializationStore})
+     * queue full + pool + materialization → producer BLOCKS, permits retained, and
+     * after the consumer drains the element sequence arrives exactly-once.
      */
     @Test
-    void overflowBypass_producerDoesNotBlockAndDataLandsInMaterializationStore() throws Exception {
-        IMaterializationPoint point = new InMemoryMaterializationPoint("p-overflow");
-        // Small capacity so it fills quickly.
-        ResultPartition partition = new ResultPartition(4);
+    void fam1_poolPlusMaterializationQueueFullBlocksProducerRetainsPermitExactlyOnce() throws Exception {
+        IBufferPool pool = new BufferPool(8);
+        IMaterializationPoint point = new InMemoryMaterializationPoint("p-fam1-rewrite");
+        ResultPartition partition = new ResultPartition(4, pool);
         partition.setMaterializationPoint(point);
 
-        // Fill the queue (4 elements = capacity). Each is dual-written to the
-        // materialization store at epoch 0.
+        // Fill the queue (4 elements = capacity), each dual-written to the store.
         for (int i = 0; i < 4; i++) {
             partition.write(new StreamRecord<>("fill-" + i));
         }
         assertEquals(0, partition.getAvailableCapacity(), "Queue should be full");
         assertEquals(4, point.size(), "Fill elements dual-written to materialization store");
+        assertEquals(4, pool.getGlobalUsage(), "fill elements hold their permits");
 
-        // Now write 10 MORE elements in a separate thread. Without overflow-bypass,
-        // queue.put would block forever (no consumer draining). With overflow-bypass,
-        // each write returns promptly (offer fails, data lands in the store).
+        // 10 MORE elements in a separate thread: the producer must BLOCK on the
+        // full queue (permit-retaining put) — silently completing (the old fake
+        // protection) is the defect this rewrite forbids.
         int extra = 10;
         AtomicReference<Throwable> error = new AtomicReference<>();
         CountDownLatch done = new CountDownLatch(1);
@@ -68,43 +75,62 @@ public class TestResultPartitionOverflowBypass {
             } finally {
                 done.countDown();
             }
-        });
+        }, "fam1-producer");
         producer.start();
 
-        // The producer should finish within a short bound. If write() were
-        // blocking on queue.put, this await would time out. Under heavy CPU
-        // contention (e.g. the full mvn install run) the JVM scheduler may
-        // delay the producer thread past the original 5s window, so we use a
-        // generous 30s upper bound — the test still detects true blocking
-        // (which is unbounded), only the false-positive window shrinks.
+        // Negative window: nobody drains → the producer stays blocked.
+        TestAwait.staysTrue("producer stays blocked on full materialization queue",
+                () -> done.getCount() > 0 && producer.isAlive(), 300);
+        assertTrue(producer.isAlive(),
+                "FAM-1: producer must BLOCK when the queue is full (backpressure restored)");
+        // Permit retention: 4 permits for the queued fill elements + 1 permit held
+        // by the blocked put (a single producer thread has exactly one element in
+        // flight). The old bypass released permits on queue-full — usage stayed 4.
+        assertEquals(5, pool.getGlobalUsage(),
+                "FAM-1: permits must be retained (4 queued + 1 held by the blocked put) — "
+                        + "the old bypass released them on queue-full");
+        // Store mirrors the writes issued so far (dual-write precedes the blocking
+        // put): 4 fill + the one in-flight overflow element.
+
+        // Consumer drains everything; the producer unblocks and every element
+        // reaches the consumer exactly-once, in order.
+        List<String> received = new ArrayList<>();
+        Thread consumer = new Thread(() -> {
+            try {
+                StreamElement e;
+                while ((e = partition.read(5, TimeUnit.SECONDS)) != null) {
+                    received.add(e.<String>asRecord().getValue());
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+        }, "fam1-consumer");
+        consumer.start();
+
         assertTrue(done.await(30, TimeUnit.SECONDS),
-                "Producer should NOT block when materialization is enabled (overflow-bypass)");
-        assertNull(error.get(), "Producer thread should complete without error");
+                "producer must unblock once the consumer drains (bounded backpressure, not deadlock)");
 
-        // countDown() runs in the producer's finally block, so the thread may
-        // still be finishing its exit when the latch opens. Join briefly so
-        // isAlive() below observes actual termination, not a scheduling race.
-        producer.join(TimeUnit.SECONDS.toMillis(5));
+        // Finish the partition only AFTER the producer is done — closing earlier
+        // would reject the producer's remaining writes (finished partition).
+        partition.close();
+        assertNull(error.get(), "producer must complete without error after the drain");
+        consumer.join(30_000);
+        assertFalse(consumer.isAlive(), "consumer must reach EOS");
 
-        // The producer thread must NOT be in WAITING/BLOCKED state — it exited.
-        assertFalse(producer.isAlive(), "Producer thread should have exited cleanly");
-
-        // (b) Overflow data is in the materialization store.
-        List<MaterializedElement> all = point.replayAll();
-        assertEquals(4 + extra, all.size(),
-                "All elements (fill + overflow) should be in the materialization store");
-
-        // Verify the overflow elements specifically.
-        for (int i = 0; i < extra; i++) {
-            assertEquals("overflow-" + i,
-                    all.get(4 + i).getElement().<String>asRecord().getValue(),
-                    "Overflow element " + i + " should be in the materialization store");
+        List<String> expected = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            expected.add("fill-" + i);
         }
-
-        // The main queue still has only the original 4 elements (overflow went
-        // to the store only).
-        assertEquals(4, partition.size(),
-                "Main queue should still hold only the fill elements (overflow bypassed)");
+        for (int i = 0; i < extra; i++) {
+            expected.add("overflow-" + i);
+        }
+        assertEquals(expected, received,
+                "FAM-1: every element must reach the runtime consumer exactly-once, in order "
+                        + "(zero silent store-only skipping)");
+        assertEquals(14, point.size(),
+                "FAM-1: the store mirrors all in-flight records (checkpoint-scoped "
+                        + "recovery plane, unbounded default)");
+        assertEquals(0, pool.getGlobalUsage(), "all permits released after the drain");
     }
 
     /**
@@ -145,16 +171,22 @@ public class TestResultPartitionOverflowBypass {
     }
 
     /**
-     * Epoch tagging still works correctly under overflow: overflow elements
-     * inherit the current epoch (post-barrier if a barrier preceded them).
+     * Epoch tagging (rewritten): records written after a barrier inherit the
+     * barrier's checkpoint id. With the FAM-1 fix the main queue carries every
+     * element, so this no longer depends on overflow — the epoch flow is asserted
+     * through the normal dual-write path.
      */
     @Test
-    void overflowElementsInheritCurrentEpoch() throws Exception {
+    void fam1_elementsAfterBarrierInheritCurrentEpoch() throws Exception {
         IMaterializationPoint point = new InMemoryMaterializationPoint("p-epoch");
-        ResultPartition partition = new ResultPartition(2);
+        // Capacity 8: 2 pre-records + 1 barrier + 2 post-records all flow through
+        // the main queue (FAM-1: the barrier is enqueued on the queue too, only the
+        // materialization store filters it) — no consumer drains here, so the
+        // permit-retaining blocking put requires headroom for all 5 elements.
+        ResultPartition partition = new ResultPartition(8);
         partition.setMaterializationPoint(point);
 
-        // Fill at epoch 0.
+        // Write at epoch 0.
         partition.write(new StreamRecord<>("pre-1"));
         partition.write(new StreamRecord<>("pre-2"));
 
@@ -162,14 +194,18 @@ public class TestResultPartitionOverflowBypass {
         partition.write(new io.nop.stream.core.checkpoint.CheckpointBarrier(
                 7L, System.currentTimeMillis(), io.nop.stream.core.checkpoint.CheckpointType.CHECKPOINT));
 
-        // Overflow writes should be tagged with epoch 7.
-        partition.write(new StreamRecord<>("overflow-1"));
-        partition.write(new StreamRecord<>("overflow-2"));
+        // Post-barrier writes are tagged with epoch 7.
+        partition.write(new StreamRecord<>("post-1"));
+        partition.write(new StreamRecord<>("post-2"));
 
-        // replay(epoch >= 7) returns only the overflow elements (barrier filtered).
+        // replay(epoch >= 7) returns only the post-barrier elements (barrier filtered).
         List<MaterializedElement> from7 = point.replay(7L);
-        assertEquals(2, from7.size(), "Post-barrier overflow elements tagged with epoch 7");
-        assertEquals("overflow-1", from7.get(0).getElement().<String>asRecord().getValue());
-        assertEquals("overflow-2", from7.get(1).getElement().<String>asRecord().getValue());
+        assertEquals(2, from7.size(), "Post-barrier elements tagged with epoch 7");
+        assertEquals("post-1", from7.get(0).getElement().<String>asRecord().getValue());
+        assertEquals("post-2", from7.get(1).getElement().<String>asRecord().getValue());
+
+        // All four records AND the barrier reached the runtime queue (no store-only
+        // bypass) — the queue carries control elements, the store filters them.
+        assertEquals(5, partition.size());
     }
 }

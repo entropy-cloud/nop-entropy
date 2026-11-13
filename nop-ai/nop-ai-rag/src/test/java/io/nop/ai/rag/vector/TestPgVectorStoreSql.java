@@ -4,6 +4,8 @@ import io.nop.ai.core.api.support.VectorData;
 import io.nop.ai.core.api.vectorstore.VectorQueryBean;
 import io.nop.ai.core.api.vectorstore.VectorStoreOptions;
 import io.nop.api.core.exceptions.NopException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -23,8 +25,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestPgVectorStoreSql {
 
+    // plan 2520: the C6-001 store-read E2E exercises readSearchMetadata, whose jsonb
+    // parse needs the platform JSON provider (same setup as TestPgVectorSearchRowMapping)
+    @BeforeAll
+    static void init() {
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue("nop.ioc.auto-config.enabled", "false");
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue("nop.ioc.app-beans-file.enabled", "false");
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue("nop.ioc.merged-beans-file.enabled", "false");
+        io.nop.core.initialize.CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    static void destroy() {
+        io.nop.core.initialize.CoreInitialization.destroy();
+    }
+
     private final List<String> capturedSql = new ArrayList<>();
     private final List<Object> capturedParams = new ArrayList<>();
+    // C6-001 E2E (rule 22): when enabled, fake search statements return one row
+    private boolean fakeSearchRowEnabled;
 
     private DataSource fakeDataSource() {
         InvocationHandler handler = (proxy, method, args) -> {
@@ -60,8 +79,22 @@ class TestPgVectorStoreSql {
                 return null;
             }
             if ("executeQuery".equals(method.getName())) {
+                final boolean[] consumed = {false};
                 InvocationHandler rsHandler = (p2, m2, a2) -> {
-                    if ("next".equals(m2.getName())) return false;
+                    if ("next".equals(m2.getName())) {
+                        if (fakeSearchRowEnabled && !consumed[0]) {
+                            consumed[0] = true;
+                            return true;
+                        }
+                        return false;
+                    }
+                    if ("getString".equals(m2.getName())) {
+                        int idx = (Integer) a2[0];
+                        if (idx == 1) return "[1.0,2.0]";
+                        if (idx == 2) return "ctx";
+                        if (idx == 3) return "{\"id\":\"doc1\"}";
+                        return null;
+                    }
                     return defaultReturn(m2.getReturnType());
                 };
                 return Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -204,5 +237,108 @@ class TestPgVectorStoreSql {
         double[] back = PgVectorStore.fromVectorLiteral("[1.0,2.0,3.5]");
         assertEquals(3, back.length);
         assertEquals(3.5, back[2], 1e-9);
+    }
+
+    // ---- C6-001 (plan 2520): schema-ready guard must be per-collection ----
+
+    private VectorStoreOptions opts(String collection) {
+        VectorStoreOptions options = new VectorStoreOptions();
+        options.setCollectionName(collection);
+        options.setTenantId("t1");
+        return options;
+    }
+
+    private long countCreateTableDdl() {
+        return capturedSql.stream().filter(s -> s.contains("CREATE TABLE IF NOT EXISTS")).count();
+    }
+
+    @Test
+    void schemaReadyIsPerCollectionSecondCollectionGetsOwnDdl() {
+        capturedSql.clear();
+        PgVectorStore store = newStore();
+
+        VectorData data = new VectorData();
+        data.setVector(new double[]{1.0, 2.0});
+        store.store(List.of(data), opts("docs_a"));
+
+        VectorQueryBean query = new VectorQueryBean();
+        query.setVector(new double[]{1.0, 2.0});
+        store.search(query, opts("docs_b"));
+
+        assertEquals(2, countCreateTableDdl(),
+                "C6-001: per-collection guard must issue DDL for the second collection (a store-level"
+                        + " ready flag permanently breaks every collection after the first): " + capturedSql);
+        assertTrue(capturedSql.stream().filter(s -> s.contains("CREATE TABLE IF NOT EXISTS"))
+                        .anyMatch(s -> s.contains("docs_b")),
+                "DDL for the second collection must reference its own table: " + capturedSql);
+    }
+
+    @Test
+    void singleCollectionRepeatOperationsIssueDdlOnlyOnce() {
+        capturedSql.clear();
+        PgVectorStore store = newStore();
+
+        VectorData data = new VectorData();
+        data.setVector(new double[]{1.0, 2.0});
+        store.store(List.of(data), opts());
+        store.delete(List.of("a"), opts());
+
+        assertEquals(1, countCreateTableDdl(),
+                "anti-overfix: ready-set fast path must not re-issue DDL for an already-ready collection: "
+                        + capturedSql);
+    }
+
+    @Test
+    void updateDelegatesThroughPerCollectionGuard() {
+        capturedSql.clear();
+        PgVectorStore store = newStore();
+
+        VectorData data = new VectorData();
+        data.setVector(new double[]{1.0, 2.0});
+        store.update(List.of(data), opts());
+
+        assertTrue(capturedSql.stream().anyMatch(s -> s.contains("CREATE TABLE IF NOT EXISTS")),
+                "rule 23 wiring: update delegates to store and must pass the per-collection guard: "
+                        + capturedSql);
+    }
+
+    @Test
+    void e2eStoreAndSearchAcrossTwoCollectionsBothHit() {
+        capturedSql.clear();
+        fakeSearchRowEnabled = true;
+        try {
+            PgVectorStore store = newStore();
+            VectorData data = new VectorData();
+            data.setVector(new double[]{1.0, 2.0});
+            data.addMetadata("id", "doc1");
+            store.store(List.of(data), opts("docs_a"));
+            store.store(List.of(data), opts("docs_b"));
+
+            VectorQueryBean query = new VectorQueryBean();
+            query.setVector(new double[]{1.0, 2.0});
+            List<VectorData> hitsA = store.search(query, opts("docs_a"));
+            List<VectorData> hitsB = store.search(query, opts("docs_b"));
+
+            assertEquals(1, hitsA.size(), "collection a must return its row (rule 22 store-read chain)");
+            assertEquals("doc1", hitsA.get(0).getMetadata("id"));
+            assertEquals("ctx", hitsA.get(0).getMetadata("content"));
+            assertEquals(1, hitsB.size(), "collection b must return its row: the second collection"
+                    + " must be usable, not permanently broken");
+            assertEquals("doc1", hitsB.get(0).getMetadata("id"));
+
+            assertEquals(2, countCreateTableDdl(),
+                    "per-collection guard issues one DDL per collection: " + capturedSql);
+            assertTrue(capturedSql.stream().filter(s -> s.contains("INSERT INTO"))
+                            .anyMatch(s -> s.contains("docs_a")),
+                    "upsert routed to collection a: " + capturedSql);
+            assertTrue(capturedSql.stream().filter(s -> s.contains("INSERT INTO"))
+                            .anyMatch(s -> s.contains("docs_b")),
+                    "upsert routed to collection b: " + capturedSql);
+            assertTrue(capturedSql.stream().filter(s -> s.contains("<=>"))
+                            .anyMatch(s -> s.contains("docs_b")),
+                    "search routed to collection b: " + capturedSql);
+        } finally {
+            fakeSearchRowEnabled = false;
+        }
     }
 }

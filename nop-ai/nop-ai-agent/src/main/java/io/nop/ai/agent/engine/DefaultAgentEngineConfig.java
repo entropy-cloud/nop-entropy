@@ -170,6 +170,22 @@ public class DefaultAgentEngineConfig {
      */
     private long heartBeatIntervalMs = 60_000L;
     /**
+     * Plan 2501 Phase 4 (CRA 3.1-C7-014): per tool-wait-phase budget on
+     * heartbeat wakeup turns. Each slice-expiry wakeup is a full-context LLM
+     * call whose WAIT verdict permanently appended heartbeat/reply fragments
+     * to the session history — without a budget the LLM cost grows (super)
+     * linearly with the wait duration (~240 calls over a 4h cap) and a
+     * disabled mechanical cap turned a hung tool into an unbounded spend
+     * until force-stop. Once a wait phase has issued this many wakeup turns
+     * the loop degrades to pure mechanical waiting (deadline / cancel /
+     * pause / forceStop / steering all stay live; an INFO marker is logged
+     * once at the transition). {@code <= 0} disables wakeup turns entirely
+     * (pure mechanical wait; queued steering is still processed). Note:
+     * non-positive values are ACCEPTED here (budget/disable semantics, not
+     * validation failure) — same convention as {@link #heartBeatIntervalMs}.
+     */
+    private int maxHeartbeatTurns = 20;
+    /**
      * Plan 2285 (WI4) toolTimeoutPolicy (design §三.5 layer 2): key = exact
      * tool name, tool tag, or "*" global cap; value = per-tool mechanical
      * timeout cap in millis. Empty = every tool uses {@link #toolTimeoutMs}.
@@ -1023,6 +1039,11 @@ public class DefaultAgentEngineConfig {
     public long getHeartBeatIntervalMs() { return heartBeatIntervalMs; }
     public void setHeartBeatIntervalMs(long heartBeatIntervalMs) {
         this.heartBeatIntervalMs = heartBeatIntervalMs;
+    }
+
+    public int getMaxHeartbeatTurns() { return maxHeartbeatTurns; }
+    public void setMaxHeartbeatTurns(int maxHeartbeatTurns) {
+        this.maxHeartbeatTurns = maxHeartbeatTurns;
     }
 
     public java.util.Map<String, Long> getToolTimeoutPolicy() { return toolTimeoutPolicy; }

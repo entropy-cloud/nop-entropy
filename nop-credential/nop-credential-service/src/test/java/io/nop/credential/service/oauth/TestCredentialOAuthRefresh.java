@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -96,6 +97,13 @@ public class TestCredentialOAuthRefresh extends JunitBaseTestCase {
                     + "\"token_type\":\"Bearer\",\"scope\":\"read write\"}";
     private volatile int refreshResponseStatus = 200;
 
+    /**
+     * W3（5.1-I-01）请求级超时覆盖注入（-1 = 不覆盖，读配置缺省）。
+     */
+    private volatile int requestTimeoutMillisOverride = -1;
+
+    private OAuthTokenClient tokenClient;
+
     private CredentialProviderImpl provider;
 
     @BeforeEach
@@ -103,6 +111,16 @@ public class TestCredentialOAuthRefresh extends JunitBaseTestCase {
         stubServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         stubServer.createContext("/token", exchange -> {
             refreshCallCount.incrementAndGet();
+            if ("__HANG__".equals(refreshResponseBody)) {
+                // W3（plan 2569）挂起形态：模拟 IdP 无响应（超时由客户端请求级配置约束）
+                try {
+                    Thread.sleep(5_000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                respond(exchange, 200, "{}");
+                return;
+            }
             respond(exchange, refreshResponseStatus, refreshResponseBody);
         });
         stubServer.start();
@@ -113,8 +131,11 @@ public class TestCredentialOAuthRefresh extends JunitBaseTestCase {
         provider.setCredentialTypeRegistry(newDynamicRegistry());
         provider.setOrmTemplate(ormTemplate);
         provider.setTxnTemplate(txnTemplate);
-        OAuthTokenClient tokenClient = new OAuthTokenClient();
+        tokenClient = new OAuthTokenClient();
         tokenClient.setHttpClient(httpClient);
+        if (requestTimeoutMillisOverride >= 0) {
+            tokenClient.setRequestTimeoutMillis(requestTimeoutMillisOverride);
+        }
         provider.setOauthTokenClient(tokenClient);
     }
 
@@ -251,20 +272,90 @@ public class TestCredentialOAuthRefresh extends JunitBaseTestCase {
         assertEquals(0, refreshCallCount.get(), "non-nearing credential must not trigger refresh");
     }
 
+    /**
+     * C10-007 反向钉改写（5.1-I-02，plan 2569 同 diff 前置）：原单用例钉死
+     * 「invalid_grant → REFRESH_FAILED」，改拆两用例 + 补偿用例——
+     * ① invalid_grant → REAUTH_REQUIRED（重新授权信号归一）；
+     * ② 暂态失败（5xx）→ REFRESH_FAILED 且 data 不变（fail-closed 契约保留面）。
+     */
     @Test
-    public void refreshFailureFailsClosed() {
+    public void invalidGrantMapsToReauthRequired() {
         long expiresIn60s = System.currentTimeMillis() + 60_000;
-        String id = saveOauth2Credential("cred-refresh-fail", expiresIn60s, "rt-old");
+        String id = saveOauth2Credential("cred-refresh-invalid-grant", expiresIn60s, "rt-old");
         refreshResponseBody = "{\"error\":\"invalid_grant\"}";
         refreshResponseStatus = 400;
 
         NopException ex = assertThrows(NopException.class, () -> provider.getCredential(id));
-        assertEquals("nop.err.credential.oauth-refresh-failed", ex.getErrorCode(),
-                "refresh failure must fail-closed (no silent stale token)");
+        assertEquals("nop.err.credential.oauth-reauth-required", ex.getErrorCode(),
+                "invalid_grant must normalize to reauth-required (rotated token consumed)");
 
         // data 不变（旧 token 未被破坏）
         Map<String, Object> stored = decryptData(id);
         assertEquals("at-old", stored.get("accessToken"));
+    }
+
+    @Test
+    public void transientRefreshFailureFailsClosedWithDataUnchanged() {
+        long expiresIn60s = System.currentTimeMillis() + 60_000;
+        String id = saveOauth2Credential("cred-refresh-transient", expiresIn60s, "rt-old");
+        refreshResponseBody = "{\"error\":\"server_error\",\"error_description\":\"upstream 5xx\"}";
+        refreshResponseStatus = 500;
+
+        NopException ex = assertThrows(NopException.class, () -> provider.getCredential(id));
+        assertEquals("nop.err.credential.oauth-refresh-failed", ex.getErrorCode(),
+                "transient failure must stay fail-closed (no silent stale token)");
+
+        // data 不变（旧 token 未被破坏）
+        Map<String, Object> stored = decryptData(id);
+        assertEquals("at-old", stored.get("accessToken"));
+        assertEquals("rt-old", stored.get("refreshToken"));
+    }
+
+    @Test
+    public void fetchTokenHonoursRequestLevelTimeout() throws Exception {
+        // W3（5.1-I-01）：挂起 IdP + 300ms 请求级超时 → 在 3s deadline 内以
+        // TOKEN_EXCHANGE_FAILED 失败（旧代码无 setTimeout：阻塞 5s，deadline 断言红）
+        tokenClient.setRequestTimeoutMillis(300);
+        String endpoint = "http://127.0.0.1:" + stubServer.getAddress().getPort() + "/token";
+        refreshResponseBody = "__HANG__";
+
+        CompletableFuture<NopException> failure = new CompletableFuture<>();
+        Thread t = new Thread(() -> {
+            try {
+                tokenClient.refresh(endpoint, "cid", "csecret", "rt-old");
+                failure.complete(null);
+            } catch (NopException e) {
+                failure.complete(e);
+            }
+        });
+        long start = System.currentTimeMillis();
+        t.start();
+        NopException ex = failure.get(3, java.util.concurrent.TimeUnit.SECONDS);
+        long elapsed = System.currentTimeMillis() - start;
+        assertNotNull(ex, "hanging IdP must fail within deadline");
+        assertEquals("nop.err.credential.oauth-token-exchange-failed", ex.getErrorCode());
+        assertTrue(elapsed < 2_000, "timeout must fire near 300ms config, took " + elapsed + "ms");
+        t.join(1_000);
+    }
+
+    @Test
+    public void compensateTokenFieldsPersistsCapturedTokens() {
+        // 补偿通道 focused 用例（R1-Major-5 seam 直驱）：captured token 字段子集经
+        // 独立事务合并持久化
+        long expiresIn60s = System.currentTimeMillis() + 60_000;
+        String id = saveOauth2Credential("cred-compensate", expiresIn60s, "rt-old");
+
+        Map<String, Object> captured = new LinkedHashMap<>();
+        captured.put("accessToken", "at-compensated");
+        captured.put("refreshToken", "rt-compensated");
+        captured.put("expiresAt", System.currentTimeMillis() + 7_200_000);
+        provider.compensateTokenFields(id, captured);
+
+        Map<String, Object> stored = decryptData(id);
+        assertEquals("at-compensated", stored.get("accessToken"),
+                "compensation must persist captured access token");
+        assertEquals("rt-compensated", stored.get("refreshToken"),
+                "compensation must persist captured refresh token");
     }
 
     @Test

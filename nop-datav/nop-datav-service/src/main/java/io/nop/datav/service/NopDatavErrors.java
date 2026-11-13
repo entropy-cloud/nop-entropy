@@ -358,6 +358,12 @@ public interface NopDatavErrors {
             ARG_ROW_COUNT, ARG_MAX_ROWS
     );
 
+    ErrorCode ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED = define(
+            "nop.err.datav.query-row-limit-exceeded",
+            "面板查询行数 {rowCount} 超过上限 {maxRows}",
+            ARG_ROW_COUNT, ARG_MAX_ROWS
+    );
+
     ErrorCode ERR_DATAV_EXPORT_CONCURRENCY_LIMIT = define(
             "nop.err.datav.export-concurrency-limit",
             "并发导出任务数 {currentConcurrent} 超过上限 {maxConcurrent}",

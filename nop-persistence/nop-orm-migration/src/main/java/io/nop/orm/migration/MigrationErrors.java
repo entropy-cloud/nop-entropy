@@ -42,6 +42,10 @@ public interface MigrationErrors {
     String ARG_MISMATCH_COUNT = "mismatchCount";
     String ARG_MISMATCH_DETAIL = "mismatchDetail";
     String ARG_CONNECTOR_TYPE = "connectorType";
+    String ARG_EXPECTED_PHASE = "expectedPhase";
+    String ARG_ACTUAL_PHASE = "actualPhase";
+    String ARG_SEED_TABLES = "seedTables";
+    String ARG_TABLE_INCLUDE_LIST = "tableIncludeList";
 
     /**
      * 编排配置解析/校验失败（缺实体、缺目标策略、场景与字段矛盾、坏 JSON、未知写门取值等）。
@@ -132,4 +136,28 @@ public interface MigrationErrors {
      */
     ErrorCode ERR_MIG_FULL_COPY_FAILED = define(PREFIX + "full-copy-failed",
             "数据搬迁全量复制失败:{reason}", ARG_REASON);
+
+    /**
+     * 状态行并发写 fencing 拒绝（plan 2518 裁定⑤：UPDATE 期望相位谓词失败且二次 load 判定为
+     * 跨进程并发写——期望相位与实际相位不一致，第二写显式失败，绝不静默覆盖）。
+     */
+    ErrorCode ERR_MIG_JOB_STATE_FENCING = define(PREFIX + "job-state-fencing",
+            "数据搬迁作业[{jobId}]状态行并发写被拒绝(fencing):期望相位[{expectedPhase}],实际相位[{actualPhase}]",
+            ARG_JOB_ID, ARG_EXPECTED_PHASE, ARG_ACTUAL_PHASE);
+
+    /**
+     * 增量链作业同名句柄冲突（plan 2518 裁定⑦：runningJobs putIfAbsent fail-fast——
+     * 同 jobName 重入显式拒绝，禁静默顶替旧句柄）。
+     */
+    ErrorCode ERR_MIG_CHAIN_JOB_CONFLICT = define(PREFIX + "chain-job-conflict",
+            "数据搬迁作业[{jobId}]增量链同名句柄已存在,拒绝重入:{reason}", ARG_JOB_ID, ARG_REASON);
+
+    /**
+     * 位点三方对齐 fail-fast（plan 2554 裁定 J，C3-012）：seed 覆盖的源表集与 CDC 订阅清单
+     * （tableIncludeList）不对齐——错位 seed 被静默订阅缺口吞掉增量事件，显式类型化失败。
+     */
+    ErrorCode ERR_MIG_SEED_TABLE_MISALIGNED = define(PREFIX + "seed-table-misaligned",
+            "数据搬迁作业[{jobId}]位点种子源表集与CDC订阅清单不对齐(三方对齐fail-fast):"
+                    + "seedTables={seedTables},tableIncludeList={tableIncludeList}",
+            ARG_JOB_ID, ARG_SEED_TABLES, ARG_TABLE_INCLUDE_LIST);
 }

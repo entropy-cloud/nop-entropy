@@ -19,8 +19,12 @@ import io.nop.batch.core.impl.BatchTaskContextImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.source.SourceReader;
 import io.nop.stream.core.source.SourceReaderContext;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
 /**
  * WI2 (plan 2343 Phase 1): FLIP-27 reader of the batch-loader source — an incremental
@@ -218,15 +222,25 @@ public class BatchLoaderSourceReader<S> implements SourceReader<S, BatchLoaderSp
     }
 
     @Override
-    public void close() {
+    public void close() throws Exception {
         closed = true;
         finished = true;
-        if (loader instanceof AutoCloseable) {
-            try {
+        try {
+            if (loader instanceof AutoCloseable) {
                 ((AutoCloseable) loader).close();
-            } catch (Exception e) {
-                LOG.warn("Failed to close the batch loader during reader close", e);
             }
+        } catch (Exception e) {
+            // CRA 8.44 R4-04 W-05 face③ (adjudication C.5): close() is the terminal
+            // cleanup face — a loader close failure must surface typed (leak visible,
+            // recovery path engaged), never WARN-swallowed (the pre-fix shape closed
+            // "normally" while the loader's resources leaked silently). Same family
+            // discipline as BatchConsumerSinkFunction.close flush failures. The loader
+            // reference is nulled BEFORE the failure propagates so the terminal object
+            // state stays consistent.
+            loader = null;
+            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to close the batch loader during reader close; "
+                            + "loader resources may leak");
         }
         loader = null;
     }

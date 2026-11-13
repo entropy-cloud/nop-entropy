@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -76,9 +77,21 @@ public class SequentialTaskExecutor implements Executor, ISuspendable, IBlocking
         queue.clear();
     }
 
+    /**
+     * 1.7-C3-008（plan 2547 裁定 E）：原实现忽略 {@code queue.offer} 的返回值——队列满时任务被
+     * **静默丢弃**，overflow 策略对 execute 路径不生效。改为显式拒绝（fail-loud）。
+     * <p>
+     * 说明：本方法当前**零生产调用方**（唯一消费方 WebSocketSendPump 自行 offer 并处理 false），
+     * 此修复是为契约正确性与未来调用方兜底。
+     */
     @Override
     public void execute(Runnable command) {
-        queue.offer(command);
+        if (!queue.offer(command)) {
+            LOG.warn("nop.seq-executor.task-rejected:queueSize={},command={}",
+                    queue.size(), command.getClass().getName());
+            throw new RejectedExecutionException("sequential task queue is full: "
+                    + command.getClass().getName());
+        }
         onMessageQueued();
     }
 

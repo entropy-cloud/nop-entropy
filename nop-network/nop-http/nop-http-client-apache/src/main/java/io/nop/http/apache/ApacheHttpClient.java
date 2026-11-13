@@ -131,6 +131,14 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
             FutureHelper.bindCancelToken(cancelToken, reason -> future.cancel(false), promise);
         }
 
+        // C6-006 (plan 2523)：promise 终态→底层取消桥接——promise.cancel 与 HC5 future.cancel()
+        // 是两个对象，返回 future 被取消（如 sidecar get 超时）时经桥触达 HC5 传输层
+        promise.whenComplete((r, e) -> {
+            if (promise.isCancelled()) {
+                future.cancel(false);
+            }
+        });
+
         return promise;
     }
 
@@ -368,18 +376,28 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
      * 探测同目录 sidecar 校验文件：{url}.sha256 → {url}.sha1，取到则返回其文本内容
      */
     private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
-        for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
-            try {
-                IHttpResponse res = fetchAsync(HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
-                        .toCompletableFuture().get(30, TimeUnit.SECONDS);
-                if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
-                    return res.getBodyAsString();
-            } catch (Exception e) {
-                // sidecar 探测失败不阻断下载
-                LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+        // C3-004（plan 2523）：sidecar 探测整体移出 reactor 回调线程——嵌套同步 get(30s)×2
+        // 复用同一 client 会占死回调线程（ioThreadCount=1 配置面即全连接停摆，CL-021）
+        // 卸载任务 60s 有界（get 30s×2 超时内终结），join 等价于原 get 语义且已在 worker 线程
+        return io.nop.commons.concurrent.executor.GlobalExecutors.globalWorker()
+                .<String>submit(() -> {
+            for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
+                java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(
+                        HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
+                        .toCompletableFuture();
+                try {
+                    IHttpResponse res = future.get(30, TimeUnit.SECONDS);
+                    if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
+                        return res.getBodyAsString();
+                } catch (Exception e) {
+                    // C6-006：get 超时取消在途请求——经 promise→HC5 future 桥触达底层；
+                    // sidecar 探测失败不阻断下载
+                    future.cancel(false);
+                    LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+                }
             }
-        }
-        return null;
+            return null;
+        }).join();
     }
 
     private static HttpRequest copyRequest(HttpRequest request) {
@@ -484,7 +502,11 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
     private CompletionStage<IHttpResponse> uploadByBase64Form(HttpRequest request, IHttpInputFile inputFile,
                                                               UploadOptions options, ICancelToken cancelToken) throws IOException {
         String fileName = inputFile.getName();
-        byte[] content = IoHelper.readBytes(inputFile.getInputStream());
+        // C6-005 (plan 2522): the input stream must be closed — IoHelper.readBytes never closes
+        byte[] content;
+        try (java.io.InputStream in = inputFile.getInputStream()) {
+            content = IoHelper.readBytes(in);
+        }
         String base64 = java.util.Base64.getEncoder().encodeToString(content);
 
         org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder builder =

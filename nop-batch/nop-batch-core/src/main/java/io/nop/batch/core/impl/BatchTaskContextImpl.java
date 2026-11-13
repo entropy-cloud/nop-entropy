@@ -47,6 +47,9 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private IntRangeSet partitionRange;
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
+
+    /** 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门。 */
+    private Boolean allowRestartIfKilled;
     private Boolean allowStartIfComplete;
     private int startLimit;
     private String flowStepId;
@@ -67,7 +70,13 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private volatile long completedIndex;
 
     private List<Runnable> onTaskBegins;
-    private List<Consumer<Throwable>> onTaskEnds;
+
+    /**
+     * 1.7-C1-003（plan 2545 W-03）：swap-on-fire 载体的「已触发」标记——注册端守卫必须区分
+     * 「已完成」与「已触发」。原守卫只看 isDone()，导致 fire 之后、done 之前注册的回调被接受
+     * 却永不触发（静默丢弃）。标记为 true 时注册端显式失败（与 isDone 同型响亮）。
+     */
+    private boolean taskBeginFired;
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
@@ -226,6 +235,16 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public Boolean getAllowStartIfComplete() {
         return allowStartIfComplete;
+    }
+
+    @Override
+    public Boolean getAllowRestartIfKilled() {
+        return allowRestartIfKilled;
+    }
+
+    @Override
+    public void setAllowRestartIfKilled(Boolean allowRestartIfKilled) {
+        this.allowRestartIfKilled = allowRestartIfKilled;
     }
 
     @Override
@@ -394,6 +413,11 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
             }
+            // 1.7-C1-003（plan 2545 W-03）：fire 之后注册必然永不触发——显式失败，
+            // 不再静默接受后丢弃（资源清理回调不对称是 F8 关联面）
+            if (taskBeginFired) {
+                throw new IllegalStateException("nop.err.execution-task-begin-already-fired");
+            }
 
             if (this.onTaskBegins == null)
                 this.onTaskBegins = new ArrayList<>();
@@ -519,8 +543,8 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
         List<Runnable> callbacks;
         synchronized (this) {
             callbacks = this.onTaskBegins;
-            if (callbacks != null)
-                this.onTaskBegins = null;
+            this.onTaskBegins = null;
+            this.taskBeginFired = true;
         }
         if (callbacks != null) {
             for (Runnable callback : callbacks) {

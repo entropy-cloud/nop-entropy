@@ -17,6 +17,7 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.authority.AuthorityException;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import com.alibaba.csp.sentinel.slots.system.SystemBlockException;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
@@ -25,7 +26,11 @@ import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import static io.nop.rpc.api.RpcErrors.ARG_LIMIT_TYPE;
@@ -41,6 +46,21 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
 
     static final Object[] EMPTY_ARGS = new Object[0];
 
+    /**
+     * 4.2-MA-05（plan 2559 裁定 B / C3-007）：异步包络兜底超时——底层 task stage 永不完成时
+     * entry 永不 exit（泄漏面）。超时经模块配置约定键注入，<=0 关闭兜底（不推荐）。
+     */
+    @InjectValue("@cfg:nop.cluster.sentinel.task-timeout-ms|60000")
+    protected long taskTimeoutMillis = 60000;
+
+    public long getTaskTimeoutMillis() {
+        return taskTimeoutMillis;
+    }
+
+    public void setTaskTimeoutMillis(long taskTimeoutMillis) {
+        this.taskTimeoutMillis = taskTimeoutMillis;
+    }
+
     @Override
     public <T> CompletionStage<T> runAsync(FlowControlEntry entry,
                                            Supplier<CompletionStage<T>> task) {
@@ -53,7 +73,8 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
 
         Object[] args = StringHelper.isEmpty(entry.getBizKey()) ? EMPTY_ARGS : new String[]{entry.getBizKey()};
 
-        boolean proceedCalled = false;
+        // 是否已进入异步段（异步段的 exit/trace 由 whenComplete + orTimeout 兜底负责）
+        boolean asyncPhase = false;
 
         int resourceType = getResourceType(entry);
 
@@ -64,35 +85,65 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
                     entryType, 1, args);
 
             // 被保护的业务逻辑
-            CompletionStage<T> ret = task.get();
-            proceedCalled = true;
+            // 4.2-MA-05（plan 2559 裁定 B / C3-008）：同步段异常（含 task supplier 同步抛出）
+            // 统一包络为 failed future（FutureHelper.reject），不再裸抛打断调用方异步链。
+            CompletionStage<T> ret;
+            try {
+                ret = task.get();
+            } catch (Throwable e) {
+                // 降级规则需要记录失败次数（C8-008：与 stage 异常完成路径统计对称）
+                Tracer.traceEntry(e, serviceEntry);
+                return FutureHelper.reject(e);
+            }
+            asyncPhase = true;
 
             Entry serviceEntryArg = serviceEntry;
-            return ret.whenComplete((r, e) -> {
+            // C8-008（plan 2559 裁定 B）：统一单次 exit——成功/异常完成在此退出；
+            // orTimeout 兜底路径在下方超时回调退出（exit-once 守护防双重 exit）。
+            AtomicBoolean exited = new AtomicBoolean();
+            CompletableFuture<T> promise = new CompletableFuture<>();
+            ret.whenComplete((r, e) -> {
                 if (e != null) {
                     // 降级规则需要记录失败次数
-                    if (serviceEntryArg != null)
-                        Tracer.traceEntry(e, serviceEntryArg);
+                    Tracer.traceEntry(e, serviceEntryArg);
                 }
-                // 务必保证 exit，务必保证每个 entry 与 exit 配对
-                if (serviceEntryArg != null) {
+                if (exited.compareAndSet(false, true)) {
+                    // 务必保证 exit，务必保证每个 entry 与 exit 配对
                     serviceEntryArg.exit(1, args);
                 }
+                FutureHelper.complete(promise, r, e);
             });
+
+            // C3-007（plan 2559 裁定 B）：orTimeout 兜底 exit——task stage 永不完成时
+            // 上方 whenComplete 永不触发，entry 泄漏；超时后兜底完成 returned future
+            // 并退出 entry。超时时长经 nop.cluster.sentinel.task-timeout-ms 配置。
+            long timeout = taskTimeoutMillis;
+            if (timeout > 0) {
+                promise.<T>orTimeout(timeout, TimeUnit.MILLISECONDS).whenComplete((r, e) -> {
+                    if (e instanceof TimeoutException) {
+                        LOG.warn("nop.rpc.flow-control.task-timeout:contextName={},resourceName={},bizKey={},timeoutMs={}",
+                                entry.getContextName(), entry.getResource(), entry.getBizKey(), timeout);
+                        if (exited.compareAndSet(false, true)) {
+                            serviceEntryArg.exit(1, args);
+                        }
+                    }
+                });
+            }
+            return promise;
 
         } catch (BlockException ex) {
             LOG.warn("nop.rpc.flow-control.block:contextName={},resourceName={},bizKey={}",
                     entry.getContextName(), entry.getResource(), entry.getBizKey());
             return FutureHelper.reject(newError(ex));
         } finally {
-            if (!proceedCalled) {
+            if (!asyncPhase) {
                 // 务必保证 exit，务必保证每个 entry 与 exit 配对
                 if (serviceEntry != null) {
                     serviceEntry.exit(1, args);
                 }
             }
             // P1-4.4-C3（plan 2395）：ContextUtil.enter/exit 必须无条件配对——成功路径
-            // proceedCalled=true 时此前的有条件 exit 永不执行，发起线程 context 栈持续
+            // 此前的有条件 exit 永不执行，发起线程 context 栈持续
             // 增长（泄漏）。entry 的 exit 已在 whenComplete（成功）或上方（失败）配对；
             // context 属发起线程，须在本方法同步段内退出（对齐同步版 run() 的 finally 形态）。
             ContextUtil.exit();

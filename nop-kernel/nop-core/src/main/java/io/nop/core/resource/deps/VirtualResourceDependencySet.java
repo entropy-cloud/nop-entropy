@@ -25,6 +25,9 @@ public class VirtualResourceDependencySet extends ResourceDependencySet {
 
     static class MockReference implements IResourceReference {
         private final String path;
+        // R4-32（C7-004，plan 2566 [R1-M1]）：本值为 mtime 域替身（IResourceReference.lastModified
+        // 契约要求 epoch 毫秒，供 DefaultResourceChangeChecker mtime 相等比较消费），属绝对域，
+        // 从单调时钟换源清单剔除，保持墙钟取值不改
         private final long lastModified = CoreMetrics.currentTimeMillis();
 
         public MockReference(String path) {

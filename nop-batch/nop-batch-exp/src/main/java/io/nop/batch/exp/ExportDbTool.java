@@ -133,7 +133,8 @@ public class ExportDbTool {
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
-        syncConfigWithDb();
+        // 1.7-C8-010（plan 2546 W-11）：线程占用上界校验（纯静态，无 DB；资源段之前）
+        DbToolConcurrencyValidator.validateExportExecutorConfig(config);
 
         if (stateFile != null) {
             stateStore = new EtlTaskStateStore(stateFile);
@@ -143,22 +144,28 @@ public class ExportDbTool {
             }
         }
 
-        this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
-
-        IThreadPoolExecutor executor;
-        if (config.getThreadCount() > 1) {
-            executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), Integer.MAX_VALUE);
-        } else {
-            executor = SyncThreadPoolExecutor.INSTANCE;
-        }
-
-        IEvalScope scope = XLang.newEvalScope();
-
-        if (config.getBeforeExport() != null) {
-            config.getBeforeExport().invoke(scope);
-        }
-
+        // 1.7-C6-003（plan 2545 W-07；closure audit m-4 修正）：executor 创建、syncConfigWithDb 与
+        // beforeExport 全部纳入 try——原实现 try 之外（syncConfigWithDb 在 :137）时抛出即 destroy 不可达
+        // （executor 被 GlobalMeterRegistry 强引用滞留）。owner doc「全部纳入 try」的表述与本处对齐。
+        IThreadPoolExecutor executor = null;
         try {
+            syncConfigWithDb();
+
+            this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
+
+            if (config.getThreadCount() > 1) {
+                // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
+                executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), 10000);
+            } else {
+                executor = SyncThreadPoolExecutor.INSTANCE;
+            }
+
+            IEvalScope scope = XLang.newEvalScope();
+
+            if (config.getBeforeExport() != null) {
+                config.getBeforeExport().invoke(scope);
+            }
+
             List<CompletableFuture<?>> futures = new ArrayList<>();
 
             for (ExportTableConfig tableConfig : config.getTables()) {
@@ -184,9 +191,15 @@ public class ExportDbTool {
             if (stateStore != null)
                 stateStore.complete();
         } finally {
-            executor.destroy();
+            if (executor != null) {
+                // 1.7-C6-004（plan 2545 W-09）：destroy=shutdown 不等待，失败路径返回后兄弟表任务
+                // 仍在后台续写输出与状态文件
+                executor.destroy();
+                DbToolTerminationHelper.waitTerminated(executor, "nop.export-db.executor-terminate-timeout");
+            }
         }
     }
+
 
     private boolean isExportable(ExportTableConfig tableConfig) {
         if (config.getCheckExportable() == null)
@@ -274,7 +287,11 @@ public class ExportDbTool {
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.taskName(tableConfig.getName());
         builder.loader(newLoader(tableConfig, ds));
-        builder.batchSize(config.getBatchSize());
+        // C8-002（plan 2516 裁定③）：复制 ImportDbTool 的 >0 守卫（守卫对称，消除不对称）。
+        // 缺省 batchSize=0 直传会被 BatchChunkProcessor 静默钳位到 1，导致每行一 chunk 写放大
+        // （吞吐塌缩 + 日志/状态写放大）；守卫落缺省后使用 builder 缺省 batchSize=100。
+        if (config.getBatchSize() > 0)
+            builder.batchSize(config.getBatchSize());
         builder.processor(newProcessor(tableConfig));
         builder.consumer(newConsumer(tableConfig));
 

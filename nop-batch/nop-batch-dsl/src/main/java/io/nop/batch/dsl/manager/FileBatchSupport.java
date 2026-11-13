@@ -147,8 +147,12 @@ public class FileBatchSupport {
         loader.setResourceLocator(VirtualFileSystem.instance());
         loader.setSaveState(Boolean.TRUE.equals(saveState));
 
-//        if (loaderModel.getMaxCountExpr() != null)
-//            loader.setMaxCountExpr(loaderModel.getMaxCountExpr());
+        // C5-001（plan 2516 裁定④，零 nop-report 触碰包络分支）：恢复 maxCountExpr 接线
+        // （1.7-C5-006 能力缺位主体顺带闭合）。行为变更：已配置 maxCount 的链路从全量读取变为截断读取
+        // （超出 maxCount 的条目不再进入处理）。excel-reader 全 sheet 物化形态不变——规模上限声明归
+        // owner doc（物化面残留为 R-G watch-only，大数据量须走 csv/jdbc-reader 或显式 maxCount）。
+        if (loaderModel.getMaxCountExpr() != null)
+            loader.setMaxCountExpr(loaderModel.getMaxCountExpr());
         loader.setPathExpr(loaderModel.getFilePath());
         loader.setAggregator(aggregator);
         if (loaderModel.getFilter() != null) {

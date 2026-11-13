@@ -111,7 +111,8 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     private final MetaAggregationExecutor aggregationExecutor = new MetaAggregationExecutor(joinExecutor);
     private final NopMetaEntityQueryAction queryAction = new NopMetaEntityQueryAction();
 
-    private TableReferenceExecutor tableRefExecutor;
+    // W-04（plan 2528 裁定③）：懒初始化实例字段 volatile 安全发布（R23 族先例——可见性缺口闭合；check-then-act 重复构造为良性竞态）
+    private volatile TableReferenceExecutor tableRefExecutor;
 
     /** M3：方法执行器（惰性构造，依赖 connectionService + tableRefExecutor）。 */
     private MetaMethodExecutor methodExecutor;
@@ -717,8 +718,15 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     }
 
     /**
-     * 归一化 queryJoinData / queryAggregation 的 limit（AR-09）：负值显式拒绝；
-     * null/0 → 缺省值；正值原样透传，超大值由截断层显式拒绝（分析/分页入口语义，保持原裁定）。
+     * 归一化 queryJoinData / queryAggregation 的 limit（AR-09 + W-10，plan 2528 裁定⑧）：负值显式拒绝；
+     * null/0 → 缺省值；正值超过有效上限显式抛 {@code ERR_PAGINATION_LIMIT_TOO_LARGE}（param
+     * {@code limit}——跨库 merge 截断层 {@code AggregationHelper.truncateCrossDb} 同码先例），
+     * <b>不静默截断</b>（分析入口语义：显式拒绝非伪造截断）。有效上限 = {@code configuredMaxQueryLimit}
+     * （{@code nop.metadata.query.max-limit}，>0 时）否则 {@link #DEFAULT_MAX_QUERY_LIMIT}——与
+     * {@link #normalizeQueryLimit} 同一上限来源；本单点归一覆盖 {@code queryJoinData} 与
+     * {@code queryAggregation} 两个公开入口（同一消费点覆盖）。同库 JOIN 路径
+     * （MetaJoinExecutor appendLimitOffset/collectRows 与 executeJdbcQuery）无任何行数闸——
+     * 超界输入在本入口即被拒绝，与跨库路径 maxCrossDbRows 双 fail-fast 闸对称。
      */
     private Long normalizeJoinQueryLimit(Long limit) {
         if (limit != null && limit < 0) {
@@ -727,6 +735,12 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         }
         if (limit == null || limit == 0) {
             return (long) DEFAULT_QUERY_LIMIT;
+        }
+        long max = configuredMaxQueryLimit > 0 ? configuredMaxQueryLimit : DEFAULT_MAX_QUERY_LIMIT;
+        if (limit > max) {
+            // W-10（裁定⑧）：同库路径独立行数硬闸——入口显式拒绝（第三案），非静默封顶/截断
+            throw new NopMetadataException(NopMetadataErrors.ERR_PAGINATION_LIMIT_TOO_LARGE)
+                    .param(NopMetadataErrors.ARG_LIMIT, limit);
         }
         return limit;
     }

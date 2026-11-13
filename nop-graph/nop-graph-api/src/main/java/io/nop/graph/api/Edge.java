@@ -12,6 +12,14 @@ import java.util.Objects;
  *
  * attrs 是 mutable 的，允许适配层在构造后注入领域属性。
  *
+ * 可见性契约（5.6-W-06，plan 2529 裁定④）：attrs 以 volatile 承载，构造后
+ * {@code setAttrs} 的发布对并发读取线程可见（读方经 {@code getAttrs} 观察到新引用或
+ * 未发布时的空 map，不会观察到中间态引用）。
+ *
+ * 契约范围显式收窄：volatile 只保证 attrs 引用本身的发布可见性，不保护已发布
+ * map 内容的并发改写——构造完成后调用方不得并发改写已发布的 map（或自行使用
+ * 并发 Map）。其余字段全 final，值语义（equals/hashCode 不读 attrs）不受影响。
+ *
  * 相等性基于 sourceId/targetId/weight/type（值语义），attrs 不参与，
  * 因此跨图实例的相同逻辑边可以正确用于集合运算（如 GraphDiffer）。
  */
@@ -20,7 +28,7 @@ public class Edge {
     private final String targetId;
     private final double weight;
     private final String type;
-    private Map<String, Object> attrs;
+    private volatile Map<String, Object> attrs;
 
     public Edge(String sourceId, String targetId) {
         this(sourceId, targetId, 1.0, null);

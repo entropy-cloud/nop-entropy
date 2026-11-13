@@ -9,4 +9,9 @@
     <bean id="nopDaoBatchStateStore" class="io.nop.batch.dao.store.DaoBatchStateStore"/>
 
     <bean id="nopDaoBatchHistoryStoreBuilder" class="io.nop.batch.dao.history.DaoBatchHistoryStoreBuilder"/>
+
+    <!-- 1.7-C7-003（plan 2502）：batch 三账本表保留期周期清理（形态 A）。生命周期接线 =
+         容器创建单例 bean → LifeCycleSupport @PostConstruct start() → doStart 调度；
+         nop.batch.ledger.retention-days=0 可显式禁用调度 -->
+    <bean id="nopDaoBatchLedgerCleaner" class="io.nop.batch.dao.cleanup.DaoBatchLedgerCleaner"/>
 </beans>

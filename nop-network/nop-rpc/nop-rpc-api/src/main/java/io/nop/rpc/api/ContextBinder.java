@@ -24,10 +24,17 @@ public class ContextBinder {
 
     public ContextBinder() {
         IContext context = ContextProvider.currentContext();
+        // 4.3-C3-007：isClosed 残留强制替换（与 getOrCreateContext 既有 isClosed 检查对称的守卫，
+        // 消费裁定③平台根因半边的 nop-rpc-api 止血面）——命中已关闭残留不复用、不复初始化
+        // （created=false 不复初始化使请求头无法落盘的缺陷面随之闭合），按无 context 新建处理。
+        // open context 复用语义不变（HTTP filter 链入口的既有附着不被二次建 context 分叉）。
+        if (context != null && context.isClosed()) {
+            context = null;
+        }
         if (context == null) {
             this.context = ContextProvider.newContext();
             created = true;
-        }else{
+        } else {
             this.context = context;
             created = false;
         }

@@ -40,6 +40,10 @@
 | F9 | **静默吞异常 → 状态不一致** | invariant-loop 复发族 | catch 后仅记日志/仅返回默认值：吞掉后状态机是否还一致？失败是否对外可见？ |
 | F10 | **并发守卫缺失** | nop-stream TwoPhaseCommitSinkFunction 并发族；WindowAggregationOperator 被击穿 7+ 次 | 声明"单线程/不可重入"契约的方法是否有运行时守卫（fail-fast），还是依赖调用方自觉？ |
 | F11 | **序列化断链（内存可用、持久化读回断）** | nop-stream CEP×RocksDB 三层缺陷（Lockable 不可 JSON 序列化 / 类型信息丢失 / 白名单拒绝） | 一切"写入走 A 路径、读回走 B 路径"的状态：读回类型与写入类型是否一致？往返是否有测试？ |
+| F12 | **complete 洗白（错误以正常完成收口）** | CRA 8.68 MA-03（plan 2562：Servlet async onTimeout 用 `complete()` 收口丢失错误语义；F9 的变体——异常未被吞，而是被替换为成功） | 一切错误/超时/取消收口点：下游（调用方/客户端/future 消费者）能否区分失败与成功？修复模式：错误走显式失败通道（completeExceptionally/异常回调），`complete()` 只负责已写出字节的收口。判级：失败对外表现为静默截断/空成功即 P1 |
+| F13 | **墙钟回拨（相对计时误用 System.currentTimeMillis）** | CRA 8.72 七站点批（plan 2566：LocalResourceLockManager 租约、TokenBucket 回填、ThresholdBreaker 熔断窗、WfTaskScanner 预算等） | 逐个 currentTimeMillis 消费点区分两个域：绝对时刻域（日志/mtime/展示，保留墙钟）vs 相对时长域（elapsed/租约/预算/限流窗）。相对域必须用单调时钟（CoreMetrics.nanoTime()），否则 NTP 回拨/前跳导致误判。判级：回拨可致租约误判/预算失真=P1；纯诊断展示保留墙钟=P3 并注记豁免理由 |
+| F14 | **替身契约缺失（测试 stub 与真契约系统性偏离）** | CRA 8.69 MA-04（plan 2563：MockScheduledExecutor 时间换算/生命周期/取消/复排四面偏离 IScheduledExecutor 契约，绿测试保护力为零） | 每个自建 test double 对照真接口逐方法核对契约：不一致要么补齐实现，要么 javadoc 边界声明（如"仅手动驱动单轮，不承担周期复排契约"）并删死字段。修复模式：以真实现为对照腿建立语义基准测试。判级：替身偏离遮蔽真缺陷或反向钉死错误行为=P1；无消费方的死替身=P2 |
+| F15 | **批内累积语义缺口（批处理丢同批前序状态）** | CRA 8.71 R2-2（plan 2565：code-index 批首冻结 globalTable 快照，同批前序文件符号不进后续判定视图，违反语义保持承诺） | 批处理读侧视图是"每条目重读"还是"批首冻结快照"？与声明的语义（最终一致 vs 批内一致）是否匹配？修复模式：快照 + 随每条目增量扩入（plan 2565 裁定 K 形态）。与 F1 的区分：F1 是异步期间源被写导致快照内部撕裂，F15 是快照本身与批内增量语义的缺口。判级：批内一致性违约且无补偿=P1 |
 
 ---
 

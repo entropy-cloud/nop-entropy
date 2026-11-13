@@ -42,7 +42,13 @@ public enum RefactorOperationRunner {
     /**
      * Runs the operation through the four segments. {@code dryRun = true}
      * computes and verifies everything but writes nothing (the WI4 entry's
-     * dry-run); {@code false} lands atomically.
+     * dry-run); {@code false} lands each planned file fail-loud — a
+     * mid-apply failure surfaces the already-landed set in the error (the
+     * structured {@code landedFiles}/{@code notAttemptedCount} payload) and
+     * never fakes a success. Landing is per file, never batch-atomic: there
+     * is no journal or transactional marker, so a process killed mid-apply
+     * leaves the file set in a mixed state and recovery is undo via VCS
+     * (revert the working tree and re-run).
      */
     public <I> RefactorResult run(RefactorOperation<I> operation, I input, boolean dryRun) {
         operation.check(input);
@@ -66,7 +72,8 @@ public enum RefactorOperationRunner {
                             + "' after " + landed.size() + " file(s) already landed ("
                             + String.join(", ", landed) + "); " + (plan.files().size()
                             - landed.size()) + " file(s) not attempted; the failure is: "
-                            + e.getMessage(), e);
+                            + e.getMessage(), e, List.copyOf(landed),
+                            plan.files().size() - landed.size());
                 }
                 throw e;
             }
@@ -104,7 +111,8 @@ public enum RefactorOperationRunner {
             if (!dryRun && !landed.isEmpty()) {
                 throw new NopRefactorException("apply failed after " + landed.size()
                         + " file(s) already landed (" + String.join(", ", landed)
-                        + "); the failure is: " + e.getMessage(), e);
+                        + "); the failure is: " + e.getMessage(), e, List.copyOf(landed),
+                        0);
             }
             throw e;
         }

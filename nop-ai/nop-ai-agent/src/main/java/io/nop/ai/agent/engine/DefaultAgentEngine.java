@@ -113,7 +113,8 @@ public class DefaultAgentEngine implements IAgentEngine {
     private IBackgroundTaskRegistry backgroundTaskRegistry;
     private ExecutorService backgroundExecutor;
     private boolean ownsBackgroundExecutor;
-    private IToolProgressTracker toolProgressTracker;
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022) (C1-013 family): volatile runtime-swap field.
+    private volatile IToolProgressTracker toolProgressTracker;
     private final IToolManager toolManager;
     private final DefaultAgentEventPublisher eventPublisher;
     private final ISessionStore sessionStore;
@@ -127,7 +128,14 @@ public class DefaultAgentEngine implements IAgentEngine {
     private final java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> runningInjectionTargets =
             new java.util.concurrent.ConcurrentHashMap<>();
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private ExecutorService agentExecutor;
+    /**
+     * 3.1-MA-12 (plan 2555 裁定 B / C1-013): volatile — the setter is a
+     * STARTUP-swap extension point: writes publish safely to the lazy
+     * {@link #getAgentExecutor()} path and to dispatch sites in other
+     * threads. Active executions already dispatched keep their captured
+     * executor; the close-path own-shutdown semantics are unchanged.
+     */
+    private volatile ExecutorService agentExecutor;
     private volatile boolean ownAgentExecutor;
 
     private final DefaultAgentEngineConfig config;
@@ -156,6 +164,13 @@ public class DefaultAgentEngine implements IAgentEngine {
         private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
         private IToolCallRepairer toolCallRepairer;
         private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+        /**
+         * 3.1-C5-017（plan 2556 裁定 E）: production default stays null
+         * (default-off — no mailboxes constructed). Integrators enabling
+         * session mailboxes should wire a BOUNDED factory
+         * ({@code DeferredAckMailbox.boundedDefaultFactory()}) so every
+         * constructed mailbox carries the bounded dead-letter retention.
+         */
         private Function<String, IMailbox> mailboxFactory;
         private IPermissionMatrix permissionMatrix = new DefaultPermissionMatrix();
         private ISecurityLevelResolver securityLevelResolver = new DefaultSecurityLevelResolver();
@@ -213,6 +228,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         public Builder skillCurator(ISkillCurator val) { this.skillCurator = val; return this; }
         public Builder toolCallRepairer(IToolCallRepairer val) { this.toolCallRepairer = val; return this; }
         public Builder messenger(IAgentMessenger val) { this.messenger = val; return this; }
+        // 3.1-C5-017（plan 2556 裁定 E）: pass DeferredAckMailbox.boundedDefaultFactory()
+        // for a bounded default (default-off production wiring preserved).
         public Builder mailboxFactory(Function<String, IMailbox> val) { this.mailboxFactory = val; return this; }
         public Builder permissionMatrix(IPermissionMatrix val) { this.permissionMatrix = val; return this; }
         public Builder securityLevelResolver(ISecurityLevelResolver val) { this.securityLevelResolver = val; return this; }
@@ -337,6 +354,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                 this.instanceId, this.runningExecutions, this::getAgentExecutor,
                 this.executorResolver, this.sessionSupport, this.teamBinder, this.lockRenewal,
                 this.startupWarnings, this);
+        // Plan 2519 (裁定①): share the injection-target registry with the
+        // lifecycle so the three recovery paths (resume/wake/restore) register
+        // symmetrically with doExecute.
+        this.lifecycle.setInjectionTargetRegistry(this.runningInjectionTargets);
         this.startupWarnings.warnIfInsecureDefaults(this.config);
     }
 
@@ -478,6 +499,14 @@ public class DefaultAgentEngine implements IAgentEngine {
         return agentExecutor;
     }
 
+    /**
+     * 3.1-MA-12 (plan 2555 裁定 B): startup-swap semantics — the new executor
+     * is visible to every subsequent dispatch (volatile write). Active
+     * renewHandles/executions are NOT migrated across the swap and the
+     * close-path shutdown decision ({@code ownAgentExecutor}) applies to the
+     * latest installed executor only. This setter is an assembly/startup
+     * operation; swapping under live traffic is not supported.
+     */
     public void setAgentExecutor(ExecutorService agentExecutor) {
         this.agentExecutor = Objects.requireNonNull(agentExecutor, "agentExecutor must not be null");
         this.ownAgentExecutor = false;
@@ -499,19 +528,55 @@ public class DefaultAgentEngine implements IAgentEngine {
     public AgentExecStatus getSessionStatus(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
+            // 裁定② 终态语义适配: a session evicted by the terminal cleanup
+            // segment keeps its terminal status observable through the tiny
+            // side map (query surface behaviour preserved, zero-rollback).
+            AgentExecStatus evicted = lifecycle.getEvictedTerminalStatus(sessionId);
+            if (evicted != null) {
+                return evicted;
+            }
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "getSessionStatus failed: session not found: sessionId=" + sessionId);
         }
         return session.getStatus();
     }
 
+    /**
+     * 3.1-MA-J (plan 2555 裁定 J / C1-010): the unregistered branch is now
+     * guarded by a sentinel mutex over the assembly window. A cancel that
+     * lands while an execution is being assembled (between the caller's
+     * entry and {@code registerExecutionSlot}'s {@code putIfAbsent}) used to
+     * silently take the "not running" path — the intent was lost (TOCTOU).
+     * Now: the sentinel occupies the slot; a concurrently-registering
+     * execution's {@code putIfAbsent} loses, consumes the sentinel via the
+     * TWO-ARG conditional remove, and marks its context cancel-requested
+     * (self-terminates). A second cancel while the sentinel is held is an
+     * idempotent success.
+     *
+     * <p>Watch-only residual (裁定 J): the window between the caller's entry
+     * and the sessionStore {@code getOrCreate} inside the assembly remains
+     * uncovered — same width as pre-fix; the sentinel existence check above
+     * covers the observable portion.
+     *
+     * <p>3.1-MA-15 (plan 2555 裁定 E): tenant save-restore — the previous
+     * tenant value (if any) is captured and RESTORED in the finally instead
+     * of being cleared, so an outer thread's tenant context survives the
+     * call.
+     */
     public CompletableFuture<Void> cancelSession(String sessionId, String reason, boolean forced) {
         // It has no Principal source in the foundational slice, so the tenant
-        // context is null = all data visible. The set/clear structure is
+        // context is null = all data visible. The set/restore structure is
         // present for uniformity (a future principal source only changes the
         // captured value).
+        String previousTenant = ThreadLocalTenantResolver.current();
         ThreadLocalTenantResolver.set(null);
         try {
             AgentSessionLifecycle.CancelHandle handle = sessionId != null ? runningExecutions.get(sessionId) : null;
+
+            if (handle == AgentSessionLifecycle.CANCEL_SENTINEL) {
+                // 裁定 J case ②: another cancel already holds the sentinel —
+                // idempotent success (no-op).
+                return CompletableFuture.completedFuture(null);
+            }
 
             if (handle != null) {
                 AgentExecutionContext ctx = handle.context;
@@ -531,30 +596,93 @@ public class DefaultAgentEngine implements IAgentEngine {
                         t.interrupt();
                     }
                 }
-            } else {
-                AgentSession session = sessionStore.get(sessionId);
-                if (session == null) {
-                    throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "cancelSession failed: session not found: sessionId=" + sessionId);
+            } else if (sessionId != null
+                    && runningExecutions.putIfAbsent(sessionId, AgentSessionLifecycle.CANCEL_SENTINEL) == null) {
+                // 裁定 J case ③: this cancel WON the sentinel — it now owns
+                // the assembly window. Run the existing unregistered-cancel
+                // semantics, then release the sentinel with the TWO-ARG
+                // conditional remove (a one-arg remove could delete a REAL
+                // handle registered by a losing consumer and re-open the
+                // window).
+                try {
+                    AgentSession session = sessionStore.get(sessionId);
+                    if (session == null) {
+                        // 裁定②/⑤ 终态语义适配: an already-terminal (evicted) session is
+                        // idempotently "cancelled" — cancelSession on a terminal session is a
+                        // benign no-op so convergence cancels never fail on a cleanup race.
+                        if (lifecycle.getEvictedTerminalStatus(sessionId) != null) {
+                            return CompletableFuture.completedFuture(null);
+                        }
+                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "cancelSession failed: session not found: sessionId=" + sessionId);
+                    }
+                    session.setStatus(AgentExecStatus.cancelled);
+                    String agentName = session.getAgentName();
+                    lifecycle.publishCancelRequested(sessionId, agentName, reason, forced);
+                    lifecycle.publishCancelled(sessionId, agentName, reason);
+                    // status (cancelled) but does NOT enter the inner finally
+                    // (no handle was registered). Clean up the checkpoint cache
+                    // symmetrically so cancelled sessions do not leak cache entries.
+                    // Plan 2519 (裁定②): the terminal cleanup segment also removes
+                    // the session from the store (cancelled-without-handle is a
+                    // terminal convergence point of the F4 cleanup list).
+                    config.getCheckpointManager().remove(sessionId);
+                    lifecycle.removeTerminalSessionFromStore(sessionId, session.getStatus());
+                } finally {
+                    runningExecutions.remove(sessionId, AgentSessionLifecycle.CANCEL_SENTINEL);
                 }
-                session.setStatus(AgentExecStatus.cancelled);
-                String agentName = session.getAgentName();
-                lifecycle.publishCancelRequested(sessionId, agentName, reason, forced);
-                lifecycle.publishCancelled(sessionId, agentName, reason);
-                // status (cancelled) but does NOT enter the inner finally
-                // (no handle was registered). Clean up the checkpoint cache
-                // symmetrically so cancelled sessions do not leak cache entries.
-                config.getCheckpointManager().remove(sessionId);
+            } else {
+                // 裁定 J case ①: a real handle registered concurrently
+                // between the initial get and the putIfAbsent (or sessionId
+                // is null — pre-existing behaviour falls through to the
+                // not-found/evicted check via the store get below... actually
+                // a null sessionId never had a handle; re-read to keep the
+                // race window closed).
+                AgentSessionLifecycle.CancelHandle raced = sessionId != null
+                        ? runningExecutions.get(sessionId) : null;
+                if (raced == null) {
+                    // Sentinel winner finished and released between our
+                    // putIfAbsent loss and this get — the unregistered
+                    // semantics already ran; treat as the plain not-running
+                    // re-read path (store lookup decides below).
+                    AgentSession session = sessionStore.get(sessionId);
+                    if (session == null && lifecycle.getEvictedTerminalStatus(sessionId) == null) {
+                        throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "cancelSession failed: session not found: sessionId=" + sessionId);
+                    }
+                } else if (raced != AgentSessionLifecycle.CANCEL_SENTINEL) {
+                    AgentExecutionContext ctx = raced.context;
+                    ctx.setCancelRequested(true);
+                    ctx.setCancelReason(reason);
+
+                    AgentSession session = sessionStore.get(sessionId);
+                    String agentName = session != null ? session.getAgentName() : null;
+                    lifecycle.publishCancelRequested(sessionId, agentName, reason, forced);
+
+                    if (forced) {
+                        Thread t = raced.thread;
+                        if (t != null) {
+                            t.interrupt();
+                        }
+                    }
+                }
+                // raced == sentinel: a second cancel concurrent with the
+                // sentinel winner — idempotent success (case ② semantics).
             }
 
             return CompletableFuture.completedFuture(null);
         } finally {
-            ThreadLocalTenantResolver.clear();
+            // 3.1-MA-15 (裁定 E): restore the captured previous value instead
+            // of an unconditional clear.
+            ThreadLocalTenantResolver.set(previousTenant);
         }
     }
 
     public CompletableFuture<String> forkSession(AgentMessageRequest request, boolean inheritContext) {
         // so set the thread-local tenant context from the request's Principal
-        // (null-safe) for the duration of the DB operations, then clear it.
+        // (null-safe) for the duration of the DB operations.
+        // 3.1-MA-15 (plan 2555 裁定 E): capture-and-RESTORE the previous
+        // value instead of an unconditional clear, so an outer thread's
+        // tenant context survives the call.
+        String previousTenant = ThreadLocalTenantResolver.current();
         ThreadLocalTenantResolver.set(resolveTenantId(request));
         try {
             String parentSessionId = request.getSessionId();
@@ -589,7 +717,7 @@ public class DefaultAgentEngine implements IAgentEngine {
 
             return CompletableFuture.completedFuture(childSessionId);
         } finally {
-            ThreadLocalTenantResolver.clear();
+            ThreadLocalTenantResolver.set(previousTenant);
         }
     }
 
@@ -614,13 +742,58 @@ public class DefaultAgentEngine implements IAgentEngine {
         // "running" = an execution slot is registered (the persisted session
         // status only updates to a terminal value in the engine's terminal
         // sync, so getStatus() is NOT a reliable in-flight signal)
-        AgentExecutionContext liveTarget = runningInjectionTargets.get(sessionId);
-        if (liveTarget != null) {
-            liveTarget.enqueueSteering(message, semantics);
-        } else {
-            session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
+        //
+        // Plan 2519 (裁定①/C1-008): the registry get → enqueue / stage decision
+        // is now atomic under the per-session injection lock (the AgentSession
+        // monitor) — the previous get → null-check → enqueue sequence could
+        // interleave with the terminal path's registry remove (torn
+        // persist / injection loss, C3-014). The terminal marker is set under
+        // the same monitor by the terminal path, so every injectInput either
+        // completes its enqueue BEFORE the terminal drain (consumed by it) or
+        // observes the marker and is explicitly rejected (WARN + counter
+        // nop.ai.agent.inject-after-terminal, never silent). The staged-branch
+        // save runs OUTSIDE the monitor (锁内禁 IO — design §5.7 lock table):
+        // it serializes the live shared session object, so a concurrent
+        // terminal drain still persists the post-drain state.
+        boolean rejectedAfterTerminal = false;
+        boolean liveQueue;
+        synchronized (session) {
+            if (session.isTerminal()) {
+                rejectedAfterTerminal = true;
+                liveQueue = false;
+            } else {
+                AgentExecutionContext liveTarget = runningInjectionTargets.get(sessionId);
+                if (liveTarget != null) {
+                    liveTarget.enqueueSteering(message, semantics);
+                    liveQueue = true;
+                } else {
+                    session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
+                    liveQueue = false;
+                }
+            }
+        }
+        if (rejectedAfterTerminal) {
+            INJECT_AFTER_TERMINAL_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.inject-after-terminal: injection rejected because session already "
+                    + "reached its terminal removal sequence (message dropped by contract, not silently): "
+                    + "sessionId={}, semantics={}", sessionId, semantics);
+            return;
+        }
+        if (!liveQueue) {
             sessionStore.save(session);
         }
+    }
+
+    /**
+     * Plan 2519 (裁定①): counter for injections rejected after the terminal
+     * marker (observable facet of {@code nop.ai.agent.inject-after-terminal}).
+     */
+    private static final java.util.concurrent.atomic.AtomicLong INJECT_AFTER_TERMINAL_COUNT =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** Plan 2519 (裁定①): test/diagnostics probe for the rejection counter. */
+    public static long injectAfterTerminalCount() {
+        return INJECT_AFTER_TERMINAL_COUNT.get();
     }
 
     /**
@@ -917,6 +1090,17 @@ public class DefaultAgentEngine implements IAgentEngine {
             }
             AgentSessionLifecycle.CancelHandle existing = runningExecutions.putIfAbsent(sessionId, handle);
             if (existing != null) {
+                // 3.1-MA-J (plan 2555 裁定 J / C1-010): losing to the cancel
+                // sentinel means a cancelSession landed inside the assembly
+                // window. Consume the sentinel (TWO-ARG conditional remove —
+                // never the one-arg form) and run the existing
+                // registered-cancel flow on the just-built ctx: the
+                // execution self-terminates via setCancelRequested, and its
+                // own lease is released by that execution's normal terminal
+                // finally (the sentinel holds no lease; the loser never
+                // releases on the loser's behalf). The duplicate submission
+                // still fails fast with the unchanged error.
+                lifecycle.consumeCancelSentinel(sessionId, existing, ctx);
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "doExecute failed: session already executing: sessionId=" + sessionId);
             }
             slotRegistered = true;
@@ -1003,6 +1187,19 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // handle, never another execution's handle (eliminates the
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
+                    //
+                    // Plan 2519 (裁定①终态摘除序 step 1, in-lock BEFORE any
+                    // registry remove): terminal marker + drain under the
+                    // session monitor — an injectInput either completed its
+                    // enqueue before this critical section (drained + persisted
+                    // below) or observes the marker afterwards (explicitly
+                    // rejected). Steps (2) persist and (3) registry remove run
+                    // outside the lock (design §5.7: 锁内禁 IO).
+                    boolean terminalExit = AgentSessionLifecycle.isSessionLifecycleTerminal(
+                            ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
+                    if (terminalExit) {
+                        lifecycle.drainTerminalInjections(sessionId, session, ctx);
+                    }
                     runningExecutions.remove(sessionId, handle);
                     // Plan 2289 (WI8): before the terminal sync, drain any
                     // injections that arrived during the final LLM call into
@@ -1050,14 +1247,19 @@ public class DefaultAgentEngine implements IAgentEngine {
                             // terminal sessions so it does not grow unbounded.
                             // NOT called for paused — paused is non-terminal
                             // and must retain checkpoints for restoreSession
-                            // recovery.
+                            // recovery. Plan 2519 (裁定②): the terminal cleanup
+                            // segment also removes the session from the store
+                            // (pure wiring — the three store implementations
+                            // already provide remove; F4 29-station family).
                             if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
                                 config.getCheckpointManager().remove(sessionId);
+                                lifecycle.removeTerminalSessionFromStore(sessionId, session.getStatus());
                             }
                         } else if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
                             // Failure path: preserve the original cleanup order
                             // (checkpoint removal without terminal persistence).
                             config.getCheckpointManager().remove(sessionId);
+                            lifecycle.removeTerminalSessionFromStore(sessionId, session.getStatus());
                         }
                     } finally {
                         // 路径 3 — inner finally). Fault-tolerant: a failed
@@ -1081,6 +1283,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             // (e.g. RejectedExecutionException), clean up the pre-registered
             // handle so a subsequent execute() is not permanently blocked.
             runningExecutions.remove(sessionId, handle);
+            runningInjectionTargets.remove(sessionId);
             // — outer catch / supplyAsync submission failure). Same
             // fault-tolerant releaseLockQuietly as the inner finally.
             lifecycle.releaseLockQuietly(sessionId, instanceId);

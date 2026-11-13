@@ -42,8 +42,9 @@ public class SpringFileService extends AbstractGraphQLFileService {
         String locale = ContextProvider.currentLocale();
 
         CompletionStage<ApiResponse<?>> res;
+        InputStream is = null;
         try {
-            InputStream is = file.getInputStream();
+            is = file.getInputStream();
             String fileName = StringHelper.fileFullName(file.getOriginalFilename());
 
             UploadRequestBean input = buildUploadRequestBean(is,
@@ -52,9 +53,20 @@ public class SpringFileService extends AbstractGraphQLFileService {
                     file.getContentType(),
                     request::getParameter);
 
-            res = uploadAsync(buildApiRequest(request, input));
+            CompletionStage<ApiResponse<?>> stage = uploadAsync(buildApiRequest(request, input));
+            // C6-001（plan 2524）：提交成功即注册配对 close（成功/失败双路径均触发）——
+            // 校验链失败（用户可控字段）此前直接抛出，唯一 finally 关闭点不可达，每被拒
+            // 上传泄漏 1 个 fd。safeClose 幂等，saveFile finally 先关无害。
+            InputStream captured = is;
+            stage.whenComplete((r, e) -> io.nop.commons.util.IoHelper.safeCloseObject(captured));
+            res = stage;
         } catch (IOException e) {
+            io.nop.commons.util.IoHelper.safeCloseObject(is);
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponseForException(locale, e));
+        } catch (Throwable e) {
+            // 前段同步抛出段（getGraphQLEngine/newRpcContext）close 兜底——原样重抛语义不变
+            io.nop.commons.util.IoHelper.safeCloseObject(is);
+            throw e;
         }
 
         return res.thenApply(SpringWebHelper::buildJsonResponse);

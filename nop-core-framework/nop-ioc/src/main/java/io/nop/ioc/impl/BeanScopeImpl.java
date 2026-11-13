@@ -10,10 +10,13 @@ package io.nop.ioc.impl;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.ioc.api.IBeanContainerImplementor;
+import io.nop.ioc.api.IBeanDefinition;
 import io.nop.ioc.api.IBeanScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -86,6 +89,18 @@ public class BeanScopeImpl implements IBeanScope {
         return b;
     }
 
+    /**
+     * C4-010：经容器定义查 beanTopoIndex（含 parent 回溯）；查不到定义 WARN 并返回 0（哈希序兜底）。
+     */
+    private int topoIndexOf(String beanName) {
+        IBeanDefinition def = container.getBeanDefinition(beanName);
+        if (def instanceof BeanDefinition) {
+            return ((BeanDefinition) def).getBeanTopoIndex();
+        }
+        LOG.warn("nop.warn.ioc.scope-destroy-no-definition:scope={},bean={}", name, beanName);
+        return 0;
+    }
+
     void checkClosed() {
         if (closed)
             throw new NopException(ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED).param(ARG_CONTAINER_ID, container.getId())
@@ -100,19 +115,33 @@ public class BeanScopeImpl implements IBeanScope {
             closed = true;
         }
 
-        Exception e = null;
-        for (Map.Entry<String, ProducedBeanInstance> entry : beans.entrySet()) {
+        // C4-010（plan 2549 裁定 F，←并 C6-006）：销毁序 = beanTopoIndex 降序（依赖方先于被依赖方销毁）
+        // ——创建有拓扑契约、销毁无序会使 destroy 运行于依赖已销毁之后。查不到定义（理论面）WARN+哈希序兜底
+        List<Map.Entry<String, ProducedBeanInstance>> entries = new ArrayList<>(beans.entrySet());
+        entries.sort((a, b) -> {
+            int ia = topoIndexOf(a.getKey());
+            int ib = topoIndexOf(b.getKey());
+            return Integer.compare(ib, ia);
+        });
+
+        // C6-007（plan 2549 裁定 F；closure audit MJ-2 勘正）：收集口径 Throwable——
+        // destroy 抛 Error 不得中断其余 bean 的销毁循环（Error 收集后仍向上重抛）
+        Throwable e = null;
+        for (Map.Entry<String, ProducedBeanInstance> entry : entries) {
             String beanName = entry.getKey();
             try {
                 remove(beanName, entry.getValue());
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 LOG.error("nop.err.ioc.destroy-bean-fail:beanName={}", beanName, ex);
-                e = ex;
+                if (e == null)
+                    e = ex;
             }
         }
         if (!beans.isEmpty())
             throw new NopException(ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED).param(ARG_CONTAINER_ID, container.getId())
                     .param(ARG_BEAN_SCOPE, name);
+        if (e instanceof RuntimeException)
+            throw (RuntimeException) e;
         if (e != null)
             throw NopException.adapt(e);
     }

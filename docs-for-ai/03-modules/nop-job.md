@@ -90,7 +90,7 @@ ts.setCronExpr("0 */5 * * * ?");   // 每 5 分钟
 ts.setMaxExecutionCount(0);        // 0 = 无限执行
 spec.setTriggerSpec(ts);
 
-scheduler.addJob(spec, false);     // false = 已存在则抛 already-exists
+scheduler.addJob(spec, false);     // false = 已存在则抛 already-exists（含并发首注册窗口——两线程同时 add 同名 job 时恰一方胜出，败方 typed already-exists；不静默改写胜方 spec，CRA 8.46 R4-06 W-07）
 
 // 4. 运行期管理
 scheduler.suspendJob("demo-cron"); // 暂停（保留在调度器中）
@@ -209,8 +209,10 @@ nop:
 ### 1.4 注意事项
 
 - 作业定义只存在于内存，**重启即丢失**，不持久化。
-- `LocalJobScheduler` 不参与分布式协调，不要在多实例部署中使用它调度需要唯一执行的作业。
+- `LocalJobScheduler` 不参与分布式协调，不要在多实例部署中使用它调度需要唯一执行的作业。阻塞型 job 场景请改用分布式 worker 模式（见「触发/执行契约」）。
 - 不支持 Misfire 补偿、阻塞策略、超时控制、分片——这些是分布式模式的能力。
+- **管理 API 与停机不阻塞于业务方法体**（plan 2513 C2-001）：per-job 监视器只覆盖状态迁移段（`prepareJobLocked`，微秒级），业务方法体经 `invoker.invokeAsync` 在**锁外**执行——`getJobState`/`getJobDetail`/`suspendJob`/`cancelJob`/`removeJob`/`deactivate`（停机）在 job 运行期间恒可达，不再被同步型 invoker 的方法体时长阻塞。锁外启动时若 job 已被 remove/deactivate 交错，走显式放弃分支（重取锁清 `running` 占位 + WARN 留痕，不走结果回写）；`fireNow` 返回值语义不变（交错放弃升 WARN）。`awaitIdle`/`awaitState` 的 timeout 参数语义不变（约束轮询总时长；监视器获取段恒有界）。**终态语义（CRA 8.47 R4-07 W-06）**：本地模式 job 单次执行异常（invoker 抛错/返回 ERROR 结果/触发器计算失败）即置 FAILED 终态：不再排程、`resumeJob`/`fireNow` 对 FAILED 恒拒绝（返回 false）、无自动恢复——恢复只能重启进程重建 job。**长周期 job 须在 invoker 内自行兜底瞬时异常**（捕获-降级-返回正常 JobFireResult），或改用分布式模式（retryPolicy 通道）。
+**触发/执行契约（CRA 8.46 R4-06 W-09）**：本地调度器的触发与执行共用 `nopJobScheduledExecutor` 调度池——**job 方法体必须非阻塞**（毫秒级内存操作或立即返回 CompletionStage 的真异步）；阻塞/长任务体将占住调度线程、拖延全部作业触发。长任务须自行转真异步（CompletionStage 返回）或改用分布式 worker 模式。
 
 ---
 
@@ -325,7 +327,9 @@ public interface IJobInvoker {
 }
 ```
 
-`IJobExecutionContext` 提供：`getJobName()`、`getJobParams()`、`getInstanceId()`、`getExecCount()`（从 1 开始）、`getScheduledExecTime()`、`getExecFailCount()`、`getAttribute(name)`/`setAttribute(name, val)` 等。
+`IJobExecutionContext` 提供：`getJobName()`、`getJobParams()`、`getInstanceId()`、`getExecCount()`（从 1 开始）、`getScheduledExecTime()`、`getExecFailCount()`、`getAttribute(name)`/`setAttribute(name, val)` 等。**jobParams 快照为浅拷贝——嵌套可变 value 的共享为已声明边界**（CRA 8.46 R4-06 W-03：顶层 Map 为构造时防御拷贝、跨触发隔离；嵌套 value 与 spec 共享引用，invoker 变异内层 value 可穿透回 spec——与分布式路径对照物同为浅拷贝，声明不支持用法）。
+
+> **异步性契约**（plan 2513 裁定②）：`invokeAsync` 应尽快返回 `CompletionStage`（真异步）；内置 `BeanMethodJobInvoker` 对非 CompletionStage 返回值在调用线程同步执行完毕后包 `completedFuture`——这是合法实现，但调度器已把 invoker 调用放在 per-job 监视器**之外**（见 1.4 节），同步执行只影响调度线程占用，不再影响管理 API/停机响应性。**invokeAsync 的实现要么真异步（快速返回未完成 CompletionStage）要么方法体非阻塞——同步阻塞方法体违反本地模式触发及时性契约**（CRA 8.46 R4-06 W-09）：自定义 invoker 的长耗时方法体不会阻塞管理 API，但会占住调度线程拖延全部作业触发。
 
 ### 3.2 JobFireResult（返回值约定）
 
@@ -381,7 +385,7 @@ public interface IJobInvoker {
 
 > **capacity 配置语义**（worker `nop.job.capacity.cpu/memory` 配置或 `ServiceInstance.metadata`，两侧一致）：`0` 或未声明 → 视为"未设/无限"（`MAX_VALUE`，退化为 count-based）；负数视为配置错误抛异常（不静默退化为拒绝一切的黑洞 worker）。`nop.job.fetch.enforce-attribution=true` 用于 dedicated worker 池（此时 worker `hostId` 必须已配置，否则拉取 task 抛配置错误，不静默看到全部 task）；single 模式 task 的 `workerInstanceId` 留 NULL（走 competing-consumer IS NULL 分支被任意 worker 认领，含分离部署），认领后被设为认领 worker 的 hostId。
 
-> **超时语义（三层独立，不互相回退）**：`dispatchTimeoutMs`（fire 卡在 DISPATCHING，默认 5min）/ `executionTimeoutMs`（task 执行墙钟，默认 -1 禁用）/ `schedule.timeoutSeconds`（per-schedule 覆盖执行超时）。判定 RUNNING-task 是否超时：`schedule.timeoutSeconds>0` 用之 → 否则 `executionTimeoutMs>0` 用之 → **否则不超时**。未配任何执行超时的长任务**不会**被墙钟超时误杀，由 worker-liveness 链兜底（worker 不存活则 task `CLAIMED/RUNNING → SUSPICIOUS → TIMEOUT`）。若需要默认执行超时，显式配 `executionTimeoutMs`，不要依赖隐式回退。
+> **超时语义（三层独立，不互相回退）**：`dispatchTimeoutMs`（fire 卡在 DISPATCHING，默认 5min）/ `executionTimeoutMs`（task 执行墙钟，默认 -1 禁用）/ `schedule.timeoutSeconds`（per-schedule 覆盖执行超时）。判定 RUNNING-task 是否超时：`schedule.timeoutSeconds>0` 用之 → 否则 `executionTimeoutMs>0` 用之 → **否则不超时**。未配任何执行超时的长任务**不会**被墙钟超时误杀，由 worker-liveness 链兜底（worker 不存活则 task `CLAIMED/RUNNING → SUSPICIOUS → TIMEOUT`）。若需要默认执行超时，显式配 `executionTimeoutMs`，不要依赖隐式回退。worker 侧另有 observe-only 执行看门狗（`nop.job.worker.invoke-timeout-ms`，只观测不终结任务，见下文「周期任务异常绝缘契约」节）。
 
 > **worker-liveness 链细节**：`JobTimeoutCheckerImpl` 通过 `INamingService.getInstances(AppConfig.appName())` 获取当前健康且启用的实例 id 集合，并把 `task.workerInstanceId` 视为 worker 存活判据。若 `CLAIMED/RUNNING` task 的 `workerInstanceId` 不在 alive 集合中，则首轮扫描先标记 `SUSPICIOUS`，下一轮扫描再转 `TIMEOUT`。`SUSPICIOUS` 是有意保留的中间态：它既阻止旧 worker 的迟到结果覆盖（worker 侧把 `SUSPICIOUS` 视为 concurrently-finalized），也让 fire 聚合在仍有其他 pending task 时保持未完成；当 fire 只剩 `SUSPICIOUS` / terminal task 时，completion 会把 `SUSPICIOUS` 按 `TIMEOUT` 聚合。
 
@@ -426,7 +430,8 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.coordinator.timeout.scan-interval-ms` | 5000 | 超时检查器扫描间隔 |
 | `nop.job.coordinator.timeout.batch-size` | 100 | 超时检查器批量大小 |
 | `nop.job.coordinator.dispatch-timeout-ms` | 300000 | 调度超时（5 分钟） |
-| `nop.job.coordinator.execution-timeout-ms` | -1 | 全局执行超时（-1 不限制，单作业可用 `timeoutSeconds` 字段覆盖） |
+| `nop.job.coordinator.execution-timeout-ms` | -1 | 全局执行超时（-1 不限制，单作业可用 `timeoutSeconds` 字段覆盖）。**manager 轮询侧兜底**（plan 2513 裁定①(b)）：rpcPoll 条目的 `computeDeadline` 取值优先序 `schedule.timeoutSeconds` > 本键（>0 时）> 无（deadline=0 不杀）；checker 侧同源读键同优先序，两处读同一键、不存在双头超时裁决；两键均未配置时不杀长任务（plan 340 钉死契约不变） |
+| `nop.job.remote.poll-fail-threshold` | 5 | rpcPoll 条目失败预算（plan 2513 裁定①(a)）：`getJobStatus` 连续失败达阈值即 resolve ERROR（`ERR_JOB_REMOTE_INVOKE_FAILED`），阈值前按 2^n 轮跳轮退避（封顶 12 轮）；单轮成功即清零计数；`<=0` 装配期 fail-fast。缺省 5 + poll-interval 5000 组合下观察窗 ≈95s。观测：gauge `nop.job.remote.poll.active-count` + counter `nop.job.remote.poll.failures{taskId}`（告警阈值归运维观测面） |
 | `nop.job.coordinator.task-dispatch-wait-timeout-ms` | 600000 | WAITING 任务派发等待超时（10 分钟）；超时后重派发（`workerInstanceId` 置 null 回到 competing-consumer），含归因给已下线 worker 的任务；`<=0` 禁用 |
 | `nop.job.coordinator.no-worker-backoff-ms` | 30000 | no-fitting-worker（worker 满载瞬态）回退后 backoff 窗口；回退时把 fire 置回 WAITING 并在 startTime 记录 backoff 截止，`fetchWaitingFires` 在窗口内跳过该 fire，避免紧循环；`0` 不 backoff |
 | `nop.job.coordinator.assigned-partitions` | （空） | 本节点负责的分区，逗号分隔 |
@@ -439,7 +444,15 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.worker.batch-size` | 100 | Worker 每次认领的任务数 |
 | `nop.job.worker.lock-timeout-ms` | 60000 | Worker 锁超时 |
 | `nop.job.worker.assigned-partitions` | （空） | 本节点负责的分区 |
-| `nop.job.worker.max-concurrency` | 0 | 最大并发执行数（0=不限） |
+| `nop.job.worker.max-concurrency` | 0 | **DB 在途认领行数上限**（count-based 闸门；0=不限）——非 JVM 内执行并发上限；JVM 内无信号量，执行体并发受 invoker 实际异步性约束。积压恢复场景应显式配置该键 |
+| `nop.job.worker.invoke-timeout-ms` | 0 | worker 执行看门狗阈值（毫秒；`0`=禁用。**observe-only**：超龄 in-flight invoke 只记 ERROR + gauge 观测，永不终结任务，见下文「周期任务异常绝缘契约」节） |
+| `nop.job.worker.max-inflight-promises` | 0 | **JVM 在途 promise 上限**（claim 后 executeTask 在途数；`0`=禁用，2496 observe-only 先例同形——backlog 消化期望行为不受损；积压恢复场景应显式配置） |
+| `nop.job.coordinator.timeout.suspicious-stale-ms` | 60000 | SUSPICIOUS 复查顺延 stale 上限（毫秒；≤0 装配期 fail-fast——超限即强转 TIMEOUT 兜底收敛） |
+| `nop.job.scanner.stall-watchdog-ms` | 0 | scanner 扫描链 stall 看门狗阈值（毫秒；`0`=禁用。**observe-only**：在途超阈只记 WARN + 计数 + 年龄 gauge，永不取消/中断主链） |
+| `nop.job.coordinator.completion.fail-escalate-threshold` | 10 | completion 非配置类连续失败升级阈值（`0`=禁用升级——成功即清零） |
+| `nop.job.ledger.retention-days` | 30 | 三表保留期天数（`0`=禁用清理；负=装配期 fail-fast；SSOT ledger-retention-policy §3.1） |
+| `nop.job.ledger.cleanup-interval` | 3600000 | 周期清理间隔毫秒（下限 60s fail-fast；SSOT 同源） |
+| `nop.job.ledger.delete-batch-size` | 1000 | 清理批量删除上限（≤0 fail-fast；SSOT 同源） |
 
 ### 集群（可选）
 
@@ -448,6 +461,57 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.cluster.enable-cluster` | false | 是否启用集群模式 |
 | `nop.job.cluster.service-name` | （空） | 集群服务名 |
 | `nop.job.cluster.stable-window-ms` | 30000 | 分区稳定窗口 |
+
+---
+
+## 六、周期任务异常绝缘契约（plan 2496 R1-01）
+
+nop-job 的全部周期调度链（本地模式触发循环、coordinator 各 scanner、worker scanner）运行在平台周期任务异常绝缘设施之上（设施本体锚点见 `../04-reference/source-anchors.md` 的 `INSUL-001`；语义权威 = 平台设计文档 periodic-task-insulation.md，位于 AI 开发记录区 concurrency 设计集，按边界规则此处不直接链接）：任务体抛出任何 `Throwable`（含 `Error`）由设施边界捕获 → 观测（日志抑制 + 连续失败计数 + listener + metric）→ 重臂续排；链只在调用方显式 cancel 或设施提交拒绝时终止。**返回 future 是失败/取消/拒绝信号，不是链存活指标**（失败完结 ≠ 链死亡）。**层级区分**（plan 2513）：绝缘层管**周期链存活**（失败不杀调度链），与 coordinator 侧业务 future 的**终结仲裁**（rpcPoll 条目终结驱动，见下文第八节）正交不互替——预算/兜底/回传计数属 coordinator 业务层，非设施层。
+**在途守卫（CRA 8.46 R4-06 W-05）**：各 scanner 的公开 `scanOnce` 入口带 `scanningInFlight` CAS 在途守卫——并发第二 entrant 以 WARN（`nop.job.scan-cycle-conflict`）+ 冲突计数（`getScanCycleConflictCount`）拒绝返回，不触任何 cursor/链状态；拒绝**不算周期失败**（不入绝缘失败计数与失败观测流——守卫拒绝 ≠ 链失败），跳过的窗口由下轮 fixed-delay tick 以 cursor 语义自然覆盖。守卫位于绝缘边界**之内**：周期体 Throwable 边界/失败计数/重臂语义零变化。
+
+### 模块侧 fail-safe 语义（MA-05）
+
+三处周期/回调站点为 Throwable 宽度守卫 + 终态 fail-safe，逐一独立验收：
+
+| 站点 | 守卫 | fail-safe |
+|------|------|-----------|
+| `RpcPollTaskManager.pollOnce`（nop-job-coordinator） | catch Throwable + `nop.job.remote.poll-error` ERROR | 轮询链由设施重臂，单轮异常不停摆 |
+| `JobWorkerScannerImpl` 结果结算（nop-job-worker） | catch Throwable | `failSafeTerminalize`：task 强制终态化，阻断 `sumReservedCost` 容量账本永久侵蚀 |
+| `LocalJobScheduler` 触发器计算/回调（nop-job-local） | catch Throwable | `job.state.internal=FAILED` 终态 + done 异常完结，调度循环存活 |
+
+### worker 执行看门狗（MA-06，observe-only）
+
+- **默认无执行超时**：长任务不会被 worker 侧误杀（与上文「超时语义」三层契约及 plan 340 钉死契约一致）。
+- 配置 `nop.job.worker.invoke-timeout-ms`（默认 `0`=禁用；`schedule.timeoutSeconds>0` 时仍优先，沿用 checker 既有取值顺序）后，in-flight invoke 年龄超阈值只触发**宽松观测**：ERROR 日志 `nop.job.worker.invoke-timeout-observed`（明示 observe-only）+ in-flight 年龄 gauge `nop.job.worker.invoke.inflight.age.max`；**永不 complete/cancel invoke future、永不杀派发链**。
+- 任务终结的唯一仲裁者是 coordinator 侧超时检查器（worker-liveness `SUSPICIOUS→TIMEOUT` 链，见上文）；worker 看门狗是纯观测者，不存在双重终结。
+
+### 扫描链守卫（AbstractBatchScanner，nop-job-core）
+
+nop-job 各 scanner 的公共基类 `AbstractBatchScanner`：`scanOnce` 全周期体（含 try-外段 `cursor.reset()`/`onCycleStart()`）为 Throwable 宽度守卫，异常经 `onScanCycleFailed(Throwable)` 上报（带 scanner 名日志 + cycle/failure 计数与时间戳指标），链由绝缘设施重臂；仅提交拒绝（链真死）时 `running=false` 状态真实化。子类既有 `onScanFailed(Exception)` override 签名保持不变。
+
+## 七、调度载体容量与热更契约（plan 2497 R1-02）
+
+nop-job 的调度载体与平台全局池设施（锚点见 `../04-reference/source-anchors.md`「平台池设施锚点」节 `EXEC-001`/`EXEC-002`）共享同一契约：
+
+- **容量语义（ScheduledThreadPoolExecutor 固有）**：模块两个专用调度载体 `nopJobScheduledExecutor`（nop-job-local，见 1.3 节）与 `nopRpcPollScheduledExecutor`（nop-job-coordinator，见 REST Worker 模式节，大小由 `nop.job.remote.poll-threads` 配置）均为 `DefaultScheduledExecutor`——容量唯一旋钮 = corePoolSize，STPE 的 maxPoolSize 是惰性展示字段。globalTimer fallback 的容量由平台权威键 `nop.commons.concurrent.global-timer.corePoolSize`（默认 4）驱动；旧键 `global-timer.maxPoolSize` 已废弃，仅在旧键显式配置且新键未配置时回读生效并记单次 WARN，不存在「配了不认」的静默断档。
+- **热更语义**：上述 `DefaultScheduledExecutor` bean 的运行期热更走 scheduled 专用路径 = core-only 对齐（无 max 钳制、core ≤ 0 类型化异常）；queueCapacity/daemon 为 init-only，热更不生效。
+- **调度槽使用纪律**：globalTimer（含 `RpcPollTaskManager` 的 globalTimer fallback——任务体 pollOnce 仍只做内存信号检查与轻量 RPC 读，不承载阻塞 I/O 卸载义务；其条目终结驱动契约见下文第八节）只承载触发与轻量内存操作；阻塞 I/O 或时长无上界的任务体一律经 `executeOn(globalWorker())` 卸载到 worker 池。周期任务的失败/存活语义（重臂、绝缘）见上文第六节。
+- **worker 执行载体包络（CRA 8.46 R4-06 W-10）**：worker 认领任务的 `invokeAsync` 在平台 `globalWorker` 池线程触发（`AbstractBatchScanner.getExecutor` = `globalTimer().executeOn(globalWorker())`，scanner 扫描体与任务执行体同池）——**invoker 实现必须非阻塞**（同 3.1 节本地模式契约的分布式投影）：阻塞执行体占住 globalWorker，拖垮全平台后台任务与全部 scanner。时长无上界的执行体须自行真异步化，或经模块专用载体承载（先例 = `nopRpcPollScheduledExecutor`；专用载体判定按 2498 §3.1.1 四要素：独立容量预算/关闭归属/不经 globalTimer 执行任务体/豁免判据）。**invoker 实现必须非阻塞**为本节硬性契约；`nop.job.worker.max-concurrency` 语义见第五节配置表（DB 在途认领行数上限，非 JVM 内并发上限）。
+
+---
+
+## 八、rpcPoll 条目终结驱动契约（plan 2513 R2-10，MA-01）
+
+`RpcPollTaskManager` 的 rpcPoll 在途条目（entry）在默认装配下保证**有限时间到达终态**——四终结通道（plan 2513 前仅 future 终态单通道，远程失联即无界驻留）：**注册回滚通道（CRA 8.46 R4-06 W-06）**：`register` 的 post-insert 步骤（取消监听挂接/轮询调度/终结钩子注册）任一抛出（典型 = 轮询执行器停机窗口的 RejectedExecutionException）时，条目经幂等 `cancelEntry` 全链回滚（摘监听+两参条件移除注册表）并以既有 `ERR_JOB_REMOTE_INVOKE_FAILED` 码完结调用方 future（WARN `nop.job.remote.register-rollback` 留痕）——条目/监听器泄漏与 promise 悬挂面闭合，任务行走既有失败终态链。
+
+| 通道 | 语义 |
+|------|------|
+| 失败预算 | `getJobStatus` 连续失败达 `nop.job.remote.poll-fail-threshold`（缺省 5，`<=0` 装配 fail-fast）→ resolve `ERR_JOB_REMOTE_INVOKE_FAILED`；阈值前按 2^n 轮跳轮退避（封顶 12 轮）；单轮成功清零（fail-success 交替模式由 deadline/DB 回传兜底承接）；计满记 ERROR `nop.job.remote.poll-budget-exceeded` |
+| deadline 兜底 | `computeDeadline` 优先序 `schedule.timeoutSeconds` > 全局 `nop.job.coordinator.execution-timeout-ms`（>0 时）> 无（0=不杀）；与 checker 同源读键，plan 340 钉不冲突（兜底位在 manager 轮询侧） |
+| DB 回传 | `JobTimeoutCheckerImpl` 置 TIMEOUT 终态（`tryMarkTimeout`/`markSuspiciousAsTimeout` 两写点）经 package-private `resolveFromAuthority(taskId, result)` 回传 entry future——**同 JVM 边界**：跨实例 entry 查表未命中即 no-op，由失败预算/deadline 在本地终结；状态权威仍在 DB，轮询循环自身零 DB 访问 |
+| future/取消 | 远程终态经 pollOnce→applyStatus resolve；cancelToken（内建装配恒 null，仅为空路径兜底）+ whenComplete 兜底，终结即摘除句柄与注册表条目 |
+
+终态结算统一走 `future.complete`（幂等 first-writer-wins），无双重终态。`PollEntry` 只驻留终结/取消所需最小标量视图（taskId/scheduleId/fireId/targetHost/cancelToken/deadline/future 等 12 项白名单），schedule/fire/task 三实体 JSON payload 不驻留（防泄漏放大）。观测：gauge `nop.job.remote.poll.active-count` + counter `nop.job.remote.poll.failures{taskId}`。本节为摘要，语义权威 = 设计文档 job-rpcpoll-termination-and-invoker-lock.md（位于 AI 开发记录区 concurrency 设计集，按边界规则此处不直接链接）裁定①。
 
 ---
 
@@ -478,6 +542,11 @@ Coordinator (协调器)                    Worker (工作者)
 | JobCoordinator | `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobCoordinator.java` |
 | BeanMethodJobInvoker | `nop-job/nop-job-local/src/main/java/io/nop/job/local/executor/BeanMethodJobInvoker.java` |
 | LocalJobConfigLoader | `nop-job/nop-job-local/src/main/java/io/nop/job/local/config/LocalJobConfigLoader.java` |
+| scanner 基类（绝缘守卫） | `nop-job/nop-job-core/src/main/java/io/nop/job/core/AbstractBatchScanner.java` |
+| RpcPollTaskManager（rpcPoll 终结驱动，§八） | `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RpcPollTaskManager.java`（register :157 / resolveFromAuthority :194 / pollOnce :253 / computeDeadline :387 / PollEntry :409） |
+| rpcPoll 请求冻结快照 | `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/RpcPollRequest.java` |
+| LocalJobScheduler 两阶段执行（1.4 节契约） | `nop-job/nop-job-local/src/main/java/io/nop/job/local/LocalJobScheduler.java`（prepareJobLocked :330 / startJobUnlocked :344） |
+| Worker 扫描器（MA-05/MA-06 站点） | `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java` |
 | 本地模式测试（local） | `nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalJobScheduler.java` |
 | 本地配置测试（local） | `nop-job/nop-job-local/src/test/java/io/nop/job/local/` |
 

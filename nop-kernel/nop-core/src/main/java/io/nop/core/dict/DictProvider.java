@@ -32,7 +32,7 @@ import static io.nop.core.CoreConfigs.CFG_DICT_RETURN_NORMALIZED_LABEL;
 public class DictProvider implements IDictProvider {
     static final Logger LOG = LoggerFactory.getLogger(DictProvider.class);
 
-    private static IDictProvider _instance = new DictProvider();
+    private static volatile IDictProvider _instance = new DictProvider();
 
     private static Map<String, DictBean> staticDicts = new ConcurrentHashMap<>();
 

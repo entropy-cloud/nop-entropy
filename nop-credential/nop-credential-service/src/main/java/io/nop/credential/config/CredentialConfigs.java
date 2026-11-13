@@ -48,6 +48,15 @@ public interface CredentialConfigs {
             s_loc, "nop.credential.oauth.state-ttl-seconds", Integer.class, 600);
 
     /**
+     * OAuth 令牌端点请求超时（毫秒，5.1-I-01/plan 2569）：fetchToken 请求级超时上界
+     * （D3-05 VaultCredentialKeyProvider 10s 先例形态）。缺省 10_000；≤0 = 不设（客户端
+     * 部署级缺省兜底）。锁内 I/O（engineUpdateInLock 行锁 + 类锁）时长由本键约束。
+     */
+    @Description("OAuth 令牌端点请求超时毫秒数（缺省 10000，<=0 表示不设）")
+    IConfigReference<Integer> CFG_CREDENTIAL_OAUTH_REQUEST_TIMEOUT_MILLIS = varRef(
+            s_loc, "nop.credential.oauth.request-timeout-millis", Integer.class, 10_000);
+
+    /**
      * 惰性刷新窗口（秒）：now 距 expiresAt 小于该值时触发 refreshToken 刷新。缺省 300。
      * 类型文件 oauth2 元数据中的 refreshWindowSeconds 可按类型覆盖。
      */

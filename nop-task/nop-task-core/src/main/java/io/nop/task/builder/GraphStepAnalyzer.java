@@ -20,11 +20,13 @@ import java.util.Set;
 
 import static io.nop.task.TaskErrors.ARG_GRAPH_STEP_NAME;
 import static io.nop.task.TaskErrors.ARG_LOOP_EDGES;
+import static io.nop.task.TaskErrors.ARG_OVERLAP_STEP_NAMES;
 import static io.nop.task.TaskErrors.ARG_STEP_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_DUPLICATE_STEP_IN_GRAPH;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_CONTAINS_LOOP;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_NO_ENTER_STEPS;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_STEP_NO_EXIT_STEPS;
+import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_ENTER_WAIT_OVERLAP;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_STEP_IN_GRAPH;
 
 public class GraphStepAnalyzer {
@@ -87,7 +89,45 @@ public class GraphStepAnalyzer {
         normalizeWaitSteps(stepModel);
         addDataDepends(stepModel);
 
+        // W-02(a)（CRA 8.49 R4-09，1.5-C3-003 裁定 C）：enter∩wait 双调度构建期硬失败。
+        // 位次在 normalizeWaitSteps（next 自动派生 waitStep）与 addDataDepends（数据依赖派生
+        // wait 注入）之后，两类注入通道均被覆盖——同列 enterSteps 又被 next/waitSteps 依赖时
+        // GraphTaskStep 的 enter 直跑循环与 wait 调度循环会双调度同一节点（body 副作用双跑、
+        // 结果覆写）。存量模型如存在此误配，升级后装配即 fail-fast（须先修模型再升级）
+        validateEnterWaitOverlap(stepModel);
+
         addNextStep(stepModel);
+    }
+
+    /**
+     * W-02(a)（裁定 C）：enterSteps ∩ (waitSteps ∪ waitErrorSteps) 非空即硬失败。
+     * 在 addDataDepends 之后调用使 next 派生/data 依赖派生两类 wait 注入均被覆盖。
+     */
+    private void validateEnterWaitOverlap(IGraphTaskStepModel stepModel) {
+        Set<String> enterSteps = new HashSet<>(stepModel.getEnterSteps());
+        Set<String> overlap = new java.util.LinkedHashSet<>();
+        for (TaskStepModel subStep : stepModel.getSteps()) {
+            if (!enterSteps.contains(subStep.getName()))
+                continue;
+            if (containsAny(subStep.getWaitSteps(), enterSteps)
+                    || containsAny(subStep.getWaitErrorSteps(), enterSteps))
+                overlap.add(subStep.getName());
+        }
+        if (!overlap.isEmpty())
+            throw new NopException(ERR_TASK_GRAPH_ENTER_WAIT_OVERLAP)
+                    .source(stepModel)
+                    .param(ARG_GRAPH_STEP_NAME, stepModel.getName())
+                    .param(ARG_OVERLAP_STEP_NAMES, overlap);
+    }
+
+    private static boolean containsAny(Set<String> steps, Set<String> enterSteps) {
+        if (steps == null)
+            return false;
+        for (String step : steps) {
+            if (enterSteps.contains(step))
+                return true;
+        }
+        return false;
     }
 
     private void normalizeWaitSteps(IGraphTaskStepModel stepModel) {

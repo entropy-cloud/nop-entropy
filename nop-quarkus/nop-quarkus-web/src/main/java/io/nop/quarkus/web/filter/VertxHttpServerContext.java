@@ -136,6 +136,23 @@ public class VertxHttpServerContext implements IHttpServerContext {
         routingContext.request().resume();
     }
 
+    /**
+     * CL-025（plan 2550 裁定 E）：Vert.x 传输层断连观测——响应底层连接已关闭（客户端
+     * 断开/超时）即视为 aborted（Vert.x 5：`HttpServerResponse.closed()`）。
+     */
+    @Override
+    public boolean isClientAborted() {
+        return routingContext.request().response().closed();
+    }
+
+    /**
+     * CL-025：注册断连回调——挂接到 Vert.x 响应 close 事件（客户端断开即触发）。
+     */
+    @Override
+    public void onClientAbort(Runnable task) {
+        routingContext.response().closeHandler(v -> task.run());
+    }
+
     @Override
     public void addCookie(String sameSite, HttpCookie httpCookie) {
         CookieImpl cookie = new CookieImpl(httpCookie.getName(), httpCookie.getValue());

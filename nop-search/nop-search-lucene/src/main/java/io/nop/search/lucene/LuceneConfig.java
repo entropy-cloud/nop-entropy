@@ -21,6 +21,21 @@ public class LuceneConfig {
     private int defaultMaxNumFragments = 5;
     private int defaultMaxFragmentSize = 300;
 
+    /**
+     * Max number of topics (indexes) kept open by the engine (plan 2563 MA-01 capacity bound).
+     * When the bound is exceeded the least recently used topic is evicted via the same
+     * three-stage close sequence as {@code removeTopic}. Values &lt;= 0 mean unbounded (default).
+     */
+    private int maxTopics = 0;
+
+    public int getMaxTopics() {
+        return maxTopics;
+    }
+
+    public void setMaxTopics(int maxTopics) {
+        this.maxTopics = maxTopics;
+    }
+
     public int getDefaultMaxFragmentSize() {
         return defaultMaxFragmentSize;
     }

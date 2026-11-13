@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.fetcher;
 
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -14,6 +15,7 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class EvalActionTransformFetcher implements IDataFetcher {
@@ -30,9 +32,31 @@ public class EvalActionTransformFetcher implements IDataFetcher {
         Object value = fetcher.get(env);
         if (value instanceof CompletionStage) {
             Object entity = env.getSource();
-            return ((CompletionStage<?>) value).thenCompose(v -> {
-                return FutureHelper.toCompletionStage(transform(entity, v, env));
+            // C3-015：fetcher 层异步出口统一挂接（裁定③，与 TransformFetcher/出口泵同口径）——
+            // XPL transform 表达式（EvalScope 线程亲和）在请求 context 的执行窗口内运行。
+            // 经 context.execute 承载（窗口安全性论证见 GraphQLExecutor.thenFetchNext 同注释）
+            IContext context = env.getContext();
+            CompletableFuture<Object> promise = new CompletableFuture<>();
+            ((CompletionStage<?>) value).whenComplete((v, err) -> {
+                try {
+                    context.execute(() -> {
+                        try {
+                            if (err != null) {
+                                promise.completeExceptionally(err);
+                                return;
+                            }
+                            FutureHelper.bindResult(
+                                    FutureHelper.toCompletionStage(transform(entity, v, env)), promise);
+                        } catch (Throwable e) {
+                            promise.completeExceptionally(e);
+                        }
+                    });
+                } catch (Throwable e) {
+                    // context 已关闭等窗口不可进入场景：异常终态而非静默挂起（rule 24）
+                    promise.completeExceptionally(e);
+                }
             });
+            return promise;
         } else {
             return transform(env.getSource(), value, env);
         }
@@ -45,3 +69,4 @@ public class EvalActionTransformFetcher implements IDataFetcher {
         return transformAction.invoke(scope);
     }
 }
+

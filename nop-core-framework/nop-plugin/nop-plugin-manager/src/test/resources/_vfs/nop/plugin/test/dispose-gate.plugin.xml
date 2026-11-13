@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="dispose-gate"
+        if-property="test.dispose.enabled|true"
+        activator="blockingDisposeActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="blockingDisposeActivator" class="io.nop.plugin.test.BlockingDisposeActivator"/>
+        <bean id="tool.bash" class="io.nop.plugin.test.BashTool" primary="true"/>
+        <bean id="nopPluginCommand_hello" class="io.nop.plugin.test.HelloCommand"/>
+    </beans>
+</plugin>

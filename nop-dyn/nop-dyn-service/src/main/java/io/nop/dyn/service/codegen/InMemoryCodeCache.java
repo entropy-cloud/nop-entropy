@@ -318,17 +318,27 @@ public class InMemoryCodeCache {
         gen.execute(subPath, scope);
 
         if (publishedMerged != null) {
-            // 懒生成路径（DynResourceStore miss 回调）之后没有 reloadModel 重建：
-            // 显式把本模块最新生成结果并入已发布 merged store（不依赖ResourceTreeNode.merge的节点别名副作用），
-            // 并恢复字段引用，避免getMergedStore()在下次getResourceStore()前返回null
-            InMemoryResourceStore moduleStore = moduleStores.get(module.getModuleId());
-            if (moduleStore != null)
-                publishedMerged.merge(moduleStore);
-            this.mergedStore = publishedMerged;
-            this.dynResourceStore = publishedStore;
+            // 懒生成路径（DynResourceStore miss 回调）之后没有 reloadModel 重建：恢复两处引用。
+            // I-01/C1-001 写时复制：不再对已发布 merged 实例原地 merge（底层 ResourceTreeNode.children
+            // 普通 TreeMap 无同步，并发遍历会撕裂）——从 moduleStores 权威源重建新 merged 后整体替换
+            // 两处发布引用：cache 字段（volatile 写）+ 已发布 DynResourceStore 的内层 store（volatile
+            // 替换，VFS/外部持有者经其实例读取）。已捕获旧代内层实例的在飞读保持旧代一致快照
+            InMemoryResourceStore rebuilt = rebuildMergedStore();
+            this.mergedStore = rebuilt;
+            if (publishedStore instanceof DynResourceStore)
+                ((DynResourceStore) publishedStore).setStore(rebuilt);
         } else {
             this.clearMergedStore();
         }
+    }
+
+    /**
+     * 从 moduleStores 权威源重建合并视图（写点持锁调用，重建频率=生成频率低频）。
+     */
+    private InMemoryResourceStore rebuildMergedStore() {
+        InMemoryResourceStore rebuilt = new InMemoryResourceStore();
+        this.moduleStores.values().forEach(rebuilt::merge);
+        return rebuilt;
     }
 
     void clearMergedStore() {
@@ -418,7 +428,12 @@ public class InMemoryCodeCache {
 
     protected void addToMergedStore(IResource resource) {
         if (mergedStore != null) {
-            mergedStore.addResource(resource);
+            // I-01/C1-001 写时复制：生成资源已写入 moduleStores（生成器目标store），
+            // 从权威源重建新 merged 后整体替换发布引用，不对已发布实例原地 addResource
+            InMemoryResourceStore rebuilt = rebuildMergedStore();
+            this.mergedStore = rebuilt;
+            if (this.dynResourceStore instanceof DynResourceStore)
+                ((DynResourceStore) this.dynResourceStore).setStore(rebuilt);
             if (AppConfig.isDebugMode())
                 ResourceHelper.dumpResource(resource, resource.readText());
         }

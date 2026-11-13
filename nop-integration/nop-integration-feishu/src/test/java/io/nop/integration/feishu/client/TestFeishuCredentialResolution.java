@@ -274,6 +274,10 @@ class TestFeishuCredentialResolution {
         assertEquals(CONSUMER_REF, provider.lastRegisterConsumerRef);
 
         client.stop();
+        // 4.3-C1-011（plan 2560 裁定 M）：外部注入 scheduler 的 stop→start fail-fast
+        // （documented unsupported）——重启用新 client 承载（同一 scheduler 注入）
+        client = new FeishuClient(transport, httpApi, scheduler);
+        client.setCredentialProvider(provider);
         provider.data = feishuCredential("cred-app", "cred-secret", null, null);
         client.start(credRef("cred-1"), handler); // 重启后再登记（幂等由 provider 唯一约束承载）
         assertEquals(2, provider.registerUsageCalls);

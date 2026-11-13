@@ -1,0 +1,35 @@
+<rule ruleName="rule-selection/allowcall" ruleVersion="1"
+      x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    plan 2509 R2-06 成员 3.3-C7-005 红⑥断言落点（裁定⑦(b) RuleBased 半边）：
+    消费 health 视图第 5 标量 allowCall（纯读投影：非 OPEN、或 OPEN 且冷却已过即 true）。
+    allowCall == true → 选中候选 0；否则规则未命中 → null（调用方 fail-loud，既有不可用路径）。
+    证明规则脚本可真实消费 allowCall 分支（allowCall==false 候选被门控）。
+    -->
+
+    <input name="model"/>
+    <input name="provider"/>
+    <input name="candidates"/>
+    <input name="health"/>
+    <input name="attempted"/>
+    <input name="allowCall0" computed="true">
+        <defaultExpr>health[0] == null ? false : health[0].allowCall</defaultExpr>
+    </input>
+
+    <output name="selectedIndex" type="int"/>
+
+    <decisionTree>
+        <children>
+            <child id="allow-call" label="candidate 0 admissible (projection)">
+                <predicate>
+                    <eq name="allowCall0" value="true"/>
+                </predicate>
+                <output name="selectedIndex">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+            <!-- 无 default 分支：allowCall == false → 未命中 → null（门控拒绝） -->
+        </children>
+    </decisionTree>
+</rule>

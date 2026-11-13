@@ -9,6 +9,8 @@ package io.nop.cluster.assigner;
 
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.cluster.discovery.ServiceInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,15 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class WeightedPartitionAssigner implements IPartitionAssigner {
-    private int defaultWeight = 100;
-
-    public int getDefaultWeight() {
-        return defaultWeight;
-    }
-
-    public void setDefaultWeight(int defaultWeight) {
-        this.defaultWeight = defaultWeight;
-    }
+    static final Logger LOG = LoggerFactory.getLogger(WeightedPartitionAssigner.class);
 
     @Override
     public List<IntRangeBean> assignPartitions(IntRangeBean range, List<ServiceInstance> servers) {
@@ -92,9 +86,16 @@ public class WeightedPartitionAssigner implements IPartitionAssigner {
     }
 
     private int getWeight(ServiceInstance server) {
+        // 4.2-MA-08（plan 2559 裁定 C/R25-1 零权重下限语义）：weight<=0 一律按 max(1, weight)=1
+        // 下限参与分配（原「≤0 改写 defaultWeight=100」的假保护即本缺陷根因）。
+        // 语义后果（R25-1 显式声明）：weight<=0 不再表示「不接流量」——控制台 weight=0 摘流后
+        // 该实例仍按 weight=1 获得比例份额；摘流须改用 enabled/healthy 等替代手段。
         int weight = server.getWeight();
         if (weight <= 0) {
-            weight = defaultWeight;
+            // R25-1：WARN 留痕原始值（载体断言项）
+            LOG.warn("nop.cluster.assigner.non-positive-weight-floored:instanceId={},weight={} -> 1",
+                    server.getInstanceId(), weight);
+            weight = 1;
         }
         return weight;
     }

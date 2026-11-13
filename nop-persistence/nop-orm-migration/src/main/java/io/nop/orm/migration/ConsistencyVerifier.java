@@ -7,6 +7,7 @@
  */
 package io.nop.orm.migration;
 
+import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
@@ -17,13 +18,12 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import static io.nop.orm.migration.MigrationErrors.ARG_MISMATCH_COUNT;
 import static io.nop.orm.migration.MigrationErrors.ARG_MISMATCH_DETAIL;
@@ -52,17 +52,24 @@ public class ConsistencyVerifier {
     /** 抽样分子抽样判定：pkHash % denominator == 0。 */
     static final int MAX_MISMATCH_DETAILS = 10;
     private static final String NULL_MARK = "\u0001NULL";
-    private static final int CHECKSUM_BATCH = 2000;
+    static final int CHECKSUM_BATCH = 2000;
 
     private final IJdbcTemplate jdbcTemplate;
     private final TargetShardMapping mapping;
     private final List<String> keyColumns;
+    /** 2.5-MA-07（plan 2554 裁定 A）：keyset 分页批大小（缺省常量；测试缝可缩小批触发跨页归并）。 */
+    private int checksumBatch = CHECKSUM_BATCH;
 
     public ConsistencyVerifier(IJdbcTemplate jdbcTemplate, TargetShardMapping mapping,
                                List<String> keyColumns) {
         this.jdbcTemplate = jdbcTemplate;
         this.mapping = mapping;
         this.keyColumns = keyColumns;
+    }
+
+    /** 测试缝：缩小 keyset 分页批大小以覆盖跨页边界（生产路径恒用 CHECKSUM_BATCH）。 */
+    void setChecksumBatch(int checksumBatch) {
+        this.checksumBatch = checksumBatch;
     }
 
     /**
@@ -128,64 +135,260 @@ public class ConsistencyVerifier {
         return total;
     }
 
+    /**
+     * 2.5-MA-07（plan 2554 裁定 A）：双侧 keyset 分页拉取 + 归并双游标对比——替换原「双侧全量
+     * pk→hash Map + TreeSet 键集驻堆」形态。任一时刻堆内仅 O(N=checksumBatch) 行（每侧每物理
+     * 表一个页缓冲），missing/added/mismatch 增量检出，失配报告契约不变。
+     */
     private void verifyChecksum(int denominator, VerifyReport report) {
-        Map<String, String> sourceHashes = scanHashes(mapping.getSourceTables(), denominator, report);
-        Map<String, String> targetHashes = scanHashes(mapping.getTargetTables(), denominator, report);
-
-        TreeSet<String> allKeys = new TreeSet<>();
-        allKeys.addAll(sourceHashes.keySet());
-        allKeys.addAll(targetHashes.keySet());
-
-        for (String pk : allKeys) {
-            String sourceHash = sourceHashes.get(pk);
-            String targetHash = targetHashes.get(pk);
-            if (!Objects.equals(sourceHash, targetHash)) {
-                report.mismatchCount++;
-                if (report.mismatchDetails.size() < MAX_MISMATCH_DETAILS) {
-                    report.mismatchDetails.add("pk=" + pk
-                            + ",source=" + (sourceHash == null ? "MISSING" : sourceHash)
-                            + ",target=" + (targetHash == null ? "MISSING" : targetHash));
+        try (SideCursor source = new SideCursor(mapping.getSourceTables(), denominator, report);
+             SideCursor target = new SideCursor(mapping.getTargetTables(), denominator, report)) {
+            Row s = source.next();
+            Row t = target.next();
+            while (s != null || t != null) {
+                if (t == null || (s != null && s.key.compareTo(t.key) < 0)) {
+                    // 源有目标无 = target missing
+                    recordMismatch(s.key, s.hash, null, report);
+                    s = source.next();
+                } else if (s == null || s.key.compareTo(t.key) > 0) {
+                    // 目标有源无 = target added
+                    recordMismatch(t.key, null, t.hash, report);
+                    t = target.next();
+                } else {
+                    if (!Objects.equals(s.hash, t.hash))
+                        recordMismatch(s.key, s.hash, t.hash, report);
+                    s = source.next();
+                    t = target.next();
                 }
             }
+        }
+    }
+
+    private void recordMismatch(RowKey key, String sourceHash, String targetHash, VerifyReport report) {
+        report.mismatchCount++;
+        if (report.mismatchDetails.size() < MAX_MISMATCH_DETAILS) {
+            report.mismatchDetails.add("pk=" + key.display
+                    + ",source=" + (sourceHash == null ? "MISSING" : sourceHash)
+                    + ",target=" + (targetHash == null ? "MISSING" : targetHash));
         }
     }
 
     /**
-     * 逐物理表 offset 分页扫行（主键序，与 EncAssistedBackfiller 同族分页先例），按 pk 归并出
-     * 键 → 行 hash 映射。抽样子集：stableHash(pk) % denominator == 0。
+     * 行级比对面：keyset 分页键（原始主键值元组，与 DB ORDER BY 主键序一致）+ 规范化展示串
+     * （canonical 拼接，与既有 pkKey 失配报告格式一致）。
      */
-    private Map<String, String> scanHashes(List<PhysicalTable> tables, int denominator, VerifyReport report) {
-        Map<String, String> result = new HashMap<>();
-        for (PhysicalTable table : tables) {
-            long offset = 0;
-            while (true) {
-                List<Map<String, Object>> rows = findPage(table, offset);
-                if (rows.isEmpty())
-                    break;
-                for (Map<String, Object> row : rows) {
-                    String pk = pkKey(row);
-                    if (denominator > 1 && Math.floorMod(stableHash(pk), denominator) != 0)
-                        continue;
-                    report.sampledRows++;
-                    result.merge(pk, rowHash(row), (a, b) -> {
-                        // 跨物理表同 pk（异常数据）直接视为失配证据
-                        return a.equals(b) ? a : "DUP:" + a + "|" + b;
-                    });
-                }
-                if (rows.size() < CHECKSUM_BATCH)
-                    break;
-                offset += CHECKSUM_BATCH;
-            }
+    static final class RowKey implements Comparable<RowKey> {
+        final List<Object> parts;
+        final String display;
+
+        RowKey(List<Object> parts, String display) {
+            this.parts = parts;
+            this.display = display;
         }
-        return result;
+
+        @Override
+        public int compareTo(RowKey o) {
+            int n = Math.min(parts.size(), o.parts.size());
+            for (int i = 0; i < n; i++) {
+                int cmp = compareKeyPart(parts.get(i), o.parts.get(i));
+                if (cmp != 0)
+                    return cmp;
+            }
+            return Integer.compare(parts.size(), o.parts.size());
+        }
     }
 
-    private List<Map<String, Object>> findPage(PhysicalTable table, long offset) {
-        String order = orderClause(table);
-        String sql = "SELECT * FROM " + escape(table) + " ORDER BY " + order;
-        return jdbcTemplate.findPage(SQL.begin().querySpace(table.getQuerySpace())
-                .name("orm-migration-scan:" + table.getTableName())
-                .sql(sql).end(), offset, CHECKSUM_BATCH);
+    /** 键分量比较：数值经 BigDecimal 数值序（与 DB 数值序一致），同型 Comparable 原生序，其余回退规范化串序。 */
+    static int compareKeyPart(Object a, Object b) {
+        if (a == null && b == null)
+            return 0;
+        if (a == null)
+            return -1;
+        if (b == null)
+            return 1;
+        if (a instanceof Number && b instanceof Number) {
+            return toBigDecimal((Number) a).compareTo(toBigDecimal((Number) b));
+        }
+        if (a.getClass() == b.getClass() && a instanceof Comparable) {
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            int cmp = ((Comparable) a).compareTo(b);
+            return cmp;
+        }
+        return canonical(a).compareTo(canonical(b));
+    }
+
+    private static BigDecimal toBigDecimal(Number number) {
+        if (number instanceof BigDecimal)
+            return (BigDecimal) number;
+        if (number instanceof Double || number instanceof Float)
+            return new BigDecimal(number.toString());
+        return new BigDecimal(number.toString());
+    }
+
+    /** 单侧比对面行（合并同键重复行后的 hash 证据）。 */
+    static final class Row {
+        final RowKey key;
+        final String hash;
+
+        Row(RowKey key, String hash) {
+            this.key = key;
+            this.hash = hash;
+        }
+    }
+
+    /**
+     * 单物理表 keyset 分页游标：{@code WHERE pk > lastKey ORDER BY pk LIMIT N}（消 offset 深
+     * 分页二次方 IO，裁定 A）。堆内仅持一个页缓冲。
+     */
+    private final class TableCursor {
+        private final PhysicalTable table;
+        private final IDialect dialect;
+        private final String order;
+        private List<Map<String, Object>> page = List.of();
+        private int pos;
+        private List<Object> lastKey;
+        private boolean exhausted;
+        private Row current;
+
+        TableCursor(PhysicalTable table) {
+            this.table = table;
+            this.dialect = jdbcTemplate.getDialectForQuerySpace(table.getQuerySpace());
+            this.order = orderClause(table);
+        }
+
+        /** 前进到下一个抽样子集内的行（跨页 keyset 拉取；null = 本表扫尽）。 */
+        Row next(int denominator, VerifyReport report) {
+            while (true) {
+                if (pos >= page.size()) {
+                    if (exhausted)
+                        return finish();
+                    fetchPage();
+                    continue;
+                }
+                Map<String, Object> row = page.get(pos++);
+                RowKey key = keyOf(row);
+                if (denominator > 1 && Math.floorMod(stableHash(key.display), denominator) != 0)
+                    continue;
+                report.sampledRows++;
+                current = new Row(key, rowHash(row));
+                return current;
+            }
+        }
+
+        private Row finish() {
+            current = null;
+            return null;
+        }
+
+        private void fetchPage() {
+            SQL.SqlBuilder sb = SQL.begin().querySpace(table.getQuerySpace())
+                    .name("orm-migration-scan:" + table.getTableName())
+                    .sql("SELECT * FROM ").sql(escape(table));
+            if (lastKey != null) {
+                sb.sql(" WHERE ");
+                if (keyColumns.size() == 1) {
+                    sb.sql(dialect.escapeSQLName(keyColumns.get(0))).sql(" > ").param(lastKey.get(0));
+                } else {
+                    // 行值构造器 keyset（H2/mysql8+/mariadb10.2+/postgres 支持）
+                    for (int i = 0; i < keyColumns.size(); i++) {
+                        sb.sql(i == 0 ? "(" : ",").sql(dialect.escapeSQLName(keyColumns.get(i)));
+                    }
+                    for (int i = 0; i < lastKey.size(); i++) {
+                        sb.sql(i == 0 ? ") > (" : ",").param(lastKey.get(i));
+                    }
+                    sb.sql(")");
+                }
+            }
+            sb.sql(" ORDER BY ").sql(order);
+            SQL paged = dialect.getPaginationHandler()
+                    .getPagedSql(new LongRangeBean(0, checksumBatch), sb.end());
+            page = jdbcTemplate.findAll(paged);
+            pos = 0;
+            if (page.isEmpty()) {
+                exhausted = true;
+                return;
+            }
+            Map<String, Object> lastRow = page.get(page.size() - 1);
+            List<Object> parts = new ArrayList<>(keyColumns.size());
+            for (String col : keyColumns) {
+                parts.add(lookupIgnoreCase(lastRow, col));
+            }
+            lastKey = parts;
+            if (page.size() < checksumBatch)
+                exhausted = true;
+        }
+
+        private RowKey keyOf(Map<String, Object> row) {
+            List<Object> parts = new ArrayList<>(keyColumns.size());
+            for (String col : keyColumns) {
+                parts.add(lookupIgnoreCase(row, col));
+            }
+            return new RowKey(parts, pkKey(row));
+        }
+    }
+
+    /**
+     * 单侧（源或目标）归并游标：跨物理表 k 路归并（堆序 = 主键序），同键重复行（异常数据）
+     * 以 DUP 标记合并 hash——与旧全量 Map merge 语义一致。
+     */
+    private final class SideCursor implements AutoCloseable {
+        private final PriorityQueue<TableCursor> heap;
+        private final int denominator;
+        private final VerifyReport report;
+
+        SideCursor(List<PhysicalTable> tables, int denominator, VerifyReport report) {
+            this.denominator = denominator;
+            this.report = report;
+            this.heap = new PriorityQueue<>((a, b) -> {
+                if (a.current == null && b.current == null)
+                    return 0;
+                if (a.current == null)
+                    return 1;
+                if (b.current == null)
+                    return -1;
+                return a.current.key.compareTo(b.current.key);
+            });
+            for (PhysicalTable table : tables) {
+                TableCursor cursor = new TableCursor(table);
+                if (cursor.next(denominator, report) != null)
+                    heap.add(cursor);
+            }
+        }
+
+        /** 下一个唯一键行（同键重复行合并 DUP hash 后作为一个键产出）。 */
+        Row next() {
+            Row first = pollRow();
+            if (first == null)
+                return null;
+            String hash = first.hash;
+            Row dup = peekRow();
+            while (dup != null && dup.key.compareTo(first.key) == 0) {
+                pollRow();
+                hash = hash.equals(dup.hash) ? hash : "DUP:" + hash + "|" + dup.hash;
+                dup = peekRow();
+            }
+            return new Row(first.key, hash);
+        }
+
+        private Row pollRow() {
+            TableCursor cursor = heap.poll();
+            if (cursor == null)
+                return null;
+            Row row = cursor.current;
+            if (cursor.next(denominator, report) != null)
+                heap.add(cursor);
+            return row;
+        }
+
+        private Row peekRow() {
+            TableCursor cursor = heap.peek();
+            return cursor == null ? null : cursor.current;
+        }
+
+        @Override
+        public void close() {
+            heap.clear();
+        }
     }
 
     private String orderClause(PhysicalTable table) {

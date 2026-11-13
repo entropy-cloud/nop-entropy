@@ -7,7 +7,6 @@
  */
 package io.nop.stream.connector.debezium;
 
-import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,6 +31,7 @@ import io.nop.stream.core.source.SourceReader;
 import io.nop.stream.core.source.SourceReaderContext;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_EXECUTE_FAILED;
 
 /**
@@ -44,10 +44,12 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_EXECU
  * ({@code name-<subtaskIndex>}, instance-qualified schema history).
  *
  * <p>Offset checkpointing travels the FLIP-27 surface: {@link #snapshotState} lifts the
- * embedded function's {@code cdc-offsets} map into every split (instance-granular copy,
- * plan M-2); {@link #restoreState} rebuilds a {@link TaskStateSnapshot} from the first
- * offset-carrying split and replays it through the embedded function's
- * {@code initializeState} — no legacy operator-state path involved.
+ * per-server last-emitted position map (plan 2511 C8-001 — the engine store value can
+ * lead the emitted boundary by up to {@link #QUEUE_CAPACITY} records, so the snapshot
+ * synthesizes from the tracker instead) into every split (instance-granular copy, plan
+ * M-2); {@link #restoreState} rebuilds a {@link TaskStateSnapshot} from the restored
+ * offset maps (numeric-min per server, conservative replay) and replays it through the
+ * embedded function's {@code initializeState} — no legacy operator-state path involved.
  */
 public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, DebeziumTableSplit> {
 
@@ -57,6 +59,21 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
     static final long POLL_TIMEOUT_MILLIS = 100L;
     static final int QUEUE_CAPACITY = 256;
     static final long CLOSE_JOIN_TIMEOUT_MILLIS = 5000L;
+
+    /**
+     * CRA 8.43 R4-03 W-12 (C8-012; adjudication C.6): default per-record byte
+     * envelope — SAME default and behavior as the message bridge's
+     * {@code MessageSourceReader.DEFAULT_MAX_RECORD_BYTES} (16MB, in-family
+     * alignment with the file connector's maxLineBytes bound).
+     */
+    public static final long DEFAULT_MAX_RECORD_BYTES = 16L * 1024 * 1024;
+
+    /**
+     * CRA 8.43 R4-03 W-12: per-record byte envelope enforced at the
+     * {@code collect} queue-entry point (BEFORE the put). {@code <= 0} fails
+     * fast at construction.
+     */
+    private final long maxRecordBytes;
 
     private final DebeziumConfig config;
     private final ICredentialProvider credentialProvider;
@@ -68,17 +85,39 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
     private transient volatile Throwable runnerFailure;
     private final Map<String, DebeziumTableSplit> adoptedSplits = new LinkedHashMap<>();
     private final Map<String, Map<String, String>> restoredOffsetByTable = new LinkedHashMap<>();
+    /**
+     * Plan 2511 C8-001 (adjudication ⑥): per-server last-emitted position protocol —
+     * checkpoint offsets must never run ahead of what this reader actually emitted
+     * downstream (the pre-fix engine-store snapshot could be ≤256 records fresh).
+     */
+    private final LastEmittedOffsetTracker lastEmittedTracker = new LastEmittedOffsetTracker();
     private volatile boolean running;
     private transient DebeziumCdcSourceFunction embeddedFunction;
 
     public DebeziumCdcSourceReader(DebeziumConfig config, ICredentialProvider credentialProvider,
                                    Map<String, String> initialOffsets) {
+        this(config, credentialProvider, initialOffsets, DEFAULT_MAX_RECORD_BYTES);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-12: full constructor with the per-record byte envelope.
+     * A non-positive bound fails fast typed at construction. The 2511
+     * last-emitted offset tracker chain is NOT touched — this bound guards
+     * only the queue-entry face.
+     */
+    public DebeziumCdcSourceReader(DebeziumConfig config, ICredentialProvider credentialProvider,
+                                   Map<String, String> initialOffsets, long maxRecordBytes) {
         if (config == null) {
             throw new IllegalArgumentException("config is required");
+        }
+        if (maxRecordBytes <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "maxRecordBytes must be > 0, got: " + maxRecordBytes);
         }
         this.config = config;
         this.credentialProvider = credentialProvider;
         this.initialOffsets = initialOffsets;
+        this.maxRecordBytes = maxRecordBytes;
     }
 
     @Override
@@ -110,7 +149,9 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         }
 
         try {
-            Map<String, String> offsetMap = firstOffsetMap();
+            Map<String, String> offsetMap = lastEmittedTracker.hasPositions()
+                    ? lastEmittedTracker.synthesizeOffsetMap()
+                    : firstOffsetMap();
             if (offsetMap != null) {
                 // restore path: replay the instance-level offset map through the
                 // embedded function's own state contract
@@ -183,6 +224,8 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
                 adoptedSplits.put(split.splitId(), split);
                 if (split.isOffsetCarrying() && split.getOffsetMap() != null) {
                     restoredOffsetByTable.put(split.splitId(), split.getOffsetMap());
+                    // C8-001: min-merge seed (same rule as restoreState)
+                    lastEmittedTracker.seedFromOffsetMap(split.getOffsetMap());
                 }
             }
             if (running) {
@@ -232,7 +275,12 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         if (runnerFailure != null) {
             throw asException(runnerFailure);
         }
-        return Optional.of((ChangeEvent) value);
+        ChangeEvent event = (ChangeEvent) value;
+        // C8-001 emission point: the record is handed downstream here — record its
+        // position BEFORE returning so snapshotState can never lift an offset past it.
+        // A position-less event fails typed (rule 24), never falls back silently.
+        lastEmittedTracker.onEmitted(event);
+        return Optional.of(event);
     }
 
     private StreamException asException(Throwable failure) {
@@ -257,19 +305,24 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         if (adoptedSplits.isEmpty()) {
             return List.of();
         }
-        Map<String, String> offsets = null;
-        if (embeddedFunction != null) {
-            var snapshot = embeddedFunction.snapshotState(checkpointId);
-            Object raw = snapshot.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY);
-            if (raw instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, String> map = (Map<String, String>) raw;
-                offsets = map;
-            }
+        Map<String, String> offsets;
+        if (lastEmittedTracker.hasPositions()) {
+            // C8-001: snapshot offsets == last-EMITTED boundary (per-server synthesized
+            // engine-shape map). The engine store may legitimately be up to
+            // QUEUE_CAPACITY + 1 records ahead of this boundary — lifting its value
+            // was the pre-fix silent-loss window.
+            offsets = lastEmittedTracker.synthesizeOffsetMap();
+        } else {
+            // C8-001: no emitted position since start (first checkpoint before any
+            // record) — carry ONLY the maps restored for THIS run (legacy checkpoint
+            // compatibility); the live engine-store value must NEVER lift into a
+            // snapshot past the emitted boundary (that lift was the pre-fix
+            // ≤256-record silent-loss window, C10-013 inverted carrier)
+            offsets = firstOffsetMap();
         }
         List<DebeziumTableSplit> splits = new ArrayList<>(adoptedSplits.size());
         if (offsets != null) {
-            // one instance-level copy per split (plan M-2)
+            // one instance-level copy per split (plan M-2, semantics preserved)
             for (DebeziumTableSplit split : adoptedSplits.values()) {
                 splits.add(split.withOffsetMap(offsets));
             }
@@ -288,6 +341,10 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
             adoptedSplits.putIfAbsent(split.splitId(), split);
             if (split.isOffsetCarrying() && split.getOffsetMap() != null) {
                 restoredOffsetByTable.put(split.splitId(), split.getOffsetMap());
+                // C8-001: seed the per-server table taking the NUMERIC MINIMUM across
+                // offset-carrying splits — conservative replay (duplicate-not-lose),
+                // replacing the pre-fix "take the first one" arbitrariness
+                lastEmittedTracker.seedFromOffsetMap(split.getOffsetMap());
             }
         }
     }
@@ -298,18 +355,99 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         if (embeddedFunction != null) {
             embeddedFunction.cancel();
         }
+        // CRA 8.44 R4-04 W-05 (C3-012; adjudication C.1, three segments per MJ-2):
+        // 1) bounded detection — join the runner with the unchanged 5s budget;
         Thread thread = runnerThread;
+        boolean joinTimedOut = false;
         if (thread != null) {
             thread.join(CLOSE_JOIN_TIMEOUT_MILLIS);
-            if (thread.isAlive()) {
+            joinTimedOut = thread.isAlive();
+        }
+        // 2) single-shot interrupt on the RUNNER (best-effort; the engine dispatch
+        // thread blocked in queue.put is released by the clear below — the
+        // adjudication's attribution re-anchoring). This makes the collect()
+        // InterruptedException branch reachable again; its body is untouched.
+        if (joinTimedOut) {
+            thread.interrupt();
+        }
+        // 3) clear BEFORE/INDEPENDENT of the typed failure — the queue is abandoned
+        // after close and its parked events sit beyond the last-emitted boundary
+        // (at-least-once replay covers the drop).
+        try {
+            if (queue != null) {
+                queue.clear();
+            }
+        } finally {
+            if (joinTimedOut) {
+                // unchanged timeout signal: same code, same message, same shape
                 throw (StreamException) new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED)
                         .param(ARG_DETAIL, "debezium cdc runner did not terminate within "
                                 + CLOSE_JOIN_TIMEOUT_MILLIS + "ms of close()");
             }
         }
-        if (queue != null) {
-            queue.clear();
+        if (embeddedFunction != null) {
+            // C3-014 ② (plan 2503 Phase 3): the close contract requires the embedded engine
+            // TERMINATED, not merely asked to stop — the pre-fix「join 成功 ≠ 引擎终止」window
+            // (runner exited via latch while the ghost engine survived) is closed with a
+            // typed failure on ghost risk. K2 boundary: this verify stays on the
+            // join-SUCCESS path — the timeout path already typed out above (a timed-out
+            // runner means the verify would ghost-fail anyway; no signal is lost).
+            embeddedFunction.verifyEmbeddedEngineTerminated("reader-close", true);
         }
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-12: string/byte-carrier direct-measure LOWER BOUND of a
+     * record's heap footprint (declared measurement caliber — depth-3 bounded
+     * recursion, SAME semantics as the message bridge): a {@link ChangeEvent}
+     * measures through its key/before/after object graphs; {@code byte[]} its
+     * length; {@link String} its UTF-16 code units (correct heap lower bound);
+     * maps / collections / arrays recurse bounded-depth; any other carrier
+     * contributes 0 (declared residual — capability-matrix envelope statement;
+     * depth telemetry = C8-008 deferred governance track).
+     */
+    static long measureRecordBytes(Object record) {
+        return measureValue(record, 3);
+    }
+
+    private static long measureValue(Object value, int depth) {
+        if (value == null || depth < 0) {
+            return 0;
+        }
+        if (value instanceof ChangeEvent event) {
+            return measureValue(event.getKey(), depth - 1)
+                    + measureValue(event.getBefore(), depth - 1)
+                    + measureValue(event.getAfter(), depth - 1);
+        }
+        if (value instanceof byte[] bytes) {
+            return bytes.length;
+        }
+        if (value instanceof String text) {
+            return text.length();
+        }
+        if (value instanceof java.util.Map<?, ?> map) {
+            long sum = 0;
+            for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
+                sum += measureValue(entry.getKey(), depth - 1)
+                        + measureValue(entry.getValue(), depth - 1);
+            }
+            return sum;
+        }
+        if (value instanceof Iterable<?> iterable) {
+            long sum = 0;
+            for (Object element : iterable) {
+                sum += measureValue(element, depth - 1);
+            }
+            return sum;
+        }
+        if (value instanceof Object[] array) {
+            long sum = 0;
+            for (Object element : array) {
+                sum += measureValue(element, depth - 1);
+            }
+            return sum;
+        }
+        return 0;
     }
 
     void setContextForTest(SourceReaderContext ctx) {
@@ -326,6 +464,22 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
 
         @Override
         public void collect(ChangeEvent element) {
+            // CRA 8.43 R4-03 W-12: per-record byte envelope — reject BEFORE the
+            // put; the typed failure rides the bridge's existing first-error
+            // channel. The 2511 last-emitted offset protocol is untouched (the
+            // envelope guards only the queue entry, after offset extraction).
+            if (element != null && measureRecordBytes(element) > maxRecordBytes) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_DETAIL, "debezium CDC record exceeds maxRecordBytes: "
+                                + measureRecordBytes(element) + " > " + maxRecordBytes
+                                + " bytes (subtask="
+                                + (context == null ? "?" : String.valueOf(context.getSubtaskIndex()))
+                                + ", table=" + (element.getKey() == null ? "?"
+                                        : String.valueOf(element.getKey().keySet()))
+                                + ") — enlarge the payload budget (constructor) or compress/"
+                                + "shrink the record; the envelope is a string/byte-carrier "
+                                + "direct-measure lower bound");
+            }
             try {
                 queue.put(element);
             } catch (InterruptedException e) {
@@ -352,7 +506,7 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
 
         @Override
         public long getProcessingTime() {
-            return CoreMetrics.currentTimeMillis();
+            return System.currentTimeMillis();
         }
 
         @Override

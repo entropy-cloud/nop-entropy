@@ -39,6 +39,7 @@ import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
+import io.nop.xlang.debugger.XLangDebugConnector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

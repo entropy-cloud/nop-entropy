@@ -598,6 +598,15 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 不满足上述情形的普通实体读写一律用实体写：绕过会话的 raw UPDATE 会造成会话实体与库脱同步（返回值命中一级缓存旧实例）、丢失乐观锁/审计列维护、物理列名硬编码。
 
+### 事务与连接的并发契约（与独立事务/REQUIRES_NEW 相邻）
+
+- **事务注册协议是原子的**：同一 context 内 get→建→注册事务收敛为注册表单步原子操作，REQUIRED 组语义在并行异步分支下不退化为独立事务；事务注销（`runWithoutTransaction`/`NOT_SUPPORTED`）以挂起标记实现、不留注销窗口；清理时若注册表身份比对不符（并发方已接管）降级告警而非误报「事务未注册」——提交成功后不应出现事务注册失败。组事务（subTransactions）提交/回滚对注册期集合持锁快照迭代，快照外的迟到子事务显式拒绝，不存在静默不提交丢写。同一 context 并行异步分支共享外层事务是设计场景，不是未定义行为。
+- **JdbcTransaction 连接生命周期以事务对象自身为 monitor 串行化**：取连接/提交/回滚/释放/关闭五触点不并发交错，双取池连接泄漏与提交后并发重取僵尸连接不成立；已释放连接上的 commit 显式告警留痕（eagerRelease 后 null 连接为合法终态，但必须可观测）。禁止在事务 monitor 临界区内再获取注册表等全局并发结构锁。
+- **队列消费不得横跨事务持有连接**：以 `IBlockingSource` 为载体的轮询消费（如 `drainTo` 等待路径）禁止在 `REQUIRES_NEW` 事务内做无限等待轮询——等待窗口必须在事务外，每轮「抢占 + 读取」以独立短事务包络，且抢占条件 UPDATE（CAS）与轮询读必须在同一短事务内（拆开即抢占失效）。空闲轮询期不应持有池连接。
+- **抢占 CAS 谓词对 NULL 初始态显式化**：抢占字段按声明全集生成 WHERE 谓词——源值为 NULL 的字段生成 `col IS NULL` 而非被静默丢弃，NULL 初始态同样参与 CAS；任何路径下抢占 UPDATE 都不得退化为按 id 的无条件更新（否则同一任务会被多消费者重复投递）。
+
+会话与事务并发契约的完整裁定（锁域、锁序、守卫指标与拒绝方案清单）见 AI 开发记录区 concurrency 设计集 orm-session-txn-atomicity-and-model-cache-generation.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
+
 ### EQL 书写注意（易踩坑）
 
 - **EQL 运算符优先级（2026-08-23 已修复，plan 2256/2257）**：历史缺陷两处——①算术：`sqlExpr_bit` 文法备选顺序曾与标准相反（`|` 最紧、`/` 接近最松），多个 `/` 夹 `+`/`-` 的表达式被静默重排（`A/B + C/D` 编译为 `(A/B+C)/D`）且 `+` 错误紧于 `-`；②逻辑：NOT 备选曾排在 AND/OR 之后（最松），`not a=1 and b='x'` 解析为 `not(a=1 and b='x')`。修复后为标准语义：算术六级左结合（`^` > `* / %` > `+ -` > `<< >>` > `&` > `|`，与 MySQL 一致）、逻辑 `NOT > AND > OR`。回归测试 `TestEqlArithmeticPrecedence` / `TestEqlLogicalPrecedence`（nop-orm）固化。**升级注意**：从旧版本迁移时，此前"歪打正着"依赖错误分组的无括号表达式（含 `not` 前缀无括号 where）语义会变化；混合算术加显式括号仍是推荐写法（无害且自文档化）。
@@ -615,6 +624,123 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 两者共同契约：移出后**不再参与 flush**（移出前的未提交修改与移出后的新修改均不落库）、`contains`/`get` 不再命中、已关闭 session 上调用响亮失败。需要「丢弃未提交修改并脱离会话」时用任一入口均可；需要保留未提交修改请先 flush 再 detach。
 
+## ORM 会话并发与模型发布契约
+
+同 context 的并发使用（并行异步分支、异步完成线程触达 session）是受支持的运行形态，会话与模型层提供以下保证；完整裁定权威见 AI 开发记录区 concurrency 设计集 orm-session-txn-atomicity-and-model-cache-generation.md（按 docs-for-ai 边界规则不直接链接），本节为使用知识投影。
+
+### 会话生命周期并发契约
+
+- **session 全生命周期互斥**：`OrmSessionImpl` 的 flush、close 与写路径以 session 级可重入锁串行化——并发 flush 不再静默跳过（静默跳过会让事务带着未刷写提交），双 flusher 并发遍历不可能；写入口（save/update/delete/lock 族）与读路径同样校验执行 context，跨线程误用 fail-fast。
+- **异步会话收尾回 context 队列**：`runInNewSessionAsync` 等异步入口的收尾（flush/注册表恢复/close）经完成线程投递回 context 任务队列执行，完成线程只投递不直接操作 session；队列不可用时降级为投递线程内联执行，session 互斥兜底残留窗口。
+- **会话兜底关闭**：异步入口注册新会话时在 context 生命周期挂兜底关闭登记；上游异步操作永不完成时，context 关闭会兜底关闭滞留会话，注册表不无限期滞留脏会话。
+- **context 注册表 get-or-create 原子化**：`OrmSessionRegistry`/`TransactionRegistry` 的按 context 首触创建为单步原子操作，并发首触恰好一实例。`IContext.getAttrs()` 实现方须返回并发安全 Map——返回非并发 Map 的替身 context 上该原子性不成立。
+- **flush 失败后可重试**：脏标记在批 DML 队列成功刷出之后才清除——flush 中途失败后捕获-重试编排再次 flush 会真实重放，不会因脏标记已清而静默 no-op。
+
+### 模型热刷新可见性契约
+
+- **模型发布 volatile 可见**：`DefaultOrmModelProvider`/`TenantAwareOrmModelProvider` 的 `ormModel` 与 `LoadedOrmModel` 的 `ormInterceptor` 为 volatile——`reloadModel`/`clearCache` 后新模型对新读者可见，不存在旧模型无限期可见；`clearCache` 先清 interceptor 缓存再发布新模型引用，混合态单向化（唯一残留窗为旧模型 + 新 interceptor 的极窄降级窗，非结构错位）。
+- **组件列映射解析期预计算**：`OrmComponentModel` 的 `colPropIds`/`propIds` 在模型解析期一次性计算完成，运行期只读——并发首触不会读到空/部分填充的列映射，实体状态不会按错误 propId 错位写入。
+
+### 全局实体缓存的世代围栏契约
+
+全局实体/集合缓存（`useGlobalCache`）的 read-repair 回填带世代围栏：读库发起时快照世代，回填前经 fence CAS 相等性判定（readGen==fenceGen），evict 推进世代——**evict 之后任何迟到的 read-repair 回填一律放弃**，缓存中不会出现「缓存=旧值、DB=新值且不自愈」的无界驻留。世代语义（进程内 per-persister 单调 fence、版本化 value、非 DB 列/非时间戳）为单一权威设计，失效判据世代的后续演进须引用同一裁定，不得另建第二套世代语义。
+
+### 事务状态机与批队列契约（2.4 切片束 b，plan 2553）
+
+- **事务生命周期为 CAS 状态机**：`AbstractTransaction` 以 `AtomicReference<TxnState>`（NEW/OPEN/COMMITTING/COMMITTED/ROLLING_BACK/ROLLED_BACK/CLOSED）门控 open/commit/rollback/close——open 双开 fail-fast；**二次 commit = no-op-with-WARN**（监听器不二次通知）；`markRollbackOnly` 后 commit **自动走 rollback 语义 + WARN**（语义裁定：不再抛 `ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT`，依赖旧抛错行为的调用方须显式迁移）；`isTransactionOpened()` 为纯状态映射（仅 OPEN/COMMITTING 为 true）；commit 提交失败时终态尽力置 ROLLED_BACK 并透传异常。未 open（NEW）事务的 commit 保留既有可观测路径（`JdbcTransaction.doCommit` 对 null 连接 WARN 留痕 no-op）。
+- **事务监听器注册原子**：`addListener` 惰性 init 与去重收进事务监视器域，`listeners` volatile——并发注册不丢监听器。
+- **实体缓存 evict 事务级聚合**：同一事务内多次 evict 仅注册**一个聚合 listener**（`pendingEvictKeys` 并发集聚合 key，commit 后批量 removeAsync + 完成后自注销）——不存在每实体一监听器的 O(n²) 注册与 late-listener-lost 扩窗。
+- **批动作队列 swap-then-capture**：`BatchActionQueueImpl.flushAsync` 先置新空容器再捕获旧快照（三捕获槽：collectionActions/delayTasks/actionMap）——flush 窗口内新 enqueue 不落入被丢弃容器；装载队列重入 flush 以 pending 标记由当前 flush 完成尾循环重放（不静默丢弃装载项）。
+- **两阶段拓扑 flush 的同步完成契约**：`batchExecuteAsync` 返回的 future 在进入下一阶段前必须已完成，未完成即 `ERR_ORM_BATCH_FLUSH_ABORTED` fail-fast（带 entityName/phase）——异步持久化驱动不得假设阶段阻塞等待。
+- **动态模型锁外加载**：`LazyLoadOrmModel` 的 DB+codegen 加载移出模型映射锁——并发同 key 共享单次加载；加载体内回环 `getEntityModel`（同 key 或跨 key 环）fail-fast（`circular dynamic entity load detected`），provider 实现禁止在加载体内同步回环。
+- **模型换代延迟销毁**：`clearCache` 换代时旧 `LoadedOrmModel` 调 `close()`——零在途 session 即刻销毁、有在途 session 服务至末 session decRef 归零（`tryIncRefIfOpen` 拒新）。
+- **findAll 全量物化行数上界（可选档）**：`nop.dao.find-all-max-rows`（缺省 0=不设上界）——`ISqlExecutor.findAll` 抽取器级迭代期超限抛 `ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED`；`findAllByQuery` 对 limit>0 转 findPage 语义（不再静默丢弃 limit）。大结果集应使用 findPage/findFirst。
+- **查询缓存单条目行数上界（可选档）**：`nop.dao.query-cache-max-rows`（缺省 0=不设上界）——超限放弃缓存 + WARN；瞬态物化分配不设界（守卫约束持久缓存内存）。
+- **flush 载体隔离可装配点**：`OrmTemplateImpl.setFlushExecutor`（缺省 null=调用线程现行语义）——注入后 `runInNewSessionAsync` finalize 任务投递注入执行器；作用域仅 finalize 路径，用户直调 `session.flush()` 不在 seam 内。
+- **伪异步载体契约**：`JdbcEntityPersistDriver`/`JdbcCollectionPersistDriver`/`AbstractTransaction` 的 Async API 同步执行于调用线程，返回 future 仅作完成信号，调用方不得假设载体切换；`JdbcTransaction.getConnection` 懒取点可能落异步完成线程，池等待 >1s WARN 留痕。
+- **驱动层批写 chunk 化（2.5 切片，plan 2554）**：tdengine 按「行数 × 子表声明 × 估算字节」三因子切分（`nop.orm.td.batch-max-rows`/`-bytes`），同子表 TAGS 分歧显式 WARN（首行 wins 行为保持）；rpc 按 `nop.orm.rpc.batch-size` 拆分并 block-join。**chunk 化后 `batchExecuteAsync` 返回 future 必须同步完成**——两阶段 flush 守卫对未完成 future fail-fast（2553 裁定 H 不变式）。
+- **RPC 载体线程契约**：`RpcEntityPersistDriver` 的装配回调经调用方 context 出口泵投递（显式判空，无 context 内联=同步等待线程）——会话状态变更不落 RPC 传输线程。
+
+## ORM 迁移编排并发契约
+
+ORM 阶段迁移编排（增量链作业、阶段状态机、迁移历史表）在多节点/并发运维操作下提供以下保证；实现锚点见 `../04-reference/source-anchors.md` 的 `PUBSUB-CC-001` 与 `ORM-ORCH-001`。
+
+### 阶段状态行 fencing 与编排单飞
+
+- **状态行 UPDATE 带期望相位谓词**：`MigrationJobStateStore.update` 以 `WHERE job_id=? AND phase=?` 条件写（期望相位谓词，零 DDL 变更）；`updated==0` 时编排器二次 load 消歧——行缺失按「作业不存在」语义、行存在且相位≠期望按**跨进程 fencing 拒绝**（类型化异常携带期望/实际相位，不静默）；相位相等（理论不可达）时显式重试一次后仍失败即抛。abort×confirmSwitch 等并发编排恰好一写成功、另一写显式失败，终态背离窗口闭合。
+- **编排 API per-jobId 进程内单飞**：runIncremental/runVerify/confirmSwitch/completeSwitch/abort（resume 同域）以 per-jobId 单飞域互斥，同 jobId 两入口并发时败者类型化拒绝（fail-fast，不排队等待——编排 API 为运维显式低频调用，排队掩盖误用）；跨 jobId 零互斥。跨节点同相位同窗口并发推进为显式接受的残余窗（谓词拒绝已把后果收敛为显式失败）。
+- **惰性访问器同步化**：编排器内的惰性访问器（incrementalManager 等）以 double-check 收敛，并发首触不产生双实例。
+
+### 增量链停止协议可验证性
+
+- **链句柄发布先于线程启动**：链线程句柄构造期注入运行句柄，`join` 无 stale-null 空转窗；join 遇缺失句柄显式告警留痕，不静默跳过。
+- **stop 五段式**：cancel → 有界 join → 超时 interrupt → 句柄保留至线程退出 → 退出确认复核（interrupt 后有界宽限再等，仍存活即置「未退出」标记，后续编排重入 gateFailed 类型化拒绝）——防半终止链与新链双写同目标表。
+- **stopAll 汇聚**：逐链串行执行五段式 stop，全部 join 完成后才清空运行注册表；单链 join 上界由编排器 setter 注入（缺省常量，零新配置键）；总时间预算 = 单链上界 × 链数。
+
+### 死链 fail 门禁
+
+链死亡必须可见且必须 fail：runVerify 前置检查逐链消费链 failure（任一链 `getFailure()` 非空即 gateFailed 类型化拒绝，gate 标识 `incremental-chain-failed:*`）；停链后逐链残留 failure 复核留痕；进程内句柄消亡（manager==null）且状态行相位仍为 INCREMENTAL 时 runVerify 类型化拒绝重入（`incremental-manager-missing-restart-reentry`，要求显式 resume 或重入 runIncremental 重建链），仅无增量形态路径才显式留痕跳过。lag 观测量（冻结=追平语义）不得单独作为 VERIFY 放行依据——死链冻结位点必须经 failure 门禁拦截。
+
+### fix-forward 受控自环
+
+五状态机允许两条**白名单自环边**：`INCREMENTAL→INCREMENTAL`、`VERIFY→VERIFY`（SWITCH/DONE/ABORT 不增）。自环仅经既有编排 API 显式重入触发（不新增 API 面），带进程内重试计数上界（缺省 3，超限 gateFailed 拒绝——非全开、非无限重试）；自环写经期望相位谓词协同（期望相位=当前自环相位，abort 竞写将相位推离时自环写显式失败，不覆盖竞写终态）；自环重入前先回收旧链，旧链句柄未确认退出即拒绝重入。
+
+### qs 身份键派生契约（SSOT）
+
+connector 名、jobName、relocate 路由 querySpace 三类身份键的派生为**单点设计**：connector 名派生函数（base / base-i 全枚举）单点产出有序名清单，runVerify 按运行链快照逐链探测、M>1 全链 offsets 指纹聚合判 lag（任一链指纹或 ledger 前进即 lag≠0），不再以原始 base 名直传探测；jobName 纳入 querySpace 派生（多 querySpace 同名目标表不撞键）；relocate 场景路由 querySpace 从分片映射派生（单源取唯一目标，多源按 querySpace 映射派生，源 qs 不可得显式失败不猜测），FULL 侧 routeRow/routeShardValue 同型派生——增量链 filter 不因空串 querySpace 恒 false 丢事件。链注册表写入为 putIfAbsent fail-fast（同名重入类型化拒绝，不静默顶替旧句柄）；startFallbackChains 中途单链启动失败时回收已启动链（逐链五段式 stop）并显式相位后翻 ABORT，不滞留孤儿链。键派生语义演进须在本契约同一单点扩展，不得另建第二套派生。
+
+### 迁移历史表跨进程互斥契约
+
+- **DDL 守卫与版本落账互斥**：`ensureHistoryTableExists`（check-then-act DDL 段）与 `recordMigration`（按版本键域的 UPDATE→INSERT 复合写段）经跨进程互斥原语串行化——mysql `GET_LOCK` / postgresql `pg_advisory_lock`（连接级，同连接 finally 释放），H2 及未列方言回落**条件 INSERT 单行守卫表**（持锁=插入成功；finally 带 owner 比对 DELETE 本 owner 守卫行释放；进程崩溃残留守卫行须人工删除——H2 为测试方言可接受，生产方言连接断开自动释放无残留面）。获取失败类型化异常，不静默继续。
+- **upsert 覆盖语义保留**：`recordMigration` 保留 UPDATE→0→INSERT 顺序，INSERT 条件捕获唯一约束冲突后回落 UPDATE 一次——并发下恰一 INSERT 成功、败者回落覆盖，终态单行；**「冲突即拒绝/insert-only」方向禁用**：重试成功必须替换已存在行（UPDATE 覆盖），写失败必须保留既有行。
+
+本节编排并发契约的完整裁定（锁域/锁序总表、残余窗逐条理由、被拒方案清单、守卫指标名）见 AI 开发记录区 concurrency 设计集 pubsub-link-lifecycle-and-chain-orchestration-fencing.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
+
+## Redis PubSub 消息投递并发契约
+
+Redis Pub/Sub 为 fire-and-forget 传输（无消费组、无持久化），lettuce 实现层提供以下投递与订阅生命周期保证；实现锚点见 `../04-reference/source-anchors.md` 的 `PUBSUB-CC-001`。
+
+### 消费线程契约
+
+- **消费回调禁止在 Redis IO/event-loop 线程内联执行**：IO 线程回调只允许把消息投递（入队）至模块内专用投递线程，消费回调（onMessage/onConsumeFailure）在投递线程执行——慢消费者队列头阻塞不会拖垮共享 Redis IO 线程导致服务端断链丢消息。投递 executor 为模块内私有单线程有界队列（保持与 Redis 单连接一致的 FIFO 投递序），队列满时经 `onConsumeFailure` 类型化回调留痕拒绝（禁静默丢弃）；`onConsumeFailure` 实现方契约 = 不阻塞、不发起 Redis 调用（仅日志/计数语义）。
+- **lettuce IO/event-loop 线程硬条款（全路径）**：禁取服务监视器、禁发阻塞 Redis 命令、禁执行消费者回调；连接激活等事件回调只投递专用线程。
+- **消费返回值契约**：onMessage 返回 `CompletionStage` 时挂有界完成观测（超时未完成 WARN 留痕，不取消不重试不阻塞投递线程——投递线程内同步等待即复活队头阻塞）；其他非 null 返回值在 fire-and-forget 传输无消费语义，warn-once 登记。**ack 语义不可承载**：需要可靠投递应选 nop-message 持久化通道，不应依赖 Redis Pub/Sub 返回值。
+
+### 订阅生命周期并发契约
+
+- **监视器串行**：subscribe/cancel/suspend/resume 与停机对账收敛于服务实例单锁域——订阅三步变更（移除 listener → 空判 → unsubscribe+移除注册）在锁内原子化，并发订阅管理不产生孤儿订阅或复活双投递；锁内阻塞 Redis 往返（subscribe/unsubscribe）显式接受队头阻塞代价，受命令超时预算约束。
+- **属主校验**：一个订阅句柄只管理自己注册的 listener，不提供按 topic 取消他方订阅的路径；取消整个 topic = 逐订阅句柄 cancel（最后一个属主 cancel 触发锁内 unsubscribe）。cancel 后对同一句柄的重入为显式 no-op 留痕，resume 对已 cancel 恒拒绝。
+- **停机对账**：服务 stop 时锁内遍历注册表逐 topic unsubscribe 并清空注册表后再关连接——停机后 Redis 侧订阅注册与进程内注册表一致；停机排空投递队列，残余未投递消息逐条经 onConsumeFailure 留痕后丢弃（禁静默消失）。
+- **断线重连恢复可观测**：断线重连后的端点重订阅由 lettuce 自主完成（activated→resubscribe），服务不代做；服务侧职责为可观测——连接激活事件投递专用对账线程后，对注册表快照**锁外**发送幂等确认 SUBSCRIBE（已订阅通道再订阅仅确认语义），确认失败 WARN + 失败计数（`nop.lettuce.pubsub.resubscribe-failed`）。确认只订快照内条目——已 cancel 订阅结构性不复活；断线窗竞态可产生 Redis 侧幽灵通道（无 listener 零回调零双投递，连接 close 兜底），**接受不处置**，实施者不得代清。
+
+### Redis 原子性与重启契约（2.5 切片，plan 2554）
+
+- **写-TTL 原子化（无 TTL 永久键不可达）**：hash 三入口（putEx/putIfAbsentEx/getAndSetEx）与 session 入口的「写→PEXPIRE」两步链收敛为单 Lua 脚本原子执行——第二跳丢失或进程两步间死亡不再产生无 TTL 永久键（string 键 psetex/SET NX PX 原子兄弟面对齐）。
+- **computeIfAbsent 单写者契约**：KV/hash computeIfAbsent 族以 SET NX/HSETNX 原子路径回写——并发加载下「仅有一个结果生效」（ICache 契约），败者回读已生效值，不再无条件 SET 覆盖。
+- **停机即复位连接句柄**：PubSub 服务 stop 时锁内置空 link——stop→start 后首个 subscribe 走新建链路，不复用已关闭连接（消息面不因重启死亡）。
+
+本节契约的完整裁定（锁序总表、残余窗登记、被拒方案）见 AI 开发记录区 concurrency 设计集 pubsub-link-lifecycle-and-chain-orchestration-fencing.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
+
+## ORM 模型运行期可见性与发布安全契约（plan 2552，R4-18）
+
+并发审计 C1 束 a（15 工单）落定的模型运行期契约（实现锚点见 `../04-reference/source-anchors.md` `ORM-A`）：
+
+- **LoadedOrmModel 生命周期**：close/decRef/incRef/tryIncRefIfOpen 四侧同监视器——close 后 `tryIncRefIfOpen` 返回 false（会话创建放弃，TOCTOU 闭合）。
+- **工厂可见性**：`SessionFactoryImpl.interceptors` COW volatile；`daoListeners` 常驻 `MultiOrmDaoListener` 容器（读侧恒非 null，消费方 null 检查容忍空容器）。
+- **静态槽**：`OrmTimestampHelper._instance`/`DaoProvider._instance` volatile（安全发布）。
+- **批量装载队列**：`loadQueue`/`afterFlushCallbacks` volatile；捕获-清空同锁域，**任务体出锁执行**（afterFlush 的 task.run 与 invokeCallback 不持监视器）。
+- **模型热刷新**：`reloadModel` 同步清除查询计划缓存（`clearQueryPlanCache`）——旧模型查询计划不跨世代驻留；细粒度计划级世代校验=watch-only。
+- **EQL 解析器**：`EqlParseTreeParser.instance()` 为共享 xgen 模板生成物，**单线程契约面**（勿跨线程共享；仓内零生产调用方）。
+- **CompiledSql 冻结**：`EqlCompiler.compile` 返回前 `freeze()`——19 setter 前置 `checkFrozen()`（frozen 后 `ERR_EQL_FROZEN`）；缓存发布面=冻结点。
+- **C1-016 HB**：`OrmEntityModel.dependByOtherEntity` volatile（运行期 topo 重建写点 ↔ persist 读点）；`setDependByOtherEntity` **豁免冻结守卫**（sanctioned 运行期写点）。零弱化钉：`TestLazyLoadOrmModel:61`。
+- **冻结守卫族**：`addProp` 守卫前置（先污染后守卫面消除）；mutator 族逐项 `checkAllowChange`。
+- **LazyLoadOrmModel.putEntityModel**：短名冲突只读预检先于索引写入（无半注册残留）；同名重复注册覆盖 name 键=范围外。
+- **init 原子化**：`OrmModel`/`OrmEntityModel.inited` volatile 守卫 + 同步块双检。
+- **事务状态**：`AbstractTransaction.opened/rollbackOnly/error` volatile。
+- **查询缓存世代围栏**（`JdbcTemplateImpl`）：每 cacheName 局部 AtomicLong epoch——clear/evict bump，miss 时点捕获，回填前比对（读期间失效→放弃回填，`nop.dao.query-cache-stale-miss-abandon`）。
+
+测试锚点：`TestLoadedOrmModelCloseRace`/`TestOrmSliceAVisibility`（nop-orm）、`TestOrmEqlSliceA`（nop-orm-eql）、`TestOrmModelSliceA`（nop-orm-model）、`TestDaoSliceA`（nop-dao）。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。
@@ -623,6 +749,10 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 4. 改了模型却没有触发上游生成链。
 5. 只改 orm.xml 的包名，没有同步迁移 Java 源文件目录和 package 声明。
 6. 手动编辑 `_gen/` 里的包名，而不是删除后让 codegen 重新生成。
+
+## 跨节点时钟口径（plan 2566 R4-32，2.5-C7-013）
+
+Redis 侧限流（`LettuceRateLimiter` + `nop/redis/rate_limit.lua`）时间戳在 Redis 侧跨节点比较存储——**禁用客户端本地钟**（客户端墙钟跨节点共享即缺陷本体）。脚本时间源 = Redis 服务器 `TIME`（秒针，存量键同为 epoch 秒）；Lua 内调 TIME 为非确定性命令，脚本首行显式 `redis.replicate_commands()`（<5.0 必需，≥5.0 兼容）；客户端 `now` 参数已移除。存量键混存（客户端 epoch 秒 vs 服务器 epoch 秒）经 `delta=max(0,...)` 下界与 `min(capacity,...)` 上界钳制，错域影响有界。测试锚点：`TestRedisRateLimitServerClock_C7_013`（结构钉）；`TestRedisRateLimitServerClockDocker_C7_013`（testcontainers 行为钉，`-Dnop.test.docker.enabled=true` 门控，先例 `TestLettuceHashTtlAtomic`）。
 
 ## 相关文档
 

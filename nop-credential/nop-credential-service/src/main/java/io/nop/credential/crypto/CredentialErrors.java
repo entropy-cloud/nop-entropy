@@ -117,6 +117,13 @@ public interface CredentialErrors {
     String ARG_AUTHORIZATION_URL = "authorizationUrl";
     String ARG_TOKEN_ENDPOINT = "tokenEndpoint";
     String ARG_ERROR = "error";
+    /**
+     * 5.1-I-02（plan 2569）：token endpoint 原始 OAuth error 码（如 invalid_grant）——
+     * 与 ARG_ERROR（合并 detail 串）分离，供 Provider 归一分型精确匹配（R1-Major-3）。
+     */
+    String ARG_OAUTH_ERROR = "oauthError";
+    /** OAuth 标准 error 码：授权/刷新令牌已作废（旋转已消费/已吊销/过期）。 */
+    String ARG_INVALID_GRANT = "invalid_grant";
 
     ErrorCode ERR_CREDENTIAL_TYPE_RESERVED_FIELD = define(
             "nop.err.credential.type-reserved-field",

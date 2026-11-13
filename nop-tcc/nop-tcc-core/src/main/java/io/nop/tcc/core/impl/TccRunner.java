@@ -41,32 +41,55 @@ public class TccRunner {
                                                            Function<ITccBranchTransaction, CompletionStage<T>> task) {
         ITccBranchRecord branchRecord = branchTxn.getBranchRecord();
 
-        // 如果标记状态失败，则不会去执行服务函数
-        return branchTxn.beginTryAsync().thenCompose(arg -> {
-            ApiRequest<?> request = branchRecord.getRequest();
-            // 将tcc事务相关信息追加到rpc请求的元数据中
-            if (!TccHelper.isDefaultTxnGroup(branchTxn.getTxnGroup())) {
-                ApiHeaders.setTxnGroup(request, branchTxn.getTxnGroup());
-            }
-            ApiHeaders.setTxnId(request, branchTxn.getTxnId());
-            ApiHeaders.setTxnBranchId(request, branchTxn.getBranchId());
-            ApiHeaders.setTxnBranchNo(request, branchTxn.getBranchNo());
+        // 1.6-C3-009（plan 2543 W-05）：手工 future 必须有终态——begin*Async() 在 thenCompose
+        // lambda 之外调用（同步抛不会被 lambda 内 try 捕到）、finish/normalizer 在 lambda 内同步抛、
+        // thenCompose stage 的异步异常，三条通道分别兜底（缺任一条即「future 永不完成」）。
+        CompletableFuture<T> future = new CompletableFuture<>();
+        CompletionStage<Void> beginStage;
+        try {
+            // 如果标记状态失败，则不会去执行服务函数
+            beginStage = branchTxn.beginTryAsync();
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+            return future;
+        }
 
-            // 如果执行失败，则需要更新txn状态
-            CompletableFuture<T> future = new CompletableFuture<>();
-            task.apply(branchTxn).whenComplete((ret, ex) -> {
-                branchTxn.finishTryAsync(normalizer.toApiResponse(ret), ex).whenComplete((ret2, ex2) -> {
-                    if (ex != null) {
-                        future.completeExceptionally(ex);
-                    } else if (ex2 != null) {
-                        future.completeExceptionally(ex2);
-                    } else {
-                        future.complete(ret);
+        beginStage.thenCompose(arg -> {
+            try {
+                ApiRequest<?> request = branchRecord.getRequest();
+                // 将tcc事务相关信息追加到rpc请求的元数据中
+                if (!TccHelper.isDefaultTxnGroup(branchTxn.getTxnGroup())) {
+                    ApiHeaders.setTxnGroup(request, branchTxn.getTxnGroup());
+                }
+                ApiHeaders.setTxnId(request, branchTxn.getTxnId());
+                ApiHeaders.setTxnBranchId(request, branchTxn.getBranchId());
+                ApiHeaders.setTxnBranchNo(request, branchTxn.getBranchNo());
+
+                // 如果执行失败，则需要更新txn状态
+                task.apply(branchTxn).whenComplete((ret, ex) -> {
+                    try {
+                        branchTxn.finishTryAsync(normalizer.toApiResponse(ret), ex).whenComplete((ret2, ex2) -> {
+                            if (ex != null) {
+                                future.completeExceptionally(ex);
+                            } else if (ex2 != null) {
+                                future.completeExceptionally(ex2);
+                            } else {
+                                future.complete(ret);
+                            }
+                        });
+                    } catch (Throwable t) {
+                        future.completeExceptionally(t);
                     }
                 });
-            });
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
             return future;
+        }).exceptionally(t -> {
+            future.completeExceptionally(t);
+            return null;
         });
+        return future;
     }
 
     public static CompletionStage<ApiResponse<?>> runBranchConfirmAsync(ITccBranchTransaction branchTxn,
@@ -75,24 +98,45 @@ public class TccRunner {
         if (branchRecord.getBranchStatus().isConfirmed())
             return FutureHelper.success(null);
 
-        // 如果标记状态失败，则不会去执行服务函数
-        return branchTxn.beginConfirmAsync().thenCompose(arg -> {
-            // 如果执行失败，则需要更新txn状态
-            CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
-            serviceInvoker.invokeAsync(branchRecord.getServiceName(), branchRecord.getConfirmMethod(), branchRecord.getRequest(), null)
-                    .whenComplete((ret, ex) -> {
-                        branchTxn.finishConfirmAsync(ret, ex).whenComplete((ret2, ex2) -> {
-                            if (ex != null) {
-                                future.completeExceptionally(ex);
-                            } else if (ex2 != null) {
-                                future.completeExceptionally(ex2);
-                            } else {
-                                future.complete(ret);
+        // 1.6-C3-009（plan 2543 W-05）：三通道兜底（begin 同步抛 / lambda 内同步抛 / stage 异步异常）
+        CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
+        CompletionStage<Void> beginStage;
+        try {
+            // 如果标记状态失败，则不会去执行服务函数
+            beginStage = branchTxn.beginConfirmAsync();
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+            return future;
+        }
+
+        beginStage.thenCompose(arg -> {
+            try {
+                serviceInvoker.invokeAsync(branchRecord.getServiceName(), branchRecord.getConfirmMethod(),
+                                branchRecord.getRequest(), null)
+                        .whenComplete((ret, ex) -> {
+                            try {
+                                branchTxn.finishConfirmAsync(ret, ex).whenComplete((ret2, ex2) -> {
+                                    if (ex != null) {
+                                        future.completeExceptionally(ex);
+                                    } else if (ex2 != null) {
+                                        future.completeExceptionally(ex2);
+                                    } else {
+                                        future.complete(ret);
+                                    }
+                                });
+                            } catch (Throwable t) {
+                                future.completeExceptionally(t);
                             }
                         });
-                    });
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
             return future;
+        }).exceptionally(t -> {
+            future.completeExceptionally(t);
+            return null;
         });
+        return future;
     }
 
     public static CompletionStage<ApiResponse<?>> runBranchCancelAsync(ITccBranchTransaction branchTxn, boolean timeout,
@@ -101,24 +145,45 @@ public class TccRunner {
         if (branchRecord.getBranchStatus().isCancelled())
             return FutureHelper.success(null);
 
-        // 如果标记状态失败，则不会去执行服务函数
-        return branchTxn.beginCancelAsync(timeout).thenCompose(arg -> {
-            // 如果执行失败，则需要更新txn状态
-            CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
-            serviceInvoker.invokeAsync(branchRecord.getServiceName(), branchRecord.getCancelMethod(), branchRecord.getRequest(), null)
-                    .whenComplete((ret, ex) -> {
-                        branchTxn.finishCancelAsync(timeout, ret, ex).whenComplete((ret2, ex2) -> {
-                            if (ex != null) {
-                                future.completeExceptionally(ex);
-                            } else if (ex2 != null) {
-                                future.completeExceptionally(ex2);
-                            } else {
-                                future.complete(ret);
+        // 1.6-C3-009（plan 2543 W-05）：三通道兜底（begin 同步抛 / lambda 内同步抛 / stage 异步异常）
+        CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
+        CompletionStage<Void> beginStage;
+        try {
+            // 如果标记状态失败，则不会去执行服务函数
+            beginStage = branchTxn.beginCancelAsync(timeout);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+            return future;
+        }
+
+        beginStage.thenCompose(arg -> {
+            try {
+                serviceInvoker.invokeAsync(branchRecord.getServiceName(), branchRecord.getCancelMethod(),
+                                branchRecord.getRequest(), null)
+                        .whenComplete((ret, ex) -> {
+                            try {
+                                branchTxn.finishCancelAsync(timeout, ret, ex).whenComplete((ret2, ex2) -> {
+                                    if (ex != null) {
+                                        future.completeExceptionally(ex);
+                                    } else if (ex2 != null) {
+                                        future.completeExceptionally(ex2);
+                                    } else {
+                                        future.complete(ret);
+                                    }
+                                });
+                            } catch (Throwable t) {
+                                future.completeExceptionally(t);
                             }
                         });
-                    });
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
             return future;
+        }).exceptionally(t -> {
+            future.completeExceptionally(t);
+            return null;
         });
+        return future;
     }
 
     public static boolean isAllBranchAllowConfirm(List<ITccBranchTransaction> branchTxns) {
@@ -144,7 +209,16 @@ public class TccRunner {
             }
             if (status == TccStatus.CONFIRM_SUCCESS)
                 continue;
-            futures.add(runBranchConfirmAsync(branchTxn, serviceInvoker));
+            // 1.6-C3-010（plan 2543 W-06）：逐分支隔离——单分支 begin/finish 同步抛（越界状态、
+            // 脏数据）不再中断整批；失败分支进 waitAll（不静默），后续分支照常驱动。
+            // 原缺陷：一次同步抛使排在其后的分支从未进入调度，且终态仍可被折叠为成功。
+            try {
+                futures.add(runBranchConfirmAsync(branchTxn, serviceInvoker));
+            } catch (Throwable t) {
+                LOG.error("nop.tcc.branch-confirm-dispatch-failed:txnId={},branchId={},status={}",
+                        branchTxn.getTxnId(), branchTxn.getBranchId(), status, t);
+                futures.add(CompletableFuture.failedFuture(t));
+            }
         }
         return FutureHelper.waitAll(futures);
     }
@@ -170,11 +244,27 @@ public class TccRunner {
             // beginCancelAsync同步抛异常，中断后续分支的补偿且聚合状态误报CANCEL_SUCCESS
             if (!isBranchCancellable(branchTxn.getBranchStatus()))
                 continue;
-            futures.add(runBranchCancelAsync(branchTxn, timeout, serviceInvoker));
+            // 1.6-C3-010（plan 2543 W-06）：逐分支隔离（同 confirmAllAsync 形态）
+            try {
+                futures.add(runBranchCancelAsync(branchTxn, timeout, serviceInvoker));
+            } catch (Throwable t) {
+                LOG.error("nop.tcc.branch-cancel-dispatch-failed:txnId={},branchId={},status={}",
+                        branchTxn.getTxnId(), branchTxn.getBranchId(), branchTxn.getBranchStatus(), t);
+                futures.add(CompletableFuture.failedFuture(t));
+            }
         }
         return FutureHelper.waitAll(futures);
     }
 
+    /**
+     * 1.6-C3-010（plan 2543 W-06）：cancel 方向聚合结算表。
+     * <p>
+     * 「成功」当且仅当每个分支在本方向已结算——已到 cancel 终态，或本方向本就不驱动它
+     * （{@link #isBranchCancellable} 为假：TRY_FAILED/已 confirm/已 cancel/KILLED）。
+     * 此前「非失败态一律成功」会把从未被 cancel 的 TRY_SUCCESS 分支折叠为 CANCEL_SUCCESS
+     * （半个成功隐蔽变体）。注意 KILLED / CONFIRM_SUCCESS 必须算**已结算**——否则含这两类
+     * 分支的父事务永不进 getFinishedStatus()，反向摧毁 plan 2515 裁定⑧ 的清理链。
+     */
     public static TccStatus aggregateCancelBranchStatus(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
             TccStatus status = branchTxn.getBranchStatus();
@@ -191,10 +281,28 @@ public class TccRunner {
             // 补偿被双重永久放弃，参与者预留资源悬挂
             if (status == TccStatus.TIMEOUT_FAILED)
                 return TccStatus.CANCEL_FAILED;
+
+            // 本方向不驱动它 → 已结算（TRY_FAILED 无需 cancel；已 confirm/已 cancel/KILLED 均终局）
+            if (!isBranchCancellable(status))
+                continue;
+
+            // 本方向可驱动但仍在事务中态（TRY_SUCCESS/TRYING/TRY_UNKNOWN/CONFIRMING 等）
+            // → 预留资源仍未释放，不得计为成功
+            LOG.warn("nop.tcc.aggregate-cancel-unsettled-branch:txnId={},branchId={},status={}",
+                    branchTxn.getTxnId(), branchTxn.getBranchId(), status);
+            return TccStatus.CANCEL_FAILED;
         }
         return TccStatus.CANCEL_SUCCESS;
     }
 
+    /**
+     * 1.6-C3-010（plan 2543 W-06）：confirm 方向聚合结算表（同 cancel 侧口径）。
+     * <p>
+     * 2515 语义零回退：CONFIRM_FAILED → CONFIRM_FAILED；cancelled 分支 → 抛（状态机被破坏）。
+     * 新增：除 CONFIRM_SUCCESS 与「cancelled（已抛）/CONFIRM_FAILED（已返回）」外，
+     * 其余任何状态（TRY_SUCCESS/TRYING/TRY_UNKNOWN/CONFIRMING/KILLED）都不算 confirm 已完成
+     * ——KILLED 例外：它是 2515 耗尽终态化的产物，父事务不再驱动它，按已结算计。
+     */
     public static TccStatus aggregateConfirmBranchStatus(List<ITccBranchTransaction> branchTxns) {
         for (ITccBranchTransaction branchTxn : branchTxns) {
             TccStatus branchStatus = branchTxn.getBranchStatus();
@@ -212,6 +320,13 @@ public class TccRunner {
                         .param(ARG_TXN_ID, branchTxn.getTxnId())
                         .param(ARG_TCC_STATUS, branchStatus);
             }
+            if (branchStatus == TccStatus.CONFIRM_SUCCESS || branchStatus == TccStatus.KILLED)
+                continue;
+
+            // 其余状态均未完成 confirm（未驱动/驱动中/未知）——不得计为成功
+            LOG.warn("nop.tcc.aggregate-confirm-unsettled-branch:txnId={},branchId={},status={}",
+                    branchTxn.getTxnId(), branchTxn.getBranchId(), branchStatus);
+            return TccStatus.CONFIRM_FAILED;
         }
         return TccStatus.CONFIRM_SUCCESS;
     }

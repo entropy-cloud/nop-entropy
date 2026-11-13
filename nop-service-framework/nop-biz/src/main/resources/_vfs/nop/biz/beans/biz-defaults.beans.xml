@@ -157,6 +157,26 @@
 
     <bean id="nopDummyGraphQLArgsNormalizer" class="io.nop.graphql.core.reflection.DummyGraphQLArgsNormalizer"/>
 
+    <!-- 2.3-C4-001（plan 2551 裁定 A）：xbiz 异步 action 缺省工作执行器——此前该名全仓无定义
+         （BizConstants.DEFAULT_WORK_EXECUTOR_NAME 为唯一出现点），未声明 executor 的异步 action
+         按名解析即确定性失败。薄包装委托平台 globalWorker（不新建线程池）；bizSequential 动作须
+         显式声明分区执行器（启动期类型校验 fail-fast，见 BizActionService.validateExecutors）。 -->
+    <!-- 2.3-C4-005（plan 2551 裁定 E）：下载临时文件兜底对账——周期扫描 temp:/download 整树，
+         删除超 nop.download.temp-max-age 遗留文件（interval ≤0 显式关档）。 -->
+    <bean id="nopDownloadTempReconciler"
+          class="io.nop.biz.download.DownloadTempReconciler"
+          ioc:default="true"/>
+
+    <bean id="defaultWorkExecutor"
+          class="io.nop.biz.service.DefaultWorkExecutor"
+          ioc:default="true"/>
+
+    <!-- 2.3-C4-001（plan 2551 closure audit Major-2 接线闭环）：执行器启动期校验挂接——
+         depends-on nopBizObjectManager 保证 biz 模型装载后校验。 -->
+    <bean id="nopBizExecutorStartupValidator"
+          class="io.nop.biz.service.BizExecutorStartupValidator"
+          ioc:default="true" depends-on="nopBizObjectManager"/>
+
     <bean id="nopRpcServiceOnGraphQL" class="io.nop.graphql.core.rpc.RpcServiceOnGraphQL">
         <constructor-arg index="0" ref="nopGraphQLEngine"/>
         <constructor-arg index="1" value="ROOT"/>

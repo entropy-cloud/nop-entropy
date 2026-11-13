@@ -57,7 +57,19 @@ public class PluginClassLoader extends URLClassLoader {
         }
         this.importClassLoader = importClassLoader;
 
-        this.pluginConfig = loadPluginConfig();
+        try {
+            this.pluginConfig = loadPluginConfig();
+        } catch (RuntimeException | Error e) {
+            // 构造期失败自清理（C6-001 映射前失败点①）：super(urls) 已注册 jar 资源句柄，
+            // loadPluginConfig 经 getResource 触发 jar 打开后抛错时实例不可达——调用方局部引用
+            // 未赋值、无法代为 close，句柄随坏包重试线性累积。失败即自关后原样重抛
+            try {
+                close();
+            } catch (IOException ioe) {
+                e.addSuppressed(ioe);
+            }
+            throw e;
+        }
     }
 
     PluginConfig loadPluginConfig() {

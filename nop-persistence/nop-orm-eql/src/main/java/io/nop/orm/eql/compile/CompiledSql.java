@@ -17,10 +17,30 @@ import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.param.ISqlParamBuilder;
 
 import java.util.ArrayList;
+import io.nop.api.core.exceptions.NopException;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FROZEN;
+
 import java.util.Collections;
 import java.util.List;
 
 public class CompiledSql implements ICompiledSql {
+    /**
+     * 2.3-C1-013（plan 2552 裁定 H）：发布前冻结——19 个 setter 前置 checkFrozen（frozen 后
+     * 抛 NopException(ERR_EQL_FROZEN)）；冻结点 = EqlCompiler.compile（唯一装配点）return 前
+     * 最后语句，缓存发布面 = 冻结点（安全发布：frozen 为 volatile，冻结前的字段写对缓存读侧
+     * 可见）。
+     */
+    private volatile boolean frozen;
+
+    public void freeze() {
+        this.frozen = true;
+    }
+
+    private void checkFrozen() {
+        if (frozen)
+            throw new NopException(ERR_EQL_FROZEN).param("sqlName", name);
+    }
+
     private String name;
     private String querySpace;
     private SqlStatementKind statementKind;
@@ -50,6 +70,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setReadEntityModels(List<String> readEntityModels) {
+        checkFrozen();
         this.readEntityModels = readEntityModels;
     }
 
@@ -59,6 +80,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setWriteEntityModel(String writeEntityModel) {
+        checkFrozen();
         this.writeEntityModel = writeEntityModel;
     }
 
@@ -68,6 +90,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setName(String name) {
+        checkFrozen();
         this.name = name;
     }
 
@@ -77,6 +100,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setQuerySpace(String querySpace) {
+        checkFrozen();
         this.querySpace = querySpace;
     }
 
@@ -86,6 +110,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setStatementKind(SqlStatementKind statementKind) {
+        checkFrozen();
         this.statementKind = statementKind;
     }
 
@@ -95,6 +120,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setDataSetMeta(IDataSetMeta dataSetMeta) {
+        checkFrozen();
         this.dataSetMeta = dataSetMeta;
     }
 
@@ -104,6 +130,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setColumnBinders(List<IDataParameterBinder> columnBinders) {
+        checkFrozen();
         this.columnBinders = columnBinders;
     }
 
@@ -113,6 +140,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setFieldMetas(List<ISqlExprMeta> fieldMetas) {
+        checkFrozen();
         this.fieldMetas = fieldMetas;
     }
 
@@ -122,6 +150,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setSql(SQL sql) {
+        checkFrozen();
         this.sql = sql;
     }
 
@@ -130,6 +159,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setParamBuilders(List<ISqlParamBuilder> paramBuilders) {
+        checkFrozen();
         this.paramBuilders = paramBuilders;
     }
 
@@ -139,6 +169,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setUseTenantModel(boolean useTenantModel) {
+        checkFrozen();
         this.useTenantModel = useTenantModel;
     }
 
@@ -155,6 +186,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setHasGroupBy(boolean hasGroupBy) {
+        checkFrozen();
         this.hasGroupBy = hasGroupBy;
     }
 
@@ -164,6 +196,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setHasHaving(boolean hasHaving) {
+        checkFrozen();
         this.hasHaving = hasHaving;
     }
 
@@ -173,6 +206,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setHasDistinct(boolean hasDistinct) {
+        checkFrozen();
         this.hasDistinct = hasDistinct;
     }
 
@@ -182,6 +216,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setHasSetOp(boolean hasSetOp) {
+        checkFrozen();
         this.hasSetOp = hasSetOp;
     }
 
@@ -191,6 +226,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setHasForUpdate(boolean hasForUpdate) {
+        checkFrozen();
         this.hasForUpdate = hasForUpdate;
     }
 
@@ -200,6 +236,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setBareCount(boolean bareCount) {
+        checkFrozen();
         this.bareCount = bareCount;
     }
 
@@ -209,6 +246,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setHasAggregate(boolean hasAggregate) {
+        checkFrozen();
         this.hasAggregate = hasAggregate;
     }
 
@@ -218,6 +256,7 @@ public class CompiledSql implements ICompiledSql {
     }
 
     public void setOrderByOrdinals(List<SqlOrderByOrdinal> orderByOrdinals) {
+        checkFrozen();
         this.orderByOrdinals = orderByOrdinals == null ? Collections.emptyList()
                 : Collections.unmodifiableList(orderByOrdinals);
     }

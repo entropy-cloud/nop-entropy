@@ -33,7 +33,9 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class TestWfTaskScanner extends BaseTestCase {
@@ -294,8 +296,14 @@ public class TestWfTaskScanner extends BaseTestCase {
 
         assertDoesNotThrow(scanner::scanRemindTasks);
         assertEquals(1, reminded.size());
-        assertEquals(1, saveCount.get());
+        // plan 2541 W-01（MA-06 残留面裁定 E，E-2541-7 既有钉契约改形非弱化）：失败步骤的
+        // remindTime 退避推进经 postponeStepRemindTime 缺省路径落盘（+1 save）——修复前钉住
+        // 的「失败不落盘」为缺陷语义；链存活语义（healthy 仍被处理+计数）逐字保留
+        assertEquals(2, saveCount.get());
         assertEquals(1, healthy.getRemindCount());
+        assertNotNull(broken.getRemindTime(), "broken step must have its remindTime advanced (backoff)");
+        assertTrue(broken.getRemindTime().getTime() > System.currentTimeMillis() - 1000,
+                "backoff remindTime must be in the future (exits the scan work set)");
     }
 
     /**
@@ -332,9 +340,11 @@ public class TestWfTaskScanner extends BaseTestCase {
         assertDoesNotThrow(scanner::scanRemindTasks);
         assertEquals(1, reminded.size());
         assertEquals("wf-2", reminded.get(0).getWfId());
-        assertEquals(1, saveCount.get());
+        // plan 2541 W-01（E-2541-7 既有钉契约改形非弱化）：失败步骤退避落盘 +1 save（见上）
+        assertEquals(2, saveCount.get());
         assertNull(first.getRemindCount());
         assertEquals(1, second.getRemindCount());
+        assertNotNull(first.getRemindTime(), "failed remind step must back off via remindTime advance");
     }
 
     private static WorkflowStepRecordBean dueRecord(String wfId, String stepId) {
@@ -473,6 +483,12 @@ public class TestWfTaskScanner extends BaseTestCase {
                                                             Function<IWorkflowStepRecord, Object> onSave) {
         return proxy(io.nop.wf.core.store.IWorkflowStore.class, (proxy, method, args) -> {
             String name = method.getName();
+            if (method.isDefault()) {
+                // plan 2514 裁定④/⑥新增接口缺省方法（扫描抢占/退避/原子计数）在内存替身上
+                // 走产品缺省实现：tryClaim=true、remindCount 经 saveStepRecord 读-改-写，
+                // 既有断言语义零回改
+                return InvocationHandler.invokeDefault(proxy, method, args);
+            }
             if ("findDueActivatedSteps".equals(name)) {
                 return dueSteps;
             }

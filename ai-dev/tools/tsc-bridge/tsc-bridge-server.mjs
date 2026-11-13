@@ -370,4 +370,7 @@ writeFrame({
   type: 'ready',
   node: process.version,
   typescript: ts.version,
+  // Must stay in lockstep with TscProtocol.PROTOCOL_VERSION (Java side):
+  // a mismatch is an explicit handshake failure naming both versions.
+  protocolVersion: '1',
 });

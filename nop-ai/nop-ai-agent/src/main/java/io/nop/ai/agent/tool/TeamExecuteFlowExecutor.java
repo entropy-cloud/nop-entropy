@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Team-execute-flow tool executor (plan 239 / {@code L4-team-execute-flow-llm-tool}).
@@ -120,7 +122,78 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
      * spawner (e.g. {@link io.nop.ai.agent.team.DefaultMemberSpawner}) opts the
      * tool's per-invocation orchestrator into run-time auto-spawn.
      */
-    private IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
+    // 3.1-MA-12 (plan 2555 裁定 B / C1-022): volatile runtime-swap field.
+    private volatile IMemberSpawner memberSpawner = NoOpMemberSpawner.noOp();
+
+    /**
+     * Plan 2519 (裁定③/C4-010): shared spawn executor owned by this TEE
+     * instance (single injection carrier). The per-invocation orchestrator
+     * receives it via the existing {@code setSpawnStepExecutor} seam, so the
+     * pool's lifecycle is symmetric with the TEE instead of leaking
+     * max(2,NCPU) threads per team-execute-flow invocation (C7-032: three
+     * build sites converge to TEE + daemon — the orchestrator no longer
+     * builds an owned pool on this path). CL-036: lazy creation is
+     * synchronized double-check (DefaultAgentEngine.getAgentExecutor
+     * precedent).
+     */
+    private ExecutorService ownedSpawnExecutor;
+
+    /**
+     * Plan 2519 (裁定③): resolve the shared spawn executor — injected one
+     * wins ({@link #setSpawnStepExecutor}); otherwise the TEE-owned bounded
+     * fixed pool is created once per TEE (single build site; pool capacity
+     * semantics unchanged: max(2, availableProcessors)).
+     */
+    public synchronized void setSpawnStepExecutor(Executor executor) {
+        this.spawnStepExecutor = executor;
+    }
+
+    private Executor spawnStepExecutor;
+
+    synchronized Executor resolveSpawnExecutor() {
+        if (spawnStepExecutor != null) {
+            return spawnStepExecutor;
+        }
+        if (ownedSpawnExecutor == null) {
+            int poolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
+            java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger();
+            ownedSpawnExecutor = java.util.concurrent.Executors.newFixedThreadPool(poolSize, r -> {
+                Thread t = new Thread(r, "ai-agent-flow-spawn-worker-" + counter.incrementAndGet());
+                t.setDaemon(true);
+                return t;
+            });
+        }
+        return ownedSpawnExecutor;
+    }
+
+    /**
+     * Plan 2519 (裁定③④): TEE-side shutdown of the owned pool with the same
+     * bounded-drain semantics as the orchestrator/coordinator close paths
+     * (shutdown → awaitTermination(2s) → shutdownNow → explicit discard
+     * record, never silent). Injected executors are left untouched.
+     */
+    public synchronized void close() {
+        if (ownedSpawnExecutor == null) {
+            return;
+        }
+        ExecutorService pool = ownedSpawnExecutor;
+        ownedSpawnExecutor = null;
+        pool.shutdown();
+        try {
+            if (!pool.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS)) {
+                pool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            pool.shutdownNow();
+        }
+        java.util.List<Runnable> neverRan = pool.shutdownNow();
+        if (!neverRan.isEmpty()) {
+            LOG.warn("nop.ai.agent.spawn-drain-discard: {} queued spawn task(s) discarded at "
+                    + "team-execute-flow executor close (explicit record, never silent)",
+                    neverRan.size());
+        }
+    }
 
     @Override
     public String getToolName() {
@@ -233,6 +306,11 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
 
         TeamTaskFlowOrchestrator orchestrator = new TeamTaskFlowOrchestrator(
                 engine, taskStore, teamManager, null, memberSpawner, null, memberExecTimeoutMs);
+        // Plan 2519 (裁定③): inject the TEE-shared spawn executor through the
+        // existing setSpawnStepExecutor seam — the orchestrator consumes the
+        // injected executor and never builds/closes its own pool on this path
+        // (pool lifecycle symmetric with the TEE; per-invocation leak closed).
+        orchestrator.setSpawnStepExecutor(resolveSpawnExecutor());
 
         // The returned future completes when the DAG future completes (not when
         // the synchronous call returns), eliminating the pre-241 "wrap sync

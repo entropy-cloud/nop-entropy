@@ -5,7 +5,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.markdown.simple.MarkdownCodeBlockParser;
 
 public class CodeResponseParser {
-    private static CodeResponseParser s_instance = new CodeResponseParser();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003）：volatile 保证换装可见 + 安全发布
+    private static volatile CodeResponseParser s_instance = new CodeResponseParser();
 
     public static CodeResponseParser instance() {
         return s_instance;

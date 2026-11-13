@@ -20,6 +20,7 @@ import io.nop.stream.core.connector.registry.StreamConnectorConfig;
 import java.util.List;
 import java.util.function.Function;
 
+import static io.nop.stream.core.connector.registry.ConnectorParamKind.INT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.OBJECT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.STRING;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.STRING_LIST;
@@ -68,7 +69,17 @@ public final class JdbcTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                     ConnectorParamDescriptor.optional("ledgerTableName", STRING,
                             "epoch ledger table name, defaults to stream_epoch_ledger_v2 (v2 adds "
                                     + "the sink_namespace column; the pre-v2 3-column table is "
-                                    + "neither migrated nor read)")))
+                                    + "neither migrated nor read)"),
+                    ConnectorParamDescriptor.optional("maxEpochRecords", INT,
+                            "CRA 8.43 R4-03 W-04: current-epoch buffer record bound "
+                                    + "(default 100000). invoke fails typed once reached"),
+                    ConnectorParamDescriptor.optional("maxPendingEpochs", INT,
+                            "CRA 8.43 R4-03 W-04: uncommitted-epoch stack bound "
+                                    + "(default 8). saveState fails typed once reached"),
+                    ConnectorParamDescriptor.optional("statementTimeoutSeconds", INT,
+                            "CRA 8.43 R4-03 W-11: statement-level timeout for every statement "
+                                    + "in the commit transaction (default 60s — the commit runs "
+                                    + "outside checkpointTimeout's barrier→ACK envelope)")))
             .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
@@ -99,6 +110,21 @@ public final class JdbcTwoPhaseCommitSinkConnectorFactory implements IStreamSink
         JdbcTwoPhaseCommitSinkBuilder builder = JdbcTwoPhaseCommitSink.builder()
                 .jdbcTemplate(jdbcTemplate)
                 .tableName(tableName);
+        // CRA 8.43 R4-03 W-04/W-11: optional envelope/timeout knobs (connector
+        // parameter domain — deliberately NOT in the nop.stream.ledger.* face
+        // space; these are buffer-admission parameters, not retention params).
+        Integer maxEpochRecords = config.getInt("maxEpochRecords");
+        if (maxEpochRecords != null) {
+            builder.maxEpochRecords(maxEpochRecords.longValue());
+        }
+        Integer maxPendingEpochs = config.getInt("maxPendingEpochs");
+        if (maxPendingEpochs != null) {
+            builder.maxPendingEpochs(maxPendingEpochs.longValue());
+        }
+        Integer statementTimeoutSeconds = config.getInt("statementTimeoutSeconds");
+        if (statementTimeoutSeconds != null) {
+            builder.statementTimeoutSeconds(statementTimeoutSeconds);
+        }
         if (columns != null && !columns.isEmpty()) {
             builder.columns(columns.toArray(new String[0]));
         }

@@ -272,19 +272,17 @@ public class TestDebeziumCdcCheckpoint {
         // Wait until at least 2 events collected (条件等待；上限仅挂死保护)
         TestAwait.until("first run collected at least 2 events", () -> collected.size() >= 2, 5_000L);
 
+        // C10-013 rewrite (测试自吞竞争消号): snapshot INSIDE the race window — BEFORE
+        // kill. The pre-fix shape moved the snapshot after kill to dodge the skew window
+        // (swallowing the very race the ≤256-record loss window lives in). Post-fix the
+        // snapshot carries the last-EMITTED boundary even while the emitter is running.
+        OperatorSnapshotResult snapshot = source.snapshotState(1L);
+        assertNotNull(snapshot.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY));
+
         // Kill: cancel the source
         source.cancel();
         runner.join(5000);
-        assertFalse(runner.isAlive(),
-                "first-run emitter thread must be dead before snapshot: a live thread committing"
-                        + " offsets after the snapshot is exactly the replay-duplicate race this"
-                        + " test guards against");
-
-        // Snapshot AFTER kill: capture the final committed offset. Snapshotting before cancel
-        // races with the emitter thread (events committed between snapshot and cancel would be
-        // replayed on recovery, producing false duplicates under parallel test scheduling).
-        OperatorSnapshotResult snapshot = source.snapshotState(1L);
-        assertNotNull(snapshot.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY));
+        assertFalse(runner.isAlive(), "first-run emitter thread must be dead before recovery");
 
         int firstRunCount = collected.size();
 
@@ -333,19 +331,39 @@ public class TestDebeziumCdcCheckpoint {
 
         assertFalse(recoveredCollected.isEmpty(), "recovery run should emit at least one new event");
 
-        // No duplicates: every emitted record key is unique across both runs
-        List<String> allKeys = new ArrayList<>();
-        collected.forEach(e -> allKeys.add(String.valueOf(e.getKey())));
-        recoveredCollected.forEach(e -> allKeys.add(String.valueOf(e.getKey())));
+        // C8-001 / C10-013 new assertion set: recovery replays from the last-EMITTED
+        // boundary — the in-flight K records between the emitted boundary and the
+        // kill point are REPLAYED (at-least-once, duplicate-not-lose). Zero LOSS is
+        // the invariant: every first-run record index must appear in the union of
+        // both runs' emissions.
+        List<Integer> allIndices = new ArrayList<>();
+        collected.forEach(e -> allIndices.add(firstInt(e.getKey())));
+        recoveredCollected.forEach(e -> allIndices.add(firstInt(e.getKey())));
 
-        // The MockCdcMessageSource emits events keyed by global index; the recovery source must
-        // resume after the first run's emitted index (no duplicate keys).
-        for (int i = 0; i < allKeys.size(); i++) {
-            for (int j = i + 1; j < allKeys.size(); j++) {
-                assertNotEquals(allKeys.get(i), allKeys.get(j),
-                        "duplicate record key detected across kill/recover: " + allKeys.get(i));
-            }
+        int firstRunMax = -1;
+        for (int idx : allIndices) {
+            firstRunMax = Math.max(firstRunMax, idx);
         }
+        java.util.Set<Integer> seen = new java.util.HashSet<>(allIndices);
+        for (int i = 0; i <= firstRunMax; i++) {
+            assertTrue(seen.contains(i),
+                    "record rec-" + i + " was lost across kill/recover (gap in the emitted union)");
+        }
+        // loss-freeness must not be bought with skipping: the recovery must have
+        // actually replayed from at or before the first run's boundary (it may repeat
+        // some already-emitted records — duplicates are the accepted at-least-once cost)
+        assertFalse(recoveredCollected.isEmpty(),
+                "recovery must replay records from the checkpointed boundary");
+    }
+
+    private static int firstInt(Object key) {
+        // the mock emits structured keys ({id=idx} Map, mirroring a real CDC record key)
+        if (key instanceof Map<?, ?> map && map.get("id") instanceof Number n) {
+            return n.intValue();
+        }
+        String s = String.valueOf(key);
+        int dot = s.indexOf('=');
+        return Integer.parseInt(dot >= 0 ? s.substring(dot + 1) : s);
     }
 
     // ---- AR-03: first run must not inherit stale static registry offsets ----
@@ -543,6 +561,17 @@ public class TestDebeziumCdcCheckpoint {
                 ByteBuffer pos = offsets.get(ByteBuffer.wrap("__idx__".getBytes()));
                 if (pos != null) {
                     startIdx = Integer.parseInt(new String(pos.array()));
+                } else {
+                    // C8-001: synthesized last-emitted snapshots resume by the recorded
+                    // lsn (the mock models a position-resuming connector)
+                    LastEmittedOffsetTracker tracker = new LastEmittedOffsetTracker();
+                    tracker.seedFromOffsetMap(NopStreamOffsetBackingStore.toSerializable(offsets));
+                    for (Map<String, Object> fields : tracker.snapshotPositions().values()) {
+                        Object lsn = fields.get("lsn");
+                        if (lsn instanceof Number n && n.longValue() + 1 > startIdx) {
+                            startIdx = (int) (n.longValue() + 1);
+                        }
+                    }
                 }
             }
             final int from = startIdx;
@@ -551,8 +580,11 @@ public class TestDebeziumCdcCheckpoint {
                 int i = from;
                 while (!cancelled) {
                     int idx = i++;
+                    // C8-001: real position metadata (lsn = record index) — position-less
+                    // events fail typed under the last-emitted protocol
                     ChangeEventMetadata meta = new ChangeEventMetadata(
-                            CONNECTOR, CONNECTOR, "db", null, "tbl", "data");
+                            CONNECTOR, CONNECTOR, "db", null, "tbl", "data",
+                            null, null, (long) idx, null);
                     Map<String, Object> key = new LinkedHashMap<>();
                     key.put("id", idx);
                     ChangeEvent event = new ChangeEvent(meta, "c",

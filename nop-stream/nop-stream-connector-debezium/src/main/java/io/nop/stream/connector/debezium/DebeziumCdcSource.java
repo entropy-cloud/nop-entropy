@@ -40,6 +40,12 @@ public class DebeziumCdcSource implements Source<ChangeEvent, DebeziumTableSplit
 
     private final DebeziumConfig config;
     private final ICredentialProvider credentialProvider;
+
+    /**
+     * CRA 8.43 R4-03 W-12: per-record byte envelope handed to the reader
+     * (default {@link DebeziumCdcSourceReader#DEFAULT_MAX_RECORD_BYTES}).
+     */
+    private final long maxRecordBytes;
     /** WI9 first-run offset seed (data-migration orchestrator contract). */
     private Map<String, String> initialOffsets;
 
@@ -48,11 +54,20 @@ public class DebeziumCdcSource implements Source<ChangeEvent, DebeziumTableSplit
     }
 
     public DebeziumCdcSource(DebeziumConfig config, ICredentialProvider credentialProvider) {
+        this(config, credentialProvider, DebeziumCdcSourceReader.DEFAULT_MAX_RECORD_BYTES);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-12: full constructor with the per-record byte envelope.
+     */
+    public DebeziumCdcSource(DebeziumConfig config, ICredentialProvider credentialProvider,
+                             long maxRecordBytes) {
         if (config == null) {
             throw new IllegalArgumentException("config is required");
         }
         this.config = config;
         this.credentialProvider = credentialProvider;
+        this.maxRecordBytes = maxRecordBytes;
     }
 
     /**
@@ -85,7 +100,7 @@ public class DebeziumCdcSource implements Source<ChangeEvent, DebeziumTableSplit
     @Override
     public SourceReader<ChangeEvent, DebeziumTableSplit> createReader(SourceReaderContext ctx) {
         DebeziumCdcSourceReader reader = new DebeziumCdcSourceReader(config, credentialProvider,
-                initialOffsets);
+                initialOffsets, maxRecordBytes);
         reader.setContextForTest(ctx);
         return reader;
     }

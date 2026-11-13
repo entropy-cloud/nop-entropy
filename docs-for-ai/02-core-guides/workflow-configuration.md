@@ -472,6 +472,8 @@ try {
 
 - 修复前：`wf-scheduler` 虚拟身份对 owner/actor/委托四路径全部不匹配，dueAction 调用被 `ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER` 结构性阻断（scanner 仅 WARN 跳过），xdef 的「自动触发」承诺对唯一目标场景永不生效。
 - dueAction 整体生效的开启前置：① nop-wf-scheduler 的扫描 job 在 host app 装配（job yaml 的 `invoker.bean` 必须与实际 bean id 一致——历史失配见 P2-3.1-001 台账行）；② 步骤定义配置了 `dueAction`。
+- **多节点部署语义（plan 2514）**：扫描经 DB 条件 UPDATE 抢占（holderId+租约）实现单飞，多节点/重叠 cron 下 dueAction 副作用恰好一次；扫描分批与失败退避契约见 `../03-modules/nop-wf.md`「并发与扫描契约」。
+- **dueAction 缺失部署盲区（plan 2541 W-01，裁定 E）**：步骤配置了 `dueTimeExpr` 而未配置 `dueAction` 时该步骤永不被自动驱动——扫描期以周期性 WARN 显式提示（`nop.wf.scheduler.skip-due-task-without-due-action`，每轮该步骤一次）；修复前该分支为 DEBUG 静默跳过（VFS 热更新把 dueAction 漂移删除时不可见）。
 
 ## 常见误区
 

@@ -136,6 +136,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     static final long EPOCH_SCALE = 1_000_000L;
 
     private final String jobId;
+
+    // W-13 site ③ (CRA 8.41 R4-01, ruling E.1): stale-attempt heartbeat rejection
+    // WARN suppression — a zombie task heartbeating every 5s would otherwise keep
+    // the WARN alive for the zombie's whole lifetime. Per-site instance; the
+    // recovery signal is a heartbeat whose attempt MATCHES again (accepted entry).
+    // Initialized in the constructor (jobId is a blank final assigned there).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor staleHeartbeatSuppressor;
+
+    // W-13 site ⑦ LOCAL isomorph (ruling E.1): periodic checkpoint trigger
+    // failure WARN suppression; recovery = a trigger tick that did not throw.
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor periodicTriggerSuppressor;
+
+    // W-13 site 12 (ruling E.1 row 12, review Minor-8): barrier fan-out saturation
+    // drop WARN suppression; recovery = a fan-out submission that was accepted
+    // again (the queue drained). W-10's drop counter/meter stay unconditional.
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor fanoutDropSuppressor;
+
     private final String coordinatorId;
     private final DeploymentPlan deploymentPlan;
     private final ClusterRegistry clusterRegistry;
@@ -158,6 +175,21 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      */
     private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.ExecutorService> barrierFanoutExecutors =
             new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * W-10 (CRA 8.41 R4-01, ruling B.3): capacity of each per-node barrier
+     * fan-out wait queue. 100 ≈ 100 checkpoint intervals of buffering (1
+     * barrier per node per checkpointInterval at second-scale intervals); a
+     * node hung longer than that is dropped-and-counted, with the checkpoint
+     * timeout abort as the declared safety net. Memory bound is KB-scale.
+     */
+    static final int BARRIER_FANOUT_QUEUE_CAPACITY = 100;
+
+    /**
+     * W-10: barriers dropped because a node's fan-out wait queue was full
+     * (observable saturation of the per-node control plane).
+     */
+    final java.util.concurrent.atomic.AtomicLong barrierFanoutDrops = new java.util.concurrent.atomic.AtomicLong();
 
     /**
      * Optional platform leader elector. When non-null the coordinator
@@ -495,6 +527,12 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                           CheckpointCoordinator checkpointCoordinator,
                           Map<String, IStreamTaskRpcService> taskRpcServices) {
         this.jobId = jobId;
+        this.staleHeartbeatSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "jc.stale-heartbeat:" + jobId, 30_000L);
+        this.periodicTriggerSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "jc.periodic-trigger-failed:" + jobId, 30_000L);
+        this.fanoutDropSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "jc.barrier-fanout-drop:" + jobId, 30_000L);
         this.coordinatorId = coordinatorId;
         this.deploymentPlan = deploymentPlan;
         this.clusterRegistry = clusterRegistry;
@@ -516,6 +554,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.jobEventBus.addListener(new io.nop.stream.runtime.event.LoggingJobEventListener());
         if (this.checkpointCoordinator != null) {
             this.checkpointCoordinator.setJobEventBus(this.jobEventBus);
+            // W-03 (CRA 8.42 R4-02, ruling A.2): the commit-retry escalation exit
+            // routes to the typed idempotent failJob — a participant whose
+            // finishCommit retries keep failing is deregistered by the
+            // coordinator and the job fails so recovery takes over, instead of
+            // the ledger growing forever. Wired at the coordinator-injection
+            // point so LOCAL and distributed jobs get the same contract (the
+            // wiring owner is JobCoordinator in both — cf. the abortHandler
+            // registration shape). failJob is idempotent (an already-terminal
+            // job takes the existing WARN branch, :848-856).
+            this.checkpointCoordinator.setCommitRetryEscalationHandler(this::failJob);
         }
 
         // Health state machine wiring:
@@ -987,6 +1035,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                             LOG.error("Failed to send checkpoint signal to node {}", nodeId, e);
                         }
                     });
+                    // W-13 site 12 recovery: the submission was accepted (the queue
+                    // drained — one CLEARED entry on the transition).
+                    if (fanoutDropSuppressor.success()
+                            == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                        LOG.info("Barrier fan-out drops recovered for job {} (queue drained, failure window "
+                                + "cleared)", jobId);
+                    }
                 } else {
                     // No silent skip: a source node without an RPC service dooms this
                     // checkpoint to timeout-abort; surface why at WARN so operators
@@ -1228,10 +1283,26 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // liveness keys that back a current assignment), so it is accepted.
             Integer currentAttempt = currentAttemptOf(p.getVertexId(), p.getSubtaskIndex());
             if (currentAttempt != null && currentAttempt.intValue() != p.getAttemptNumber()) {
-                LOG.warn("Rejecting stale-attempt heartbeat from node {} for {}/{}: attempt={} "
-                                + "(current attempt={}) — zombie task of a superseded generation",
-                        nodeId, p.getVertexId(), p.getSubtaskIndex(),
-                        p.getAttemptNumber(), currentAttempt.intValue());
+                // W-13 site ③ (CRA 8.41 R4-01, ruling E.1): three-state suppression
+                // on the 5s zombie-heartbeat WARN (first full / window aggregate /
+                // cleared when a heartbeat for this liveness key matches again).
+                io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action sa =
+                        staleHeartbeatSuppressor.failure("stale-attempt heartbeat from node " + nodeId
+                                + " for " + p.getVertexId() + "/" + p.getSubtaskIndex()
+                                + ": attempt=" + p.getAttemptNumber()
+                                + " (current attempt=" + currentAttempt.intValue() + ")");
+                if (sa == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                    LOG.warn("Rejecting stale-attempt heartbeat from node {} for {}/{}: attempt={} "
+                                    + "(current attempt={}) — zombie task of a superseded generation",
+                            nodeId, p.getVertexId(), p.getSubtaskIndex(),
+                            p.getAttemptNumber(), currentAttempt.intValue());
+                } else if (sa == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                    LOG.warn("Stale-attempt heartbeat rejections for job {} — {} suppressed in the "
+                                    + "last {}ms window; last: {}",
+                            jobId, staleHeartbeatSuppressor.getLastWindowSuppressedCount(),
+                            staleHeartbeatSuppressor.getWindowMs(),
+                            staleHeartbeatSuppressor.getLastSummary());
+                }
                 continue;
             }
             synchronized (livenessLock) {
@@ -1250,6 +1321,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                 // live task slot — close its grace window (beyond this point the
                 // task is covered by the regular liveness-stall detection).
                 deployIssuedAtMs.remove(livenessKey);
+            }
+            // W-13 site ③ recovery: an attempt-matching heartbeat is the "zombie
+            // gone" signal for this liveness key (one CLEARED entry on the transition).
+            if (staleHeartbeatSuppressor.success()
+                    == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                LOG.info("Stale-attempt heartbeat rejections recovered for job {} (failure window cleared)",
+                        jobId);
             }
         }
     }
@@ -1312,6 +1390,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     if (pending == null) {
                         LOG.debug("Periodic checkpoint trigger skipped/rejected for job {}", jobId);
                     }
+                    // W-13 site ⑦ LOCAL isomorph recovery: a tick that did not throw
+                    // clears the failure window (one CLEARED entry on the transition).
+                    if (periodicTriggerSuppressor.success()
+                            == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                        LOG.info("Periodic checkpoint trigger recovered for job {} (failure window cleared)",
+                                jobId);
+                    }
                 } catch (Exception e) {
                     // Observable failure (not swallowed): the next tick retries.
                     // Feed the coordinator's consecutive-failure counter so
@@ -1319,7 +1404,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     // but only for real exceptions: a null return is a
                     // legitimate skip/reject (standby, throttled, recovery
                     // pending) and must NOT count as a failure.
-                    LOG.warn("Periodic checkpoint trigger failed for job {}", jobId, e);
+                    // W-13 site ⑦ LOCAL isomorph (CRA 8.41 R4-01, ruling E.1):
+                    // three-state suppression on the interval-cadence WARN.
+                    io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action ta =
+                            periodicTriggerSuppressor.failure(e);
+                    if (ta == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                        LOG.warn("Periodic checkpoint trigger failed for job {}", jobId, e);
+                    } else if (ta == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                        LOG.warn("Periodic checkpoint trigger failures for job {} — {} suppressed in the "
+                                        + "last {}ms window; last: {}",
+                                jobId, periodicTriggerSuppressor.getLastWindowSuppressedCount(),
+                                periodicTriggerSuppressor.getWindowMs(),
+                                periodicTriggerSuppressor.getLastSummary());
+                    }
                     checkpointCoordinator.incrementTriggerFailures();
                 }
             }, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
@@ -2205,6 +2302,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // Mark active BEFORE rebuilding so the internal assignment materialization
             // (prepareAssignmentsLocked) observes the active state.
             this.active = true;
+            // C7-011: re-arm the layer-4 persist/commit activity re-check on
+            // (re-)activation so a later degrade is what flips it off.
+            this.checkpointCoordinator.setLeaderActive(true);
             // On leadership grant, rebuild the latestCompletedCheckpoint view
             // from durable storage (failover-safe). A new coordinator JVM has a null
             // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
@@ -2343,10 +2443,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } finally {
             recoveryLock.unlock();
         }
-        // In-flight checkpoints will not commit: collectAck is gated on active,
-        // so further ACKs are rejected and the pending checkpoint times out /
-        // is aborted by the new leader. We intentionally do NOT touch the
-        // failure detector here (deactivate != stop).
+        // C7-011 (plan 2510 adjudication 5, layer 4): actively abort in-flight
+        // pending checkpoints and arm the persist-success / commit-fan-out
+        // re-check so a persist completing after the degrade is discarded - the
+        // zombie standby can no longer become a second writer on the checkpoint
+        // durability plane. This supplements (never rewrites) the existing three
+        // defenses: collectAck active gating, pending timeout, new-leader abort.
+        try {
+            checkpointCoordinator.onLeaderDeactivated();
+        } catch (Exception e) {
+            LOG.error("Failed to abort in-flight checkpoints during standby degrade for job {}", jobId, e);
+        }
+        // We intentionally do NOT touch the failure detector here
+        // (deactivate != stop).
     }
 
     // ==================== Termination ====================
@@ -2928,14 +3037,63 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return jobFailureCause;
     }
 
-    /** CC-06 (plan 2435): one serial executor per node — epoch-ordered per node, isolated across nodes. */
+    /**
+     * W-10 (CRA 8.41 R4-01, ruling B.3): one serial executor per node —
+     * epoch-ordered per node, isolated across nodes (CC-06 semantics preserved:
+     * single thread, FIFO). The wait queue is BOUNDED (the runtime's last
+     * unbounded executor queue): a node whose RPC send hangs used to grow the
+     * queue monotonically (one barrier per checkpoint interval) and stayed
+     * silently dead until the checkpoint timeout aborted the epoch. On
+     * saturation the barrier task for that node is DROPPED — never run on the
+     * triggering thread (CallerRuns would pull the send back onto the periodic
+     * tick: the W-06 defect shape in this pool) — counted on
+     * {@code nop.stream.engine.barrierFanoutDrops.total} and WARNed
+     * (rate-limiting lands with the W-13 suppressor carrier, ruling E.1 row 12).
+     *
+     * <p>C2-010 zero-touch: the {@code computeIfAbsent} structure and the
+     * stop() drain order are unchanged — only the executor construction and
+     * its rejection handler changed.
+     */
     private java.util.concurrent.ExecutorService fanoutExecutorFor(String nodeId) {
         return barrierFanoutExecutors.computeIfAbsent(nodeId,
-                id -> java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                    Thread t = new Thread(r, "jc-barrier-fanout-" + jobId + "-" + id);
-                    t.setDaemon(true);
-                    return t;
-                }));
+                id -> new java.util.concurrent.ThreadPoolExecutor(1, 1,
+                        0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+                        new java.util.concurrent.LinkedBlockingQueue<>(BARRIER_FANOUT_QUEUE_CAPACITY),
+                        r -> {
+                            Thread t = new Thread(r, "jc-barrier-fanout-" + jobId + "-" + id);
+                            t.setDaemon(true);
+                            return t;
+                        },
+                        (r, executor) -> {
+                            barrierFanoutDrops.incrementAndGet();
+                            try {
+                                io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).barrierFanoutDrop();
+                            } catch (Exception e) {
+                                // a meter failure must never mask the drop itself
+                                LOG.debug("Failed to record barrierFanoutDrop meter for job {}", jobId, e);
+                            }
+                            // W-13 site 12 (CRA 8.41 R4-01, ruling E.1 row 12): the
+                            // drop counter/meter stay unconditional; the repeating
+                            // WARN is suppressed to the three-state window (a saturated
+                            // node re-drops every checkpoint interval). Recovery = a
+                            // fan-out submission accepted again (wired at the send
+                            // sites) — the queue drained.
+                            io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action da =
+                                    fanoutDropSuppressor.failure("barrier fan-out queue saturated for node "
+                                            + id + " (capacity=" + BARRIER_FANOUT_QUEUE_CAPACITY + ")");
+                            if (da == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                                LOG.warn("Barrier fan-out queue saturated for node {} on job {} (capacity={}); "
+                                                + "dropping the barrier send for this epoch (checkpoint-timeout "
+                                                + "abort is the safety net)",
+                                        id, jobId, BARRIER_FANOUT_QUEUE_CAPACITY);
+                            } else if (da == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                                LOG.warn("Barrier fan-out drops for job {} — {} suppressed in the last {}ms "
+                                                + "window; last: {}",
+                                        jobId, fanoutDropSuppressor.getLastWindowSuppressedCount(),
+                                        fanoutDropSuppressor.getWindowMs(),
+                                        fanoutDropSuppressor.getLastSummary());
+                            }
+                        }));
     }
 
     private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
@@ -2950,6 +3108,13 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
                     LOG.error("Failed to send barrier signal to node {}", nodeId, e);
                 }
             });
+            // W-13 site 12 recovery (savepoint variant): accepted submission —
+            // the queue drained (one CLEARED entry on the transition).
+            if (fanoutDropSuppressor.success()
+                    == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                LOG.info("Barrier fan-out drops recovered for job {} (queue drained, failure window cleared)",
+                        jobId);
+            }
         }
     }
 }

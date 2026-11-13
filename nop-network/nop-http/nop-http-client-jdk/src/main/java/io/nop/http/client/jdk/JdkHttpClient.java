@@ -157,20 +157,37 @@ public class JdkHttpClient implements IHttpClient {
             executor.destroy();
             executor = null;
         }
+        // 4.3-MA-16+C6-025（plan 2560 裁定 I）：stop 收敛清单补 HttpClient.close()
+        // （JDK 21+ HttpClient 实现 AutoCloseable）——终止 selector/连接池线程，
+        // 消除 stop 后客户端资源滞留面
+        HttpClient c = this.client;
+        if (c != null) {
+            c.close();
+            this.client = null;
+        }
     }
 
     @Override
     public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelTokens) {
         java.net.http.HttpRequest req = toJdkHttpRequest(request);
 
-        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(req,
-                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelTokens != null) {
-            cancelTokens.appendOnCancel(reason -> {
-                future.cancel(false);
-            });
-        }
-        return future.thenApply(this::toHttpResponse);
+        CompletableFuture<HttpResponse<byte[]>> raw = client.sendAsync(req,
+                HttpResponse.BodyHandlers.ofByteArray());
+        CompletableFuture<HttpResponse<byte[]>> future = raw.exceptionally(this::wrapError);
+
+        CompletableFuture<IHttpResponse> promise = future.thenApply(this::toHttpResponse)
+                .toCompletableFuture();
+        // C6-006 (plan 2523)：promise 终态→底层取消桥接——promise 是 thenApply 派生 stage，
+        // 其 cancel 永不向上游传播；对裸 sendAsync stage 取消才触达传输层
+        promise.whenComplete((r, e) -> {
+            if (promise.isCancelled()) {
+                raw.cancel(true);
+            }
+        });
+        // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
+        // 按 promise 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
+        FutureHelper.bindCancelToken(cancelTokens, reason -> future.cancel(false), promise);
+        return promise;
     }
 
     protected java.net.http.HttpRequest toJdkHttpRequest(HttpRequest request) {
@@ -374,13 +391,24 @@ public class JdkHttpClient implements IHttpClient {
         long offset = retriedFromScratch ? 0 : sink.resolveOffset();
         if (offset > 0)
             request.header("range", "bytes=" + offset + "-");
+        else
+            // 4.3-C6-003（plan 2561 裁定 J）：offset=0 必须移除 range 头（对齐 Apache 实现）——
+            // 416 恢复重试经 copyRequest 继承了首发请求的 range 头，不移除则「整体重传」
+            // 仍带旧 Range 再次命中 416，恢复路径失效
+            request.removeHeader("range");
 
         CompletableFuture<HttpResponse<InputStream>> future =
                 client.sendAsync(toJdkHttpRequest(request), HttpResponse.BodyHandlers.ofInputStream());
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(() -> future.cancel(false));
 
         CompletableFuture<IHttpResponse> promise = new CompletableFuture<>();
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        // 4.3-C3-002（plan 2505）：绑定动作补挂 pendingBody 即时关闭——headers 后 future.cancel
+        // 为 no-op 的窗口内，取消经 bodyRef 命中已登记的响应体流即刻解除阻塞读
+        java.util.concurrent.atomic.AtomicReference<InputStream> bodyRef = new java.util.concurrent.atomic.AtomicReference<>();
+        FutureHelper.bindCancelToken(cancelToken, reason -> {
+            future.cancel(false);
+            IoHelper.safeClose(bodyRef.get());
+        }, promise);
         future.whenComplete((response, err) -> {
             if (err != null) {
                 promise.completeExceptionally(wrapError0(err));
@@ -389,6 +417,9 @@ public class JdkHttpClient implements IHttpClient {
             try {
                 // 416：本地 .part 比远端资源新，删除后续传状态整体重传一次
                 if (response.statusCode() == 416 && offset > 0 && !retriedFromScratch) {
+                    // 4.3-C6-002①（plan 2505）：早退重试分支必须先关闭遗弃的响应体流
+                    // （连接/socket 归还），不得静默 return 遗弃
+                    IoHelper.safeClose(response.body());
                     File part = sink.getPartFile();
                     if (part == null)
                         part = FileTransferHelper.partFileOf(target);
@@ -405,12 +436,27 @@ public class JdkHttpClient implements IHttpClient {
                 }
 
                 executor().execute(() -> {
-                    try (InputStream in = response.body()) {
-                        promise.complete(processDownloadResponse(request, response, in, targetFile, options,
-                                cancelToken, sink));
+                    InputStream in = response.body();
+                    bodyRef.set(in);
+                    // 4.3-C3-002/CL-026（plan 2505）：body 阶段 idle 读看门狗——静默流上的
+                    // read 不再无限阻塞（预算独立于 headers 阶段 request timeout）
+                    BodyIdleWatchdog watchdog = BodyIdleWatchdog.start(in, cancelToken,
+                            JdkHttpConfigs.CFG_HTTP_BODY_IDLE_TIMEOUT.get());
+                    try (InputStream closeable = in) {
+                        promise.complete(processDownloadResponse(request, response, closeable, targetFile,
+                                options, cancelToken, sink, watchdog));
                     } catch (Exception e) {
                         sink.close();
-                        promise.completeExceptionally(wrapError0(e));
+                        if (cancelToken != null && cancelToken.isCancelled()) {
+                            // R21 纪律：取消路径以显式取消终态交付，不伪装成传输错误
+                            promise.completeExceptionally(new java.util.concurrent.CancellationException(
+                                    "download cancelled"));
+                        } else {
+                            promise.completeExceptionally(wrapError0(e));
+                        }
+                    } finally {
+                        if (watchdog != null)
+                            watchdog.stop();
                     }
                 });
             } catch (Exception e) {
@@ -432,7 +478,8 @@ public class JdkHttpClient implements IHttpClient {
 
     private IHttpResponse processDownloadResponse(HttpRequest request, HttpResponse<InputStream> response,
                                                   InputStream in, IHttpOutputFile targetFile, DownloadOptions options,
-                                                  ICancelToken cancelToken, FileDownloadSink sink) throws Exception {
+                                                  ICancelToken cancelToken, FileDownloadSink sink,
+                                                  BodyIdleWatchdog watchdog) throws Exception {
         int status = response.statusCode();
         DefaultHttpResponse ret = new DefaultHttpResponse();
         ret.setHttpStatus(status);
@@ -447,8 +494,16 @@ public class JdkHttpClient implements IHttpClient {
         byte[] buf = new byte[8192];
         int n;
         while ((n = in.read(buf)) > 0) {
+            // 4.3-C3-002（plan 2505）：读循环取消响应点——取消后立即停止写入 sink，
+            // 幽灵下载（带宽/磁盘持续消耗）在单次 read 返回内有界终止
+            if (cancelToken != null && cancelToken.isCancelled())
+                throw new java.util.concurrent.CancellationException("download cancelled");
             sink.write(buf, 0, n);
+            if (watchdog != null)
+                watchdog.progress();
         }
+        if (cancelToken != null && cancelToken.isCancelled())
+            throw new java.util.concurrent.CancellationException("download cancelled");
         sink.finish();
 
         // 期望摘要来源：options 显式 > 响应头 > sidecar
@@ -462,6 +517,9 @@ public class JdkHttpClient implements IHttpClient {
             throw new NopException(HttpApiErrors.ERR_HTTP_DOWNLOAD_NO_CHECKSUM);
 
         sink.verifyAndRename(expected);
+        // CRA WI 4.3 C6-001（P0）：成功路径必须关闭 sink 持有的文件句柄——否则 resume=true（缺省）下
+        // 每次成功下载泄漏一个 fd；Windows 上 Files.move 因句柄占用确定性失败（审计复核四子项核验）
+        sink.close();
         return ret;
     }
 
@@ -474,12 +532,15 @@ public class JdkHttpClient implements IHttpClient {
 
     private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
         for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
+            java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
+                    .toCompletableFuture();
             try {
-                IHttpResponse res = fetchAsync(HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
-                        .toCompletableFuture().get(30, TimeUnit.SECONDS);
+                IHttpResponse res = future.get(30, TimeUnit.SECONDS);
                 if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
                     return res.getBodyAsString();
             } catch (Exception e) {
+                // C6-006（plan 2523）：get 超时取消在途请求——经 promise→raw stage 桥触达底层
+                future.cancel(false);
                 LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
             }
         }
@@ -538,9 +599,10 @@ public class JdkHttpClient implements IHttpClient {
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(() -> future.cancel(false));
-        return future.thenApply(res -> toHttpResponse(res, true));
+        CompletionStage<IHttpResponse> promise = future.thenApply(res -> toHttpResponse(res, true));
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> future.cancel(false), promise);
+        return promise;
     }
 
     /**
@@ -550,8 +612,9 @@ public class JdkHttpClient implements IHttpClient {
                                                               UploadOptions options, ICancelToken cancelToken) {
         String fileName = inputFile.getName();
         String base64;
-        try {
-            base64 = java.util.Base64.getEncoder().encodeToString(IoHelper.readBytes(inputFile.getInputStream()));
+        // C6-005 (plan 2522): the input stream must be closed — IoHelper.readBytes never closes
+        try (java.io.InputStream in = inputFile.getInputStream()) {
+            base64 = java.util.Base64.getEncoder().encodeToString(IoHelper.readBytes(in));
         } catch (IOException e) {
             throw new NopException(HttpApiErrors.ERR_HTTP_UPLOAD_INPUT_FILE, e);
         }
@@ -575,9 +638,10 @@ public class JdkHttpClient implements IHttpClient {
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(() -> future.cancel(false));
-        return future.thenApply(res -> toHttpResponse(res, true));
+        CompletionStage<IHttpResponse> promise = future.thenApply(res -> toHttpResponse(res, true));
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> future.cancel(false), promise);
+        return promise;
     }
 
     private void applyUploadHeaders(java.net.http.HttpRequest.Builder builder, HttpRequest request,

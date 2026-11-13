@@ -21,6 +21,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Specs are parsed once per JSON text and cached (the emitted body text is constant
  * per compiled pipeline, so the cache is effectively unbounded by one entry per
  * pipeline).
+ *
+ * <p>CRA 8.45 R4-05 W-04 (1.3-MA-05) precise envelope for {@code CACHE}: the key is
+ * the spec JSON text EMBEDDED IN the compiled pipeline's emitted body — a constant
+ * per compiled pipeline, which is exactly when "one entry per compiled pipeline"
+ * holds. Rejected usage: programmatically constructing infinitely many
+ * DISTINCT spec JSON texts is outside the supported envelope (the key universe grows
+ * without bound with distinct JSON texts — a declared-unsupported dynamic-spec
+ * scenario).
  */
 public final class SqlRowAggregateOps {
 

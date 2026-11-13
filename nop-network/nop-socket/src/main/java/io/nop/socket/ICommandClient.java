@@ -21,6 +21,18 @@ public interface ICommandClient extends AutoCloseable {
 
     void setOnChannelClose(Runnable onClose);
 
+    /**
+     * 4.3-C1-005（plan 2560 裁定 K）：读取当前回调——SimpleRpcClient 构造器合并工厂回调与
+     * 内部回调（工厂回调先行），消除构造器覆写静默丢弃面。缺省 null（未实现 getter 的形态）。
+     */
+    default Runnable getOnChannelOpen() {
+        return null;
+    }
+
+    default Runnable getOnChannelClose() {
+        return null;
+    }
+
     void connect();
 
     void send(BinaryCommand cmd, boolean flush);

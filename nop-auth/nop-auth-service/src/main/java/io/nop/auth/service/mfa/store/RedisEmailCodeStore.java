@@ -10,6 +10,7 @@ package io.nop.auth.service.mfa.store;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.auth.service.support.RedisTtlGuard;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
 import io.nop.auth.core.mfa.store.EmailCodeStore;
 import io.nop.auth.core.mfa.store.EmailCodeStoreConfig;
@@ -29,6 +30,9 @@ import jakarta.inject.Inject;
  * key 前缀（{@code email:code:}/{@code email:fail:}）与 sms 侧（{@code sms:*}）通道隔离。
  */
 public class RedisEmailCodeStore implements EmailCodeStore {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RedisEmailCodeStore.class);
+
 
     private static final String CODE_PREFIX = "email:code:";
     private static final String FAIL_PREFIX = "email:fail:";
@@ -52,6 +56,10 @@ public class RedisEmailCodeStore implements EmailCodeStore {
 
     private String failKey(String key) {
         return FAIL_PREFIX + key;
+    }
+
+    private java.time.Duration ttlDuration() {
+        return java.time.Duration.ofMillis(ttlMillis());
     }
 
     private long ttlMillis() {
@@ -102,7 +110,8 @@ public class RedisEmailCodeStore implements EmailCodeStore {
         INosqlCounter counter = nosql.counter(failKey(key));
         long fails = counter.increment(1);
         if (fails == 1L) {
-            FutureHelper.syncGet(nosql.setTimeoutAsync(failKey(key), ttlMillis()));
+            // 5.1-MA-02（plan 2569）：附着失败补偿删除（重取验证码，无害）
+            RedisTtlGuard.attachTtl(nosql, failKey(key), ttlDuration(), LOG);
         }
         if (fails >= config.getMaxAttempts()) {
             // 超限作废：删验证码 + 计数

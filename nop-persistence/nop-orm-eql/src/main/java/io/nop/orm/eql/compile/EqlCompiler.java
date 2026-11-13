@@ -175,6 +175,9 @@ public class EqlCompiler implements ISqlCompiler {
             compiledSql.setHasAggregate(hasAggregateProjection(projections));
             compiledSql.setOrderByOrdinals(buildOrderByOrdinals(querySelect, projections));
         }
+        // 2.3-C1-013（plan 2552 裁定 H）：发布前冻结——编译装配完成后最后语句（缓存插入在
+        // nop-orm LoadedOrmModel.compileSql 包装层，冻结须在 return 前完成）
+        compiledSql.freeze();
         return compiledSql;
     }
 

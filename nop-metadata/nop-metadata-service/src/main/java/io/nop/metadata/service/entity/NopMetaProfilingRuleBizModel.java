@@ -73,7 +73,8 @@ public class NopMetaProfilingRuleBizModel extends CrudBizModel<NopMetaProfilingR
     private final MetaEntityProfiler profiler = new MetaEntityProfiler();
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
-    private TableReferenceExecutor tableRefExecutor;
+    // W-04（plan 2528 裁定③）：懒初始化实例字段 volatile 安全发布（R23 族先例——可见性缺口闭合；check-then-act 重复构造为良性竞态）
+    private volatile TableReferenceExecutor tableRefExecutor;
 
     public NopMetaProfilingRuleBizModel() {
         setEntityName(NopMetaProfilingRule.class.getName());

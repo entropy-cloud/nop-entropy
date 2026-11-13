@@ -7,6 +7,7 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_CONFIG_VALUE;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.core.partition.JobPartitionResolver;
@@ -17,8 +18,12 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -48,6 +53,17 @@ public abstract class AbstractBatchScanner {
     protected int scanIntervalMs = 5000;
     protected int batchSize = 100;
     protected int maxScanLoops = 1000;
+
+    // CRA 8.47 R4-07 W-07 (1.4-C7-007, adjudication F): observe-only stall watchdog.
+    // Default 0=disabled (2496 invoke-timeout-ms|0 precedent); >0 enables; <0 fail-fast.
+    // NEVER cancels/interrupts the main chain (observe-only — 2496 MA-06 discipline).
+    // F-m4 conflation guard: scanCycleCount advancing = chain alive (not stalled).
+    private int stallWatchdogMs;
+    private final java.util.concurrent.atomic.AtomicLong stallDetectedCount =
+            new java.util.concurrent.atomic.AtomicLong();
+    private volatile long lastObservedScanCycleCount;
+    private volatile long oldestInFlightAgeMillis;
+    private volatile java.util.concurrent.Future<?> stallWatchdogFuture;
     protected volatile boolean running;
     protected Future<?> scanFuture;
 
@@ -55,13 +71,49 @@ public abstract class AbstractBatchScanner {
 
     private JobPartitionResolver partitionResolver;
 
+    // CRA 8.46 R4-06 W-05 (1.4-C1-003): in-flight guard for the PUBLIC scanOnce
+    // entry — "single-threaded" was only a scheduling declaration, an external
+    // caller racing a timer tick used to reset the in-flight cursors (duplicate
+    // processing / torn cursor). AtomicBoolean + mirror of the 2496 counter family.
+    private final AtomicBoolean scanningInFlight = new AtomicBoolean(false);
+    private final AtomicLong scanCycleConflictCount = new AtomicLong();
+
+    // ========== scanner 存活指标（plan 2496 1.4-C4-003 #12 模块侧义务）==========
+    private final AtomicLong scanCycleCount = new AtomicLong();
+    private final AtomicLong scanFailureCount = new AtomicLong();
+    private final AtomicLong scanChainRejectedCount = new AtomicLong();
+    private volatile long lastScanStartTimeMillis;
+    private volatile long lastScanEndTimeMillis;
+    private volatile long lastScanFailureTimeMillis;
+
     public synchronized void startScanning() {
         if (running) {
             return;
         }
         running = true;
+        String scannerName = getClass().getSimpleName();
+        // 平台绝缘入口（带业务标识）：任务体 Throwable 由设施捕获观测并重臂，链存活至显式
+        // stopScanning 或设施级拒绝（设计契约 ai-dev/design/concurrency/periodic-task-insulation.md）
         scanFuture = getExecutor().scheduleWithFixedDelay(
-                this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+                this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS, scannerName, null);
+        // CRA 8.47 R4-07 W-07: stall watchdog registration (same executor — C-type
+        // carrier, millisecond memory check per 2497 §七 discipline). observe-only.
+        if (stallWatchdogMs > 0) {
+            this.stallWatchdogFuture = getExecutor().scheduleWithFixedDelay(
+                    () -> checkStall(), stallWatchdogMs, stallWatchdogMs,
+                    java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
+        // C4-003：返回 future 不再丢弃（默认 whenComplete 挂接，不改对外 API）。绝缘契约下异常终态是
+        // 失败/取消/拒绝信号而非链死亡指标；仅设施级拒绝（链真死且不复活）时把 running 状态真实化为 false
+        if (scanFuture instanceof CompletableFuture<?>) {
+            ((CompletableFuture<?>) scanFuture).whenComplete((result, error) -> {
+                if (error != null && !(error instanceof CancellationException)) {
+                    scanChainRejectedCount.incrementAndGet();
+                    running = false;
+                    LOG.error("nop.job.scan-chain-rejected:scanner={}", scannerName, error);
+                }
+            });
+        }
     }
 
     public synchronized void stopScanning() {
@@ -84,18 +136,91 @@ public abstract class AbstractBatchScanner {
      * 写空壳 override（5 个子类曾有 `@Override protected void scanOnce() { super.scanOnce(); }` 的设计 hack）。
      * <p>
      * 入口顺序：(1) reset 所有已注册 cursor；(2) 调 {@link #onCycleStart()}；(3) 进入批循环。
+     * <p>
+     * 整个周期体（含 try-外段 cursor.reset/onCycleStart）在站点内统一守卫：任何 Throwable（含 Error）
+     * 都在本方法边界被捕获、计数、留痕，不再逃逸到周期设施边界——失败轮次可观测，{@link #running}
+     * 与链状态不说谎（链由绝缘设施保持存活）。
      */
-    public void scanOnce() {
-        for (Cursor c : registeredCursors) {
-            c.reset();
+    /** CRA 8.47 R4-07 W-07: observe-only stall check (volatile reads, zero IO). */
+    private void checkStall() {
+        if (!running || stallWatchdogMs <= 0) {
+            return;
         }
-        onCycleStart();
+        long start = lastScanStartTimeMillis;
+        if (start <= 0) {
+            return;
+        }
+        long now = CoreMetrics.currentTimeMillis();
+        long inFlightAge = now - start;
+        // F-m4 conflation guard: scanCycleCount advancing = chain making progress
+        long cycleCount = scanCycleCount.get();
+        boolean cycleAdvanced = cycleCount != lastObservedScanCycleCount;
+        lastObservedScanCycleCount = cycleCount;
+        if (cycleAdvanced) {
+            oldestInFlightAgeMillis = 0;
+            return;
+        }
+        boolean inFlight = lastScanEndTimeMillis < start;
+        if (inFlight && inFlightAge > stallWatchdogMs) {
+            oldestInFlightAgeMillis = inFlightAge;
+            stallDetectedCount.incrementAndGet();
+            LOG.warn("nop.job.scan-stall-detected:scanner={},inFlightAgeMs={},thresholdMs={}",
+                    getClass().getSimpleName(), inFlightAge, stallWatchdogMs);
+        }
+    }
+
+    public void scanOnce() {
+        // CRA 8.46 R4-06 W-05 (1.4-C1-003): in-flight CAS guard. The loser is
+        // REJECTED, not failed: WARN + conflict counter + return WITHOUT touching
+        // any cursor/chain state (the rejected entrant runs no cursor reset — the
+        // in-flight cycle keeps its cursors intact and the next fixed-delay tick
+        // covers its window). The rejection deliberately stays OUT of the 2496
+        // insulation counters below (those count REAL cycles only) and out of the
+        // insulation-failure stream — a typed rejection here would escape through
+        // the executor facility and be miscounted as a task failure, polluting the
+        // chain-health observation semantics. The 2496 insulation boundary
+        // (Throwable catch / onScanCycleFailed / counters) is untouched — the guard
+        // wraps the SAME body inside the insulation boundary.
+        if (!scanningInFlight.compareAndSet(false, true)) {
+            scanCycleConflictCount.incrementAndGet();
+            LOG.warn("nop.job.scan-cycle-conflict:scanner={}", getClass().getSimpleName());
+            return;
+        }
+        try {
+            long begin = CoreMetrics.currentTimeMillis();
+            scanCycleCount.incrementAndGet();
+            lastScanStartTimeMillis = begin;
+            try {
+                for (Cursor c : registeredCursors) {
+                    c.reset();
+                }
+                onCycleStart();
+                scanBatches();
+                lastScanEndTimeMillis = CoreMetrics.currentTimeMillis();
+            } catch (Throwable e) {
+                lastScanFailureTimeMillis = CoreMetrics.currentTimeMillis();
+                scanFailureCount.incrementAndGet();
+                onScanCycleFailed(e);
+            }
+        } finally {
+            scanningInFlight.set(false);
+        }
+    }
+
+    /** CRA 8.46 R4-06 W-05: concurrent-entry rejections observed on this scanner. */
+    public long getScanCycleConflictCount() {
+        return scanCycleConflictCount.get();
+    }
+
+    private void scanBatches() {
         for (int i = 0; i < maxScanLoops; i++) {
             try {
                 if (!scanBatch()) {
                     return;
                 }
             } catch (Exception e) {
+                lastScanFailureTimeMillis = CoreMetrics.currentTimeMillis();
+                scanFailureCount.incrementAndGet();
                 onScanFailed(e);
                 return;
             }
@@ -129,6 +254,46 @@ public abstract class AbstractBatchScanner {
 
     protected void onScanFailed(Exception e) {
         LOG.error("nop.job.scan-failed:scanner={}", getClass().getSimpleName(), e);
+    }
+
+    /**
+     * 扫描周期体的 Error 级（Throwable 非 Exception）失败回调。默认实现记录带 scanner 名的 ERROR 日志；
+     * 子类可 override 扩展上报。该回调在 {@link #scanOnce()} 的站点守卫内触发，异常不逃逸、链不死亡。
+     */
+    protected void onScanCycleFailed(Throwable e) {
+        LOG.error("nop.job.scan-cycle-failed:scanner={}", getClass().getSimpleName(), e);
+    }
+
+    // ========== scanner 存活指标（C4-003 模块侧义务：存活/最后扫描时间可观测）==========
+
+    /** 已完成的扫描周期数（每轮 {@link #scanOnce()} 计一次）。 */
+    public long getScanCycleCount() {
+        return scanCycleCount.get();
+    }
+
+    /** 扫描失败轮次数（含 Exception 级与 Error 级周期失败）。 */
+    public long getScanFailureCount() {
+        return scanFailureCount.get();
+    }
+
+    /** 周期链遭设施级拒绝（真死、不复活）的次数。拒绝后 {@link #running} 已真实化为 false。 */
+    public long getScanChainRejectedCount() {
+        return scanChainRejectedCount.get();
+    }
+
+    /** 最近一轮扫描的开始时间（毫秒；0 = 从未扫描）。 */
+    public long getLastScanStartTimeMillis() {
+        return lastScanStartTimeMillis;
+    }
+
+    /** 最近一轮成功走完的扫描结束时间（毫秒；0 = 从未完整走完一轮）。 */
+    public long getLastScanEndTimeMillis() {
+        return lastScanEndTimeMillis;
+    }
+
+    /** 最近一次扫描失败的时间（毫秒；0 = 从未失败）。 */
+    public long getLastScanFailureTimeMillis() {
+        return lastScanFailureTimeMillis;
     }
 
     protected IScheduledExecutor getExecutor() {
@@ -169,6 +334,30 @@ public abstract class AbstractBatchScanner {
                     .param(ARG_CONFIG_NAME, "maxScanLoops").param(ARG_CONFIG_VALUE, maxScanLoops);
         }
         this.maxScanLoops = maxScanLoops;
+    }
+
+    /**
+     * CRA 8.47 R4-07 W-07: stall watchdog threshold. {@code 0}=disabled (default,
+     * observe-only precedent); {@code <0}=config error (fail-fast — protective face
+     * silently disabled is a pseudo-guard, same convention as applyMaxScanLoops).
+     * Subclass {@code @InjectValue} setter delegates here (apply* delegation pattern).
+     */
+    protected final void applyStallWatchdogMs(int ms) {
+        if (ms < 0) {
+            throw new NopException(ERR_JOB_INVALID_CONFIG_VALUE)
+                    .param(ARG_CONFIG_NAME, "stallWatchdogMs").param(ARG_CONFIG_VALUE, ms);
+        }
+        this.stallWatchdogMs = ms;
+    }
+
+    /** CRA 8.47 R4-07 W-07: stall detections observed on this scanner (observe-only face). */
+    public long getStallDetectedCount() {
+        return stallDetectedCount.get();
+    }
+
+    /** CRA 8.47 R4-07 W-07: age of the oldest in-flight scan in milliseconds (gauge face). */
+    public long getOldestInFlightAgeMillis() {
+        return oldestInFlightAgeMillis;
     }
 
     /**

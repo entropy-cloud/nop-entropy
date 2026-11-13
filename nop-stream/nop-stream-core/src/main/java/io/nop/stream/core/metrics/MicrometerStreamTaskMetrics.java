@@ -55,7 +55,9 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
     // WEAK reference to their state object and silently drop same-id re-registrations.
     // Every WI16 gauge therefore reads through a STATIC strong holder keyed by the
     // meter identity; a task instance registers into it and recovery rebuilds rebind.
-    private static final java.util.concurrent.ConcurrentMap<String, java.util.concurrent.atomic.AtomicReference<MicrometerStreamTaskMetrics>> TASK_HOLDERS =
+    // Package-visible below: red⑧ (CRA 8.41 R4-01, C10-023) asserts the holder map
+    // from the same package (S5 seam — review R1 Minor-1, registered product diff).
+    static final java.util.concurrent.ConcurrentMap<String, java.util.concurrent.atomic.AtomicReference<MicrometerStreamTaskMetrics>> TASK_HOLDERS =
             new java.util.concurrent.ConcurrentHashMap<>();
 
     private final java.util.concurrent.atomic.AtomicReference<io.nop.stream.core.execution.InputGate> gateRef =
@@ -119,23 +121,68 @@ public class MicrometerStreamTaskMetrics implements StreamTaskMetrics {
         return jobId + "|" + vertexId + "|" + subtaskIndex;
     }
 
-    private String myHolderKey() {
+    // Package-visible: S5 seam (red⑧, review R1 Minor-1 registered product diff).
+    String myHolderKey() {
         return holderKey(processingTime.getId().getTag(TAG_JOB_ID),
                 processingTime.getId().getTag(TAG_VERTEX_ID),
                 processingTime.getId().getTag(TAG_SUBTASK));
     }
 
     /**
-     * WI16: detaches this task instance from its static holder (task close). The
-     * registered gauges keep their meter ids but read NaN afterwards — an ended task
-     * must not keep reporting its last ratios.
+     * WI16 holder detach, upgraded by W-14 (CRA 8.41 R4-01, finding 1.1-C7-007 /
+     * C10-023; plan 2534 ruling E.2): the RELEASE removes the whole meter surface —
+     * every registered meter id is removed from the registry (the scrape sequence
+     * disappears, aligned with the {@code EngineMetrics.releaseJob} family; the
+     * pre-fix "sequence stays, reads NaN" contract is superseded — owner doc
+     * synced) — and the static holder entry is dropped, so jobId churn no longer
+     * leaks ~11 meters per job.
+     *
+     * <p>Generation-safe (review R1 Major-1): {@code computeIfAbsent} reuses the
+     * SAME holder reference across rebuilds, so a stale instance releasing after a
+     * rebuild is a NO-OP (the CAS fails) — the newer generation keeps its entry and
+     * gauges; the live generation's release removes the entry with a
+     * key+reference matched remove and reinstalls it if a rebuild grabbed the same
+     * reference in between.
      */
     public void releaseHolder() {
         java.util.concurrent.atomic.AtomicReference<MicrometerStreamTaskMetrics> holder =
                 TASK_HOLDERS.get(myHolderKey());
-        if (holder != null) {
-            holder.compareAndSet(this, null);
+        if (holder == null || !holder.compareAndSet(this, null)) {
+            // a newer generation owns the entry (or none does) — its own release
+            // removes its meters; nothing to clean here
+            return;
         }
+        removeRegisteredMeterIds();
+        String key = myHolderKey();
+        TASK_HOLDERS.remove(key, holder);
+        if (holder.get() != null) {
+            // a rebuild grabbed the same reference between our CAS and the remove —
+            // reinstall so the new generation keeps serving (generation-safe)
+            TASK_HOLDERS.putIfAbsent(key, holder);
+        }
+    }
+
+    /** W-14: matched removal of every meter id this instance registered. */
+    private void removeRegisteredMeterIds() {
+        removeMeterId(METRIC_OPERATOR_RECORDS_IN, io.micrometer.core.instrument.Meter.Type.COUNTER);
+        removeMeterId(METRIC_OPERATOR_RECORDS_OUT, io.micrometer.core.instrument.Meter.Type.COUNTER);
+        removeMeterId(METRIC_IO_RECORDS_CONSUMED, io.micrometer.core.instrument.Meter.Type.COUNTER);
+        removeMeterId(METRIC_IO_RECORDS_EMITTED, io.micrometer.core.instrument.Meter.Type.COUNTER);
+        removeMeterId(METRIC_OPERATOR_PROCESSING_TIME, io.micrometer.core.instrument.Meter.Type.TIMER);
+        removeMeterId(METRIC_IO_EMIT_TIME, io.micrometer.core.instrument.Meter.Type.TIMER);
+        removeMeterId(METRIC_OPERATOR_TIME_IDLE_NANOS, io.micrometer.core.instrument.Meter.Type.COUNTER);
+        removeMeterId(METRIC_OPERATOR_TIME_ELAPSED_NANOS, io.micrometer.core.instrument.Meter.Type.COUNTER);
+        removeMeterId(METRIC_OPERATOR_TIME_BUSY_RATIO, io.micrometer.core.instrument.Meter.Type.GAUGE);
+        removeMeterId(METRIC_OPERATOR_TIME_BACKPRESSURED_RATIO, io.micrometer.core.instrument.Meter.Type.GAUGE);
+        removeMeterId(METRIC_OPERATOR_TIME_IDLE_RATIO, io.micrometer.core.instrument.Meter.Type.GAUGE);
+        if (watermarkGaugesRegistered) {
+            removeMeterId(METRIC_OPERATOR_WATERMARK, io.micrometer.core.instrument.Meter.Type.GAUGE);
+            removeMeterId(METRIC_OPERATOR_WATERMARK_CHANNEL_LAG, io.micrometer.core.instrument.Meter.Type.GAUGE);
+        }
+    }
+
+    private void removeMeterId(String name, io.micrometer.core.instrument.Meter.Type type) {
+        registry.remove(new io.micrometer.core.instrument.Meter.Id(name, tags, null, null, type));
     }
 
     private static double ratio(double numerator, double denominator) {

@@ -22,6 +22,14 @@ public final class PageRank {
     /**
      * 计算图中节点的 PageRank 值。
      *
+     * <p>出度预计算（5.6-W-07，plan 2529 裁定⑤）：迭代开始前对入参 nodes 恰每节点一次
+     * {@code getOutEdges(node).size()}（Θ(V) 次调用、Θ(V+E) 次元素拷贝，单次全量）；
+     * 迭代体内悬挂节点判定与入边源的出度读取全部改读映射——迭代期出边查询归零。否则
+     * 每条入边每次迭代都触发一次出边列表查询，实现侧（如 InMemoryGraph）为锁内全表
+     * 防御拷贝，单迭代产生 E·d̄ 次元素拷贝与等量临时 List 分配。预计算值 ≡ 逐次调用值
+     * （图在 compute 期间不可变属 IGraph 消费既有假设）；nodes 之外的 source 经入边循环
+     * 的 containsKey 天然跳过，无需出度。
+     *
      * @param graph      图
      * @param nodes      要计算的节点集
      * @param iterations 迭代次数
@@ -36,6 +44,11 @@ public final class PageRank {
         }
 
         int n = nodes.size();
+        Map<String, Integer> outDegree = new HashMap<>();
+        for (String node : nodes) {
+            outDegree.put(node, graph.getOutEdges(node).size());
+        }
+
         Map<String, Double> ranks = new HashMap<>();
         for (String node : nodes) {
             ranks.put(node, 1.0 / n);
@@ -46,8 +59,7 @@ public final class PageRank {
             double danglingSum = 0.0;
 
             for (String node : nodes) {
-                int outDegree = graph.getOutEdges(node).size();
-                if (outDegree == 0) {
+                if (outDegree.get(node) == 0) {
                     danglingSum += ranks.get(node);
                 }
             }
@@ -59,7 +71,7 @@ public final class PageRank {
                 for (Edge edge : graph.getInEdges(node)) {
                     String source = edge.getSourceId();
                     if (ranks.containsKey(source)) {
-                        int sourceOutDegree = graph.getOutEdges(source).size();
+                        int sourceOutDegree = outDegree.get(source);
                         if (sourceOutDegree > 0) {
                             double weight = edge.getWeight();
                             rank += DAMPING_FACTOR * ranks.get(source) * weight / sourceOutDegree;

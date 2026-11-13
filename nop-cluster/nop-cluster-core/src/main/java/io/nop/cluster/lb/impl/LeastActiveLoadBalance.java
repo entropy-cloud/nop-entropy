@@ -80,7 +80,10 @@ public class LeastActiveLoadBalance<T, R> implements ILoadBalance<T, R> {
                 leastIndexs[leastCount++] = i; // 累计相同最小活跃数下标
                 totalWeight += weight; // 累计总权重
                 // 判断所有权重是否一样
-                if (sameWeight && i > 0 && weight != firstWeight) {
+                // 4.2-C8-001（plan 2559 裁定 G）子注记勘正：原 `i > 0` 中 i 是候选下标而非
+                // leastIndexs 数组位置——当首个最小活跃候选下标非 0 而后续候选恰为下标 0 时，
+                // i>0 恒假导致 sameWeight 误判为 true（漏加权重随机分支）
+                if (sameWeight && weight != firstWeight) {
                     sameWeight = false;
                 }
             }

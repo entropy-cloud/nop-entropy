@@ -31,6 +31,9 @@ public class AgentSessionSupport {
     private final java.util.concurrent.ConcurrentHashMap<String, IMailbox> sessionMailboxes;
     private final java.util.concurrent.ConcurrentHashMap<String, IMessageSubscription> sessionMailboxSubscriptions;
 
+    // 3.1-C5-017（plan 2556 裁定 E）: default null = default-off (no mailboxes).
+    // Explicit-enable paths should wire DeferredAckMailbox.boundedDefaultFactory()
+    // so every constructed mailbox is bounded.
     private Function<String, IMailbox> mailboxFactory;
 
     public AgentSessionSupport(AgentCallDelegate callDelegate,

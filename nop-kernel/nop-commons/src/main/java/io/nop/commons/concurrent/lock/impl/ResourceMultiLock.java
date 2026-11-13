@@ -15,6 +15,7 @@ import io.nop.commons.concurrent.lock.IResourceLockManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.commons.CommonErrors.ARG_RESOURCE_IDS;
 import static io.nop.commons.CommonErrors.ERR_LOCK_NOT_ALLOW_REENTRANT;
@@ -96,16 +97,18 @@ public class ResourceMultiLock extends AbstractResourceLock {
 
         this.locks = new ArrayList<>(resourceIds.size());
 
-        long startTime = CoreMetrics.currentTimeMillis();
+        // R4-32（C7-004）：整域原子切换单调时钟；等待预算在类内统一换算纳秒再与 nanoTime 差值比较
+        long startTime = CoreMetrics.nanoTime();
 
-        long remainWait = waitTime;
+        long remainWaitNs = TimeUnit.MILLISECONDS.toNanos(waitTime);
 
         boolean success = false;
         try {
             for (String resourceId : resourceIds) {
                 IResourceLock lock = lockManager.getLock(resourceId, holderId);
 
-                // 为了避免等待时间过程中锁失效，需要增加leaseTime
+                // 为了避免等待时间过程中锁失效，需要增加leaseTime（换回毫秒口径传参）
+                long remainWait = TimeUnit.NANOSECONDS.toMillis(remainWaitNs);
                 if (!lock.tryLockWithLease(remainWait, leaseTime + remainWait)) {
                     return false;
                 }
@@ -113,8 +116,8 @@ public class ResourceMultiLock extends AbstractResourceLock {
                 // 假定tryLock失败，锁一定不会处于锁定状态。
                 locks.add(lock);
 
-                remainWait = waitTime - (CoreMetrics.currentTimeMillis() - startTime);
-                if (remainWait <= 0) {
+                remainWaitNs = TimeUnit.MILLISECONDS.toNanos(waitTime) - (CoreMetrics.nanoTime() - startTime);
+                if (remainWaitNs <= 0) {
                     return false;
                 }
             }

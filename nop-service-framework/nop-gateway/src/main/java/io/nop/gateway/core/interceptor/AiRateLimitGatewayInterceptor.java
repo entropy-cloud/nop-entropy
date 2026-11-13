@@ -143,11 +143,18 @@ public class AiRateLimitGatewayInterceptor implements IGatewayInterceptor {
         buckets().destroy();
     }
 
+    /**
+     * R4-32（2.3-C8-005，plan 2566）：令牌桶回填计时整域换源单调时钟（CoreMetrics.nanoTime()，
+     * 静态嵌套类无构造缝——测试经 registerClock 双针 stub 兜底+finally 恢复）。
+     * 消除：墙钟回拨 → elapsed<0 → 桶冻结（永不回填）；墙钟前跳 → 集中回填（interval 数暴增
+     * 一次灌满，突发放大）。Math.min(capacity, ...) 钳制保留（interval 级回填上界语义不变）。
+     */
     static class TokenBucket {
         private final int capacity;
         private final double refillRate;
         private final long refillIntervalMs;
         private double tokens;
+        // 单调时钟域（纳秒）
         private long lastRefillTime;
 
         TokenBucket(int capacity, double refillRate, long refillIntervalMs) {
@@ -155,7 +162,8 @@ public class AiRateLimitGatewayInterceptor implements IGatewayInterceptor {
             this.refillRate = refillRate;
             this.refillIntervalMs = refillIntervalMs;
             this.tokens = capacity;
-            this.lastRefillTime = CoreMetrics.currentTimeMillis();
+            // R4-32：毫秒阈值换算纳秒保持时长语义
+            this.lastRefillTime = CoreMetrics.nanoTime();
         }
 
         synchronized boolean tryConsume() {
@@ -168,10 +176,10 @@ public class AiRateLimitGatewayInterceptor implements IGatewayInterceptor {
         }
 
         private void refill() {
-            long now = CoreMetrics.currentTimeMillis();
+            long now = CoreMetrics.nanoTime();
             long elapsed = now - lastRefillTime;
-            if (elapsed >= refillIntervalMs) {
-                long intervals = elapsed / refillIntervalMs;
+            if (elapsed >= TimeUnit.MILLISECONDS.toNanos(refillIntervalMs)) {
+                long intervals = elapsed / TimeUnit.MILLISECONDS.toNanos(refillIntervalMs);
                 tokens = Math.min(capacity, tokens + intervals * refillRate);
                 lastRefillTime = now;
             }

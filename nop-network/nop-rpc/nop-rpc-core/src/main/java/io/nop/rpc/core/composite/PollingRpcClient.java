@@ -10,6 +10,7 @@ package io.nop.rpc.core.composite;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.task.TaskStatusBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
@@ -27,6 +28,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import static io.nop.rpc.core.RpcErrors.ARG_POLL_TIMEOUT;
+import static io.nop.rpc.core.RpcErrors.ERR_RPC_POLL_DEADLINE_EXCEEDED;
+
 /**
  * 将启动方法和状态检查方法组合成一个完整的RPC调用。执行启动方法之后不直接启动方法的返回结果，而是不断的调用statusMethod来获取返回结果。
  */
@@ -43,19 +47,45 @@ public class PollingRpcClient implements IRpcService {
      */
     private final int maxErrorCount;
 
-    public PollingRpcClient(IRpcService rpcService, String statusMethod, IScheduledExecutor timer, long pollInterval, int maxErrorCount) {
+    /**
+     * 4.2-C4-003（plan 2498 Phase 6）：轮询链整体截止时间（毫秒）。<=0 = 不启用整体 deadline。
+     */
+    private final long pollTimeout;
+
+    public PollingRpcClient(IRpcService rpcService, String statusMethod, IScheduledExecutor timer,
+                            long pollInterval, int maxErrorCount) {
+        this(rpcService, statusMethod, timer, pollInterval, maxErrorCount, 0);
+    }
+
+    /**
+     * 可选整体 deadline（4.2-C4-003，plan 2498 Phase 6）：pollTimeout > 0 时轮询链有界终止——
+     * deadline 到期调用方 future 异常完成（错误键 nop.err.rpc.poll-deadline-exceeded）并停止续排；
+     * cancelToken 缺失时同样强制终止链，在飞轮次挂死也被 watchdog 兜底。
+     * pollTimeout <= 0 时维持既有形态：链终止仅由 maxErrorCount 与 cancelToken 两个出口承载。
+     */
+    public PollingRpcClient(IRpcService rpcService, String statusMethod, IScheduledExecutor timer,
+                            long pollInterval, int maxErrorCount, long pollTimeout) {
         this.rpcService = Guard.notNull(rpcService, "rpcService");
         this.statusMethod = Guard.notEmpty(statusMethod, "statusMethod");
         this.timer = Guard.notNull(timer, "timer");
         this.pollInterval = Guard.positiveLong(pollInterval, "pollInterval");
         this.maxErrorCount = Guard.positiveInt(maxErrorCount, "maxErrorCount");
+        this.pollTimeout = pollTimeout;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request,
                                                      ICancelToken cancelToken) {
-        return rpcService.callAsync(serviceMethod, request, cancelToken).thenCompose(ret -> {
+        // 4.3-MA-15（plan 2560 裁定 H·调用方防御面）：首跳 callAsync 同步抛防御性收敛为
+        // failed future（轮询链不再依赖底层不违反同步抛契约）
+        CompletionStage<ApiResponse<?>> first;
+        try {
+            first = rpcService.callAsync(serviceMethod, request, cancelToken);
+        } catch (Throwable e) {
+            return FutureHelper.reject(e);
+        }
+        return first.thenCompose(ret -> {
             ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
             if (!ret.isBizSuccess() || isCompleted(res)) {
                 return FutureHelper.success(res);
@@ -71,12 +101,32 @@ public class PollingRpcClient implements IRpcService {
         final CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
         final ApiRequest<?> request;
         final ICancelToken cancelToken;
+        final long deadlineNanos;
         volatile Future<?> timerFuture;
+        volatile Future<?> deadlineFuture;
         int errorCount;
 
         public PollTask(ApiRequest<?> request, ICancelToken cancelToken) {
             this.request = request;
             this.cancelToken = cancelToken;
+            if (pollTimeout > 0) {
+                // 4.2-C4-003：deadline watchdog——链整体终止不依赖轮次续排路径，
+                // 在飞轮次挂死（底层 callAsync 永不完成）时同样在 deadline 处强制终止
+                this.deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(pollTimeout);
+                this.deadlineFuture = timer.schedule(() -> {
+                    onDeadline();
+                    return null;
+                }, pollTimeout, TimeUnit.MILLISECONDS);
+            } else {
+                this.deadlineNanos = 0;
+                this.deadlineFuture = null;
+            }
+            // future 结束（完成/取消/异常完成）后释放 deadline watchdog
+            future.whenComplete((ret, err) -> {
+                Future<?> df = deadlineFuture;
+                if (df != null)
+                    df.cancel(false);
+            });
             if (cancelToken != null) {
                 Consumer<String> cancel = this::cancel;
                 cancelToken.appendOnCancel(cancel);
@@ -91,9 +141,26 @@ public class PollingRpcClient implements IRpcService {
                 timerFuture.cancel(false);
         }
 
+        void onDeadline() {
+            if (future.isDone())
+                return;
+            Future<?> timerFuture = this.timerFuture;
+            if (timerFuture != null)
+                timerFuture.cancel(false);
+            LOG.warn("nop.rpc.poll-deadline-exceeded:method={},pollInterval={},pollTimeout={}",
+                    statusMethod, pollInterval, pollTimeout);
+            future.completeExceptionally(new NopException(ERR_RPC_POLL_DEADLINE_EXCEEDED)
+                    .param(ARG_POLL_TIMEOUT, pollTimeout));
+        }
+
         public void schedule() {
             // 结果 future 已完成（正常结束或被取消）时不再发起下一轮轮询
             if (!future.isDone()) {
+                // 4.2-C4-003：续排前 belt 检查——已过 deadline 时终止链（正常路径由 watchdog 承担终态）
+                if (deadlineNanos != 0 && System.nanoTime() >= deadlineNanos) {
+                    onDeadline();
+                    return;
+                }
                 timerFuture = timer.schedule(this, pollInterval, TimeUnit.MILLISECONDS);
             }
         }

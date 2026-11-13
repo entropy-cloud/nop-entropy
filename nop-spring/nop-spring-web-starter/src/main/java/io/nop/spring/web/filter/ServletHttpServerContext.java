@@ -7,6 +7,7 @@
  */
 package io.nop.spring.web.filter;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
@@ -17,6 +18,8 @@ import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IStreamResponseWriter;
 import jakarta.servlet.AsyncContext;
+import jakarta.servlet.AsyncEvent;
+import jakarta.servlet.AsyncListener;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,22 +42,62 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class ServletHttpServerContext implements IHttpServerContext {
+    /**
+     * C6-004（plan 2562 裁定 H）：startAsync 缺省无超时（无超时无监听面）——两站点统一加
+     * 可配超时，缺省 60s，配置项遵循模块配置约定（AppConfig），键：
+     * {@code nop.spring.web.async-timeout-millis}。
+     */
+    public static final long DEFAULT_ASYNC_TIMEOUT_MILLIS = 60000L;
+    static final String CFG_ASYNC_TIMEOUT_MILLIS = "nop.spring.web.async-timeout-millis";
+
     private final HttpServletRequest request;
     private final HttpServletResponse response;
 
-    private IContext context;
+    /**
+     * C1-005（plan 2562 裁定 H 搭车）：跨线程读写（异步/工作线程 vs 请求线程），volatile 可见性。
+     */
+    private volatile IContext context;
 
-    private String characterEncoding;
+    private volatile String characterEncoding;
+
+    private final long asyncTimeoutMillis;
 
     public ServletHttpServerContext(HttpServletRequest request, HttpServletResponse response) {
+        this(request, response, resolveAsyncTimeoutMillis());
+    }
+
+    public ServletHttpServerContext(HttpServletRequest request, HttpServletResponse response,
+                                    long asyncTimeoutMillis) {
         this.request = request;
         this.response = response;
         this.context = ContextProvider.currentContext();
+        this.asyncTimeoutMillis = asyncTimeoutMillis > 0 ? asyncTimeoutMillis : DEFAULT_ASYNC_TIMEOUT_MILLIS;
+    }
+
+    private static long resolveAsyncTimeoutMillis() {
+        Long value = AppConfig.getConfigProvider()
+                .getConfigValue(CFG_ASYNC_TIMEOUT_MILLIS, DEFAULT_ASYNC_TIMEOUT_MILLIS);
+        if (value == null || value.longValue() <= 0) {
+            return DEFAULT_ASYNC_TIMEOUT_MILLIS;
+        }
+        return value.longValue();
     }
 
     @Override
     public String getMethod() {
         return request.getMethod();
+    }
+
+    /**
+     * CL-025（plan 2550 裁定 E，能力勘误 E-2550-2）：Servlet 6.0 API 无轮询式客户端断连
+     * 观测（HttpServletRequest.getConnection() 属 Servlet 6.1 Connection API，仓内
+     * servlet-api=6.0 无此能力；写失败 IOException 属响应路径事后感知，非转发前检查）。
+     * 保持 default 不可观测档（false）——网关重试链在本适配器下维持既有重试语义，勘误
+     * 登记 plan 2550；升级 Servlet 6.1 后由 Connection API 承接真实检测。
+     */
+    @Override
+    public boolean isClientAborted() {
+        return false;
     }
 
     @Override
@@ -234,9 +277,10 @@ public class ServletHttpServerContext implements IHttpServerContext {
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("Connection", "keep-alive");
 
-        AsyncContext asyncCtx = request.startAsync();
         CompletableFuture<Void> future = new CompletableFuture<>();
         AtomicBoolean completed = new AtomicBoolean(false);
+        AtomicBoolean asyncClosed = new AtomicBoolean(false);
+        AsyncContext asyncCtx = startAsyncWithTimeout(asyncClosed);
 
         publisher.subscribe(new Flow.Subscriber<String>() {
             private Flow.Subscription subscription;
@@ -281,7 +325,9 @@ public class ServletHttpServerContext implements IHttpServerContext {
                         if (out != null) {
                             out.flush();
                         }
-                        asyncCtx.complete();
+                        if (asyncClosed.compareAndSet(false, true)) {
+                            asyncCtx.complete();
+                        }
                         future.complete(null);
                     } catch (Exception e) {
                         future.completeExceptionally(e);
@@ -289,15 +335,58 @@ public class ServletHttpServerContext implements IHttpServerContext {
                 }
             }
 
+            /**
+             * 4.4-MA-03（plan 2562 裁定 A）：错误路径不再调用 asyncCtx.complete()——
+             * complete 洗白截断（错误以正常完成收口）消除；错误路径仅经裁定 H 的
+             * async timeout 终止（AsyncListener.onTimeout → complete 收口）。
+             * future.completeExceptionally 语义保持（C10-018 断言面）。
+             */
             private void completeWithError(Throwable error) {
                 if (completed.compareAndSet(false, true)) {
-                    asyncCtx.complete();
                     future.completeExceptionally(error);
                 }
             }
         });
 
         return future;
+    }
+
+    /**
+     * C6-004（plan 2562 裁定 H）：startAsync 两站点统一加可配超时（缺省 60s）+
+     * AsyncListener（onTimeout → complete 收口）。超时监听器吸收 C6-004「二次 ISE 噪声」
+     * （唯一 complete 收口方经 asyncClosed CAS 串行化），并闭合裁定 A 移除错误路径
+     * complete 后的超时-dispatch 循环。Servlet 规范允许 startAsync 后 setTimeout。
+     */
+    private AsyncContext startAsyncWithTimeout(AtomicBoolean asyncClosed) {
+        AsyncContext asyncCtx = request.startAsync();
+        asyncCtx.setTimeout(asyncTimeoutMillis);
+        asyncCtx.addListener(new AsyncListener() {
+            @Override
+            public void onTimeout(AsyncEvent event) {
+                // 4.4-MA-03 closure-audit 勘正（2562 audit B-1）：Servlet 6.0 AsyncContext
+                // 无 completeWithError——按裁定 H 原形态 asyncCtx.complete() 收口。
+                // 此处 complete 只提交已写出字节（客户端可见截断，非错误洗白）；
+                // 错误语义由 future.completeExceptionally 承载（C10-018 断言面），
+                // 与 R1-Finding-3「客户端可见截断」意图一致。
+                if (asyncClosed.compareAndSet(false, true)) {
+                    asyncCtx.complete();
+                }
+            }
+
+            @Override
+            public void onError(AsyncEvent event) {
+                // 4.4-MA-03（plan 2562 裁定 A）：不在此 complete——错误终止统一走超时收口
+            }
+
+            @Override
+            public void onStartAsync(AsyncEvent event) {
+            }
+
+            @Override
+            public void onComplete(AsyncEvent event) {
+            }
+        });
+        return asyncCtx;
     }
 
     @Override
@@ -310,9 +399,10 @@ public class ServletHttpServerContext implements IHttpServerContext {
         response.setHeader("Cache-Control", "no-cache");
         response.setHeader("Connection", "keep-alive");
 
-        AsyncContext asyncCtx = request.startAsync();
         CompletableFuture<Void> future = new CompletableFuture<>();
         AtomicBoolean completed = new AtomicBoolean(false);
+        AtomicBoolean asyncClosed = new AtomicBoolean(false);
+        AsyncContext asyncCtx = startAsyncWithTimeout(asyncClosed);
 
         try {
             Writer out = response.getWriter();
@@ -333,7 +423,9 @@ public class ServletHttpServerContext implements IHttpServerContext {
                     if (completed.compareAndSet(false, true)) {
                         try {
                             out.flush();
-                            asyncCtx.complete();
+                            if (asyncClosed.compareAndSet(false, true)) {
+                                asyncCtx.complete();
+                            }
                             future.complete(null);
                         } catch (Exception e) {
                             future.completeExceptionally(e);
@@ -342,10 +434,14 @@ public class ServletHttpServerContext implements IHttpServerContext {
                     return FutureHelper.success(null);
                 }
 
+                /**
+                 * 4.4-MA-03（plan 2562 裁定 A）：错误路径不再调用 asyncCtx.complete()——
+                 * 错误仅经裁定 H 的 async timeout（AsyncListener.onTimeout → complete）终止。
+                 * future.completeExceptionally 语义保持（C10-018 断言面）。
+                 */
                 @Override
                 public CompletionStage<Void> fail(Throwable error) {
                     if (completed.compareAndSet(false, true)) {
-                        asyncCtx.complete();
                         future.completeExceptionally(error);
                     }
                     return FutureHelper.success(null);
@@ -363,8 +459,9 @@ public class ServletHttpServerContext implements IHttpServerContext {
                 });
             }
         } catch (Exception e) {
+            // 4.4-MA-03（plan 2562 裁定 A）：装配异常面不再调用 asyncCtx.complete()——
+            // 与 completeWithError/writerFn.fail 同形，错误仅经裁定 H async timeout 终止。
             if (completed.compareAndSet(false, true)) {
-                asyncCtx.complete();
                 future.completeExceptionally(e);
             }
         }

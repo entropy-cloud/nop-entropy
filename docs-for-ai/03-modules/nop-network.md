@@ -32,12 +32,14 @@ options.setMode(UploadMode.BASE64_FORM);
 
 - 线上协议：标准 `multipart/form-data`，文件内容整体 base64 后作为**普通文本字段**提交——用于只收文本表单字段的网关/遗留服务。
 - base64 文本整体构入请求体（内存约为文件 1.33 倍），仅适用于中小文件。
+- **流关闭契约（C6-005）**：BASE64_FORM 读取文件流必须以 try-with-resources 包裹 `IoHelper.readBytes(inputFile.getInputStream())`——`readBytes` 不关闭输入流（`readAllBytes` 语义，关闭责任在调用方），三实现（JDK/OkHttp/Apache）统一。`IoHelper.readBytes` 行为零变更。
 
 ## IHttpClient 文件下载
 
 `downloadAsync(request, targetFile, options, cancelToken)`：
 
-- **断点续传**（`options.isResume()` 默认 true）：下载写入目标旁的 `{name}.part`；中断后再次调用自动带 `Range: bytes=N-` 续传（206 追加）；服务端不支持 Range（回 200）自动整体重传；`416` 自动删除 `.part` 重下。完成并校验通过后原子 rename 到目标路径。`.part` 布局跨实现一致，可换实现续传。
+- **断点续传**（`options.isResume()` 默认 true）：下载写入目标旁的 `{name}.part`；中断后再次调用自动带 `Range: bytes=N-` 续传（206 追加）；服务端不支持 Range（回 200）自动整体重传；`416` 自动删除 `.part` 重下。**原子 rename 无条件强制（C3-005，错误以成功交付族）**：`verifyAndRename` 对校验来源缺失（expected == null）仅豁免校验、不豁免落盘收尾——.part 必须改名为目标文件，仅校验失败分支删除 .part；下载完成信号与产物落地原子（三实现行为一致）。
+- **future 终结契约（C3-001，R21 future-永不完成族）**：`onResponse` 回调体内任何同步异常（如 body 读取中断连）必须 `completeExceptionally` 终结返回 future——禁依赖上层超时兜底；OkHttp 回调返回的 stage 被框架丢弃，未终结即调用方永久挂起。`.part` 布局跨实现一致，可换实现续传。
 - **完整性校验**（优先级：显式 > 响应头 > sidecar）：
   1. `options.setExpectedSha256(hex)` / `setExpectedSha1(hex)`
   2. 响应头 `x-content-sha256`（hex；兼容 `x-amz-checksum-sha256` base64）
@@ -45,12 +47,17 @@ options.setMode(UploadMode.BASE64_FORM);
 - 校验失败 → 删除 `.part`、以 `nop.err.http.download-checksum-mismatch` 失败；`options.isRequireChecksum()` 要求必须有校验来源，否则 `nop.err.http.download-no-checksum`。
 - 进度：`options.setProgressListener(...)` 按 `offset+received / total` 回调。
 
+## MQTT 会话生命周期并发契约（nop-vertx-mqtt-server，C1-008/C3-018/C6-020）
+
+- **removeConnection 属主校验**：旧连接迟到 close 仅当其仍为会话属主时才清订阅（compute 单点定夺——属主判定与订阅清空同 bin 锁临界，get-校验-remove 两步会复开 TOCTOU 窗口）。否则设备重连后下行路由静默失效（客户端不重发 SUBSCRIBE，QoS0 无错误可见）。
+- **先注册后 CONNACK**：`VertxMqttServer.acceptEndpoint` 顺序 = new MqttConnection（挂 handler，不含 accept）→ 挂 close 回调 → addConnection 注册 → `connection.accept()`。CONNACK 先于注册发出会开「SUBSCRIBE 先落表、接管清空」的订阅丢失窗口①。`MqttConnection.accept()` 为构造后显式调用点。
+
 ## MQTT 服务端消息
 
 `nop-vertx-mqtt-server`：
 
 - **下行**：`IMqttConnection.sendAsync(topic, message, options)` 向该连接 publish（QoS1）。payload 支持 String（UTF-8）/ byte[]，其余对象 JSON 序列化；连接断开抛 `nop.err.mqtt.not-connected`。
-- **路由下发**：`MqttServerMessageService`（bean）实现 `IMessageService`。`sendAsync(topic, msg)` 会向所有订阅匹配（MQTT `+`/`#` 通配）的连接下发；无匹配连接时空广播正常完成。
+- **路由下发**：`MqttServerMessageService`（bean）实现 `IMessageService`（生命周期并发契约见上节）。`sendAsync(topic, msg)` 会向所有订阅匹配（MQTT `+`/`#` 通配）的连接下发；无匹配连接时空广播正常完成。
 - **上行订阅**：`MqttServerMessageService.subscribe("cmd/#", listener)` 注册进程内监听；设备上行 publish 按同一通配语义分发，`data` 为 payload 的 UTF-8 文本；二进制场景直接实现 `IMqttHandler`。
 - 会话接管（同 clientId 新连接踢旧连接）、断连清理（连接与订阅登记）由 `MqttSessionManager` 维护。
 
@@ -58,6 +65,33 @@ options.setMode(UploadMode.BASE64_FORM);
 
 - **SMS areaCode 语义（Yunpian，Tencent parity）**：areaCode null/空（平台主链路 MfaCodeSender 不设置——国内短信常态）时仅用裸 mobile 号；非空时剥离 "+" 前缀后拼接。杜绝 null 拼接出 "null138…" 数据损坏形态。
 - **Feishu Stream DATA→ACK 契约**：DATA 帧处理后回发 ACK 帧（headers 原样复制——携带 message_id/log_id 等回执定位信息；requestId 沿用）；FeishuInboundMessage.headers 透传帧头供下游回执。零 ACK 回发会导致服务端重复投递/反复断连。
+
+## Feishu Stream 通道生命周期并发契约（nop-integration-feishu）
+
+- **send 有界预算（C3-015）**：`FeishuClient` 的 send（心跳/握手/ACK 三调用点）统一有界——`JdkStreamTransport.send` 以 `sendTimeoutMillis`（缺省 15s，`FeishuClient.setSendTimeoutMillis` 部署可调）执行有界 get；半开连接上无界 get 会占死心跳+重连唯一 scheduler 线程（整体死锁）。send 失败经失败处理单点收敛：`connected=false` + close（尽力而为，5s 预算与 send 解耦）+ warn（含站点维度）+ 重连调度。connect 阻塞段经 `IStreamTransport.connectAsync` 移出 scheduler（包私有 seam 的 default 方法级扩展，假体经 default 委托同步 connect）。
+- **重连单飞与世代守卫（C1-009/C6-021）**：`onClose`/`onError` 双终态经 CAS 单飞去重为恰一在飞重连；`lifecycleGeneration` 在 start（connect 调用前）与 stop 各递增一次，重连/完成回调/`onOpen` 比对连接前记录的世代快照——过期世代回调丢弃、stop 后完成的建连立即关闭（孤儿消除，`connectCount - closeCount ≤ 1` 不变式）、晚到 `onOpen` 不置 connected 不发握手。重连前先 close 旧连接（fd 不依赖对端断开）。
+- **stop 停机语义**：stop 递增世代 + cancel 心跳 + close transport；stop 返回后任何旧世代在途建连/回调确定性失效（不对新世代 promise/连接产生影响）。`stop→start` 重启重置世代并重建连接。
+
+## HTTP 客户端回调线程与 sidecar 探测契约（C3-004/C6-006）
+
+- **下载收尾重活移出回调线程**：下载完成回调线程（HC5 reactor dispatch/OkHttp dispatcher）只做廉价状态判定与 416 重派，sidecar 探测、校验、rename 收尾段投递 `GlobalExecutors.globalWorker()`（apache 面）或既有 executor 卸载（jdk :416 先落）——嵌套同步 `get(30s)×2` 复用回调线程会在 ioThreadCount=1 配置面（CL-021）下占死整个 reactor。
+- **C6-006 取消传播桥接**：三实现 fetchAsync 的返回 promise 均不向上游传播取消（jdk 为 thenApply 派生 stage、okhttp/apache 为裸 CF），fetchAsync 内以 `whenComplete` 桥接 promise-cancellation → 底层取消（call.cancel()/裸 sendAsync stage/HC5 future）；`fetchSidecarChecksum` get(30s) 超时 catch 内对 promise `cancel(false)`，经桥接中止在途请求（连接归还池，不滞留至 readTimeout）。
+- **CL-021**：`HttpClientConfig.ioThreadCount` 缺省 0=HC5 取 availableProcessors；ioThreadCount=1 为全连接停摆配置面，文档化警示不新增配置项。
+
+## SimpleRpcClientFactory 生命周期契约（nop-rpc-simple，C1-001）
+
+- `init` 幂等（synchronized + volatile inited 幂等早退——logBody 拦截器装配一次、timer/executor 单点创建）；`destroy` 后 `newInstance` 抛 IllegalStateException fail-fast（在已销毁 executor 上投递是编程错误）。
+
+## NettyTcpServer bind 失败清理契约（nop-netty，C6-017）
+
+- doStart 两 bind 失败抛出点（sync 异常 + !isSuccess）必须调用 `releaseBindFailure`：shaping.release → 自建 worker 组 shutdown → boss 组 shutdown。所有权以创建时刻快照判定（外部注入 worker 组只关 boss）。
+
+## SFTP 客户端超时契约（nop-integration-sftp，C3-024）
+
+- `SftpConfig.timeoutMillis`（缺省 15s，0=jsch 无限——禁用）单值承载三段接线：`session.setTimeout(...)`（socket SO_TIMEOUT，per-read 读段包络——活动传输每次读重置计时，长传输无总时长预算为 by design）+ `session.connect(ms)`（建连上界，banner 黑洞等）+ `channel.connect(ms)`（channel 开启上界）。超时异常经既有 `ERR_SFTP_CONNECT_FAIL` 包装外抛。
+- **构造期会话回收（C6-018，plan 2523 落地）**：`channel.connect` 失败路径 `session.disconnect()` 后原样再抛——构造抛错调用方引用不可得，会话必须就地回收。R2-19 的 connect(ms) 超时路径即本回收面的触发前提。
+- **边界注记**：构造期「session 已连、channel 未开」失败回收面归 R2-20（本批 connect(ms) 抛超时路径即其触发前提）。
+- 无连接级 keep-alive/重连语义——`SftpClientFactory.newClient` 每操作新建客户端（构造即建连）。
 
 ## Kafka 消费生命周期语义（P1-4.4-M01..M03，plan 2396）
 
@@ -78,6 +112,46 @@ JdkHttpClient.toHttpResponse 不再把 HTTP 503 映射为 NopConnectException—
 ## 网关 HTTP 过滤语义（P1-check-gw-49/86，plan 2390）
 
 GatewayHttpFilter 两条契约：①**路由预匹配后置**——path 级路由预匹配（`GatewayHandler.hasRouteFor`）无命中时请求体零消费直接放行下游；请求体解析按 content-type 分流，仅 JSON（或未声明）content-type 走严格解析（非法 body fail-fast 5xx），multipart/表单等不再炸滤器（body 不向下游透传，data=null）；异步段异常经 `exceptionally` 兜底写 5xx，响应已提交（streaming 中途失败）时只记日志不二次写出。②**OAuth redirect 凭证下发**——code+redirect_uri 分支在 sendRedirect 前初始化用户上下文并下发 auth cookie（新会话凭证；redirect 提交后 header/cookie 必丢），消除 SSO 回调登录循环；redirect 后下游对已提交响应的写入为无害噪音（现状既有行为）。
+
+## 响应体阶段取消与读超时契约（4.3-C3-002 族 / 4.3-C6-004，plan 2505）
+
+JDK 客户端的 `sendAsync(..., BodyHandlers.ofInputStream())` future 在**响应头到达即完成**——cancelToken 只绑 headers 阶段时，body 阶段的取消/静默均无响应点。修复后的契约（下载与 SSE body 阶段，jdk 叶内）：
+
+- **body 阶段取消响应**：下载读循环每迭代检查 `cancelToken.isCancelled()`，取消即 `CancellationException` 终态并关闭 sink/in（幽灵下载消除）；SSE cleanup 显式关闭登记的底层 body 流——阻塞中的 `readLine` 抛 IOException 解除（`future.cancel(true)` 对 headers 后已完成的 future 是 no-op，显式关流是唯一出口）。取消监听经 `FutureHelper.bindCancelToken` 收敛，且 **promise 生命周期 = body 阶段终态**（非 headers 到达）——监听器覆盖整个 body 阶段、按 promise 配对移除（无累积契约保持）。
+- **body idle 读超时**：`nop.http.client.jdk.body-idle-timeout`（`JdkHttpConfigs.CFG_HTTP_BODY_IDLE_TIMEOUT`，缺省 `120000` ms，独立于只覆盖 headers 的 request timeout）——`BodyIdleWatchdog`（globalTimer 短任务巡检，任务体仅「进度/取消判定 + 关流」）超阈或取消时从独立线程关闭底层流，阻塞 read/readLine 抛 IOException 进入既有错误路径（SSE 静默 >30s 为常态，预算独立于 headers 语义）。`<= 0` 关闭看门狗（不推荐）。
+- **缺省 120s 边界声明**：无 keepalive 且单次静默间隔合法超过 120s 的 SSE 流，在缺省配置下将由「读取滞留后续恢复」变为 **120s 关流错误**（IOException → onError）——这是有界终止换取的显式取舍；合法长静默流的缓解面 = 调高 `nop.http.client.jdk.body-idle-timeout`，或置 `<= 0` 关闭看门狗回到滞留形态（此时上层聚合层预算兜底，见 `nop-ai.md` 流式契约）。SSE demand 等待预算同理：`AbstractServerEventSubscription` 基类缺省 120s，停滞订阅者以 `ERR_HTTP_SSE_DEMAND_TIMEOUT` 显式终态化（可经 `demandWaitTimeoutMillis()` 钩子收紧）。
+- **三出口统一关流**：取消出口（cleanup）、416 重试分支、SSE cancel-at-entry 分支——三处 return/终态前均关闭遗弃的响应体（连接/socket 归还，对端可观测 EOF）。
+- **反压不可中断面收敛**：demand 等待有界化（基类 `waitForDemand` 预算 + 停滞终态）；apache SSE 事件投递经有界队列 + 专用 `nop-sse-dispatch` daemon 消费线程（HC5 I/O reactor 线程不再内联 wait）；jdk parse 循环可关闭化；残留长阻塞承载线程为 daemon 形态（挂死不阻断 JVM 退出）。
+- 测试锚点：`TestBodyPhaseCancel_C3_002`（6 条，raw socket/HttpServer 真实装配链）、`TestServerEventSubscriptionDemandTimeout_C6_004`、`TestApacheSseReactorDecouple_C6_004`、`TestJdkHttpClientCancelListenerCleanup_C3_012`（2499 注册面零回退）；消费面全链（聚合层 + 传输层双层预算）端到端见 `nop-ai.md` 流式契约节与 `TestStreamFullChainEndToEnd_C3_001`。
+
+
+## 交付同步抛契约与生命周期窗口（plan 2560 / 裁定 A-N）
+
+- **CompletionStage 入口不得同步抛**：全部返回 CompletionStage 的站点（RpcChannelState CLOSED/TOO_MANY、ClientContextRpcServiceInterceptor TIMEOUT_EXPIRED、RpcMessageSender INVALID_TOPIC、Enhancer token 校验、MqttConnection NOT_CONNECTED、MqttServerMessageService 未建 server、NettyTcpServer 无通道/NPE 面、ReflectiveRpcService NO_HANDLER）统一 failed-future 交付；`fetchServerEventFlow`（Flow.Publisher 入口）异常走 Publisher onError。调用方防御面（CancellableRpcClient/PollingRpcClient/RpcInvocationHandler）随批。
+- **OAuth token 注入**：EnhancedClient override 统一 `DelegateHttpClient.onRequestBegin`（四入口全盖）；token fetch 落分 provider 锁内、authTokens 监视器外（singleflight 保留）。
+- **MQTT server 注册配对**：AtomicBoolean CAS 注册标志 + 空列表两参真移除（不再借用 subscribers 空判）；扇出 per-conn try/catch。
+- **Netty 客户端 stop 世代守卫**：doStart 记录 startGeneration / doStop 递增 stopGeneration，四处检查点（doConnect/connectFuture 回调/重连调度/调度任务触发）失配即弃——post-stop 状态回 CREATED，世代为唯一复活闸门。
+- **Vertx MQTT server 生命周期**：bean 级 `setVertx` 注入（缺省回退 NopVertx.instance()）；doStart await listenFuture（失败关 server+typed 抛出）；doStop await close（带超时）+ sessionManager clear。
+- **JDK HttpClient 停机关闭**：`JdkHttpClient.stop`/`JdkStreamTransport`/`JdkFeishuHttpApi`（IFeishuHttpApi.close seam）停止期 close（selector 线程与连接池不跨启停累积）。
+- **Feishu 客户端停机窗口**：credentials/handler/endpoint volatile + WS 回调快照读取（僵尸投递/NPE 链消除）；owned scheduler stop 后 start 重建（外部注入 scheduler 重启 fail-fast）；bind ticket 原子摘除→exchange→失败回插（putIfAbsent 防 ABA——失败 exchange 可重试语义保留）。
+- **RPC monitor/通道**：checkFailCount AtomicInteger 原子 RMW + cancellable volatile；RpcChannelState.prepareSend 容量守卫与 put 同临界区。
+- **SimpleRpcClient 回调合并**：工厂先行配置回调不再被构造器覆写丢弃（prev 回调先行链）；回调字段 volatile。
+
+
+## 交付生命周期束 b 契约（plan 2561 / 裁定 A-N）
+
+- **SSL 惰性缓存**：`NettySslEngineFactory` synchronized 惰性块 + `SslConfig` 缓存字段 volatile（并发首装单实例）。
+- **SocketClient 单读线程契约**：headerBuf 实例共享——call 与 recv-loop 双入口经 `readerActive` 守卫互斥（并发读 typed 拒绝 `ERR_SOCKET_CONCURRENT_READ`；recv-loop 竞败终端退出为已声明 watch 面——下次 reconnect 重生）。
+- **SocketServer accept 世代**：doStart 分配 per-start 世代，doStop 作废——重启后旧 accept 循环凭世代失配退出，不误杀新循环。
+- **SocketClient connect/重连韧性**：connect 回调段+心跳段异常 → safeClose+cleanup 后重抛（重试入口不锁死）；重试链终态 exceptionally 处理器（LOG+closed 置位+onChannelClose）；send 未连接 typed 化；doRecv handler 异常与 IO 异常分流（回调失败不杀循环）。
+- **SimpleRpcClient send 失败**：catch 走 `channelState.onFailure(id, e)`——waitFutures raw future 恰好完成（泄漏面消除，含 timeout≤0 滞留）。
+- **SimpleRpcClientFactory 生命周期**：client 登记表 + destroy 逆序关闭兜底（容忍重复 close 回调；2523 世代令牌面保持）。
+- **PacketCodecHandler fail-loud**：encode 异常上抛（MessageToByteEncoder fail write promise，不自动关 channel）；decode 丢帧结构化计数器暴露。
+- **TencentEmailSender 类型化**：未知错误 `NopException.adapt` 上抛（对齐 JavaEmailSender 范式；显式分支保持）。MFA 调用方（MfaCodeSender/UserMfaSelfService）fail-closed 语义承接。
+- **SSE 终态隔离**：onComplete cleanup、dispatchEvent completed 守卫、`[DONE]` 取消底层请求、jdk ServerEventPublisher CancellationException 分流（取消不派假 onError）；2505 demand-timeout 行为零回退。
+- **Range 头移除**：`JdkHttpClient`/`OkHttpClientImpl` offset=0 时移除 range 头（416 恢复全下载，对齐 Apache；3.9 前案并轨消号）。
+- **FileDownloadSink 直写残留语义**：直写路径失败不回滚（已声明运维边界；临时名重构避让 C6-001(P0)/C3-005(P1) 下载链修复批）。
+- **映射注记消号**：C1-018（2523 已落回调先武装/会话先入表/CONNACK 尾置——确认钉）与 C6-012（2498 已落 poll deadline watchdog——注记消号）。
 
 ## 相关文档
 

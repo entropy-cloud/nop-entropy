@@ -105,28 +105,12 @@ public class NodeTscBridgeTest {
         }
     }
 
-    @Test
-    public void queryDeadlineIsAStructuredTimeoutAndRecyclesThePeer() throws IOException {
-        // hang-once-then-ok parks on the query before its marker exists, so
-        // the recycled (re-spawned) peer answers instead of hanging again.
-        Path marker = tempDir.resolve("hang-marker.txt");
-        NodeTscBridge bridge = bridge("hang-once-then-ok", marker.toString(), Duration.ofMillis(3000),
-                Duration.ofMillis(200), 1);
-        try {
-            bridge.initProject(writeTsconfig("x"));
-            long startedAt = System.nanoTime();
-            TscQueryException ex = assertThrows(TscQueryException.class,
-                    () -> bridge.getTypeAtLocation("a.ts", 0, 0));
-            long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
-            assertEquals("TIMEOUT", ex.code());
-            assertTrue(elapsedMs < 2500, "the deadline bound the wait: " + elapsedMs + "ms");
-            // the hung process was recycled: one restart is left, so the
-            // next query re-spawns and succeeds (the fresh peer answers).
-            assertEquals("FakeType:1:1", bridge.getTypeAtLocation("a.ts", 1, 1));
-        } finally {
-            bridge.close();
-        }
-    }
+    // The per-query-deadline recycle proofs (the former hang-once-then-ok
+    // case) moved to TestNodeTscBridgeGenerationFence_W_01 as the
+    // hang-past-deadline family: deadline-bounded structured timeout,
+    // bounded-restart recovery, generation-fence assertions, and the
+    // no-surviving-process contract — deterministic where the former case
+    // was timing-sensitive (plan 2531 M-P1-1 rewrite obligation).
 
     // ==================== crash detection and bounded restart ====================
 

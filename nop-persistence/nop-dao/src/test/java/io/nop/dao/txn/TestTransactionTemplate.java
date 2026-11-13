@@ -20,6 +20,7 @@ import java.sql.SQLException;
 
 import static io.nop.dao.DaoErrors.ERR_TXN_NOT_ALLOW_TRANSACTION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTransactionTemplate extends JdbcTestCase {
@@ -269,14 +270,16 @@ public class TestTransactionTemplate extends JdbcTestCase {
 
             jdbc().executeUpdate(new SQL("update my_entity set a=44 where id = 1 "));
 
-            // 抛出异常但是被捕获了也不会触发回滚
+            // 抛出异常但是被捕获了也不会触发回滚（lint appeasement：捕获并断言异常确实传播，非吞异常）
+            Throwable caught = null;
             try {
                 txn().runInTransaction(null, TransactionPropagation.REQUIRED, txn2 -> {
-                    throw new RuntimeException("error");
+                    throw NopException.adapt(new IllegalStateException("expected-rollback-trigger"));
                 });
             } catch (Exception e) {
-
+                caught = e;
             }
+            assertNotNull(caught, "REQUIRED 内层异常必须传播出 runInTransaction");
             // 回滚完毕后rollbackOnly恢复为false
             assertTrue(!txn.isRollbackOnly());
 
@@ -323,12 +326,31 @@ public class TestTransactionTemplate extends JdbcTestCase {
         checkNoActive();
     }
 
+    /**
+     * 2.3-C2-016（plan 2553 裁定 D）改写（原为无断言体的现状容忍钉——C10-017）：
+     * ①首次 commit 真提交；②二次 commit = no-op-with-WARN（状态机 CAS 拒绝重复提交，
+     * 监听器不得二次通知）。
+     */
     @Test
     public void testMultipleCommit(){
+        java.util.concurrent.atomic.AtomicInteger commitNotifications = new java.util.concurrent.atomic.AtomicInteger();
         txn().runInTransaction(null, TransactionPropagation.REQUIRED,txn->{
-            txn.commit();
-            txn.commit();
+            txn.addListener(new io.nop.dao.txn.ITransactionListener() {
+                @Override
+                public int order() {
+                    return 0;
+                }
+
+                @Override
+                public void onAfterCommit(ITransaction t) {
+                    commitNotifications.incrementAndGet();
+                }
+            });
+            txn.commit(); // 首次：真提交
+            txn.commit(); // 二次：no-op-with-WARN
             return null;
         });
+        assertEquals(1, commitNotifications.get(),
+                "second commit must be a no-op (listener must not fire twice)");
     }
 }

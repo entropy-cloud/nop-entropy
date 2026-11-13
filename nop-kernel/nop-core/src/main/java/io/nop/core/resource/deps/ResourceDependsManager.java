@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource.deps;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.commons.concurrent.thread.NamedThreadLocal;
 import io.nop.commons.util.StringHelper;
@@ -27,6 +28,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED;
+
 /**
  * 集中管理所有组件文件之间的依赖关系. 此对象的方法不应该被直接调用，应用代码应该通过 {@link io.nop.core.resource.component.IResourceComponentManager}接口来收集依赖。
  * <p>
@@ -35,11 +39,20 @@ import java.util.function.Supplier;
 public class ResourceDependsManager implements IResourceDependencyManager, Closeable {
     static final Logger LOG = LoggerFactory.getLogger(ResourceDependsManager.class);
 
+    /**
+     * 窗口二保守重执行的有界重试上限：task执行前后mtime持续不一致时显式失败（禁止静默固化「旧内容+新mtime」）
+     */
+    static final int MAX_LOAD_MTIME_RETRY = 3;
+
     private final IResourceChangeChecker changeChecker;
 
     private final ThreadLocal<ResourceDependsStack> dependsStack = new NamedThreadLocal<>("resource-depends-stack");
 
     private final Map<String, ResourceDependencySet> dependencyMap = new ConcurrentHashMap<>();
+
+    // C7-008（plan 2548）：容量告警水位（同水位去重）
+    static final int DEPENDS_MAP_WARN_SIZE = 10_000;
+    final java.util.concurrent.atomic.AtomicLong warnSizeWatermark = new java.util.concurrent.atomic.AtomicLong();
 
     private final IResourceLoadingCache<Object> cache = new ResourceLoadingCache<>("depends-with-cache", null, null);
 
@@ -54,6 +67,10 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
     }
 
     @Override
+    public void removeDependency(String resourcePath) {
+        dependencyMap.remove(resourcePath);
+    }
+
     public void clearDependencies() {
         dependencyMap.clear();
     }
@@ -84,11 +101,27 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         ResourceDependencySet deps = stack.push(resource);
         boolean success = false;
         try {
-            T ret = task.get();
+            // 窗口二消除：task执行前后取双mtime，经载体纯比较入口裁决；失配=内容可能在task执行期间被替换，重执行编译task
+            T ret = null;
+            long verifiedLastModified = 0;
+            for (int attempt = 0; ; attempt++) {
+                long m1 = resource.lastModified();
+                ret = task.get();
+                long m2 = resource.lastModified();
+                if (!DefaultResourceChangeChecker.isLoadMismatch(m1, m2)) {
+                    verifiedLastModified = m2;
+                    break;
+                }
+                if (attempt >= MAX_LOAD_MTIME_RETRY)
+                    throw new NopException(ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED)
+                            .param(ARG_RESOURCE_PATH, resource.getPath());
+                LOG.warn("nop.resource.collect-depends-mtime-changed:path={},attempt={}", resource.getPath(), attempt + 1);
+            }
             if (current != null) {
                 current.addDepend(deps);
             }
-            deps.setLastModified(resource.lastModified());
+            // 判据值记录：经双mtime核验的稳定读数。宽限裁决以文件写入年龄为锚（载体唯一实现），无需伴随锚字段
+            deps.setLastModified(verifiedLastModified);
             success = true;
             return ret;
         } finally {
@@ -170,6 +203,12 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         IResourceReference resource = changeChecker.resolveResource(path);
         if (resource == null)
             return null;
+        // C7-008（plan 2548）：容量告警——removeDependency 逐条淘汰机制存在，但若调用方长期不淘汰，
+        // dependencyMap 仍会单调增长；跨阈值时 WARN 提示（同阈值去重，不刷屏）
+        int size = dependencyMap.size();
+        if (size >= DEPENDS_MAP_WARN_SIZE && size > warnSizeWatermark.getAndSet(size)) {
+            LOG.warn("nop.warn.core.resource.depends-map-large: size={} threshold={}", size, DEPENDS_MAP_WARN_SIZE);
+        }
         return stack.make(resource);
     }
 
@@ -237,6 +276,7 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
             return false;
         }
 
+        // 经载体stat型入口走唯一判据实现（mtime相等比较+写入新鲜度宽限双条件）
         ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResourcePath(), deps.getLastModified());
         if (result.isChanged()) {
             return true;

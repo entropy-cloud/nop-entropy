@@ -21,9 +21,11 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nop.batch.core.BatchConfigs.CFG_BATCH_ASYNC_PROCESS_TIMEOUT;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
 
 /**
  * 逐条处理输入数据，并收集所有的输出数据到列表结构中，然后统一调用一次下游的consumer
@@ -37,6 +39,14 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
     private final boolean async;
     private final long asyncProcessTimeout;
 
+    /**
+     * 1.7-C5-003（plan 2545 W-05）：单 chunk 输出集上界。原实现把本 chunk 全部输出累积到
+     * {@code outputs} 后才一次性下发；`useBatchRequestGenerator` 路径下单个 chunk item 能在
+     * process 内循环展开 `totalCount` 条输出（batchSize 只约束输入条数，不约束展开数）——
+     * totalCount 50 万 × 500B 即数百 MB。0/负值 = 不限制（保持既有部署行为）。
+     */
+    private int maxOutputItemsPerChunk = 0;
+
     public BatchProcessorConsumer(IBatchProcessor<S, R> processor,
                                   IBatchConsumer<R> consumer, boolean async, long asyncProcessTimeout) {
         this.processor = processor;
@@ -47,6 +57,15 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
 
     public BatchProcessorConsumer(IBatchProcessor<S, R> processor, IBatchConsumer<R> consumer) {
         this(processor, consumer, false, 0L);
+    }
+
+    /** 1.7-C5-003（plan 2545 W-05）：设置单 chunk 输出集上界（&lt;=0 = 不限制）。 */
+    public void setMaxOutputItemsPerChunk(int maxOutputItemsPerChunk) {
+        this.maxOutputItemsPerChunk = maxOutputItemsPerChunk;
+    }
+
+    public int getMaxOutputItemsPerChunk() {
+        return maxOutputItemsPerChunk;
     }
 
     @Override
@@ -60,6 +79,9 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
 
         // 假定为同步处理模型。这里缓存所有输出数据，至于当整个列表中的元素都被成功消费以后，才会处理输出数据
         Collection<R> outputs = newOutputs();
+        // 1.7-C5-003（plan 2545 W-05）：输出计数独立维护——异步路径 outputs 是 ConcurrentLinkedQueue，
+        // 其 size() 为 O(n)，在每个输出热路径上调用会退化为 O(n²)。
+        AtomicInteger outputCount = new AtomicInteger();
 
         for (S item : items) {
             Object meter = metrics == null ? null : metrics.beginProcess();
@@ -68,7 +90,13 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
                 batchChunkCtx.incProcessCount();
                 batchChunkCtx.getTaskContext().incProcessItemCount(1);
                 // processor内部可能异步执行。如果是异步执行，执行完毕后需要调用batchChunkCtx.countDown()
-                processor.process(item, outputs::add, batchChunkCtx);
+                processor.process(item, output -> {
+                    // 1.7-C5-003（plan 2545 W-05）：输出集上界——超限即 fail-fast，不静默膨胀
+                    if (maxOutputItemsPerChunk > 0 && outputCount.get() >= maxOutputItemsPerChunk)
+                        throw new NopException(ERR_BATCH_TOO_MANY_PROCESSING_ITEMS);
+                    outputCount.incrementAndGet();
+                    outputs.add(output);
+                }, batchChunkCtx);
                 success = true;
             } finally {
                 if (metrics != null)

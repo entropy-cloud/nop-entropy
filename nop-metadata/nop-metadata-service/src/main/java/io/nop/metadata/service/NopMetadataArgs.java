@@ -122,6 +122,8 @@ public interface NopMetadataArgs {
     String ARG_CLASSIFICATION_ID = "classificationId";
     String ARG_AUTO_CLASSIFICATION_CONFIG = "autoClassificationConfig";
     String ARG_CONFIG = "config";
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
     String ARG_PATTERN = "pattern";
     String ARG_TAG_FQN = "tagFQN";
     String ARG_PRIORITY = "priority";
@@ -138,4 +140,10 @@ public interface NopMetadataArgs {
     String ARG_MAP_TO_PROP = "mapToProp";
     String ARG_CATEGORY = "category";
     String ARG_TAG_SET = "tagSet";
+
+    // ===== W-08（plan 2528 裁定⑥）对账候选池上界 =====
+    String ARG_TARGET_TYPE = "targetType";
+    String ARG_IDENTIFIER_SPACE = "identifierSpace";
+    String ARG_POOL_SIZE = "poolSize";
+    String ARG_POOL_LIMIT = "poolLimit";
 }

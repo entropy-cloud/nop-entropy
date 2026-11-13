@@ -15,7 +15,7 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_VIRTUAL_FILE_SYSTEM_NOT_INITIA
 
 @GlobalInstance
 public class VirtualFileSystem {
-    private static IVirtualFileSystem _instance = null;
+    private static volatile IVirtualFileSystem _instance = null;
 
     public static boolean isInitialized() {
         return _instance != null;
@@ -28,9 +28,15 @@ public class VirtualFileSystem {
         return fs;
     }
 
+    /**
+     * 1.7-C1-009（plan 2547 裁定 G；draft review R1 M-6 勘正）：原实现「先销毁旧实例再发布新实例」
+     * 存在确定性错序——销毁与发布之间若其他线程读 {@code _instance}，会读到**正在被销毁**的旧实例。
+     * 改为先发布新的（volatile），再销毁旧的。
+     */
     public static void registerInstance(IVirtualFileSystem instance) {
-        DestroyHelper.safeDestroy(_instance);
+        IVirtualFileSystem old = _instance;
         _instance = instance;
+        DestroyHelper.safeDestroy(old);
     }
 
     public static void unregisterInstance(IVirtualFileSystem instance) {

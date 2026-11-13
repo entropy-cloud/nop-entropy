@@ -44,11 +44,23 @@ class CodeCacheManager {
     private static final int BATCH_SIZE = 5000;
     private static final int MAX_CACHE_SYMBOLS = 100000;
     private static final int MAX_CACHE_EDGES = 500000;
+    // W-14 (plan 2565, adjudication I / F2): dependency cache upper bound — scale between
+    // symbols (1e5) and edges (5e5); breaks the "20 entries x per-entry bound" LRU sizing
+    // assumption otherwise
+    static final int MAX_CACHE_DEPENDENCIES = 200000;
+    // F2 seam: instance field + package setter, default = compile-time constant (zero diff)
+    private volatile int maxCacheDependencies = MAX_CACHE_DEPENDENCIES;
+
+    void setMaxCacheDependenciesForTest(int max) {
+        this.maxCacheDependencies = max;
+    }
 
     static class AnalysisCache {
         SymbolTable symbolTable;
         CallGraph callGraph;
         List<NopCodeDependency> dependencies;
+        // W-14: observable truncation flag
+        boolean dependenciesTruncated;
     }
 
     static class CacheEntry {
@@ -160,9 +172,8 @@ class CodeCacheManager {
             CacheEntry entry = getValidEntry(indexId);
             if (entry != null && entry.cache.symbolTable != null) {
                 for (CodeSymbol sym : newSymbols.getAll()) {
-                    if (sym.getQualifiedName() != null && entry.cache.symbolTable.getByQualifiedName(sym.getQualifiedName()) == null) {
-                        entry.cache.symbolTable.add(sym);
-                    }
+                    // W-11: atomic dedup via putIfAbsent (get-then-add check-then-act closed, G11 alias)
+                    entry.cache.symbolTable.putIfAbsent(sym);
                 }
             }
         } finally {
@@ -254,6 +265,7 @@ class CodeCacheManager {
     private List<NopCodeDependency> rebuildDependencies(String indexId, IDaoProvider daoProvider) {
         IEntityDao<NopCodeDependency> dao = daoProvider.daoFor(NopCodeDependency.class);
         List<NopCodeDependency> result = new ArrayList<>();
+        boolean truncated = false;
         long offset = 0;
         while (true) {
             QueryBean q = new QueryBean();
@@ -263,9 +275,35 @@ class CodeCacheManager {
             List<NopCodeDependency> batch = dao.findPageByQuery(q);
             if (batch.isEmpty()) break;
             result.addAll(batch);
+            if (result.size() >= maxCacheDependencies) {
+                // W-14: truncate + structured WARN + observable flag (form aligned with the
+                // symbol-side MAX_CACHE_SYMBOLS guard); slice to the exact cap
+                result = new ArrayList<>(result.subList(0, maxCacheDependencies));
+                truncated = true;
+                LOG.warn("nop.code.dependencies-cache-capped:indexId={},cap={},loaded={}",
+                        indexId, maxCacheDependencies, result.size());
+                markDependenciesTruncated(indexId, true);
+                break;
+            }
             if (batch.size() < BATCH_SIZE) break;
             offset += BATCH_SIZE;
         }
+        if (!truncated) {
+            markDependenciesTruncated(indexId, false);
+        }
         return result;
+    }
+
+    private void markDependenciesTruncated(String indexId, boolean truncated) {
+        CacheEntry entry = analysisCacheMap.get(indexId);
+        if (entry != null) {
+            entry.cache.dependenciesTruncated = truncated;
+        }
+    }
+
+    /** W-14 observable flag (package getter, F2 seam) */
+    boolean isDependenciesTruncated(String indexId) {
+        CacheEntry entry = getValidEntry(indexId);
+        return entry != null && entry.cache.dependenciesTruncated;
     }
 }

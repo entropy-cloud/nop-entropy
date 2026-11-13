@@ -15,9 +15,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -50,5 +52,24 @@ public class TestSequentialTaskExecutor {
         // totalExecutionTime累加的是纳秒，getter必须按纳秒返回：120ms 对应 120_000_000 纳秒
         long total = executor.getTotalExecutionTime();
         assertEquals(TimeUnit.MILLISECONDS.toNanos(120), total, "total=" + total);
+    }
+
+    /**
+     * plan 2547 R4-13（C3-008）pin0308：队列满时 execute 必须**显式拒绝**（抛 REE），
+     * 而非静默丢弃任务。缺陷态：`queue.offer(command)` 返回值被忽略。
+     * <p>
+     * 用「拒绝一切」的队列模拟满态（OverflowBlockingQueue 在 ERROR 策略下满时返回 false）。
+     */
+    @Test
+    public void pin0308_fullQueueRejectsLoudly() {
+        // 容量 1 + ERROR 策略：第二个 offer 返回 false（不阻塞）
+        SequentialTaskExecutor executor = new SequentialTaskExecutor(
+                cmd -> { /* 不执行，保持队列不被消费以构造"满"态 */ },
+                new OverflowBlockingQueue<>(1, QueueOverflowPolicy.ERROR), -1);
+
+        executor.execute(() -> { });   // 占满
+        // 队列满时必须显式拒绝（抛 REE），不得静默丢弃任务
+        assertThrows(RejectedExecutionException.class, () -> executor.execute(() -> { }),
+                "队列满时 execute 必须抛 RejectedExecutionException（不得静默丢弃）");
     }
 }

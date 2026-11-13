@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="blocking-gate"
+        if-property="test.blocking.enabled|true"
+        activator="blockingActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="blockingActivator" class="io.nop.plugin.test.BlockingActivator"/>
+    </beans>
+</plugin>

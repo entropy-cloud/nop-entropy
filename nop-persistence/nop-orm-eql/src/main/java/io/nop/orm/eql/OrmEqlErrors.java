@@ -331,4 +331,8 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_IN_LIST_TOO_LARGE = define("nop.err.eql.in-list-too-large",
             "IN列表的元素个数[{itemCount}]超过上限[{maxItems}],语句[{stmtName}],方言[{dialect}],请分批查询或调高配置nop.core.sql.in-list-max-size",
             ARG_ITEM_COUNT, ARG_MAX_ITEMS, ARG_STMT_NAME, ARG_DIALECT);
+    // 2.3-C1-013（plan 2552 裁定 H）：CompiledSql 冻结后变更拒绝
+    ErrorCode ERR_EQL_FROZEN = define("nop.err.eql.frozen", "编译产物已冻结，禁止变更[{sqlName}]",
+            ARG_STMT_NAME);
 }
+

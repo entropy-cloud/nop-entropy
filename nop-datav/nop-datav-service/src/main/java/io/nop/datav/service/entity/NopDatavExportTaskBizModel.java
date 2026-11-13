@@ -7,6 +7,8 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.commons.concurrent.semaphore.DefaultSemaphore;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
@@ -18,6 +20,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
 import io.nop.file.core.UploadRequestBean;
+import io.nop.file.dao.entity.NopFileRecord;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 
@@ -118,6 +121,23 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
      */
     private final ConcurrentMap<String, Boolean> cancelFlags = new ConcurrentHashMap<>();
 
+    /**
+     * 裁定⑨（plan 2526）：per-user 导出并发限额进程内信号量注册表（userId → ISemaphore）。
+     * 条目数受平台用户数有界（非请求驱动的无界增长面）；进程重启随内存清零，
+     * 与 NopDatavExportTaskRecovery 启动标 FAILED 语义自洽。
+     */
+    private final ConcurrentMap<String, ISemaphore> userExportSemaphores = new ConcurrentHashMap<>();
+
+    /**
+     * 测试 seam（plan 2526 红②接线断言面）：条件更新 0 行冲突发生计数（run/terminal/failed/cancel
+     * 各 fenced 分支共用）。断言「fencing 真拦截」（rule 23）——冲突分支真实到达且可观测。
+     */
+    private final AtomicInteger fencedConflictCount = new AtomicInteger();
+
+    int getFencedConflictCountForTest() {
+        return fencedConflictCount.get();
+    }
+
     /** AR-2 短退避重查参数：最多 3 次 × 200ms。 */
     private static final int TASK_ROW_MAX_RETRIES = 3;
     private static final long TASK_ROW_RETRY_INTERVAL_MS = 200L;
@@ -162,25 +182,35 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
         String operator = NopDatavOperatorResolver.resolveOperator(context);
 
-        // 并发限额校验（请求线程同步）
+        // 并发限额校验（请求线程同步）：进程内 per-user ISemaphore（裁定⑨原子层）+ DB count（跨节点近似层）
         checkConcurrencyLimit(operator);
 
-        // 注：恢复中断任务仅由 NopDatavExportTaskRecovery 的 @PostConstruct 在容器启动期执行一次。
-        // 此前在请求路径调用 recovery.recoverInterruptedTasks() 会把所有其他用户/同用户的在途任务误标 FAILED
-        // （audit Dim14-01）。请求路径不再触碰恢复逻辑。
+        // 裁定⑨：限额许可自此持有至任务在途期结束；submit 前的任何失败在此释放（提交成功后由
+        // submitExecution lambda 最外层 finally 统一释放——收口点上移，见裁定④⑨）。
+        boolean submitted = false;
+        try {
+            // 注：恢复中断任务仅由 NopDatavExportTaskRecovery 的 @PostConstruct 在容器启动期执行一次。
+            // 此前在请求路径调用 recovery.recoverInterruptedTasks() 会把所有其他用户/同用户的在途任务误标 FAILED
+            // （audit Dim14-01）。请求路径不再触碰恢复逻辑。
 
-        // INSERT pending 任务
-        NopDatavExportTask task = newTaskEntity(sourceType, sourceId, format, params, operator);
-        daoProvider().daoFor(NopDatavExportTask.class).saveEntityDirectly(task);
+            // INSERT pending 任务
+            NopDatavExportTask task = newTaskEntity(sourceType, sourceId, format, params, operator);
+            daoProvider().daoFor(NopDatavExportTask.class).saveEntityDirectly(task);
 
-        // 提交异步执行（AR-2：事务上下文内经 afterCommit 注册，commit 后 worker 才消费）
-        submitExecutionAfterCommit(task.getTaskId(), operator);
+            // 提交异步执行（AR-2：事务上下文内经 afterCommit 注册，commit 后 worker 才消费）
+            submitExecutionAfterCommit(task.getTaskId(), operator);
+            submitted = true;
 
-        // AR-2 配套：返回 detached 副本（镜像 Phase 1 share 模式）。afterCommit 语义下 worker 在
-        // commit 后立即开跑（RUNNING/SUCCEEDED 连续推高 version），mutation 返回 attached 实体时
-        // GraphQL 响应装载会对 stale version 实体重组装并触发 entity-version-changed；
-        // detached 副本不挂 session，响应字段与修复前一致。
-        return toCreatedTaskView(task);
+            // AR-2 配套：返回 detached 副本（镜像 Phase 1 share 模式）。afterCommit 语义下 worker 在
+            // commit 后立即开跑（RUNNING/SUCCEEDED 连续推高 version），mutation 返回 attached 实体时
+            // GraphQL 响应装载会对 stale version 实体重组装并触发 entity-version-changed；
+            // detached 副本不挂 session，响应字段与修复前一致。
+            return toCreatedTaskView(task);
+        } finally {
+            if (!submitted) {
+                releaseExportPermit(operator);
+            }
+        }
     }
 
     /**
@@ -225,13 +255,29 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         if (NopDatavExportTaskStatus.isTerminal(task.getStatus())) {
             return task;
         }
-        cancelFlags.put(taskId, Boolean.TRUE);
-        // pending 直接转 cancelled；running 由执行体轮询标志位后转，这里也即时落库
-        task.setStatus(NopDatavExportTaskStatus.CANCELLED);
-        task.setErrorMsg("cancelled by user");
-        touchUpdate(task, NopDatavOperatorResolver.resolveOperator(context));
-        daoProvider().daoFor(NopDatavExportTask.class).updateEntityDirectly(task);
-        return task;
+        // 裁定④（plan 2526）：putIfAbsent 防并发 cancel 双写标志；put 成功后 CANCELLED 终态写并入
+        // 裁定③同族条件更新（同文件禁两套 fencing）。写失败（0 行）= 任务已被 worker/scanner 定终态
+        // → 补偿摘除自置标志（putIfAbsent 保证只摘自置项）+ fresh 重载返回当前终态（cancel 输给完成）。
+        boolean flagOwner = cancelFlags.putIfAbsent(taskId, Boolean.TRUE) == null;
+        boolean written = false;
+        try {
+            task.setStatus(NopDatavExportTaskStatus.CANCELLED);
+            task.setErrorMsg("cancelled by user");
+            touchUpdate(task, NopDatavOperatorResolver.resolveOperator(context));
+            // pending 直接转 cancelled；running 由执行体轮询标志位后转，这里也即时落库
+            written = writeWithFencing(daoProvider().daoFor(NopDatavExportTask.class), task);
+            if (!written) {
+                LOG_EXPORT_FAILURE.warn("nop.datav.export.cancel-write-conflict:taskId={} "
+                        + "(task already terminal by worker/scanner; cancel loses to completion)", taskId);
+                return requireTask(taskId);
+            }
+            return task;
+        } finally {
+            if (flagOwner && !written) {
+                // 补偿摘除：CAS 失败或写程异常均不得残留标志（残留兜底，防 map 单调增长）
+                cancelFlags.remove(taskId);
+            }
+        }
     }
 
     @Override
@@ -269,16 +315,30 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
 
     private void submitExecution(String taskId, String operator) {
         submitExecutionInvokedCount.incrementAndGet();
-        GlobalExecutors.globalWorker().submit(() -> {
-            try {
-                ormTemplate.runInNewSession(session -> executeTask(session, taskId, operator));
-            } catch (Exception e) {
-                // executeTask 内部已捕获业务异常并落库 failed；此处仅兜底处理 session 基础设施故障
-                LOG_EXPORT_FAILURE.error("nop.datav.export.session-fail:taskId={}", taskId, e);
-                markFailedSafe(taskId, "async session error: " + safeMsg(e));
-            }
-            return null;
-        });
+        try {
+            GlobalExecutors.globalWorker().submit(() -> {
+                try {
+                    ormTemplate.runInNewSession(session -> executeTask(session, taskId, operator));
+                } catch (Exception e) {
+                    // executeTask 内部已捕获业务异常并落库 failed；此处仅兜底处理 session 基础设施故障
+                    LOG_EXPORT_FAILURE.error("nop.datav.export.session-fail:taskId={}", taskId, e);
+                    markFailedSafe(taskId, "async session error: " + safeMsg(e));
+                } finally {
+                    // 裁定④/⑨收口点上移（plan 2526）：取消标志与限额许可的权威清理点=提交 lambda
+                    // 最外层 finally——覆盖 executeTask 全部退出路径（正常完成/加载失败早退/cancel-
+                    // 先于-RUNNING 早退/基建故障）与 executeTask try 域 finally（原位保留为幂等冗余）。
+                    cancelFlags.remove(taskId);
+                    releaseExportPermit(operator);
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            // 提交失败（线程池拒绝等）：同步收口 + 显式失败（无静默跳过）
+            LOG_EXPORT_FAILURE.error("nop.datav.export.submit-rejected:taskId={}", taskId, e);
+            cancelFlags.remove(taskId);
+            releaseExportPermit(operator);
+            markFailedSafe(taskId, "export submit rejected: " + safeMsg(e));
+        }
     }
 
     private Void executeTask(IOrmSession session, String taskId, String operator) {
@@ -293,6 +353,13 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             markFailedSafe(taskId, "export task row not visible to worker after retries");
             return null;
         }
+        // 终态短路（裁定③ face b 修复）：加载即终态（scanner/recovery 已抢先定终态）→ 放弃执行，
+        // 禁把 FAILED 等终态"复活"为 RUNNING。
+        if (NopDatavExportTaskStatus.isTerminal(task.getStatus())) {
+            LOG_EXPORT_FAILURE.info("nop.datav.export.terminal-short-circuit:taskId={},status={} "
+                    + "(row already terminal; abandon execution)", taskId, task.getStatus());
+            return null;
+        }
         // pending → running
         if (Boolean.TRUE.equals(cancelFlags.get(taskId))) {
             markCancelled(dao, task, operator);
@@ -300,7 +367,13 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         }
         task.setStatus(NopDatavExportTaskStatus.RUNNING);
         touchUpdate(task, operator);
-        dao.updateEntityDirectly(task);
+        if (!writeWithFencing(dao, task)) {
+            // 0 行 = scanner/cancel 已推进该行（假阳性标记粘滞语义）→ 放弃重活（终态归抢先写者）
+            fencedConflictCount.incrementAndGet();
+            LOG_EXPORT_FAILURE.warn("nop.datav.export.running-write-conflict:taskId={} "
+                    + "(row advanced concurrently; abandon execution)", taskId);
+            return null;
+        }
 
         // D4 测试 seam：RUNNING 持久化之后、exporter 之前同步触发（仅测试用，生产路径 hook=null 跳过）。
         // 选此稳定位置而非 exporter 内 checkpoint，避免 mutate-fail 时（移除 exporter checkpoint）test seam
@@ -308,6 +381,10 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         if (executionStartHook != null) {
             executionStartHook.run();
         }
+
+        // 裁定⑤：saveExportFile 成功后任何不落 fileRecordId 关联的出口一律回收（不变式：
+        // fileId 不被任何可达持久化行引用）。fileId 提升到 try 外以便 catch 分支可见。
+        String fileId = null;
 
         // D2 §312：执行体内经 BooleanSupplier 轮询 cancelFlags，命中时 exporter 抛 ERR_DATAV_EXPORT_FAILED
         BooleanSupplier cancelChecker = () -> Boolean.TRUE.equals(cancelFlags.get(taskId));
@@ -332,12 +409,15 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             }
 
             // 落盘
-            String fileId = saveExportFile(file, taskId);
+            fileId = saveExportFile(file, taskId);
 
             // D2 §312：pre-SUCCEEDED 确定性兜底点——cancel 线程已写 CANCELLED 时跳过 SUCCEEDED 写入，
             // 保留 cancel 线程的终态（errorMsg 已由 cancel 线程写入 "cancelled by user"）。
+            // 裁定⑤（plan 2526）：已落盘 fileId 不被任何可达持久化行引用 → 一律回收（防孤儿）。
             if (Boolean.TRUE.equals(cancelFlags.get(taskId))) {
-                LOG_EXPORT_FAILURE.info("nop.datav.export.cancelled-pre-success:taskId={}", taskId);
+                LOG_EXPORT_FAILURE.warn("nop.datav.export.cancelled-pre-success:taskId={},fileId={} "
+                        + "(reclaiming unreferenced export file)", taskId, fileId);
+                reclaimExportFile(fileId, taskId, "cancel-pre-succeeded");
                 return null;
             }
 
@@ -346,7 +426,15 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             task.setRowCount(file.getRowCount());
             task.setErrorMsg(null);
             touchUpdate(task, operator);
-            dao.updateEntityDirectly(task);
+            if (!writeWithFencing(dao, task)) {
+                // 裁定③ 0 行放弃分支（R1 Major-1 合流裁定⑤）：已被 cancel/scanner 抢先定终态，
+                // fileId 不落 fileRecordId 关联 → 回收（防孤儿），冲突结构化可见。
+                fencedConflictCount.incrementAndGet();
+                LOG_EXPORT_FAILURE.warn("nop.datav.export.terminal-write-conflict:taskId={},fileId={} "
+                        + "(fenced SUCCEEDED write 0-row; reclaiming unreferenced export file)", taskId, fileId);
+                reclaimExportFile(fileId, taskId, "succeeded-write-conflict");
+                return null;
+            }
         } catch (Exception e) {
             Throwable reason = NopException.adapt(e);
             // D2 §312：catch 分流必须在 setStatus(FAILED) 之前判定 cancelFlags
@@ -354,16 +442,28 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
                 // cancel 命中：status 已由 cancel 线程写为 CANCELLED，执行体不覆盖、不写 FAILED；
                 // errorMsg 已由 cancel 线程写入 "cancelled by user"。仅记录日志。
                 LOG_EXPORT_FAILURE.info("nop.datav.export.cancelled-in-flight:taskId={}", taskId);
+                if (fileId != null) {
+                    reclaimExportFile(fileId, taskId, "cancelled-in-flight-after-save");
+                }
             } else {
                 task.setStatus(NopDatavExportTaskStatus.FAILED);
                 task.setErrorMsg(safeMsg(reason));
                 touchUpdate(task, operator);
-                dao.updateEntityDirectly(task);
+                if (!writeWithFencing(dao, task)) {
+                    fencedConflictCount.incrementAndGet();
+                    LOG_EXPORT_FAILURE.warn("nop.datav.export.failed-write-conflict:taskId={} "
+                            + "(row already terminal; keep winner state)", taskId);
+                }
+                if (fileId != null) {
+                    // FAILED 行不写 fileRecordId → 已落盘文件不可达 → 回收（防孤儿）
+                    reclaimExportFile(fileId, taskId, "failed-after-save");
+                }
                 if (reason instanceof NopException) {
                     LOG_EXPORT_FAILURE.warn("nop.datav.export.task-failed:taskId={}", taskId, reason);
                 }
             }
         } finally {
+            // 原位幂等冗余（裁定④收口点上移后保留）：权威清理点=submitExecution lambda 最外层 finally
             cancelFlags.remove(taskId);
         }
         return null;
@@ -422,7 +522,10 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
             task.setErrorMsg("cancelled by user");
         }
         touchUpdate(task, operator);
-        dao.updateEntityDirectly(task);
+        if (!writeWithFencing(dao, task)) {
+            LOG_EXPORT_FAILURE.warn("nop.datav.export.cancel-mark-conflict:taskId={} "
+                    + "(row already terminal; keep winner state)", task.getTaskId());
+        }
     }
 
     private void markFailedSafe(String taskId, String reason) {
@@ -434,7 +537,10 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
                     task.setStatus(NopDatavExportTaskStatus.FAILED);
                     task.setErrorMsg(reason);
                     touchUpdate(task, "system");
-                    dao.updateEntityDirectly(task);
+                    if (!writeWithFencing(dao, task)) {
+                        LOG_EXPORT_FAILURE.warn("nop.datav.export.mark-failed-conflict:taskId={} "
+                                + "(row advanced concurrently; keep winner state)", taskId);
+                    }
                 }
                 return null;
             });
@@ -499,16 +605,80 @@ public class NopDatavExportTaskBizModel extends CrudBizModel<NopDatavExportTask>
         if (max <= 0) {
             return;
         }
-        IEntityDao<NopDatavExportTask> dao = daoProvider().daoFor(NopDatavExportTask.class);
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq("createdBy", operator));
-        query.addFilter(FilterBeans.in("status", java.util.Arrays.asList(
-                NopDatavExportTaskStatus.PENDING, NopDatavExportTaskStatus.RUNNING)));
-        long current = dao.countByQuery(query);
-        if (current >= max) {
+        // 裁定⑨（plan 2026）：进程内 per-user ISemaphore 原子层——tryAcquire 原子性使同用户并发
+        // 提交无法越过限额（check-then-act TOCTOU 闭合）；许可由 submitExecution lambda 最外层
+        // finally（或 createExportTask 提交前失败 finally）释放。
+        ISemaphore semaphore = userExportSemaphores.computeIfAbsent(operator,
+                k -> new DefaultSemaphore(max));
+        if (!semaphore.tryAcquire(1, 0L)) {
             throw new NopException(ERR_DATAV_EXPORT_CONCURRENCY_LIMIT)
-                    .param(ARG_CURRENT_CONCURRENT, current)
+                    .param(ARG_CURRENT_CONCURRENT, (long) max)
                     .param(ARG_MAX_CONCURRENT, max);
+        }
+        // DB count 校验保持为跨节点近似第二层（信号量赢则 DB 层不触发）
+        try {
+            IEntityDao<NopDatavExportTask> dao = daoProvider().daoFor(NopDatavExportTask.class);
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("createdBy", operator));
+            query.addFilter(FilterBeans.in("status", java.util.Arrays.asList(
+                    NopDatavExportTaskStatus.PENDING, NopDatavExportTaskStatus.RUNNING)));
+            long current = dao.countByQuery(query);
+            if (current >= max) {
+                throw new NopException(ERR_DATAV_EXPORT_CONCURRENCY_LIMIT)
+                        .param(ARG_CURRENT_CONCURRENT, current)
+                        .param(ARG_MAX_CONCURRENT, max);
+            }
+        } catch (Exception e) {
+            releaseExportPermit(operator);
+            throw e;
+        }
+    }
+
+    private void releaseExportPermit(String operator) {
+        ISemaphore semaphore = userExportSemaphores.get(operator);
+        if (semaphore != null) {
+            semaphore.release(1);
+        }
+    }
+
+    /**
+     * 裁定③统一条件更新形态（plan 2526）：状态行写点全部经本方法——
+     * {@code orm_disableVersionCheckError(true)} 使 ORM 生成 UPDATE 恒带 {@code AND version=?}
+     * 隐式 CAS、0 行结果降级为 readonly 标记（平台原生条件更新形态，2525 elector 先例）。
+     *
+     * @return true=写入成功；false=0 行冲突（已有并发写者推进版本，调用方按放弃语义处置）
+     */
+    private boolean writeWithFencing(IEntityDao<NopDatavExportTask> dao, NopDatavExportTask task) {
+        task.orm_disableVersionCheckError(true);
+        dao.updateEntityDirectly(task);
+        return !task.orm_readonly();
+    }
+
+    /**
+     * 裁定⑤（plan 2526，Option A 模块内回收）：导出产物回收——镜像 DaoResourceFileStore.detachFileInSession
+     * 的「行删→物删」序列（daoFor(NopFileRecord) 删行 + fileStore.getFile().getResource() 删物理文件）。
+     * 导出产物 originFileId=fileId 唯一引用、无共享引用删除安全。
+     * 回收失败显式 WARN + path/fileId 结构化日志（不抛、不重试——对账兜底归 Non-Blocking Follow-up，
+     * 不引入 removeResource 修复域新语义）。
+     */
+    private void reclaimExportFile(String fileId, String taskId, String phase) {
+        if (StringHelper.isEmpty(fileId)) {
+            return;
+        }
+        try {
+            NopFileRecord row = daoProvider().daoFor(NopFileRecord.class).getEntityById(fileId);
+            if (row != null) {
+                daoProvider().daoFor(NopFileRecord.class).deleteEntity(row);
+            }
+            IFileRecord fileRecord = fileStore.getFile(fileId);
+            IResource resource = fileRecord == null ? null : fileRecord.getResource();
+            if (resource != null && resource.exists() && !resource.delete()) {
+                LOG_EXPORT_FAILURE.warn("nop.datav.export.reclaim-file-delete-fail:fileRecordId={},path={},taskId={},phase={}",
+                        fileId, resource.getPath(), taskId, phase);
+            }
+        } catch (Exception e) {
+            LOG_EXPORT_FAILURE.warn("nop.datav.export.reclaim-fail:fileRecordId={},taskId={},phase={}",
+                    fileId, taskId, phase, e);
         }
     }
 

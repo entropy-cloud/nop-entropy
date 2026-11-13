@@ -10,6 +10,7 @@ package io.nop.rpc.core.reflect;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.DestroyHelper;
 import io.nop.core.reflect.IFunctionModel;
@@ -26,6 +27,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RpcInvocationHandler implements InvocationHandler {
@@ -80,7 +83,21 @@ public class RpcInvocationHandler implements InvocationHandler {
 
         if (methodModel.isAsync()) {
             // async
-            return inv.proceedAsync().thenApply(res -> transformer.fromResponse(serviceName, methodModel, res));
+            // 4.3-MA-15（plan 2560 裁定 H·调用方防御面）：proceedAsync 同步抛（拦截器链残留
+            // 同步异常）防御性收敛为 failed future 交付代理调用方
+            CompletionStage<ApiResponse<?>> stage;
+            try {
+                stage = inv.proceedAsync();
+            } catch (Throwable e) {
+                // 4.3-MA-15（plan 2560 裁定 H·调用方防御面）：proceedAsync 同步抛（拦截器链
+                // 残留同步异常）防御性收敛为 failed future 交付代理调用方。必须以
+                // CompletableFuture 形态交付——代理接口方法可声明 CompletableFuture 返回类型，
+                // ResolvedPromise 非 CompletableFuture 子类会在代理分发处 CCE
+                CompletableFuture<ApiResponse<?>> failed = new CompletableFuture<>();
+                failed.completeExceptionally(e);
+                return failed.thenApply(res -> transformer.fromResponse(serviceName, methodModel, res));
+            }
+            return stage.thenApply(res -> transformer.fromResponse(serviceName, methodModel, res));
         } else {
             // sync
             ApiResponse<?> result = inv.proceed();

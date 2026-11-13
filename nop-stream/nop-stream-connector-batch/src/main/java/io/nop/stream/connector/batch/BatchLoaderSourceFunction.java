@@ -71,6 +71,19 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
     private volatile boolean running = true;
 
     /**
+     * CRA 8.44 R4-04 W-03 (C3-010; adjudication A.2): the thread currently executing
+     * {@link #run(SourceContext)}, recorded at run entry and cleared in the run's
+     * finally under an identity guard (a stale run's finally must never erase a
+     * region-restart successor's registration). {@code volatile}: single writer
+     * (the run thread) + cross-thread reader ({@link #cancel()}). Thread.interrupt()
+     * is the only cancellation primitive the function can offer an in-flight
+     * {@code loader.load(...)} — {@code IBatchTaskContext} exposes no cancel hook
+     * (nop-batch-core), and interrupt delivery ≠ unblock for loaders that ignore
+     * interrupts (declared boundary, owner doc E5).
+     */
+    private volatile Thread runThread;
+
+    /**
      * AR-10: {@code volatile} — {@link #seek(long)} and {@link #getCurrentOffset()} run on
      * the operator/checkpoint threads while {@link #run(SourceContext)} advances the
      * counter on the task thread; without the modifier the checkpoint snapshot could
@@ -101,6 +114,9 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
         // Without this reset the loop below exits immediately and the source is
         // silently treated as EOS (data flow stall).
         this.running = true;
+        // W-03 (CRA 8.44 R4-04; adjudication A.2 decision 1): register the run thread
+        // right after the lifecycle reset so cancel() can reach the in-flight load.
+        this.runThread = Thread.currentThread();
         IBatchTaskContext taskContext = new BatchTaskContextImpl();
         IBatchLoaderProvider.IBatchLoader<S> loader = loaderProvider.setup(taskContext);
         try {
@@ -142,6 +158,13 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
                 }
             }
         } finally {
+            // W-03 (adjudication A.2 decision 1): identity-guarded clear — a stale
+            // run's finally must never erase a region-restart successor's registration
+            // (this instance carries no re-entry guard by design; C3-011 follow-up
+            // faces stay untouched).
+            if (this.runThread == Thread.currentThread()) {
+                this.runThread = null;
+            }
             if (loader instanceof AutoCloseable) {
                 ((AutoCloseable) loader).close();
             }
@@ -151,6 +174,17 @@ public class BatchLoaderSourceFunction<S> implements ReplayableSourceFunction<S>
     @Override
     public void cancel() {
         running = false;
+        // W-03 (CRA 8.44 R4-04; adjudication A.2 decision 2): single-shot interrupt on
+        // the recorded run thread — interrupt-responsive loaders (JDBC drivers via
+        // Statement.cancel / socket interruption) unblock within their own budget;
+        // non-responsive loaders fall back to the declared boundary (in-flight load
+        // duration, owner doc E5). Interrupt delivery is best-effort by design; a
+        // racing cancel that loses the race window is covered by the run loop's
+        // existing running checks.
+        Thread t = this.runThread;
+        if (t != null) {
+            t.interrupt();
+        }
     }
 
     /**

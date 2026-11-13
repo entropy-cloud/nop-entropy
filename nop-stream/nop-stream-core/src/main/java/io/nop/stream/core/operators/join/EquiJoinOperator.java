@@ -126,11 +126,20 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     /**
      * WI22 (observability operator layer): per-instance counter for emitted join
      * outputs (match pairs + outer completions). Registered in {@link #open()}
-     * against the process metrics registry (StreamMetricsRegistries); instances
-     * opened without a deployment location fall back to instance identity so two
-     * instances never share a meter (W-M1 pattern).
+     * against the process metrics registry (StreamMetricsRegistries) under a
+     * STABLE scope key (W-15, CRA 8.41 R4-01 ruling E.3): the deployment
+     * {@code TaskLocation} (jobId|vertexId|subtaskIndex) when wired via
+     * {@link #copyForSubtask(TaskLocation)}, else the runtime subtask identity —
+     * never {@code identityHashCode} (the pre-fix tag minted a fresh meter on
+     * every redeploy and the counter fleet grew with every restart).
      */
     private transient Counter joinOutputsCounter;
+
+    /** W-15: deployment scope for the stable metric key (null = identity fallback). */
+    private transient io.nop.stream.core.checkpoint.TaskLocation metricLocation;
+
+    /** W-15: index-only fallback identity (copyForSubtask(int) injection; default 0). */
+    private transient int metricSubtaskIdentity;
 
     private long currentWatermark;
 
@@ -160,6 +169,44 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
         return new EquiJoinOperator<>(joinType, windowDuration, leftTimeout, rightTimeout);
     }
 
+    /** W-15: carries the deployment identity for the stable metric scope key. */
+    @Override
+    public EquiJoinOperator<L, R> copyForSubtask(io.nop.stream.core.checkpoint.TaskLocation location) {
+        EquiJoinOperator<L, R> copy = copyForSubtask();
+        copy.metricLocation = location;
+        return copy;
+    }
+
+    /** W-15: index-only identity for the stable metric scope key. */
+    @Override
+    public EquiJoinOperator<L, R> copyForSubtask(int subtaskIndex) {
+        EquiJoinOperator<L, R> copy = copyForSubtask();
+        copy.metricSubtaskIdentity = subtaskIndex;
+        return copy;
+    }
+
+    /**
+     * W-15 stable scope key: {@code jobId|vertexId|subtaskIndex} under a wired
+     * {@link #metricLocation}, else the injected subtask identity fallback
+     * (stable across redeploys; the no-location path is the isolated-test shape —
+     * registered deviation from ruling E.3's {@code vertexId|subtaskIndex} since
+     * the operator has no vertexId source without a deployment location).
+     */
+    private String metricScopeKey() {
+        if (metricLocation != null) {
+            return metricLocation.getJobId() + "|" + metricLocation.getVertexId()
+                    + "|" + metricLocation.getTaskIndex();
+        }
+        return String.valueOf(metricSubtaskIdentity);
+    }
+
+    private int metricSubtaskTag() {
+        if (metricLocation != null) {
+            return metricLocation.getTaskIndex();
+        }
+        return metricSubtaskIdentity;
+    }
+
     @Override
     public void open() throws Exception {
         super.open();
@@ -180,9 +227,13 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor(BUFFER_STATE, String.class, JoinSideRecord.class));
         }
+        // W-15 (CRA 8.41 R4-01, ruling E.3): stable scope key — the pre-fix
+        // identityHashCode tag minted a fresh meter on every redeploy (counter
+        // fleet growth); close() now removes the meter (matched removal below).
         joinOutputsCounter = StreamMetricsRegistries.registry()
                 .counter(JOIN_OUTPUTS_METRIC_NAME,
-                        "operator", getClass().getSimpleName() + "@" + System.identityHashCode(this));
+                        "operator", metricScopeKey(),
+                        "subtask", String.valueOf(metricSubtaskTag()));
     }
 
     @Override
@@ -556,6 +607,19 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     /** the keyed state name carrying the durable buffer copy. */
     public static String bufferStateName() {
         return BUFFER_STATE;
+    }
+
+    /**
+     * W-15 (CRA 8.41 R4-01, ruling E.3): removes this instance's registered
+     * counter from the metrics registry on close — matched removal, idempotent.
+     */
+    @Override
+    public void close() throws Exception {
+        if (joinOutputsCounter != null) {
+            StreamMetricsRegistries.registry().remove(joinOutputsCounter.getId());
+            joinOutputsCounter = null;
+        }
+        super.close();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

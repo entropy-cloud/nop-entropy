@@ -17,6 +17,7 @@ import io.nop.rpc.core.RpcConstants;
 import java.time.Duration;
 
 import static io.nop.rpc.core.RpcConfigs.CFG_RPC_CLIENT_EXT_DEFAULT_POLL_INTERVAL;
+import static io.nop.rpc.core.RpcConfigs.CFG_RPC_CLIENT_EXT_DEFAULT_POLL_TIMEOUT;
 import static io.nop.rpc.core.RpcConfigs.CFG_RPC_CLIENT_EXT_MAX_POLL_ERROR_COUNT;
 
 public class RpcHelper {
@@ -63,6 +64,22 @@ public class RpcHelper {
     public static int getMaxPollErrorCount(ApiRequest<?> request) {
         int defaultValue = CFG_RPC_CLIENT_EXT_MAX_POLL_ERROR_COUNT.get();
         return request.getIntProperty(RpcConstants.PROP_MAX_POLL_ERROR_COUNT, defaultValue);
+    }
+
+    /**
+     * 4.2-C4-003（plan 2498 Phase 6）：轮询链整体截止时间（毫秒）。缺省读配置键
+     * nop.rpc.client-ext.default-poll-timeout（0 = 不启用），请求属性 pollTimeout 按请求覆盖。
+     */
+    public static int getPollTimeout(ApiRequest<?> request) {
+        Duration def = CFG_RPC_CLIENT_EXT_DEFAULT_POLL_TIMEOUT.get();
+        int defaultValue = 0;
+        if (def != null)
+            defaultValue = (int) def.toMillis();
+        return request.getIntProperty(RpcConstants.PROP_POLL_TIMEOUT, defaultValue);
+    }
+
+    public static void setPollTimeout(ApiRequest<?> request, int pollTimeout) {
+        request.setProperty(RpcConstants.PROP_POLL_TIMEOUT, pollTimeout);
     }
 
     public static IApiResponseNormalizer getResponseNormalizer(ApiRequest<?> request) {

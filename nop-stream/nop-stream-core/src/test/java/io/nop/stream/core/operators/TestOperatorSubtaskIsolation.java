@@ -23,9 +23,12 @@ import io.nop.stream.core.util.Collector;
  *   <li>{@link AbstractStreamOperator} subclasses inherit a serialization-based
  *       default that produces independent subtask instances.</li>
  *   <li>{@link Shareable} operators opt out and return {@code this}.</li>
- *   <li>Concrete production operators (CEP/Process/Window/Watermark/Source/Map/
+ *   <li>Concrete production operators (CEP/Window/Watermark/Source/Map/
  *       Filter/FlatMap/Sink/Reduce) override with efficient constructor-based
- *       copies that share user functions but produce independent state.</li>
+ *       copies that share user functions but produce independent state.
+ *       ProcessOperator (plan 2512 C3-009) deep copies RichFunction UDFs
+ *       instead: a shared RichFunction instance collapsed parallel subtasks'
+ *       RuntimeContext/keyed state into one last-writer-wins slot.</li>
  *   <li>{@link OperatorChain#deepCopy()} routes through {@code copyForSubtask()}
  *       so each subtask receives an independent chain (no instanceof chain).</li>
  * </ul>
@@ -137,21 +140,29 @@ public class TestOperatorSubtaskIsolation {
         assertSame(origMap.getUserFunction(), copyMap.getUserFunction());
     }
 
+    /**
+     * Plan 2512 C3-009 (adjudication ③): replaces the former
+     * {@code processOperatorSharesUserFunctionProducesIndependentInstance} pin
+     * (which asserted {@code assertSame} on the user function). Live read shows
+     * every {@code ProcessFunction} IS a RichFunction (via
+     * {@code AbstractRichFunction}), so the old pin's "sharing is safe" premise
+     * was the defect carrier itself — a shared RichFunction UDF has a single
+     * runtime-context field slot and parallel subtasks' open() collapsed into a
+     * single last-writer-wins keyed backend. Same adjudicated rewrite paradigm
+     * as plan 2511 C10-003 ("sharing IS the defect"). The fixture is a static
+     * named class so the serialization round-trip copy is exercised (plan 2511
+     * §3.2 "test-side known shape" paradigm).
+     */
     @Test
-    void processOperatorSharesUserFunctionProducesIndependentInstance() {
+    void processOperatorRichFunctionUdfIsPrivatePerSubtask() {
         io.nop.stream.core.common.functions.ProcessFunction<String, String> fn =
-                new io.nop.stream.core.common.functions.ProcessFunction<String, String>() {
-                    @Override
-                    public void processElement(String value, Context ctx, Collector<String> out) {
-                        out.collect(value);
-                    }
-                };
+                new StaticNoOpProcessFunction();
         ProcessOperator<String, String> op = new ProcessOperator<>(fn);
         ProcessOperator<String, String> copy = op.copyForSubtask();
 
         assertNotSame(op, copy, "ProcessOperator copy must be a fresh instance");
-        assertSame(op.getUserFunction(), copy.getUserFunction(),
-                "ProcessOperator user function must be shared across subtasks");
+        assertNotSame(op.getUserFunction(), copy.getUserFunction(),
+                "RichFunction user functions must be private per subtask (per-subtask RuntimeContext closure)");
     }
 
     @Test
@@ -246,6 +257,20 @@ public class TestOperatorSubtaskIsolation {
     }
 
     // ---- Stubs ----
+
+    /**
+     * Serializable no-op RichFunction UDF without outer-instance capture —
+     * exercises the plan 2512 C3-009 round-trip copy branch deterministically.
+     */
+    static class StaticNoOpProcessFunction
+            extends io.nop.stream.core.common.functions.ProcessFunction<String, String> {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public void processElement(String value, Context ctx, Collector<String> out) {
+            out.collect(value);
+        }
+    }
 
     /**
      * A bare operator that does NOT override copyForSubtask and is NOT @Shareable.

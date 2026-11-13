@@ -10,6 +10,7 @@ package io.nop.graphql.core.engine;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
@@ -36,6 +37,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -132,30 +134,79 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             future = invokeOperationOrTry(env);
         }
 
-        return future.thenCompose(opResult -> {
-            if (opResult.isUseTry()) {
-                return FutureHelper.toCompletionStage(opResult.getValue());
+        // C3-002：出口泵统一挂接（裁定③形态 A 的窗口承载实现，与 thenFetchNext 同构）——
+        // 异步顶层操作完成后 fetchNext 游走与 dispatchAll 调度整体在请求 context 的执行窗口内
+        // 运行，批量 loader（如 OrmBatchLoader.requireSession）的线程上下文读点不再落到
+        // future 完成线程的空/残留 context。经 context.execute（而非 thenOnContext+thenCompose
+        // 组合）承载的窗口安全性论证见 thenFetchNext 处注释。
+        IContext context = env.getContext();
+        CompletableFuture<Object> promise = new CompletableFuture<>();
+        future.whenComplete((opResult, err) -> {
+            try {
+                context.execute(() -> {
+                    try {
+                        if (err != null) {
+                            promise.completeExceptionally(err);
+                            return;
+                        }
+                        if (opResult.isUseTry()) {
+                            FutureHelper.bindResult(
+                                    FutureHelper.toCompletionStage(opResult.getValue()), promise);
+                            return;
+                        }
+                        env.setRoot(opResult.getValue());
+                        CompletionStage<Object> ret = FutureHelper
+                                .toCompletionStage(fetchNext(opResult.getValue(), env));
+                        // P1-2.6-004：游走回合出口统一调度。fetchNext回合内注册的批量loader，其load
+                        // future的完成被本回合返回的future所依赖（回合future完成 ⇔ load完成），任何
+                        // 「完成后再dispatch」的形态都晚于挂死点。回合出口（游走完毕、上游等待之前）
+                        // 是executor能统一承接注册的唯一确定性缝隙，错过则load永无调度来源
+                        dispatchAll(env.getGraphQLExecutionContext());
+                        FutureHelper.bindResult(ret, promise);
+                    } catch (Throwable e) {
+                        promise.completeExceptionally(e);
+                    }
+                });
+            } catch (Throwable e) {
+                // context 已关闭等窗口不可进入场景：异常终态而非静默挂起（rule 24）
+                promise.completeExceptionally(e);
             }
-            env.setRoot(opResult.getValue());
-            CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(opResult.getValue(), env));
-            // P1-2.6-004：游走回合出口统一调度。fetchNext回合内注册的批量loader，其load
-            // future的完成被本回合返回的future所依赖（回合future完成 ⇔ load完成），任何
-            // 「完成后再dispatch」的形态都晚于挂死点。回合出口（游走完毕、上游等待之前）
-            // 是executor能统一承接注册的唯一确定性缝隙，错过则load永无调度来源
-            dispatchAll(env.getGraphQLExecutionContext());
-            return ret;
         });
+        return promise;
     }
 
     private CompletionStage<Object> thenFetchNext(CompletionStage<?> future, DataFetchingEnvironment env) {
-        // thenOnContext确保所有fetcher都在同一个异步context上执行
-        return ContextProvider.thenOnContext(future, env.getContext()).thenCompose(v -> {
-            CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(v, env));
-            // P1-2.6-004：游走回合出口统一调度（同invokeOperation处说明）——嵌套异步字段
-            // 与批量loader下游的注册发生在本接缝的游走回合内
-            dispatchAll(env.getGraphQLExecutionContext());
-            return ret;
+        // C3-002 泵级挂接（回合出口泵，裁定③形态 A 的窗口承载实现）：游走回合（fetchNext +
+        // dispatchAll）整体在请求 context 的执行窗口内运行。不能采用 thenOnContext(future, ctx)
+        // .thenCompose(walk) 的组合形态——上游已完成时 thenOnContext0 的内联 flush 窗口先于
+        // thenCompose 注册关闭（runOnContext 的 finally 已恢复线程附着），游走会落到注册线程的
+        // 空/残留 context 上；经 context.execute 承载使游走在任意上游状态下都处于窗口内
+        // （与 thenOnContext 同族的窗口原语，见 invokeOperation 出口泵同注释）。
+        IContext context = env.getContext();
+        CompletableFuture<Object> promise = new CompletableFuture<>();
+        future.whenComplete((v, err) -> {
+            try {
+                context.execute(() -> {
+                    try {
+                        if (err != null) {
+                            promise.completeExceptionally(err);
+                            return;
+                        }
+                        CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(v, env));
+                        // P1-2.6-004：游走回合出口统一调度（同invokeOperation处说明）——嵌套异步字段
+                        // 与批量loader下游的注册发生在本接缝的游走回合内
+                        dispatchAll(env.getGraphQLExecutionContext());
+                        FutureHelper.bindResult(ret, promise);
+                    } catch (Throwable e) {
+                        promise.completeExceptionally(e);
+                    }
+                });
+            } catch (Throwable e) {
+                // context 已关闭等窗口不可进入场景：异常终态而非静默挂起（rule 24）
+                promise.completeExceptionally(e);
+            }
         });
+        return promise;
     }
 
     public CompletionStage<Object> executeAsync(IGraphQLExecutionContext context) {
@@ -200,7 +251,13 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     void dispatchAll(IGraphQLExecutionContext context) {
         CompletionStage<Void> promise = context.dispatchAll();
         if (promise != null) {
-            promise.thenAccept(v -> this.dispatchAll(context));
+            // C3-002：递归泵同样挂接泵级 thenOnContext（裁定③形态 A）——批次完成后承接的
+            // 续轮调度与游走在请求 context 附着线程执行，与出口泵/回合出口泵同口径。
+            // 本挂接点在批次 promise 创建处立即注册回调（thenAccept 紧随 thenOnContext）：
+            // 批次同步完成时续轮在调用方所在窗口内内联执行，异步完成时经 thenOnContext
+            // 窗口执行，两种时序均不逃逸窗口。
+            ContextProvider.thenOnContext(promise, context.getContext())
+                    .thenAccept(v -> this.dispatchAll(context));
         }
     }
 

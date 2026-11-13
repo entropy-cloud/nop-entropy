@@ -474,6 +474,21 @@ public interface NopStreamErrors {
                     "Materialization bypass write failed for point {pointId}: {detail}",
                     ARG_POINT_ID, ARG_DETAIL);
 
+    /**
+     * FAM-1 (plan 2510 R2-07, adjudication 10a/10b', revised by combined-gate live
+     * evidence): the materialization store exceeded an EXPLICITLY CONFIGURED size
+     * bound ({@code nop.stream.materialization.store-max-entries} set {@code > 0}).
+     * Unconfigured or {@code <= 0} means no hard bound (the checkpoint-scoped
+     * recovery plane must hold all in-flight uncommitted records, with once-per-tier
+     * WARN at 1024/4096/16384/...); only an explicit operator-imposed bound fails
+     * loud. Raise the configured bound or unset it to allow checkpoint-scoped
+     * recovery growth.
+     */
+    ErrorCode ERR_STREAM_MATERIALIZE_STORE_OVERFLOW =
+            define("nop.err.stream.materialize-store-overflow",
+                    "Materialization point {pointId} store bound exceeded: {detail}",
+                    ARG_POINT_ID, ARG_DETAIL);
+
     String ARG_REGION_ID = "regionId";
     String ARG_MAX_RESTARTS = "maxRestarts";
 
@@ -848,4 +863,109 @@ public interface NopStreamErrors {
                     "Connector endpoint '{connectorEndpoint}' implements no probe contract: dry-run cannot "
                             + "determine its connectivity ({detail})",
                     ARG_CONNECTOR_ENDPOINT, ARG_DETAIL);
+
+    String ARG_SUBTASK_TOTAL = "subtaskTotal";
+    String ARG_POOL_SIZE = "poolSize";
+
+    /**
+     * C4-001 (plan 2510 R2-07, adjudication 2 guard a): the LOCAL topology's
+     * subtask total exceeds the fixed {@code TaskExecutor} pool size. With every
+     * pool thread occupied and any result-partition queue full, producers and
+     * consumers mutually wait forever (silent permanent hang). The submission
+     * fails fast instead — reduce the job parallelism or raise the executor pool
+     * size.
+     */
+    ErrorCode ERR_STREAM_LOCAL_POOL_EXCEEDED =
+            define("nop.err.stream.local.pool-exceeded",
+                    "LOCAL topology subtask total {subtaskTotal} exceeds the task executor "
+                            + "pool size {poolSize}: the fixed thread pool would deadlock "
+                            + "(producers/consumers mutually waiting across full result-partition "
+                            + "queues). Reduce the job parallelism or raise the executor pool size.",
+                    ARG_SUBTASK_TOTAL, ARG_POOL_SIZE);
+
+    /**
+     * C4-001 (plan 2510 R2-07, adjudication 2 guard b): the LOCAL execution did
+     * not complete within the bounded await window
+     * ({@code nop.stream.local.await-completion-timeout-ms}, default 300000; 0
+     * explicitly disables the guard). The task executor was aborted (running
+     * tasks interrupted) and the execution fails typed instead of hanging forever.
+     */
+    ErrorCode ERR_STREAM_LOCAL_AWAIT_TIMEOUT =
+            define("nop.err.stream.local.await-timeout",
+                    "LOCAL execution did not complete within the bounded await window "
+                            + "({detail}); the task executor was aborted (running tasks "
+                            + "interrupted). Tune nop.stream.local.await-completion-timeout-ms "
+                            + "(0 explicitly disables this guard — at the operator's own "
+                            + "mutual-wait deadlock risk).",
+                    ARG_DETAIL);
+
+    /**
+     * W-09 (CRA 8.41 R4-01, ruling D.2): the queryable-state REST read did not get
+     * the mailbox-handoff snapshot back from the task thread within the bounded
+     * window ({@code nop.stream.ops.state-query-timeout-ms}, default 5000; values
+     * &le; 0 fail fast). A stuck or stopped task thread answers this typed
+     * rejection (surfaced as 503 by the ops server) instead of serving a torn
+     * cross-thread snapshot of state the task thread is mutating.
+     */
+    ErrorCode ERR_STREAM_STATE_QUERY_TIMEOUT =
+            define("nop.err.stream.state-query-timeout",
+                    "Keyed-state query for {typeName} did not complete within the bounded "
+                            + "state-query window ({detail}). The task thread is busy or stopped; "
+                            + "retry later or tune nop.stream.ops.state-query-timeout-ms.",
+                    ARG_TYPE_NAME, ARG_DETAIL);
+
+    /**
+     * W-01 (CRA 8.42 R4-02, ruling A.1): the ops POST /jobs request body exceeded
+     * the configured bound ({@code nop.stream.ops.http.max-body-bytes}, default
+     * 1 MiB — JobSubmissionSpec is three fields). The request is rejected with
+     * HTTP 413 BEFORE any body materialization/JSON parse (the pre-fix
+     * readAllBytes path let a single request materialize ~3x its body size and
+     * take down the coordinator heap).
+     */
+    ErrorCode ERR_STREAM_REQUEST_BODY_TOO_LARGE =
+            define("nop.err.stream.request-body-too-large",
+                    "The submission request body exceeds the configured ops endpoint "
+                            + "body bound ({detail}). Shrink the payload or raise "
+                            + "nop.stream.ops.http.max-body-bytes.",
+                    ARG_DETAIL);
+
+    /**
+     * W-03 (CRA 8.42 R4-02, ruling A.2): a checkpoint participant's finishCommit
+     * notification kept failing for {detail} consecutive retry rounds — the
+     * participant was deregistered from the coordinator (its ledger entries
+     * terminalize through the existing stillFailing-empty removal path) and the
+     * job fails typed so recovery takes over, instead of retrying forever
+     * (~2880 ledger entries/day at the default 30s checkpoint cadence). Tune
+     * nop.stream.checkpoint.commit-retry-escalation-threshold to widen or
+     * shorten the retry window.
+     */
+    ErrorCode ERR_STREAM_COMMIT_RETRY_ESCALATED =
+            define("nop.err.stream.commit-retry-escalated",
+                    "Commit notification for a checkpoint participant kept failing for "
+                            + "{detail} consecutive retry rounds; the participant was "
+                            + "deregistered and the job escalates to failure so recovery "
+                            + "takes over. Tune nop.stream.checkpoint.commit-retry-escalation-threshold "
+                            + "to widen or shorten the retry window.",
+                    ARG_DETAIL);
+
+    /**
+     * W-05 (CRA 8.42 R4-02, ruling C.1, F8 fallback leg): a DATA-plane poll row
+     * failed (payload deserialization / consumer delivery) and the subscribed
+     * consumer cannot surface a typed channel failure (it does not implement
+     * {@code WireDecodeFailureAware}). The row fails LOUD (poison-row wedge: the
+     * cursor is NOT advanced, the row is retried and the failure stays visible
+     * until ops clear the damaged row) instead of being silently skipped with
+     * the cursor advanced past it — a data-plane consumer must never silently
+     * lose a record. Control-plane rows keep the legacy warn+skip semantics
+     * (RPC callers have timeout backstops).
+     */
+    ErrorCode ERR_STREAM_DATA_PLANE_RECORD_FAILED =
+            define("nop.err.stream.data-plane-record-failed",
+                    "A data-plane record on topic {argName} could not be delivered and the "
+                            + "subscribed consumer cannot fail typed (it does not implement "
+                            + "WireDecodeFailureAware). The row wedges the poll cursor (fail-loud, "
+                            + "never silently skipped): {detail}. Repair the damaged row (or "
+                            + "implement WireDecodeFailureAware on the consumer to fail the "
+                            + "channel typed) to resume the topic.",
+                    ARG_ARG_NAME, ARG_DETAIL);
 }

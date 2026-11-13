@@ -30,12 +30,24 @@ public interface IRateLimiter {
         return tryAcquire(1);
     }
 
+    /**
+     * C7-015（plan 2548）：默认等待上界可配置（nop.commons.concurrent.rate-limit-acquire-timeout-ms，
+     * 缺省 5 分钟；<=0 = 无限等待保持修复前语义）。超时抛 NopException 类型化错误而非静默失败。
+     */
     default void acquire(){
-        tryAcquire(1, Long.MAX_VALUE);
+        acquire(1);
     }
 
     default void acquire(int permits){
-        tryAcquire(permits, Long.MAX_VALUE);
+        long timeoutMs = io.nop.commons.CommonConfigs.CFG_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT.get();
+        if (timeoutMs <= 0) {
+            tryAcquire(permits, Long.MAX_VALUE);
+        } else if (!tryAcquire(permits, timeoutMs)) {
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.commons.CommonErrors.ERR_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT)
+                    .param(io.nop.commons.CommonErrors.ARG_PERMITS, permits)
+                    .param(io.nop.commons.CommonErrors.ARG_TIMEOUT, timeoutMs);
+        }
     }
 
     double getPermitsPerSecond();

@@ -12,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,6 +43,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONFIG_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_EXECUTE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
@@ -65,9 +67,34 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
     private static final Logger LOG = LoggerFactory.getLogger(DebeziumCdcSourceFunction.class);
 
     /**
+     * CRA 8.44 R4-04 W-02 (C3-006; adjudication B.1): in-scope live-name claim registry —
+     * {@code totalParallelism <= 1} instances register failure listeners under the bare
+     * base name, so two same-named pipelines co-resident in one JVM used to let the
+     * second {@code registerFailureListener} overwrite the first (failure events then
+     * cross-route: the failing pipeline stays alive-looking, the healthy one dies
+     * looking). The claim makes the second run fail typed BEFORE it enters the
+     * try/finally — the rejected instance therefore owns no finally and can never
+     * unregister the healthy instance's listener (M1 ownership argument). Values are
+     * per-run claim tokens held by the owning run for its whole lifetime; removal is
+     * always the two-arg conditional form. The carrier registry
+     * ({@code DebeziumEngineWrapper.FAILURE_LISTENERS} put semantics) is deliberately
+     * untouched — that face belongs to plan R4-24 (batch-external module, zero-diff red
+     * line); the in-scope guard makes the overwriting call chain unreachable for every
+     * caller that registers through this class.
+     */
+    private static final ConcurrentHashMap<String, Object> LIVE_CONNECTOR_CLAIMS =
+            new ConcurrentHashMap<>();
+
+    /**
      * Operator-state key under which the CDC offset map is persisted in the checkpoint snapshot.
      */
     public static final String CDC_OFFSETS_KEY = "cdc-offsets";
+
+    /**
+     * C3-014 ② (plan 2503 Phase 3): bounded budget for the engine terminality verification
+     * applied after every in-scope stop face (aligned with the reader close chain's 5s join).
+     */
+    static final long ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS = 5000L;
 
     /**
      * Debezium connector configuration. No longer {@code transient}: {@link DebeziumConfig}
@@ -110,6 +137,15 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      * is carried in the checkpoint, not in the serialized source instance).
      */
     private transient NopStreamOffsetBackingStore offsetStore;
+
+    /**
+     * Plan 2511 C8-001 (adjudication ⑥, legacy face): per-server last-emitted positions
+     * recorded AFTER the downstream collector returns for each event, closing the same
+     * store-leads-emission window the FLIP-27 reader closes (here the skew is ≈1 record —
+     * the collect-直连 path). Non-transient: the table survives the deployment
+     * serialization path so a checkpoint right after restore still carries positions.
+     */
+    private final LastEmittedOffsetTracker lastEmittedTracker = new LastEmittedOffsetTracker();
 
     /**
      * WI9 data-migration contract (ai-dev/design/nop-orm-data-migration-pipeline-design.md §4.2):
@@ -225,7 +261,14 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
     @Override
     public void run(SourceContext<ChangeEvent> ctx) throws Exception {
         if (!runEntered.compareAndSet(false, true)) {
-            return;
+            // W-04 (C3-011; CRA 8.44 R4-04; adjudication B.2): the guard must never
+            // translate a DETECTED anomaly into a silent fake EOS. Typed rejection with
+            // runEntered still true: ownership stays with the in-flight run (same
+            // semantics the silent return declared) and this rejected thread never
+            // enters the finally (no cleanup face is touched — same M1 argument as W-02).
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_DETAIL, "run() re-entered while a previous run is still active"
+                            + " — refusing silent EOS (typed rejection, recovery path owns the retry)");
         }
         // Reset lifecycle state: a region restart reuses this instance (the rebuilt
         // operator chain shares the source function) after cancel() set running=false.
@@ -235,11 +278,34 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         this.draining = false;
         this.pendingError = null;
         initCompletionLatch();
-        String connectorName = null;
-
+        String connectorName;
         try {
             connectorName = resolveConnectorName();
+        } catch (StreamException e) {
+            // MJ-1 (adjudication B.1): every pre-try throw after a successful CAS resets
+            // runEntered so the instance stays reusable — otherwise a rejected or
+            // misconfigured run would leave the guard stuck true and a region-restart
+            // retry would be falsely rejected by the W-04 guard.
+            runEntered.set(false);
+            throw e;
+        }
+        // W-02 (C3-006; CRA 8.44 R4-04; adjudication B.1 decision 2): claim the live
+        // connector name BEFORE entering the try/finally — a duplicate is rejected typed
+        // (AR-03 alignment: same ERR_STREAM_CONFIG_ERROR + configuration-guidance shape
+        // as resolveConnectorName's unnamed branch, a NEW face: same-name non-unnamed),
+        // never registers, and owns no finally that could unregister the healthy
+        // instance's listener.
+        Object claim = new Object();
+        if (LIVE_CONNECTOR_CLAIMS.putIfAbsent(connectorName, claim) != null) {
+            runEntered.set(false); // MJ-1 pre-try throw reset (see above)
+            throw new StreamException(ERR_STREAM_CONFIG_ERROR)
+                    .param(ARG_DETAIL, "duplicate live connector name '" + connectorName
+                            + "': another pipeline is running with the same DebeziumConfig.name"
+                            + " in this JVM — failure listeners would cross-route (use a unique"
+                            + " name or per-instance sharding)");
+        }
 
+        try {
             // R5-CON-03: a terminal engine failure (run() threw / CompletionCallback
             // success=false) must fail THIS task instead of leaving it RUNNING with a
             // silently dead CDC stream. The engine failure surfaces through the wrapper's
@@ -260,6 +326,10 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
                 subscription = source.subscribe(event -> {
                     try {
                         ctx.collect(event);
+                        // C8-001: the event is emitted once collect returns — record its
+                        // position AFTER the dispatch so snapshotState snapshots at most
+                        // this boundary (typed failure on a position-less event)
+                        lastEmittedTracker.onEmitted(event);
                     } catch (Exception e) {
                         // R5-CON-02: capture-and-rethrow. The upstream dispatcher swallows
                         // consumer exceptions by design; recording the first one here and
@@ -295,6 +365,11 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
                 throwPendingError();
             }
         } finally {
+            // W-02 (adjudication B.1 decision 3): FIRST release this run's own claim with
+            // the two-arg CONDITIONAL remove (only when the mapping still holds THIS run's
+            // token — never by bare name), THEN the existing engine-side unregister
+            // (call shape untouched; carrier zero-diff red line maintained).
+            LIVE_CONNECTOR_CLAIMS.remove(connectorName, claim);
             DebeziumEngineWrapper.unregisterFailureListener(connectorName);
             if (subscription != null) {
                 try {
@@ -308,6 +383,9 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             if (source != null) {
                 try {
                     source.stop();
+                    // C3-014 ②: stop contract =「已终止」— ERROR ghost declaration (cleanup
+                    // must never mask the primary result of run())
+                    verifyEmbeddedEngineTerminated("run-finally", false);
                 } catch (Exception e) {
                     // cleanup path: never masks the primary result, but stays observable
                     LOG.warn("Failed to stop Debezium message source during cleanup", e);
@@ -315,6 +393,46 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
                 source = null;
             }
             runEntered.set(false);
+        }
+    }
+
+    /**
+     * C3-014 ② (plan 2503 Phase 3): engine terminality verification after a stop face —
+     * the stop contract is「引擎已终止」, not「stop 已发出」. Polls the embedded message
+     * source's engine termination signal within {@link #ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS}.
+     *
+     * <p>{@code throwOnGhost} selects the visible-failure shape per face: typed
+     * {@link StreamException} where the face's signature carries failures to the caller
+     * (reader close / truncateForDrain); explicit ERROR ghost-risk declaration where cleanup
+     * must never mask a primary result (run finally / cancel). Both shapes are rule-24
+     * visible — never silent.
+     */
+    void verifyEmbeddedEngineTerminated(String stopFace, boolean throwOnGhost) throws StreamException {
+        DebeziumMessageSource msgSource = this.source;
+        if (msgSource == null) {
+            // nothing launched under this face — vacuously terminated
+            return;
+        }
+        long deadline = System.currentTimeMillis() + ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS;
+        while (!msgSource.isEngineTerminated()) {
+            if (System.currentTimeMillis() >= deadline) {
+                String detail = "embedded Debezium engine did not terminate within "
+                        + ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS + "ms of " + stopFace
+                        + " - ghost engine risk (live binlog connection; offset writes may "
+                        + "continue until JVM exit)";
+                if (throwOnGhost) {
+                    throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED)
+                            .param(ARG_DETAIL, detail);
+                }
+                LOG.error("nop.stream.debezium.engine-ghost-risk:face={} - {}", stopFace, detail);
+                return;
+            }
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 
@@ -340,6 +458,9 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         DebeziumMessageSource msgSource = this.source;
         if (msgSource != null) {
             msgSource.stop();
+            // C3-014 ②: terminality verification with ERROR ghost declaration — cancel()
+            // must not throw into framework teardown, but the ghost risk stays visible
+            verifyEmbeddedEngineTerminated("cancel", false);
         }
     }
 
@@ -359,6 +480,8 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         DebeziumMessageSource msgSource = this.source;
         if (msgSource != null) {
             msgSource.stop();
+            // C3-014 ②: typed failure on ghost risk (the drain contract carries failures)
+            verifyEmbeddedEngineTerminated("truncateForDrain", true);
             source = null;
         }
         if (completionLatch != null) {
@@ -385,6 +508,12 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             return result;
         }
 
+        if (lastEmittedTracker.hasPositions()) {
+            // C8-001: snapshot the last-EMITTED boundary, not the store's (possibly
+            // one record fresher) value
+            result.putOperatorState(CDC_OFFSETS_KEY, lastEmittedTracker.synthesizeOffsetMap());
+            return result;
+        }
         Map<java.nio.ByteBuffer, java.nio.ByteBuffer> offsets = store.getOffsets();
         result.putOperatorState(CDC_OFFSETS_KEY, NopStreamOffsetBackingStore.toSerializable(offsets));
         return result;
@@ -425,6 +554,9 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         }
 
         Map<String, String> serialized = (Map<String, String>) raw;
+        // C8-001: seed the last-emitted table from the restored maps (numeric-min per
+        // server for last-emitted-marker maps; legacy engine-format maps are ignored)
+        lastEmittedTracker.seedFromOffsetMap(serialized);
         Map<java.nio.ByteBuffer, java.nio.ByteBuffer> restored =
                 NopStreamOffsetBackingStore.fromSerializable(serialized);
 

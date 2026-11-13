@@ -99,6 +99,12 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_NO_OBJ_META = define("nop.err.biz.no-obj-meta", "对象[{bizObjName}]缺少objMeta模型信息");
 
+    // 2.3-C4-001（plan 2551 裁定 A）：xbiz 异步 action 执行器启动期校验
+    ErrorCode ERR_BIZ_UNKNOWN_EXECUTOR = define("nop.err.biz.unknown-executor",
+            "action 声明的 executor bean 不存在[{executors}]");
+    ErrorCode ERR_BIZ_EXECUTOR_NOT_PARTITIONED = define("nop.err.biz.executor-not-partitioned",
+            "bizSequential action 的 executor 不支持分区执行[{actions}]");
+
     ErrorCode ERR_BIZ_STATE_MACHINE_NO_STATE_PROP = define("nop.err.biz.state-machine-no-state-prop",
             "状态机没有设置stateProp属性");
 
@@ -263,5 +269,10 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_READ_ONLY_OBJECT =
             define("nop.err.biz.read-only-object",
                     "对象[{bizObjName}]为只读对象，不允许执行写操作[{action}]；如需变更请使用专用业务流程",
+                    ARG_BIZ_OBJ_NAME, ARG_ACTION_NAME);
+
+    ErrorCode ERR_BIZ_ASYNC_INVOCATION_NO_CONTEXT =
+            define("nop.err.biz.async-invocation-no-context",
+                    "异步调用业务对象[{bizObjName}]的函数[{actionName}]时当前线程没有绑定IContext，无法解析服务上下文。请在提交异步任务时传播调用方上下文",
                     ARG_BIZ_OBJ_NAME, ARG_ACTION_NAME);
 }

@@ -73,6 +73,29 @@ public class TestMigrationPhase {
     }
 
     @Test
+    public void testControlledSelfLoopsAllowedOnFailurePhases() {
+        // 裁定⑪（C7-002）：失败相位白名单受控自环——仅 INCREMENTAL/VERIFY 两条，
+        // 仅经既有编排 API 显式重入（fix-forward 重试）触发
+        assertTrue(MigrationPhase.INCREMENTAL.canTransitionTo(MigrationPhase.INCREMENTAL));
+        assertTrue(MigrationPhase.VERIFY.canTransitionTo(MigrationPhase.VERIFY));
+    }
+
+    @Test
+    public void testSelfLoopWhitelistExcludesOtherPhases() {
+        // 白名单外相位（含 SWITCH/DONE/ABORT）自环仍为非法迁移
+        assertThrows(NopException.class,
+                () -> MigrationPhase.SWITCH.checkTransition("j1", MigrationPhase.SWITCH));
+        assertThrows(NopException.class,
+                () -> MigrationPhase.DONE.checkTransition("j1", MigrationPhase.DONE));
+        assertThrows(NopException.class,
+                () -> MigrationPhase.ABORT.checkTransition("j1", MigrationPhase.ABORT));
+        assertThrows(NopException.class,
+                () -> MigrationPhase.PREPARE.checkTransition("j1", MigrationPhase.PREPARE));
+        assertThrows(NopException.class,
+                () -> MigrationPhase.FULL.checkTransition("j1", MigrationPhase.FULL));
+    }
+
+    @Test
     public void testTerminalStates() {
         assertTrue(MigrationPhase.DONE.isTerminal());
         assertTrue(MigrationPhase.ABORT.isTerminal());

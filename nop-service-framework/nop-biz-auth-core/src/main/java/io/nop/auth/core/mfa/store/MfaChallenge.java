@@ -78,7 +78,11 @@ public class MfaChallenge implements Serializable {
     private long expireAt;
     private String scene;
     private String payload;
-    private Long verifiedAt;
+    /**
+     * 2.3-C1-006（plan 2550 裁定 A）：compute 线程写 / peek 线程读跨线程可见——volatile。
+     * 拒绝 AtomicLong：序列化兼容面要求简单类型 getter/setter（Redis JSON 编解码，见类注）。
+     */
+    private volatile Long verifiedAt;
 
     public MfaChallenge() {
     }

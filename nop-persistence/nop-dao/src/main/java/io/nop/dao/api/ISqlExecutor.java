@@ -8,12 +8,15 @@
 package io.nop.dao.api;
 
 import io.nop.api.core.beans.LongRangeBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.DaoConfigs;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
+import io.nop.dataset.impl.DefaultFieldMapper;
 import io.nop.dao.utils.SqlExecHelper;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
@@ -31,6 +34,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
+
+import static io.nop.dao.DaoErrors.ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED;
 
 /**
  * 统一{@link io.nop.dao.jdbc.IJdbcTemplate}和IOrmTemplate的公共基类
@@ -178,6 +183,19 @@ public interface ISqlExecutor extends IDialectProvider {
     }
 
     default <T> List<T> findAll(final SQL sql, IRowMapper<T> rowMapper) {
+        // 2.3-C5-001/C5-005（plan 2553 裁定 L）：抽取器级行数上界——迭代期超限即抛
+        //（post-hoc size 检查不约束已物化内存）。≤0 = 不设上界档（现行语义）。
+        Integer maxRows = DaoConfigs.CFG_DAO_FIND_ALL_MAX_ROWS.get();
+        if (maxRows != null && maxRows > 0) {
+            List<T> list = executeQuery(sql, null,
+                    new RowMapperAllExtractor<>(rowMapper, DefaultFieldMapper.INSTANCE, maxRows + 1L));
+            if (list.size() > maxRows) {
+                throw new NopException(ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED)
+                        .param("rowCount", list.size())
+                        .param("maxRows", maxRows);
+            }
+            return list;
+        }
         return executeQuery(sql, null, new RowMapperAllExtractor<>(rowMapper));
     }
 

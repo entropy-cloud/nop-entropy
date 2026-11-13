@@ -30,7 +30,7 @@ public class FakeTccRecordStore implements ITccRecordStore {
         volatile TccStatus status = TccStatus.CREATED;
         final Timestamp expireAt = new Timestamp(System.currentTimeMillis() + 60_000);
 
-        FakeTccRecord(String txnGroup, String txnId) {
+        public FakeTccRecord(String txnGroup, String txnId) {
             this.txnGroup = txnGroup;
             this.txnId = txnId;
         }
@@ -237,6 +237,16 @@ public class FakeTccRecordStore implements ITccRecordStore {
     @Override
     public void removeCompletedRecords(long retentionTime, boolean onlyCompleted) {
         lastRemoveCompletedOnlyCompleted = onlyCompleted;
+    }
+
+    // plan 2515 裁定⑧接口方法：清理语义由具体测试 fake 子类覆写（缺省零终态化/零删除）
+    public int killExhaustedRecords(int maxRetryCount, int batchSize) {
+        return 0;
+    }
+
+    public int removeCompletedRecords(long retentionTime, boolean onlyCompleted, int batchSize) {
+        lastRemoveCompletedOnlyCompleted = onlyCompleted;
+        return 0;
     }
 
     public static void assertStatus(ITccBranchRecord branch, TccStatus expected) {

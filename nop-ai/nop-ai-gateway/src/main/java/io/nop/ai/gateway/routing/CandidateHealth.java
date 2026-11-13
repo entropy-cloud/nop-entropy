@@ -21,11 +21,31 @@ public final class CandidateHealth {
     private final CircuitState circuitState;
     private final int currentConcurrency;
     private final Integer concurrencyLimit;
+    private final boolean allowCall;
 
     public CandidateHealth(CircuitState circuitState, int currentConcurrency, Integer concurrencyLimit) {
+        this(circuitState, currentConcurrency, concurrencyLimit, circuitState != CircuitState.OPEN);
+    }
+
+    /**
+     * @param allowCall 第 5 标量（plan 2509 R2-06 裁定⑦(b)）：allowCall 冷却感知<b>纯读投影</b>——
+     *                  非 OPEN、或 OPEN 且冷却已过即 true（不占 probe 槽不迁移，供脚本偏好排序；
+     *                  权威状态迁移 allowCall 归选择策略「选中后唯一调用点」）
+     */
+    public CandidateHealth(CircuitState circuitState, int currentConcurrency, Integer concurrencyLimit,
+                           boolean allowCall) {
         this.circuitState = circuitState != null ? circuitState : CircuitState.CLOSED;
         this.currentConcurrency = currentConcurrency;
         this.concurrencyLimit = concurrencyLimit;
+        this.allowCall = allowCall;
+    }
+
+    /**
+     * @return allowCall 冷却感知纯读投影（非 OPEN、或 OPEN 且冷却已过）；权威状态迁移
+     * 经 {@code IModelClassHealth#allowCall(ModelClassCandidate)}（选中后唯一调用点）
+     */
+    public boolean isAllowCall() {
+        return allowCall;
     }
 
     public CircuitState getCircuitState() {

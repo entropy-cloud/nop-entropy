@@ -14,7 +14,9 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Policy;
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.lang.IDestroyable;
@@ -26,6 +28,8 @@ import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -48,14 +52,32 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
         buildCache(config, loader);
 
         if (config.isUseMetrics())
-            registerMetrics();
+            this.metricsHandle = registerMetrics();
     }
+
+    /**
+     * C6-004：本缓存绑定的 meter 句柄，destroy 时 close 注销。
+     */
+    private volatile AutoCloseable metricsHandle;
 
     public LocalCache(String name, CacheConfig cacheConfig) {
         this(name, cacheConfig, null);
     }
 
     public void destroy() {
+        // C6-004：注销本缓存的 meter（绑定/注销对称）
+        AutoCloseable handle = this.metricsHandle;
+        this.metricsHandle = null;
+        if (handle != null) {
+            try {
+                handle.close();
+            } catch (Exception e) {
+                LOG.warn("nop.warn.commons.cache.metrics-close-fail", e);
+            }
+        }
+        // C6-005（plan 2548 裁定 D）：invalidateAll 先触发 destroyOnRemove 回调（entry.destroy()），
+        // 再 cleanUp 等待异步 removal 完成；原仅 cleanUp() 会跳过销毁回调
+        cache.invalidateAll();
         cache.cleanUp();
     }
 
@@ -71,14 +93,52 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
         return name;
     }
 
-    private void registerMetrics() {
-        if (!StringHelper.isEmpty(name)) {
-            new CaffeineCacheMetrics(cache, name, Collections.emptyList()).bindTo(GlobalMeterRegistry.instance());
+    /**
+     * C6-004（plan 2548 裁定 C）：绑定后返回注销句柄，由实例持有，{@link #destroy()} 时 close。
+     * 同时做同名 meter 去重（tenant 场景多个 "tenant-"+name 实例共享同名 tag）：绑定前先移除
+     * 同名旧 meter（旧实例的句柄随后 close 亦为幂等 no-op），避免重复注册异常/指标混杂。
+     */
+    private AutoCloseable registerMetrics() {
+        if (StringHelper.isEmpty(name)) {
+            return () -> {
+            };
         }
+        MeterRegistry registry = GlobalMeterRegistry.instance();
+        if (registry == null) {
+            return () -> {
+            };
+        }
+        // 同名去重：CaffeineCacheMetrics 的 meter 名以 "cache." 前缀、tag "cache"=name
+        List<Meter> stale = new ArrayList<>();
+        for (Meter meter : registry.getMeters()) {
+            String tagName = meter.getId().getTag("cache");
+            if (meter.getId().getName().startsWith("cache.") && name.equals(tagName))
+                stale.add(meter);
+        }
+        for (Meter meter : stale) {
+            registry.remove(meter);
+        }
+
+        new CaffeineCacheMetrics(cache, name, Collections.emptyList()).bindTo(registry);
+        List<Meter> added = new ArrayList<>();
+        for (Meter meter : registry.getMeters()) {
+            String tagName = meter.getId().getTag("cache");
+            if (meter.getId().getName().startsWith("cache.") && name.equals(tagName)
+                    && !stale.contains(meter))
+                added.add(meter);
+        }
+        return () -> {
+            for (Meter meter : added) {
+                registry.remove(meter);
+            }
+        };
     }
 
     private void buildCache(CacheConfig config, ICacheLoader<K, V> loader) {
         Caffeine builder = Caffeine.newBuilder();
+        // 1.7-C3-010（plan 2547 裁定 F）：显式 executor 出口——缺省仍走 Caffeine 默认 commonPool
+        if (config.getExecutor() != null)
+            builder.executor(config.getExecutor());
         if (config.getMaximumSize() > 0) {
             builder.maximumSize(config.getMaximumSize());
         }

@@ -114,4 +114,11 @@ public interface OrmConfigs {
     IConfigReference<String> CFG_ORM_MIGRATION_WRITE_GATE = varRef(s_loc,
             "nop.orm.migration.write-gate", String.class, "open");
 
+    @Description("数据搬迁写停止关租约（plan 2507 裁定⑤）。写门进入 closed 态（本 JVM 首见，"
+            + "含配置源刷新观察）起租，经过该秒数自动 fail-open（isClosed 返回 false + WARN 留痕），"
+            + "防止单 JVM 开门后集群其余实例写冻结不可自愈。默认 1800s 须覆盖迁移 VERIFY+SWITCH 全程；"
+            + "≤0 = 关闭租约档（现行永久关门语义，单机部署/确定性测试缝）")
+    IConfigReference<Integer> CFG_ORM_MIGRATION_WRITE_GATE_LEASE_SECONDS = varRef(s_loc,
+            "nop.orm.migration.write-gate-lease-seconds", Integer.class, 1800);
+
 }

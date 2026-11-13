@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static io.nop.xlang.XLangErrors.ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -63,6 +62,12 @@ public class TestXDefRef extends BaseTestCase {
         assertEquals(attachmentJsonText("test.xdef.json"), JSON.serialize(obj, true));
     }
 
+    /**
+     * xdef:ref不允许循环引用。plan 2504 C2-001 装载状态机落地后行为收敛（设计§3.2.1「不再无限重载」）：
+     * 循环引用在 entry 层被同线程重入环检测即时拦截，收敛为平台类型化环错误
+     * （load-reentrant-loop，携带 resourcePath，诊断等价），解析层的
+     * ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE 依赖装载器重入的旧路径不再触达。
+     */
     @DisplayName("xdef:ref不允许循环引用")
     @Test
     public void testLoop() {
@@ -71,7 +76,7 @@ public class TestXDefRef extends BaseTestCase {
             assertTrue(false);
         } catch (NopException e) {
             e.printStackTrace();
-            assertEquals(ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE.getErrorCode(), e.getErrorCode());
+            assertEquals("nop.err.core.component.resource-cache.load-reentrant-loop", e.getErrorCode());
         }
     }
 

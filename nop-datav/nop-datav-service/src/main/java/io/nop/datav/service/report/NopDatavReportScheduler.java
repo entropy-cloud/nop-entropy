@@ -1,6 +1,7 @@
 package io.nop.datav.service.report;
 
 import io.nop.datav.service.NopDatavErrors;
+import io.nop.datav.service.NopDatavInitRetry;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
@@ -140,6 +141,9 @@ public class NopDatavReportScheduler {
             } catch (Exception e) {
                 LOG.error("nop.datav.report-scheduler.register-failed: reportTaskId={}",
                         task.getReportTaskId(), e);
+                // 裁定⑬（plan 2526，CL-020）：per-task 注册失败调度一次性延迟重试（上限一次）
+                NopDatavInitRetry.scheduleOnce("report-scheduler:" + task.getReportTaskId(),
+                        () -> doRegister(task));
             }
         }
         LOG.info("nop.datav.report-scheduler.init-done: activeTasks={} registered={}",

@@ -23,10 +23,17 @@ import io.nop.dao.api.IEntityDao;
 /**
  * Loads the typed multi-family edge view ({@link CodeRelationGraph}) for an index.
  *
- * Loads all four relation tables (calls / inheritance / annotation usages / semantic edges)
- * in batches and maps them to {@link CodeEdgeData}. Deliberately unbounded: global scoring
- * (surprise connections, question generation) needs the complete edge set of an index; memory
- * guards are the domain of result materialization and the invariant-loop gates.
+ * Loads the four relation tables (calls / inheritance / annotation usages / semantic edges)
+ * in batches and maps them to {@link CodeEdgeData}. The cumulative edge set is capped
+ * (default {@value #DEFAULT_MAX_TOTAL_EDGES} edges): once the cap is reached no further
+ * batches are pulled — families fill first-come-first-served in the fixed table order
+ * (calls &rarr; inheritance &rarr; annotation &rarr; semantic), the projected graph's
+ * truncated flag is set and a structured WARN is emitted. The cap bounds the intermediate
+ * memory envelope of the public graph-query actions (surprise connections, question
+ * generation, wiki export); the downstream adjacency + per-edge attrs projection scales in
+ * the same order as the cap. Oversized indices therefore yield results derived from a
+ * partial edge set (SEMANTIC/ANNOTATION families systematically dropped first), observable
+ * via {@link CodeRelationGraph#isTruncated()} and the WARN.
  *
  * Attr conventions (graph-discovery-and-export-design.md §3.0/§3.1):
  * - Edge.type = family (CALLS / INHERITANCE / ANNOTATION / SEMANTIC)
@@ -44,23 +51,81 @@ import io.nop.dao.api.IEntityDao;
 public class CodeRelationGraphLoader {
     private static final Logger LOG = LoggerFactory.getLogger(CodeRelationGraphLoader.class);
     private static final int BATCH_SIZE = 5000;
+    /**
+     * Cumulative edge cap across the four relation tables (aligned with the module's
+     * AnnotationPatternExtractor.MAX_EDGES convention). Test seam: instance field +
+     * package-visible setter, production default = this compile-time constant.
+     */
+    static final int DEFAULT_MAX_TOTAL_EDGES = 50000;
 
+    private int maxTotalEdges = DEFAULT_MAX_TOTAL_EDGES;
+
+    public CodeRelationGraphLoader() {
+    }
+
+    /**
+     * Test seam (TP-001: the cap constant is injectable so tests need not fabricate huge data
+     * sets). Package-visible by design — not wired by IoC; production keeps the default.
+     */
+    void setMaxTotalEdges(int maxTotalEdges) {
+        if (maxTotalEdges <= 0)
+            throw new IllegalArgumentException("maxTotalEdges must be positive, got: " + maxTotalEdges);
+        this.maxTotalEdges = maxTotalEdges;
+    }
+
+    /**
+     * Static facade retained with its original signature and behavior: the three graph-query
+     * call sites delegate here and load with the default cumulative cap.
+     */
     public static CodeRelationGraph load(String indexId, IDaoProvider daoProvider,
                                           Function<String, String> filePathResolver) {
+        return new CodeRelationGraphLoader().loadGraph(indexId, daoProvider, filePathResolver);
+    }
+
+    /**
+     * Instance load path sharing the truncation branch with the static facade. Families fill
+     * first-come-first-served in the fixed table order until the cumulative cap is exhausted.
+     */
+    CodeRelationGraph loadGraph(String indexId, IDaoProvider daoProvider,
+                                Function<String, String> filePathResolver) {
         List<CodeEdgeData> edges = new ArrayList<>();
-        edges.addAll(loadCalls(indexId, daoProvider, filePathResolver));
-        edges.addAll(loadInheritances(indexId, daoProvider, filePathResolver));
-        edges.addAll(loadAnnotationUsages(indexId, daoProvider, filePathResolver));
-        edges.addAll(loadSemanticEdges(indexId, daoProvider, filePathResolver));
-        LOG.info("nop.code.relation-graph-loaded:indexId={},edges={}", indexId, edges.size());
-        return new CodeRelationGraph(edges);
+        int[] remaining = {maxTotalEdges};
+        // fixed table order calls -> inheritance -> annotation -> semantic (first-come-first-served)
+        edges.addAll(loadCalls(indexId, daoProvider, filePathResolver, remaining));
+        boolean truncated = budgetExhausted(remaining);
+        edges.addAll(loadInheritances(indexId, daoProvider, filePathResolver, remaining));
+        truncated |= budgetExhausted(remaining);
+        edges.addAll(loadAnnotationUsages(indexId, daoProvider, filePathResolver, remaining));
+        truncated |= budgetExhausted(remaining);
+        edges.addAll(loadSemanticEdges(indexId, daoProvider, filePathResolver, remaining));
+        truncated |= budgetExhausted(remaining);
+        if (truncated) {
+            LOG.warn("nop.code.relation-graph-truncated:indexId={},cap={},edges={}"
+                            + " (families beyond the cap are dropped in fixed table order)",
+                    indexId, maxTotalEdges, edges.size());
+        }
+        LOG.info("nop.code.relation-graph-loaded:indexId={},edges={},truncated={}", indexId, edges.size(), truncated);
+        CodeRelationGraph graph = new CodeRelationGraph(edges);
+        graph.setTruncated(truncated);
+        return graph;
+    }
+
+    /** Budget exhausted (cap reached) = truncation event, aligned with the module's
+     *  AnnotationPatternExtractor cap-and-return convention. */
+    private static boolean budgetExhausted(int[] remaining) {
+        return remaining[0] <= 0;
     }
 
     static List<CodeEdgeData> loadCalls(String indexId, IDaoProvider daoProvider,
                                         Function<String, String> filePathResolver) {
+        return loadCalls(indexId, daoProvider, filePathResolver, new int[]{Integer.MAX_VALUE});
+    }
+
+    static List<CodeEdgeData> loadCalls(String indexId, IDaoProvider daoProvider,
+                                        Function<String, String> filePathResolver, int[] remaining) {
         IEntityDao<NopCodeCall> dao = daoProvider.daoFor(NopCodeCall.class);
         List<CodeEdgeData> result = new ArrayList<>();
-        for (NopCodeCall call : batched(dao, indexId)) {
+        for (NopCodeCall call : batched(dao, indexId, remaining)) {
             result.add(toCallEdge(call, filePathResolver));
         }
         return result;
@@ -77,9 +142,14 @@ public class CodeRelationGraphLoader {
 
     static List<CodeEdgeData> loadInheritances(String indexId, IDaoProvider daoProvider,
                                                Function<String, String> filePathResolver) {
+        return loadInheritances(indexId, daoProvider, filePathResolver, new int[]{Integer.MAX_VALUE});
+    }
+
+    static List<CodeEdgeData> loadInheritances(String indexId, IDaoProvider daoProvider,
+                                               Function<String, String> filePathResolver, int[] remaining) {
         IEntityDao<NopCodeInheritance> dao = daoProvider.daoFor(NopCodeInheritance.class);
         List<CodeEdgeData> result = new ArrayList<>();
-        for (NopCodeInheritance inh : batched(dao, indexId)) {
+        for (NopCodeInheritance inh : batched(dao, indexId, remaining)) {
             result.add(toInheritanceEdge(inh, filePathResolver));
         }
         return result;
@@ -97,9 +167,14 @@ public class CodeRelationGraphLoader {
 
     static List<CodeEdgeData> loadAnnotationUsages(String indexId, IDaoProvider daoProvider,
                                                    Function<String, String> filePathResolver) {
+        return loadAnnotationUsages(indexId, daoProvider, filePathResolver, new int[]{Integer.MAX_VALUE});
+    }
+
+    static List<CodeEdgeData> loadAnnotationUsages(String indexId, IDaoProvider daoProvider,
+                                                   Function<String, String> filePathResolver, int[] remaining) {
         IEntityDao<NopCodeAnnotationUsage> dao = daoProvider.daoFor(NopCodeAnnotationUsage.class);
         List<CodeEdgeData> result = new ArrayList<>();
-        for (NopCodeAnnotationUsage usage : batched(dao, indexId)) {
+        for (NopCodeAnnotationUsage usage : batched(dao, indexId, remaining)) {
             result.add(toAnnotationEdge(usage, filePathResolver));
         }
         return result;
@@ -116,9 +191,14 @@ public class CodeRelationGraphLoader {
 
     static List<CodeEdgeData> loadSemanticEdges(String indexId, IDaoProvider daoProvider,
                                                 Function<String, String> filePathResolver) {
+        return loadSemanticEdges(indexId, daoProvider, filePathResolver, new int[]{Integer.MAX_VALUE});
+    }
+
+    static List<CodeEdgeData> loadSemanticEdges(String indexId, IDaoProvider daoProvider,
+                                                Function<String, String> filePathResolver, int[] remaining) {
         IEntityDao<NopCodeSemanticEdge> dao = daoProvider.daoFor(NopCodeSemanticEdge.class);
         List<CodeEdgeData> result = new ArrayList<>();
-        for (NopCodeSemanticEdge semanticEdge : batched(dao, indexId)) {
+        for (NopCodeSemanticEdge semanticEdge : batched(dao, indexId, remaining)) {
             result.add(toSemanticEdge(semanticEdge, filePathResolver));
         }
         return result;
@@ -178,20 +258,31 @@ public class CodeRelationGraphLoader {
     }
 
     private static <T extends IDaoEntity> Iterable<T> batched(IEntityDao<T> dao, String indexId) {
+        return batched(dao, indexId, new int[]{Integer.MAX_VALUE});
+    }
+
+    /**
+     * Offset-paginated batch pull that stops once the cumulative edge budget is exhausted
+     * ({@code remaining[0] <= 0}) — the budget is shared across all four tables so the cap is
+     * cumulative, not per-table.
+     */
+    private static <T extends IDaoEntity> Iterable<T> batched(IEntityDao<T> dao, String indexId, int[] remaining) {
         List<T> all = new ArrayList<>();
         long offset = 0;
-        while (true) {
+        while (remaining[0] > 0) {
+            int requested = Math.min(BATCH_SIZE, remaining[0]);
             QueryBean query = new QueryBean();
             query.addFilter(FilterBeans.eq("indexId", indexId));
             query.setOffset(offset);
-            query.setLimit(BATCH_SIZE);
+            query.setLimit(requested);
             List<T> batch = dao.findPageByQuery(query);
             if (batch.isEmpty())
                 break;
             all.addAll(batch);
-            if (batch.size() < BATCH_SIZE)
+            remaining[0] -= batch.size();
+            if (batch.size() < requested)
                 break;
-            offset += BATCH_SIZE;
+            offset += batch.size();
         }
         return all;
     }

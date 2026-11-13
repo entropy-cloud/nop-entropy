@@ -11,13 +11,21 @@ import io.nop.api.core.exceptions.NopException;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.orm.migration.MigrationErrors.ARG_DETAIL;
 import static io.nop.orm.migration.MigrationErrors.ARG_JOB_ID;
+import static io.nop.orm.migration.MigrationErrors.ARG_SEED_TABLES;
+import static io.nop.orm.migration.MigrationErrors.ARG_TABLE_INCLUDE_LIST;
 import static io.nop.orm.migration.MigrationErrors.ERR_MIG_P0_NOT_PINNED;
+import static io.nop.orm.migration.MigrationErrors.ERR_MIG_SEED_TABLE_MISALIGNED;
 
 /**
  * P0 → Debezium CDC offset 种子（设计 §4.2 契约级新增要求的实现面）。
@@ -61,6 +69,31 @@ public final class CdcOffsetSeedBuilder {
         Map<ByteBuffer, ByteBuffer> seed = new LinkedHashMap<>();
         seed.put(bytes(partitionJson), bytes(offsetJson));
         return seed;
+    }
+
+    /**
+     * 2.5-C3-012（plan 2554 裁定 J）：位点三方对齐单点判定——seed 覆盖的源表集 ⊆ CDC 订阅清单
+     * （tableIncludeList）源表集。种子位点覆盖了订阅缺口之外的表 = 错位 seed，缺口内事件被
+     * 静默丢弃，必须显式类型化失败（不静默忽略）。链启动（startFallbackChains）前消费本函数。
+     *
+     * @param jobId                  编排作业标识（错误定位）
+     * @param seedSourceTables       seed 位点覆盖的源物理表名集
+     * @param tableIncludeListTables CDC connector 订阅的源物理表名集
+     */
+    public static void checkThreeWayAlignment(String jobId, Collection<String> seedSourceTables,
+                                              Collection<String> tableIncludeListTables) {
+        Set<String> includeList = new HashSet<>(tableIncludeListTables);
+        List<String> uncovered = new ArrayList<>();
+        for (String table : seedSourceTables) {
+            if (!includeList.contains(table))
+                uncovered.add(table);
+        }
+        if (!uncovered.isEmpty()) {
+            throw new NopException(ERR_MIG_SEED_TABLE_MISALIGNED)
+                    .param(ARG_JOB_ID, jobId)
+                    .param(ARG_SEED_TABLES, String.join(",", seedSourceTables))
+                    .param(ARG_TABLE_INCLUDE_LIST, String.join(",", tableIncludeListTables));
+        }
     }
 
     private static String offsetJson(SourcePosition position) {

@@ -58,16 +58,23 @@ public class LettuceSessionStore extends AbstractLettuceOperations implements IN
         return FutureHelper.syncGet(getFieldAsync(sessionId, field));
     }
 
+    /**
+     * Atomic multi-field HSET + PEXPIRE via Lua script (2.5-MA-08, plan 2554 裁定 B; closes the
+     * historical D03-02 obligation): session data and TTL become visible in one step, never
+     * leaving a TTL-less session key window in between.
+     */
     @Override
     public CompletableFuture<Void> setAsync(String sessionId, Map<String, Object> data, long ttlMs) {
         String key = sessionKey(sessionId);
-        return async().hmset(key, data)
-                .thenCompose(v -> {
-                    if (ttlMs > 0) {
-                        return async().pexpire(key, ttlMs);
-                    }
-                    return CompletableFuture.completedFuture(true);
-                })
+        Object[] args = new Object[data.size() * 2 + 1];
+        int i = 0;
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            args[i++] = entry.getKey();
+            args[i++] = entry.getValue();
+        }
+        args[i] = ttlMs;
+        return LettuceExecutor.evalScript(async(), RedisScripts.SESSION_SET, ScriptOutputType.INTEGER,
+                new String[]{key}, args)
                 .thenApply(Functionals.toVoid())
                 .toCompletableFuture();
     }

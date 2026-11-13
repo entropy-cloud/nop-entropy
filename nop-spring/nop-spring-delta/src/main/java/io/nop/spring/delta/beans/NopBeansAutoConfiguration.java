@@ -9,6 +9,8 @@ package io.nop.spring.delta.beans;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.initialize.CoreInitialization;
+import io.nop.spring.delta.SpringDeltaErrors;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
@@ -34,6 +36,13 @@ public class NopBeansAutoConfiguration {
         @Override
         public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata,
                                             BeanDefinitionRegistry registry) {
+            // 4.4-C4-004（plan 2562 裁定 G）：预初始化守卫——未初始化时 typed 拒绝
+            // （rule 24 fail-fast 缺省）。爆破半径显式登记：variant-A 纯 SpringApplication.run
+            // 应用（SpringDemoMain 形态，无预初始化）现以静默空 discovery 启动，修复后启动失败。
+            if (!CoreInitialization.isInitialized()) {
+                throw new NopException(SpringDeltaErrors.ERR_SPRING_DELTA_CORE_NOT_INITIALIZED);
+            }
+
             List<IResource> resources = ModuleManager.instance().findModuleResources(false,"/beans", "beans.xml");
             if (resources.isEmpty())
                 return;

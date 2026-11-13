@@ -85,6 +85,12 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
     }
     private Map<String, Schema<?>> topicSchemas = new ConcurrentHashMap<>();
     private Map<String, Producer<?>> producers = new ConcurrentHashMap<>();
+    // 4.1-C8-007（plan 2558 裁定 L）：in-flight producer creation placeholders（见 getProducer）。
+    private final Map<String, CompletableFuture<Producer<?>>> producerCreations =
+            new ConcurrentHashMap<>();
+    // 4.1-MA-06（plan 2558 裁定 D）：producer 创建与 doStop 排空共享的服务级锁 —— 关闭
+    // buildProducer 的 client!=null 检查与 client.newProducer 使用之间的 TOCTOU 窗口。
+    private final Object producerLifecycleLock = new Object();
     private Queue<PulsarMessageSubscription> subscriptions = new ConcurrentLinkedQueue<>();
 
     public void setConfig(PulsarClientConfig config) {
@@ -177,22 +183,32 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         }
         subscriptions.clear();
 
-        for (Producer<?> producer : producers.values()) {
-            try {
-                producer.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.pulsar.close-producer-failed", e);
+        // 4.1-MA-06（plan 2558 裁定 D）：producer 排空 + client 关闭与 buildProducer 同锁 ——
+        // 二次排空语义：锁内检查后清理，杜绝「检查时 client 非空、使用时已关闭」的 TOCTOU。
+        synchronized (producerLifecycleLock) {
+            for (Producer<?> producer : producers.values()) {
+                try {
+                    producer.close();
+                } catch (Exception e) {
+                    LOG.error("nop.message.pulsar.close-producer-failed", e);
+                }
             }
-        }
-        producers.clear();
+            producers.clear();
+            // 4.1-C8-007: in-flight creation placeholders are cancelled with the service;
+            // a caller parked on one wakes exceptionally (never cached negative).
+            for (CompletableFuture<Producer<?>> pending : producerCreations.values()) {
+                pending.cancel(false);
+            }
+            producerCreations.clear();
 
-        if (client != null) {
-            try {
-                client.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.pulsar.close-client-failed", e);
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (Exception e) {
+                    LOG.error("nop.message.pulsar.close-client-failed", e);
+                }
+                client = null;
             }
-            client = null;
         }
 
         LOG.info("nop.message.pulsar.destroyed");
@@ -207,6 +223,27 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         return producers;
     }
 
+    /**
+     * 4.1-C8-007（plan 2558 裁定 L）：producer lookup with async creation + bounded wait.
+     * The previous {@code computeIfAbsent(topic, k -> buildProducer(...))} ran the
+     * blocking broker connect INSIDE the map's bin lock: a slow/blocked connect stalled
+     * every other topic's lookup on the same striped lock (serial amplification), and
+     * queued callers then retried the connect one-by-one.
+     *
+     * <p>New shape: the first caller installs a placeholder {@code CompletableFuture},
+     * kicks {@code ProducerBuilder.createAsync()} OUTSIDE any lock, and every concurrent
+     * caller (including the first) waits with a timeout from
+     * {@code PulsarProducerConfig.sendTimeout} (floor 1s; unconfigured default 30s).
+     * Failure semantics are unchanged: a failed creation is never cached negatively —
+     * the placeholder is removed and the next caller retries; the failed future wakes
+     * all queued waiters together instead of serially.
+     *
+     * <p>Non-shadowing declaration（C1-004 同站点异机制）: C1-004 guards the destroy window
+     * (typed NOT_ACTIVE when the service is down — via {@code buildProducerAsync}'s
+     * lifecycle-lock check); C8-007 guards the BLOCKED-CONNECT window (this timeout).
+     * They compose: a destroy during a hung connect fails the placeholder through the
+     * doStop cancel, the waiter wakes exceptionally — neither mechanism masks the other.
+     */
     Producer<?> getProducer(String topic) {
         Producer<?> producer = producers.get(topic);
         if (producer != null)
@@ -215,29 +252,117 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         // get an on-demand producer with the default STRING schema instead of falling back
         // to a shared topicless defaultProducer.
         Schema<?> schema = topicSchemas.getOrDefault(topic, Schema.STRING);
-        return producers.computeIfAbsent(topic, k -> buildProducer(k, schema));
+        CompletableFuture<Producer<?>> creation = producerCreations.computeIfAbsent(topic, k -> {
+            CompletableFuture<Producer<?>> promise = new CompletableFuture<>();
+            startProducerCreation(topic, schema, promise);
+            return promise;
+        });
+        // Never cache a negative: the placeholder removes itself on completion. Registered
+        // AFTER computeIfAbsent returns — a synchronously-completing creation would
+        // otherwise fire the removal BEFORE the map insertion (removal no-op) and leave
+        // the failed future cached.
+        creation.whenComplete((p, err) -> producerCreations.remove(topic, creation));
+        long timeoutMs = defaultProducerConfig != null
+                ? Math.max(defaultProducerConfig.getSendTimeout(), 1000L)
+                : 30000L;
+        try {
+            return creation.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            creation.cancel(false);
+            throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
+                    .description("Timed out creating Pulsar producer after " + timeoutMs
+                            + "ms:topic=" + topic)
+                    .cause(e);
+        } catch (java.util.concurrent.CancellationException e) {
+            // The service stopped (or a concurrent waiter timed out) and cancelled the
+            // placeholder — typed failure, never a raw CancellationException.
+            throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
+                    .description("Pulsar producer creation cancelled for topic " + topic)
+                    .cause(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
+                    .description("Interrupted while creating Pulsar producer:topic=" + topic)
+                    .cause(e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NopException) {
+                throw (NopException) cause;
+            }
+            throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
+                    .description("Failed to create Pulsar producer:topic=" + topic)
+                    .cause(cause);
+        }
     }
 
-    Producer<?> buildProducer(String topic, Schema<?> schema) {
-        // F-30 (WI20): a destroyed (or never-initialized) service must fail with a typed
-        // error, not an NPE from client.newProducer. Checked here (not in getProducer) so
-        // the on-demand creation path carries the guard; during the narrow destroy window
-        // where producers are already cleared but the client is closing, the underlying
-        // client error surfaces adapted instead.
-        if (client == null) {
-            throw new NopException(PulsarErrors.ERR_PULSAR_SERVICE_NOT_ACTIVE)
-                    .description("PulsarMessageService is not active; cannot create producer for topic " + topic);
-        }
+    /** 4.1-C8-007: kicks the async connect; a synchronous failure fails the placeholder. */
+    private void startProducerCreation(String topic, Schema<?> schema,
+                                       CompletableFuture<Producer<?>> promise) {
         try {
+            createProducerAsync(topic, schema).whenComplete((p, err) -> {
+                if (err != null) {
+                    promise.completeExceptionally(err);
+                } else {
+                    producers.put(topic, p);
+                    promise.complete(p);
+                }
+            });
+        } catch (Exception e) {
+            promise.completeExceptionally(e);
+        }
+    }
+
+    /**
+     * 4.1-C8-007 creation seam (overridable like the legacy {@link #buildProducer}): the
+     * async connect kicked OUTSIDE the placeholder map. Default routes through
+     * {@link #buildProducerAsync} (MA-06 lifecycle-lock guard).
+     */
+    CompletableFuture<Producer<?>> createProducerAsync(String topic, Schema<?> schema) {
+        return buildProducerAsync(topic, schema);
+    }
+
+    /**
+     * 4.1-C8-007 / 4.1-MA-06: async producer creation. The not-active guard runs under
+     * {@code producerLifecycleLock} — the same lock {@code doStop} holds while draining
+     * producers and closing the client — so a concurrent destroy cannot interleave
+     * between the guard and {@code newProducer} (TOCTOU window closed; the MA-06
+     * buildProducer face). C1-004 non-shadowing declaration: see {@link #getProducer}.
+     */
+    CompletableFuture<Producer<?>> buildProducerAsync(String topic, Schema<?> schema) {
+        synchronized (producerLifecycleLock) {
+            if (client == null) {
+                throw new NopException(PulsarErrors.ERR_PULSAR_SERVICE_NOT_ACTIVE)
+                        .description("PulsarMessageService is not active; cannot create producer for topic "
+                                + topic);
+            }
             ProducerBuilder<?> builder = client.newProducer(schema).topic(topic);
             if (defaultProducerConfig != null) {
                 builder.enableBatching(defaultProducerConfig.isBatchingEnabled());
                 builder.batchingMaxMessages(defaultProducerConfig.getBatchMaxMessages());
                 builder.sendTimeout(defaultProducerConfig.getSendTimeout(), TimeUnit.MILLISECONDS);
             }
-            return builder.create();
+            // Wildcard capture: createAsync() returns Producer<CAP>; erased view is safe —
+            // the map stores untyped Producer<?> everywhere else too.
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            CompletableFuture<Producer<?>> future = (CompletableFuture) builder.createAsync();
+            return future;
+        }
+    }
+
+    /**
+     * Synchronous producer creation, delegating to {@link #buildProducerAsync} (shared
+     * lifecycle-lock guard). Kept for the direct-callers/tests that expect the sync
+     * typed-rejection face (F-30/WI20, WI26/F-55 wrap).
+     */
+    Producer<?> buildProducer(String topic, Schema<?> schema) {
+        try {
+            return buildProducerAsync(topic, schema)
+                    .get(30, TimeUnit.SECONDS);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
+                    .description("Failed to create Pulsar producer")
+                    .cause(e.getCause());
         } catch (Exception e) {
-            // WI26 (F-55): wire the previously dead code for producer creation failures.
             throw new NopException(PulsarErrors.ERR_PULSAR_PRODUCER_CREATE_FAILED)
                     .description("Failed to create Pulsar producer")
                     .cause(e);
@@ -249,7 +374,37 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         return PulsarHelper.deriveAckTopic(topic);
     }
 
+    /**
+     * 4.1-C3-004（plan 2558 裁定 H）：send envelope — the whole segment INCLUDING
+     * {@code getProducer} is try/caught (mirrors Kafka {@code sendAsync} :288-311): any
+     * failure completes the returned future exceptionally with the
+     * {@code ERR_PULSAR_SEND_FAILED} envelope; the original exception — including the
+     * NOT_ACTIVE {@code NopException} — is preserved as the envelope cause
+     * (失败不缓存：getProducer 失败占位已由 C8-007 自移除). NEVER a synchronous throw:
+     * the {@code IMessageService.sendAsync} contract is a CompletionStage.
+     *
+     * <p>NOT_ACTIVE residual fork declaration（裁定 H）: Kafka surfaces not-active as a
+     * synchronous typed throw (getProducer 外置), Pulsar as this failed-future envelope —
+     * registered in {@code docs-for-ai/03-modules/nop-message.md}.
+     */
     private CompletableFuture<Void> sendPulsarAsync(String topic, Object message, MessageSendOptions options) {
+        try {
+            return doSendPulsarAsync(topic, message, options);
+        } catch (Exception e) {
+            return failedSendFuture(topic, e);
+        }
+    }
+
+    private static CompletableFuture<Void> failedSendFuture(String topic, Throwable cause) {
+        CompletableFuture<Void> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new NopException(PulsarErrors.ERR_PULSAR_SEND_FAILED)
+                .description("Pulsar producer send failed:topic=" + topic)
+                .cause(cause));
+        return failed;
+    }
+
+    private CompletableFuture<Void> doSendPulsarAsync(String topic, Object message,
+                                                      MessageSendOptions options) {
         long sendStartNanos = System.nanoTime();
         metrics.incrementSent();
         if (options != null && options.getCancelToken() != null && options.getCancelToken().isCancelled()) {
@@ -423,7 +578,35 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                 : PulsarConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS;
     }
 
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：consume await timeout from
+     * {@code PulsarConsumerConfig.consumeAwaitTimeoutMs} (module default when unconfigured).
+     */
+    long consumeAwaitTimeoutMs() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeAwaitTimeoutMs()
+                : PulsarConsumeTask.DEFAULT_CONSUME_AWAIT_TIMEOUT_MS;
+    }
+
+    /** 4.1-C8-005（plan 2558 裁定 K，同键族）：reconsumeLater delay 下限（模块缺省兜底）。 */
+    long consumeLaterMinDelayMs() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeLaterMinDelayMs()
+                : PulsarConsumeTask.DEFAULT_CONSUME_LATER_MIN_DELAY_MS;
+    }
+
+    /** 4.1-C8-005（plan 2558 裁定 K，同键族）：连续 defer 预算（0 = 不限）。 */
+    int consumeLaterMaxDefers() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeLaterMaxDefers()
+                : PulsarConsumeTask.DEFAULT_CONSUME_LATER_MAX_DEFERS;
+    }
+
     IMessageSubscription doSubscribe(MessageSubscriptionConfig subConfig) {
+        // 4.1-MA-06（plan 2558 裁定 D）：checkIsActive 前置交换 —— 守卫必须先于
+        // newConsumerBuilder（builder 读取 this.client）；destroy-then-subscribe 现在在任何
+        // client 触碰之前 typed 拒绝（F-30 subscribe path，窗口收窄到零）。
+        checkIsActive();
         Schema<?> schema = topicSchemas.get(subConfig.getTopic());
         if (schema == null) {
             schema = Schema.STRING;
@@ -431,7 +614,6 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
         ConsumerBuilder<?> builder = newConsumerBuilder(schema);
         builder.topic(subConfig.getTopic());
 
-        checkIsActive(); // WI29: destroy-then-subscribe surfaces typed, not NPE (F-30 subscribe path)
         MessageSubscribeOptions options = subConfig.getOptions();
         if (options != null) {
             if (options.getSubscribeName() != null) {
@@ -530,6 +712,8 @@ public class PulsarMessageService extends LifeCycleSupport implements IMessageSe
                     : PulsarConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS;
             PulsarConsumeTask task = new PulsarConsumeTask(this, executor,
                     (Consumer<Object>) consumer, subConfig, backoffMs);
+            // 4.1-MA-01（plan 2558 裁定 A）：wire the bounded consume-await timeout.
+            task.setConsumeAwaitTimeoutMs(consumeAwaitTimeoutMs());
             task.start();
             PulsarMessageSubscription subscription = new PulsarMessageSubscription(consumer, executor, task);
             subscriptions.add(subscription);

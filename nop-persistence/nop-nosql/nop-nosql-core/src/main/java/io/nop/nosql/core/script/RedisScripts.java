@@ -25,4 +25,11 @@ public interface RedisScripts {
     DigestedText HASH_REMOVE_IF_MATCH = loadScript("classpath:/nop/redis/hash_remove_if_match.lua");
     DigestedText HASH_PUT_IF_ABSENT_OR_MATCH = loadScript("classpath:/nop/redis/hash_put_if_absent_or_match.lua");
     DigestedText SESSION_SET_FIELD = loadScript("classpath:/nop/redis/session_set_field.lua");
+    DigestedText SESSION_SET = loadScript("classpath:/nop/redis/session_set.lua");
+    DigestedText HASH_PUT_EX = loadScript("classpath:/nop/redis/hash_put_ex.lua");
+    DigestedText HASH_PUT_IF_ABSENT_EX = loadScript("classpath:/nop/redis/hash_put_if_absent_ex.lua");
+    DigestedText HASH_GETSET_EX = loadScript("classpath:/nop/redis/hash_getset_ex.lua");
+    DigestedText KV_COMPUTE_IF_ABSENT = loadScript("classpath:/nop/redis/kv_compute_if_absent.lua");
+    DigestedText HASH_COMPUTE_IF_ABSENT = loadScript("classpath:/nop/redis/hash_compute_if_absent.lua");
+    DigestedText HASH_GET_SET = loadScript("classpath:/nop/redis/hash_get_set.lua");
 }

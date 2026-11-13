@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="fail-stop"
+        if-property="test.failstop.enabled|true"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="failingDestroy.bean" class="io.nop.plugin.test.FailingDestroyBean" destroy-method="onDestroy"/>
+        <bean id="nopPluginCommand_hello" class="io.nop.plugin.test.HelloCommand"/>
+    </beans>
+</plugin>

@@ -113,7 +113,7 @@ class TestTaskManagerLivenessAndReporting {
 
         // Install empty-chain invokable → run() returns immediately → COMPLETED
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
-        taskManager.installInvokable("job-1", "v-1", 0, inv);
+        taskManager.installInvokable("job-1", "v-1", 0, inv, token);
 
         // Wait for the terminal report to land (条件等待，超时仅作挂死保护)
         TestAwait.until("terminal report landed after the task completed",
@@ -146,7 +146,7 @@ class TestTaskManagerLivenessAndReporting {
         taskManager.receiveAssignment(a);
 
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
-        taskManager.installInvokable("job-1", "v-done", 0, inv);
+        taskManager.installInvokable("job-1", "v-done", 0, inv, token);
 
         // Wait for the natural COMPLETED report (RunningTask.run finally).
         TestAwait.until("task reports COMPLETED",
@@ -211,7 +211,7 @@ class TestTaskManagerLivenessAndReporting {
             StreamTaskInvokable inv = new StreamTaskInvokable(
                     buildEmptyOperatorChain(), (io.nop.stream.core.execution.RecordWriter<Object>) null,
                     new IdleInputGate());
-            taskManager.installInvokable("job-1", "v-idle", 0, inv);
+            taskManager.installInvokable("job-1", "v-idle", 0, inv, token);
 
             // 结构性证据：idle 主循环已多次重新求值（每轮 markActivity 读时钟，
             // 读取计数增长），任务仍 running —— 替代旧的固定观察窗。

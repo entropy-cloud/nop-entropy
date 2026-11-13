@@ -1,0 +1,20 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!-- CRA 8.48 R4-08 W-06（MA-13 裁定 B）/C8-016 矩阵腿 ii：步骤体同步抛出 AssertionError——
+         sync 出口 catch(Throwable) 收宽后 Error 亦进 driveStepFailure 既有通道（终态 FAILED
+         driver/meter 对 Error 可达）且 Error 原样传播（不 adapt 包装） -->
+    <steps>
+        <xpl name="errorStep">
+            <source><![CDATA[
+                import java.util.ServiceConfigurationError;
+                // Error 载体：AssertionError(String) 为 protected 构造器，XPL 反射实例化不可达，
+                // 矩阵腿 ii 改用 public String 构造器的 Error 子类（Error 传播语义同质）
+                throw new ServiceConfigurationError("r408-error-boundary-probe");
+            ]]></source>
+        </xpl>
+    </steps>
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

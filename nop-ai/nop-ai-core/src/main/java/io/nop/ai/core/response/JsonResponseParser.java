@@ -6,7 +6,8 @@ import io.nop.core.lang.json.parse.JsonParser;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
 
 public class JsonResponseParser {
-    private static JsonResponseParser s_instance = new JsonResponseParser();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003）：volatile 保证换装可见 + 安全发布
+    private static volatile JsonResponseParser s_instance = new JsonResponseParser();
 
     public static JsonResponseParser instance() {
         return s_instance;

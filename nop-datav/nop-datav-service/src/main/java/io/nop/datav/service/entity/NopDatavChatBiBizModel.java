@@ -293,7 +293,9 @@ public class NopDatavChatBiBizModel {
 
         // 多轮会话路径（裁定 S3/S4）：归属校验 → 历史注入 → 执行 → 落库
         NopDatavChatSession session = sessionManager.requireSession(sessionId, operator);
-        List<NopDatavChatMessage> history = sessionManager.loadMessages(sessionId);
+        // 裁定⑩（plan 2026）：注入路径有界加载（2×maxTurns+1）——裁剪从全量加载后前移到加载集有界
+        List<NopDatavChatMessage> history = sessionManager.loadRecentMessages(sessionId,
+                sessionManager.recentMessageLimitForInjection());
         List<ChatMessage> historyContext = sessionManager.buildHistoryContext(history,
                 CFG_DATAV_CHATBI_HISTORY_MAX_TURNS.get(), CFG_DATAV_CHATBI_HISTORY_MAX_CHARS.get());
 

@@ -3,6 +3,8 @@ package io.nop.lint.core.suppress;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.lint.core.NopLintException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,6 +29,8 @@ import java.util.List;
  * root (the documented v1 limitation).</p>
  */
 public record BaselineFile(int version, List<Entry> entries) {
+
+    private static final Logger LOG = LoggerFactory.getLogger(BaselineFile.class);
 
     /**
      * The only baseline format version this engine reads and writes.
@@ -182,11 +186,34 @@ public record BaselineFile(int version, List<Entry> entries) {
 
     /**
      * Writes the baseline to {@code file} (the regeneration path overwrites
-     * — the baseline is a generated artifact, plan 2026-09-24-0050-1).
+     * — the baseline is a generated artifact, plan 2026-09-24-0050-1). The
+     * write is atomic (unique temp file + atomic move, plan 2531 W-10): a
+     * killed run must never leave a half-written baseline behind, and a
+     * failed write deletes its temp file before propagating.
      */
     public void writeTo(Path file) {
         try {
-            Files.writeString(file, toYaml(), StandardCharsets.UTF_8);
+            Path target = file.toAbsolutePath().normalize();
+            Path temp = Files.createTempFile(target.getParent(),
+                    target.getFileName().toString(), ".tmp");
+            boolean moved = false;
+            try {
+                Files.writeString(temp, toYaml(), StandardCharsets.UTF_8);
+                Files.move(temp, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                moved = true;
+            } finally {
+                if (!moved) {
+                    try {
+                        Files.deleteIfExists(temp);
+                    } catch (Exception cleanupFailure) {
+                        // the primary write failure is already propagating; a
+                        // leftover temp must not mask it, only be reported
+                        LOG.warn("nop.lint.baseline.temp-cleanup-failed:file={},temp={}",
+                                file, temp, cleanupFailure);
+                    }
+                }
+            }
         } catch (Exception e) {
             throw new NopLintException("failed to write baseline file '" + file + "': "
                     + e.getMessage(), e);

@@ -16,23 +16,34 @@ import java.security.KeyStore;
 public class NettySslEngineFactory implements ISslEngineFactory {
     @Override
     public SslContext getSslContext(SslConfig sslConfig, boolean clientMode) {
+        // 4.3-C1-014（plan 2561 裁定 A）：原双路径 check-then-set 无锁——并发首装会重复
+        // buildSslContext（keystore 反复加载 + SslContext 双建，其一弃而泄漏），并可能发布
+        // 未完全构造的上下文。收敛为以 sslConfig 为锁粒度的 synchronized 惰性块 + SslConfig
+        // 缓存字段 volatile（double-check 于锁内复读，早退路径读 volatile 可见）。
         if (clientMode) {
-            if (sslConfig.getClientSslContext() != null)
-                return sslConfig.getClientSslContext();
-            SslContext sslContext = buildSslContext(sslConfig, clientMode);
-            sslConfig.setClientSslContext(sslContext);
-            return sslContext;
-        } else {
-            if (sslConfig.getServerSslContext() != null) {
-                return sslConfig.getServerSslContext();
+            synchronized (sslConfig) {
+                if (sslConfig.getClientSslContext() != null)
+                    return sslConfig.getClientSslContext();
+                SslContext sslContext = buildSslContext(sslConfig, clientMode);
+                sslConfig.setClientSslContext(sslContext);
+                return sslContext;
             }
-            SslContext sslContext = buildSslContext(sslConfig, clientMode);
-            sslConfig.setServerSslContext(sslContext);
-            return sslContext;
+        } else {
+            synchronized (sslConfig) {
+                if (sslConfig.getServerSslContext() != null) {
+                    return sslConfig.getServerSslContext();
+                }
+                SslContext sslContext = buildSslContext(sslConfig, clientMode);
+                sslConfig.setServerSslContext(sslContext);
+                return sslContext;
+            }
         }
     }
 
-    private SslContext buildSslContext(SslConfig sslConfig, boolean clientMode) {
+    /**
+     * 构建点（protected seam 供测试注入计数桩——对齐 TencentEmailSender.createClient 先例）。
+     */
+    protected SslContext buildSslContext(SslConfig sslConfig, boolean clientMode) {
         InputStream in = null;
         try {
             String sslKeyStoreType = sslConfig.getKeyStoreType();

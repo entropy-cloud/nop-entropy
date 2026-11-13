@@ -488,6 +488,9 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
 
         assertFalse(session.isClosed());
         assertEquals("Bearer token-new", handler.authHeaders.get("Authorization"));
+        // 4.4-C1-003（plan 2562 裁定 D）：refresh 确认帧改经 sendPump 异步出站——await 适配时序
+        awaitUntil("tokenRefresh acknowledgment sent", () -> session.getSentMessages().stream()
+                .anyMatch(m -> m.contains("\"refreshed\":true")));
         assertTrue(session.getSentMessages().stream().anyMatch(m -> m.contains("\"refreshed\":true")),
                 "tokenRefresh must be acknowledged");
     }

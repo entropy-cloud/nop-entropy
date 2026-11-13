@@ -227,15 +227,23 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
                             state.getPromise().complete(res);
                         }
                     } finally {
-                        completedTasks.incrementAndGet();
+                        // 1.7-C3-018：取消后任务仍自然完成的形态按 isCancelled() 分流计数，
+                        // 避免「被取消的任务计入 completedTasks」的指标失真（at-least-once 完成+结果丢弃）。
+                        if (state.isCancelled())
+                            cancelledTasks.incrementAndGet();
+                        else
+                            completedTasks.incrementAndGet();
                         startedTasks.decrementAndGet();
                         // 仅当 Map 中仍是该 state 时才移除，防止 replaceTask 后误删
                         states.remove(state.getTaskRef(), state);
                     }
                 });
 
-                // 继续保留取消绑定，确保 state.promise 取消时可取消 future
-                FutureHelper.bindCancel(future, state.getPromise());
+                // 1.7-C3-018（plan 2547 裁定 E）：原实现实参反接——bindCancel(promise, future) 的
+                // 语义是「promise 取消时 cancel future」，却传成了 (future, state.promise)，
+                // 于是「state.promise 取消 → 取消任务 future」这条声明契约从未接线。
+                // 同时第二参必须是 java.util.concurrent.Future（live future 是 CompletionStage）。
+                FutureHelper.bindCancel(state.getPromise(), future.toCompletableFuture());
             } catch (Exception e) {
                 // executeAsync 抛出同步异常时也要做清理
                 state.getPromise().completeExceptionally(e);
@@ -303,15 +311,16 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
 
     @Override
     public boolean waitForAllTasks(long timeout, TimeUnit unit) throws InterruptedException {
-        long endTime = CoreMetrics.currentTimeMillis() + unit.toMillis(timeout);
+        // R4-32（C7-004）：等待期限换单调时钟（读写同源），timeout 经 toNanos 换算保持时长语义
+        long endTime = CoreMetrics.nanoTime() + unit.toNanos(timeout);
 
         for (State state : new ArrayList<>(states.values())) {
-            long remaining = endTime - CoreMetrics.currentTimeMillis();
+            long remaining = endTime - CoreMetrics.nanoTime();
             if (remaining <= 0)
                 return false;
 
             try {
-                state.getPromise().get(remaining, TimeUnit.MILLISECONDS);
+                state.getPromise().get(remaining, TimeUnit.NANOSECONDS);
             } catch (java.util.concurrent.TimeoutException e) {
                 return false;
             } catch (java.util.concurrent.ExecutionException expected) {

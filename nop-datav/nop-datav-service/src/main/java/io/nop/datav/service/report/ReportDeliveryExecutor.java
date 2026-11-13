@@ -225,6 +225,15 @@ public class ReportDeliveryExecutor {
             markFailedSafe(deliveryId, "report delivery row not visible to worker after retries");
             return null;
         }
+        // 终态短路（裁定③ face b 修复，plan 2526）：加载即终态（scanner/recovery 已定终态）→ 放弃
+        // 执行——积压交付出队后不得把 FAILED"复活"（重复发送邮件面）。置于 task 加载与 grace 检查
+        // 之前：终态行不做任何后续处置（含 markFailed/markSkipped 重写）。
+        if (NopDatavReportDeliveryStatus.isTerminal(delivery.getStatus())) {
+            LOG.warn("nop.datav.report.terminal-short-circuit:deliveryId={},status={} "
+                    + "(row already terminal; abandon backlogged delivery)", deliveryId, delivery.getStatus());
+            return null;
+        }
+
         NopDatavReportTask task = taskDao.getEntityById(reportTaskId);
         if (task == null) {
             markFailed(deliveryDao, delivery, "report task not found: " + reportTaskId);
@@ -245,10 +254,14 @@ public class ReportDeliveryExecutor {
             return null;
         }
 
-        // pending → running
+        // pending → running（裁定③条件更新形态：0 行 = 已被 scanner 定终态 → 放弃）
         delivery.setStatus(NopDatavReportDeliveryStatus.RUNNING);
         touchDelivery(delivery, task.getUpdatedBy());
-        deliveryDao.updateEntityDirectly(delivery);
+        if (!writeWithFencing(deliveryDao, delivery)) {
+            LOG.warn("nop.datav.report.running-write-conflict:deliveryId={} "
+                    + "(row advanced concurrently; abandon execution)", deliveryId);
+            return null;
+        }
 
         try {
             // 校验看板已发布（无发布快照抛错 → failed）
@@ -268,11 +281,17 @@ public class ReportDeliveryExecutor {
             delivery.setRowCount(file.getRowCount());
 
             // SUCCEEDED 提交（在 session 内，先于邮件送达）。deliveredChannels 待邮件送达成功后回写。
+            // 裁定③条件更新形态：0 行 = 已被 scanner 抢先定终态 → 放弃 + 回收不可达产物（裁定⑤合流）。
             delivery.setStatus(NopDatavReportDeliveryStatus.SUCCEEDED);
             delivery.setErrorMsg(null);
             delivery.setEndTime(CoreMetrics.currentTimestamp());
             touchDelivery(delivery, task.getUpdatedBy());
-            deliveryDao.updateEntityDirectly(delivery);
+            if (!writeWithFencing(deliveryDao, delivery)) {
+                LOG.warn("nop.datav.report.terminal-write-conflict:deliveryId={},fileId={} "
+                        + "(fenced SUCCEEDED write 0-row; reclaiming unreferenced report file)", deliveryId, fileId);
+                reclaimDeliveryFile(fileId, deliveryId, "succeeded-write-conflict");
+                return null;
+            }
 
             touchTask(taskDao, task, NopDatavReportDeliveryStatus.SUCCEEDED, null, delivery.getEndTime());
 
@@ -280,11 +299,23 @@ public class ReportDeliveryExecutor {
         } catch (Exception e) {
             Throwable reason = NopException.adapt(e);
             String errMsg = safeMsg(reason);
+            String savedFileId = delivery.getGeneratedFileRecordId();
             delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
             delivery.setErrorMsg(errMsg);
             delivery.setEndTime(CoreMetrics.currentTimestamp());
             touchDelivery(delivery, task.getUpdatedBy());
-            deliveryDao.updateEntityDirectly(delivery);
+            if (writeWithFencing(deliveryDao, delivery)) {
+                // FAILED 行随 generatedFileRecordId 持久化（行引用在，文件可达）→ 不回收（裁定⑤不变式）
+                if (!StringHelper.isEmpty(savedFileId)) {
+                    LOG.info("nop.datav.report.failed-keeps-file:deliveryId={},fileId={} "
+                            + "(file referenced by FAILED row, no reclaim)", deliveryId, savedFileId);
+                }
+            } else if (!StringHelper.isEmpty(savedFileId)) {
+                // 行写 0 行（已被抢先定终态）→ generatedFileRecordId 未持久化 → 文件不可达 → 回收
+                LOG.warn("nop.datav.report.failed-write-conflict:deliveryId={},fileId={} "
+                        + "(fenced FAILED write 0-row; reclaiming unreferenced report file)", deliveryId, savedFileId);
+                reclaimDeliveryFile(savedFileId, deliveryId, "failed-write-conflict");
+            }
             touchTask(taskDao, task, NopDatavReportDeliveryStatus.FAILED, errMsg, delivery.getEndTime());
             LOG.warn("nop.datav.report.delivery-failed:reportTaskId={} deliveryId={} error={}",
                     reportTaskId, deliveryId, errMsg, reason);
@@ -460,7 +491,49 @@ public class ReportDeliveryExecutor {
         delivery.setErrorMsg(reason);
         delivery.setEndTime(CoreMetrics.currentTimestamp());
         touchDelivery(delivery, "system");
+        if (!writeWithFencing(dao, delivery)) {
+            LOG.warn("nop.datav.report.mark-failed-conflict:deliveryId={} "
+                    + "(row advanced concurrently; keep winner state)", delivery.getDeliveryId());
+        }
+    }
+
+    /**
+     * 裁定③统一条件更新形态（plan 2526，与 NopDatavExportTaskBizModel.writeWithFencing 同族单形态）：
+     * {@code orm_disableVersionCheckError(true)} + 0 行降级 readonly 标记（平台原生条件更新，2525 先例）。
+     *
+     * @return true=写入成功；false=0 行冲突（并发写者已推进版本，调用方按放弃语义处置）
+     */
+    private boolean writeWithFencing(IEntityDao<NopDatavReportDelivery> dao, NopDatavReportDelivery delivery) {
+        delivery.orm_disableVersionCheckError(true);
         dao.updateEntityDirectly(delivery);
+        return !delivery.orm_readonly();
+    }
+
+    /**
+     * 裁定⑤（plan 2526，Option A 模块内回收）：交付产物回收——仅当 fileId 不被任何可达持久化行
+     * 引用（行写 0 行/行写失败）时调用。镜像 detachFileInSession「行删→物删」序列；
+     * 失败显式 WARN + path 结构化日志（对账兜底归 Non-Blocking Follow-up）。
+     */
+    private void reclaimDeliveryFile(String fileId, String deliveryId, String phase) {
+        if (StringHelper.isEmpty(fileId)) {
+            return;
+        }
+        try {
+            io.nop.file.dao.entity.NopFileRecord row =
+                    daoProvider.daoFor(io.nop.file.dao.entity.NopFileRecord.class).getEntityById(fileId);
+            if (row != null) {
+                daoProvider.daoFor(io.nop.file.dao.entity.NopFileRecord.class).deleteEntity(row);
+            }
+            io.nop.file.core.IFileRecord fileRecord = fileStore.getFile(fileId);
+            IResource resource = fileRecord == null ? null : fileRecord.getResource();
+            if (resource != null && resource.exists() && !resource.delete()) {
+                LOG.warn("nop.datav.report.reclaim-file-delete-fail:fileRecordId={},path={},deliveryId={},phase={}",
+                        fileId, resource.getPath(), deliveryId, phase);
+            }
+        } catch (Exception e) {
+            LOG.warn("nop.datav.report.reclaim-fail:fileRecordId={},deliveryId={},phase={}",
+                    fileId, deliveryId, phase, e);
+        }
     }
 
     private void markFailedSafe(String deliveryId, String reason) {
@@ -473,7 +546,10 @@ public class ReportDeliveryExecutor {
                     delivery.setErrorMsg(reason);
                     delivery.setEndTime(CoreMetrics.currentTimestamp());
                     touchDelivery(delivery, "system");
-                    dao.updateEntityDirectly(delivery);
+                    if (!writeWithFencing(dao, delivery)) {
+                        LOG.warn("nop.datav.report.mark-failed-conflict:deliveryId={} "
+                                + "(row advanced concurrently; keep winner state)", deliveryId);
+                    }
                 }
                 return null;
             });
@@ -540,6 +616,18 @@ public class ReportDeliveryExecutor {
             }
             return delivery.getDeliveryId();
         }
+
+    /**
+     * 测试 seam（plan 2526 红② face b 复活钉）：同步驱动既有交付行（绕过 {@link #execute} 的
+     * pending 插入），供「积压交付已被 scanner 标 FAILED 后不得复活」断言使用。
+     * 镜像 {@link #executeSyncForTest} 的同步驱动先例；不触发 SMTP（短路/放弃路径不产生送达）。
+     */
+    public String runDeliveryInSessionForTest(String reportTaskId, String deliveryId, String triggerSource,
+                                              long scheduledFireTime) {
+        ormTemplate.runInNewSession(session ->
+                runDeliveryInSession(session, reportTaskId, deliveryId, triggerSource, scheduledFireTime));
+        return deliveryId;
+    }
 
     /** 测试辅助：暴露 IOrmTemplate（断言新 session 路径） */
     public IOrmTemplate getOrmTemplate() {

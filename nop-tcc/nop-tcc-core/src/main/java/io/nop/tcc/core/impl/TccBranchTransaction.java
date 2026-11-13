@@ -155,7 +155,11 @@ public class TccBranchTransaction implements ITccBranchTransaction {
                     timeout ? TccStatus.TIMEOUT_SUCCESS : TccStatus.CANCEL_SUCCESS, ex);
         }
 
-        if (Boolean.TRUE.equals(response.getBizFatal())) {
+        // 1.6-C3-009（plan 2543 W-05）：response == null 判空——三处 finish* 中唯独此处缺失
+        // （finishTryAsync/finishConfirmAsync 均判空）。SPI 违约以 null 正常完成时在此 NPE，
+        // 异常落在 TccRunner 的 whenComplete 回调体内、手工 future 无人完成 → 整条 cancel 链挂死。
+        // null 与非成功响应同路：按取消失败记录，交恢复循环重试。
+        if (response != null && Boolean.TRUE.equals(response.getBizFatal())) {
             return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.BIZ_CANCEL_FAILED, ex);
         }
 

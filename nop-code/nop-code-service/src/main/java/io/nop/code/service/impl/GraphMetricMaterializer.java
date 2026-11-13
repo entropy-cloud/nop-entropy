@@ -5,8 +5,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,33 @@ class GraphMetricMaterializer {
     private final ITransactionTemplate transactionTemplate;
     private final IOrmTemplate ormTemplate;
 
+    /**
+     * Per-index single-flight gates (6.3-W-03 / plan 2530 裁定② — tryLock
+     * skip-and-degrade form; {@link CodeIndexService} indexLocks is the same-family
+     * precedent). Non-blocking acquisition: nobody waits on the gate while holding it, so
+     * no lock-ordering surface exists for the ShardBuildCoordinator in-transaction call.
+     */
+    private final ConcurrentHashMap<String, ReentrantLock> materializeGates = new ConcurrentHashMap<>();
+
+    /**
+     * Failure backoff: per-index cooldown deadline recorded when the computation body throws
+     * (裁定②.4). The cooldown only applies to the failure path - a successful body clears the
+     * record, so normal rebuilds are never suppressed by a stale failure. Default window
+     * matches the {@code nop.code.rebuild.debounce-millis|30000} family.
+     */
+    private final ConcurrentHashMap<String, Long> failureCooldownUntil = new ConcurrentHashMap<>();
+
+    private long failureCooldownMillis = 30_000L;
+
+    /** Cooldown window length (package-visible plain setter — direct-new assembly, not an IoC bean; ShardBuildCoordinator.setMetricMaterializer precedent). */
+    void setFailureCooldownMillis(long failureCooldownMillis) {
+        if (failureCooldownMillis < 0) {
+            throw new IllegalArgumentException(
+                    "failureCooldownMillis must be >= 0, got: " + failureCooldownMillis);
+        }
+        this.failureCooldownMillis = failureCooldownMillis;
+    }
+
     GraphMetricMaterializer(IDaoProvider daoProvider, CodeCacheManager cacheManager,
                             ITransactionTemplate transactionTemplate, IOrmTemplate ormTemplate) {
         this.daoProvider = daoProvider;
@@ -81,38 +109,87 @@ class GraphMetricMaterializer {
      * Leiden runs exactly once per materialization and its result feeds the COMMUNITY,
      * COMMUNITY_INFO and GRAPH_SUMMARY families (compute-once: values returned to callers
      * must equal the persisted values).
+     *
+     * <p>Single-flight + failure backoff (6.3-W-03 / plan 2530 裁定② — this entry point is
+     * the single choke point (唯一收口) for all 6 self-heal/trigger faces, so the gate here covers them all and
+     * no call face changed): a concurrent trigger for an index whose materialization is
+     * already in progress skips immediately with a structured WARN
+     * ({@code reason=in-progress}) — the winner is computing exactly what the loser wants,
+     * and read paths degrade through the existing assemble→null→in-memory fallback chains.
+     * After a failed body, subsequent calls inside the cooldown window skip with
+     * {@code reason=cooldown-active}; success clears the failure record. Residual
+     * (explicitly bounded, owner-doc contract): under gate contention the
+     * ShardBuildCoordinator publish path degrades to eventual consistency bounded by the
+     * in-flight materialization duration; after an in-flight failure, by the cooldown window
+     * plus the next read-triggered attempt.
      */
     public void materialize(String indexId) {
-        CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
-                (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
-        SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
-                CodeSymbolConverter::toCodeSymbol);
+        ReentrantLock gate = materializeGates.computeIfAbsent(indexId, k -> new ReentrantLock());
+        if (!gate.tryLock()) {
+            // single-flight skip-and-degrade: explicit WARN, never a silent skip - losers
+            // return immediately and every read face degrades through its existing fallback
+            LOG.warn("nop.code.graph-metrics-skip:indexId={},reason=in-progress", indexId);
+            return;
+        }
+        try {
+            Long cooldownUntil = failureCooldownUntil.get(indexId);
+            if (cooldownUntil != null && System.currentTimeMillis() < cooldownUntil) {
+                LOG.warn("nop.code.graph-metrics-skip:indexId={},reason=cooldown-active", indexId);
+                return;
+            }
+            CallGraph callGraph = cacheManager.getOrRebuildCallGraph(indexId, daoProvider,
+                    (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
+            SymbolTable symbolTable = cacheManager.getOrRebuildSymbolTable(indexId, daoProvider,
+                    CodeSymbolConverter::toCodeSymbol);
 
-        CodeCallGraph graph = new CodeCallGraph(callGraph);
-        Set<String> nodes = callGraph.getAllNodeIds();
+            CodeCallGraph graph = new CodeCallGraph(callGraph);
+            Set<String> nodes = callGraph.getAllNodeIds();
 
-        CommunityResult communityResult = detectCommunities(graph, nodes);
-        long computedAt = System.currentTimeMillis();
-        List<NopCodeGraphMetric> rows = new ArrayList<>();
-        rows.addAll(communityRows(indexId, communityResult, computedAt));
-        rows.addAll(communityInfoRows(indexId, communityResult, computedAt));
-        rows.addAll(summaryRows(indexId, communityResult, nodes, symbolTable, computedAt));
-        rows.addAll(betweennessRows(indexId, graph, nodes, computedAt));
-        rows.addAll(pageRankRows(indexId, graph, nodes, computedAt));
-        rows.addAll(entryPointRows(indexId, callGraph, symbolTable, computedAt));
-        rows.addAll(hubRows(indexId, callGraph, nodes, computedAt));
+            CommunityResult communityResult = detectCommunities(graph, nodes);
+            long computedAt = System.currentTimeMillis();
+            List<NopCodeGraphMetric> rows = new ArrayList<>();
+            rows.addAll(communityRows(indexId, communityResult, computedAt));
+            rows.addAll(communityInfoRows(indexId, communityResult, computedAt));
+            rows.addAll(summaryRows(indexId, communityResult, nodes, symbolTable, computedAt));
+            rows.addAll(betweennessRows(indexId, graph, nodes, computedAt));
+            rows.addAll(pageRankRows(indexId, graph, nodes, computedAt));
+            rows.addAll(entryPointRows(indexId, callGraph, symbolTable, computedAt));
+            rows.addAll(hubRows(indexId, callGraph, nodes, computedAt));
 
-        replaceRows(indexId, rows);
-        LOG.info("nop.code.graph-metrics-materialized:indexId={},rows={}", indexId, rows.size());
+            replaceRows(indexId, rows);
+            LOG.info("nop.code.graph-metrics-materialized:indexId={},rows={}", indexId, rows.size());
+            // backoff applies to the failure path only: success clears the failure record
+            failureCooldownUntil.remove(indexId);
+        } catch (RuntimeException e) {
+            // record the failure deadline and rethrow unchanged - caller catch chains stay
+            // intact and keep surfacing the root cause
+            failureCooldownUntil.put(indexId, System.currentTimeMillis() + failureCooldownMillis);
+            throw e;
+        } finally {
+            gate.unlock();
+        }
     }
 
     /**
      * Single Leiden invocation shared by COMMUNITY / COMMUNITY_INFO / GRAPH_SUMMARY builders.
-     * Returns null for node sets too small for community detection.
+     * Returns null for node sets too small for community detection and for node sets over the
+     * shared size guard (5.6-W-04 / plan 2530 裁定③: references
+     * {@link CodeGraphService#MAX_NODES_FOR_COMMUNITY_DETECTION} — same constant, no
+     * duplicate; aligned with the BETWEENNESS_MAX_NODES guard family). An over-limit graph
+     * yields null - COMMUNITY/COMMUNITY_INFO rows are simply absent and GRAPH_SUMMARY carries
+     * no algorithm fields; readers degrade through the existing null chains (assemble →
+     * null → in-memory computation). The other metric families are unaffected - the guard
+     * only degrades the community family, it never escalates into a materialization failure.
      */
     private CommunityResult detectCommunities(CodeCallGraph graph, Set<String> nodes) {
         if (nodes.size() < 2) {
             LOG.info("nop.code.graph-metrics-skip:indexId-internal,metric=COMMUNITY,reason=node-set-too-small");
+            return null;
+        }
+        if (nodes.size() > CodeGraphService.MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("nop.code.graph-metrics-skip:indexId-internal,metric=COMMUNITY,"
+                            + "reason=node-count-exceeds-max,nodes={},max={}",
+                    nodes.size(), CodeGraphService.MAX_NODES_FOR_COMMUNITY_DETECTION);
             return null;
         }
         LeidenConfig config = LeidenConfig.create()
@@ -267,6 +344,13 @@ class GraphMetricMaterializer {
         return row;
     }
 
+    // W-15 seam: insert-side slice size (F2: instance field + package setter, zero diff default)
+    volatile int insertBatchSize = DELETE_BATCH_SIZE;
+
+    void setInsertBatchSizeForTest(int size) {
+        this.insertBatchSize = size;
+    }
+
     private void replaceRows(String indexId, List<NopCodeGraphMetric> rows) {
         transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                 ormTemplate.runInSession(session -> {
@@ -287,8 +371,23 @@ class GraphMetricMaterializer {
                         if (batch.size() < DELETE_BATCH_SIZE)
                             break;
                     }
+                    // W-15 (plan 2565, adjudication J / F2 form #2): symmetric batching on
+                    // the insert side — slices of insertBatchSize saves + flush + clear per
+                    // slice (mirrors the delete side above; same session, equivalent risk).
+                    // Seam: instance field + package setter, default DELETE_BATCH_SIZE.
+                    int saved = 0;
                     for (NopCodeGraphMetric row : rows) {
                         dao.saveEntity(row);
+                        saved++;
+                        if (saved >= insertBatchSize) {
+                            session.flush();
+                            session.clear();
+                            saved = 0;
+                        }
+                    }
+                    if (saved > 0) {
+                        session.flush();
+                        session.clear();
                     }
                     return null;
                 }));

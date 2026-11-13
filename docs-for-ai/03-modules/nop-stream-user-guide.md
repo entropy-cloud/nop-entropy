@@ -172,7 +172,7 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 **allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
 
-**sideInputs 有限维表注入（WI11/plan 2357，WI0(c) 裁定语义）**：`<sideInputs><sideInput id="dict" from="dictSupplier" to="enrich" broadcast="true"/></sideInputs>` 声明构建期物化的有限维表只读快照——`from` 是 `Supplier<Map<String,Object>>` 类型的 bean id，builder 构建期调用 `get()` 恰一次并**冻结**快照（低频更新=重启作业刷新，bean 运行期不再被调用）；`to` 仅限 map/filter/flatMap 的 xpl-fn 形态（bean 形态 typed 拒绝——绑定到不了 IoC 装配的函数，静默无操作是禁止面）；消费端 xpl 体经 `sideInputs['<id>']` 绑定访问（key=sideInput id）。`broadcast` 仅支持 true（快照复制到所有并行实例的注入方式标记）；xdef 默认值 false 为历史遗留、现 typed 拒绝；无流式广播、无 BroadcastState（vision §七 #G36）。七类结构校验全部前移 validateDag（duplicate id 由 xdef 唯一性在 parse 层先行拒绝；builder 校验为程序化路径防御）。
+**sideInputs 有限维表注入（WI11/plan 2357，WI0(c) 裁定语义）**：`<sideInputs><sideInput id="dict" from="dictSupplier" to="enrich" broadcast="true"/></sideInputs>` 声明构建期物化的有限维表只读快照——`from` 是 `Supplier<Map<String,Object>>` 类型的 bean id，builder 构建期调用 `get()` 恰一次并**冻结**快照（低频更新=重启作业刷新，bean 运行期不再被调用）。冻结为机制强制（CRA 8.45 R4-05 W-01）：快照结构化拷贝+只读包装（含嵌套 Map/List 与 `sideInputs` 顶层），xpl 体对快照的任何写入运行期 typed `UnsupportedOperationException`——运行期改维表请改用 lookup 形态或重启作业刷新；`to` 仅限 map/filter/flatMap 的 xpl-fn 形态（bean 形态 typed 拒绝——绑定到不了 IoC 装配的函数，静默无操作是禁止面）；消费端 xpl 体经 `sideInputs['<id>']` 绑定访问（key=sideInput id）。`broadcast` 仅支持 true（快照复制到所有并行实例的注入方式标记）；xdef 默认值 false 为历史遗留、现 typed 拒绝；无流式广播、无 BroadcastState（vision §七 #G36）。七类结构校验全部前移 validateDag（duplicate id 由 xdef 唯一性在 parse 层先行拒绝；builder 校验为程序化路径防御）。
 **与 lookup 形态的差异化判定（四象限）**：①多维表→两形态均可（sideInput 多条声明、lookup 多 bean）；②大维表→**lookup 胜**（sideInput 全量复制有内存放大，lookup 走外部存储/有界本地物化）；③构建期注入→**sideInput 胜**（声明式、构建期一次物化、免 lookup 装配代码）；④共享只读快照→**sideInput 胜**（一处声明多处消费）。判定结论：**互补共存**——sideInput=构建期小/静态维表（字典/配置/码表），lookup=运行时大/热维表（外部存储、有界并发、物化刷新）；E11 富化主线维持 lookup 形态（场景矩阵裁定）。锚点：`TestWi11SideInputDeclaration`（12 用例）、`TestSideInputEnrichmentE2E`（两形态等价性 + 变异探针断线必红）。
 
 **持续源与回补声明形态（WI19/plan 2365，WI0 默认分支）**：file tailing 持续源**不做**（WI0 裁定——连续流模型由 connector 工厂面承载持续源；触发条件=真实 tailing 数据源诉求出现，届时按 connector 工厂扩展而非 DSL 内核）。回补作业声明形态：`jobTerminationMode="DRAIN"`（checkpoint 块声明）+ bounded 重放 source（`TimeRangeReplayableSource`/`BatchLoaderSourceFunction` bean 形态）即 RECALCULATE 配方（声明面钉 `TestWi19BackfillDeclaration`/`TestWi19BoundedReplayDeclarationE2E`；引擎语义与 UPSERT 幂等=multi-engine WI10 的 `TestRecalculateBackfillE2E` 与「重算作业配方」节）。
@@ -308,7 +308,7 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 | CEP | `<patterns>` 声明式（量词/where/until/within/gapWithin/skip 策略） | `AdvancedTransforms.buildCep` |
 | sideOutput | `<sideOutput tag condition>` tap 顶点 + `<edge outputTag>` 消费边（配对校验） | `AdvancedTransforms.buildSideOutput`、`StreamModelDslBuilder.validateSideOutputDeclarations` |
 | 窗口迟到数据侧输出（WI10） | `<window lateData="tag">` 声明面：迟到记录（skipped 且 ts+allowedLateness≤wm）经 tag 通道发往宿主顶点的下游 transform；tag 全局唯一/宿主恰一/消费边恰一/from=宿主 校验全部前移 validateDag | `StreamModelDslBuilder.validateSideOutputDeclarations`（lateData 段）、`AdvancedTransforms.buildWindow`（sideOutputLateData 接线） |
-| sideInputs 有限维表注入（WI11） | `<sideInputs><sideInput id from to broadcast="true"/>`：from=Supplier bean id（构建期 get() 一次物化只读快照并冻结）；to=map/filter/flatMap 的 xpl-fn 形态（bean 形态拒绝）；消费端 xpl 体经 `sideInputs['<id>']` 绑定访问；七类校验（duplicate id xdef 唯一性 parse 层拒绝/broadcast 遗留默认 false 拒绝/to 不存在/to 非 map 族/to bean 形态/from 缺失/from 非 Supplier）全部前移 validateDag | `StreamModelDslBuilder.validateSideInputs`、`materializeSideInputs`、`XplFunctionSupport.newCallScope(bindings)` |
+| sideInputs 有限维表注入（WI11） | `<sideInputs><sideInput id from to broadcast="true"/>`：from=Supplier bean id（构建期 get() 一次物化只读快照并冻结——CRA 8.45 R4-05 W-01 起为机制强制：递归拷贝+只读包装，xpl 体写快照 typed UOE）；to=map/filter/flatMap 的 xpl-fn 形态（bean 形态拒绝）；消费端 xpl 体经 `sideInputs['<id>']` 绑定访问；七类校验（duplicate id xdef 唯一性 parse 层拒绝/broadcast 遗留默认 false 拒绝/to 不存在/to 非 map 族/to bean 形态/from 缺失/from 非 Supplier）全部前移 validateDag | `StreamModelDslBuilder.validateSideInputs`、`materializeSideInputs`/`freezeSnapshot`、`XplFunctionSupport.newCallScope(bindings)` |
 | 事件时间 | `timestampsAndWatermarks`（watermarkStrategyBean 或 xpl assigner+generator 至少一；`watermarkInterval=0` 逐事件） | `AdvancedTransforms.buildTimestampsAndWatermarks` |
 | 边 | FORWARD/HASH+keyExpr；per-transform parallelism | `StreamModelDslBuilder.validateEdgeDeclarations`、`applyDeclaredParallelism` |
 | 类型 | `<schemas>` 受管九类型（string/int/bigint/smallint/tinyint/float/double/boolean/bytes） | `StreamSchemaRegistry.resolveSchemas` |
@@ -370,6 +370,17 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 2. 先启 TaskManager、后启 JobCoordinator（命令模板见 owner doc）。
 3. 作业拓扑经 `pipelineFactoryClass`（`ClusterPipelineFactory`）在 coordinator 进程重建——XDSL 管线经 `RemotePipelineResolver` 用与本地完全相同的 `DslModelParser → StreamModelDslBuilder → buildJobGraph` 链在 TM 侧重建，fingerprint 跨 JVM 一致。
 4. TM 失败自动 global recovery（fencing epoch 轮转 + 从最近 durable checkpoint 恢复）；健康状态机与告警见 owner doc。
+
+### 并发与资源包络运维要点（plan 2510 R2-07）
+
+以下为 LOCAL 提交/运行与 DB 数据面部署的**运维可见行为变化**（完整契约见 owner doc `03-modules/nop-stream.md`「并发契约」节与「账本保留策略」节）：
+
+- **LOCAL 提交 fail-fast 守卫**：`Σsubtask > poolSize`（LOCAL fixed 线程池，默认 = 本机 CPU 核数，构造参数可覆盖）的拓扑在提交期类型化快速失败——处置：下调并行度或上调 poolSize（错误消息含两者现值）。合法的有界小数据作业若不填满队列即跑完也会被拒（显式取舍，防静默互等死锁）。
+- **LOCAL 运行期有界等待**：`nop.stream.local.await-completion-timeout-ms`（缺省 300000）——作业在此时限内未完成即 abort（typed 异常，无悬挂残留）；`0` = 显式禁用（长跑 LOCAL 开发场景；注意此时 materialization 边的消费者停摆互等死锁风险由运维自担）；负值装配期拒绝。
+- **LOCAL 取消收尾有界等待（CRA 8.41 R4-01 W-11）**：`nop.stream.local.cancel-await-timeout-ms`（缺省 10000）——中断/异常触发的 LOCAL teardown 在关停线程池前先协作式取消全部子任务并等待终态；`0` = 只发取消信号不等待（立即 shutdownNow）；负值装配期拒绝。阻塞在用户代码中的任务在取消后可观测到 CANCELED 终态退出（不再无限自旋）。
+- **materialization store 上界语义**：`nop.stream.materialization.store-max-entries` 缺省**不设上界**（store 是 checkpoint 恢复镜像，无界缺省不构成 OOM 候选——queue 满阻塞背压而非改道 store）；显式配置 >0 才启用 fail-loud 上界（超界 `ERR_STREAM_MATERIALIZE_STORE_OVERFLOW`）。
+- **账本保留配置**：`nop_stream_task_assignment` 与 `nop_stream_msg_queue` 两账本带形态 A 周期保留清理，键形 `nop.stream.ledger.assignment.*` / `nop.stream.ledger.msgqueue.*`（`retention-days` 缺省 30、`cleanup-interval` 缺省 1h、`delete-batch-size` 缺省 1000；参数 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md，平台内部文档——按 docs-for-ai 边界规则不直接链接）。msg_queue 为**消费后可删**语义（已派发位点 + TTL 双谓词取交）：进程重启后派发位点归零重建，重建到历史水位前清理**保守暂停**（宁可滞后清理也不误删未消费行）；未消费积压由下条门控负责。
+- **DB 数据面门控真实可达**：`-Dnop.stream.data.db.backlog.limit=<n>`（launch DB 通道）现可真实生效——`PollingJdbcMessageService` 实现 `ChannelBacklogProbe`（backlog = 未消费行数）；生产者发送前按未消费积压准入，超限有界等待后 typed 失败。单次 poll 物化行数另有上界 `nop.stream.launch.poll-batch-size`（缺省 500，≤0 装配期拒绝），积压按游标分批清空。
 
 ### 入口类现状（WI1 后：main-scope 生产入口）
 

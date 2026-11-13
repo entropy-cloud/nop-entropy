@@ -44,33 +44,52 @@ public class BlockingSourceConsumeTask<S> extends Cancellable implements Runnabl
         return processingCount.get();
     }
 
+    /**
+     * 1.7-C3-011（plan 2547 裁定 E）：原实现里循环体只要抛出非 Exception 的 {@link Error}
+     * （或在 drainTo 处抛出未经处理的异常），整条消费线程就会**永久死亡**且不可感知——
+     * 队列继续积压、无人消费、也无任何告警。改为：最外层 {@code catch (Throwable)} + ERROR 记录 +
+     * 继续下一轮（仅 cancel 或中断才退出）。
+     */
     @Override
     public void run() {
         do {
-            int batchSize = config.getBatchSize();
-            List<S> items = new ArrayList<>(batchSize);
             try {
-                source.drainTo(items, batchSize, config.getMinWaitMillis(), config.getMaxWaitMillis());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
-
-            int size = items.size();
-            processingCount.addAndGet(size);
-            try {
-                filterMessages(items);
-                if (!items.isEmpty()) {
-                    consumer.acceptList(items);
+                int batchSize = config.getBatchSize();
+                List<S> items = new ArrayList<>(batchSize);
+                try {
+                    source.drainTo(items, batchSize, config.getMinWaitMillis(), config.getMaxWaitMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    // 中断 + 已取消 → 正常退出；中断但未取消 → 记录并继续（避免静默死亡）
+                    if (isCancelled())
+                        return;
+                    LOG.warn("nop.concurrent.batch-process-interrupted", e);
+                    continue;
                 }
-            } catch (Exception e) {
+
+                int size = items.size();
+                processingCount.addAndGet(size);
+                try {
+                    filterMessages(items);
+                    if (!items.isEmpty()) {
+                        consumer.acceptList(items);
+                    }
+                } catch (Exception e) {
+                    if (isCancelled()) {
+                        LOG.debug("nop.concurrent.batch-process-cancelled", e);
+                    } else {
+                        LOG.error("nop.concurrent.batch-process-fail", e);
+                    }
+                } finally {
+                    processingCount.addAndGet(-size);
+                }
+            } catch (Throwable e) {
+                // 1.7-C3-011：Error 或非 Exception 逃逸不得杀死消费循环
                 if (isCancelled()) {
                     LOG.debug("nop.concurrent.batch-process-cancelled", e);
-                } else {
-                    LOG.error("nop.concurrent.batch-process-fail", e);
+                    return;
                 }
-            } finally {
-                processingCount.addAndGet(-size);
+                LOG.error("nop.concurrent.batch-process-fatal", e);
             }
         } while (!isCancelled());
     }

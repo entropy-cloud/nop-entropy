@@ -23,8 +23,11 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_UNKNOWN_COMPONENT_PR
 public class OrmComponentModel extends _OrmComponentModel implements IEntityComponentModel {
     private OrmEntityModel ownerEntityModel;
 
-    private Map<String, Integer> colPropIds;
-    private int[] propIds;
+    // plan 2517 R2-14 裁定③（C1-015）：解析期预计算（OrmEntityModelInitializer 构造尾调用 precompute），
+    // 运行期只读；volatile 保证一次性发布安全（消除先发布引用后填充窗口）。
+    // 手工构建（未经 initializer）的模型走 safe-publish 惰性兜底：局部填充完整后最后赋引用
+    private volatile Map<String, Integer> colPropIds;
+    private volatile int[] propIds;
 
     public OrmComponentModel() {
 
@@ -41,13 +44,35 @@ public class OrmComponentModel extends _OrmComponentModel implements IEntityComp
 
     @Override
     public Map<String, Integer> getColumnPropIdMap() {
-        if (colPropIds == null) {
-            colPropIds = new HashMap<>();
+        Map<String, Integer> result = colPropIds;
+        if (result == null) {
+            // safe-publish 惰性兜底：局部构建完整后最后赋引用（先发布引用后填充窗口消除）
+            Map<String, Integer> map = new HashMap<>();
             for (OrmComponentPropModel propModel : this.getProps()) {
-                colPropIds.put(propModel.getName(), propModel.getColumnPropId());
+                map.put(propModel.getName(), propModel.getColumnPropId());
             }
+            colPropIds = map;
+            result = map;
         }
-        return colPropIds;
+        return result;
+    }
+
+    /**
+     * plan 2517 R2-14 裁定③（C1-015）：解析期预计算。由 OrmEntityModelInitializer 在组件列解析
+     * （checkPropNames 设置 columnModel）完成后调用一次，此后运行期 getter 纯读。
+     */
+    public void precompute() {
+        Map<String, Integer> map = new HashMap<>();
+        for (OrmComponentPropModel propModel : this.getProps()) {
+            map.put(propModel.getName(), propModel.getColumnPropId());
+        }
+        List<OrmComponentPropModel> props = getProps();
+        int[] ids = new int[props == null ? 0 : props.size()];
+        for (int i = 0; i < ids.length; i++) {
+            ids[i] = props.get(i).getColumnPropId();
+        }
+        this.colPropIds = map;
+        this.propIds = ids;
     }
 
 //    @Override
@@ -104,17 +129,20 @@ public class OrmComponentModel extends _OrmComponentModel implements IEntityComp
 
     @Override
     public int[] getColumnPropIds() {
-        if (propIds == null) {
+        int[] result = propIds;
+        if (result == null) {
             // 按 getProps() 的声明顺序构造。getColumnPropIdMap 是 HashMap，
-            // 其 values() 的哈希序与声明顺序无关，会导致 getColumnPropId() 取值不确定
+            // 其 values() 的哈希序与声明顺序无关，会导致 getColumnPropId() 取值不确定。
+            // safe-publish 惰性兜底：局部数组完整填充后最后赋引用
             List<OrmComponentPropModel> props = getProps();
-            int[] propIds = new int[props == null ? 0 : props.size()];
-            for (int i = 0; i < propIds.length; i++) {
-                propIds[i] = props.get(i).getColumnPropId();
+            int[] ids = new int[props == null ? 0 : props.size()];
+            for (int i = 0; i < ids.length; i++) {
+                ids[i] = props.get(i).getColumnPropId();
             }
-            this.propIds = propIds;
+            propIds = ids;
+            result = ids;
         }
-        return this.propIds;
+        return result;
     }
 
     @Override

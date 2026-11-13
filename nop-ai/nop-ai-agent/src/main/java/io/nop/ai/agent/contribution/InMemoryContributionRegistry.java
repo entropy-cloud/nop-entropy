@@ -70,10 +70,23 @@ public class InMemoryContributionRegistry implements IContributionRegistry {
 
     /**
      * Reverse index: source → set of (type, id) keys, for whole-source
-     * teardown. Each inner Set is guarded by the same lock as the affected
-     * per-type inner map when in a compound operation.
+     * teardown. Mutation of this index AND of the per-type inner maps is
+     * serialized by {@link #compoundLock} (see below).
      */
     private final ConcurrentHashMap<String, Set<TypeIdKey>> bySource = new ConcurrentHashMap<>();
+
+    /**
+     * 3.1-MA-14 (plan 2555 裁定 D / C1-025): global ordering lock for ALL
+     * compound (index + registry) mutations. Lock order is always
+     * compoundLock → per-type inner lock (never the reverse), so register and
+     * unregisterSource cannot interleave: the historical bug let
+     * {@code bySource.remove} run OUTSIDE every per-type lock, so a
+     * concurrently-completing registration could be rolled back by the
+     * unregister's stale key snapshot (completed registration silently
+     * deleted). Both mutators now hold the compound lock across the whole
+     * sequence; read paths keep using only the per-type inner locks.
+     */
+    private final Object compoundLock = new Object();
 
     public InMemoryContributionRegistry() {
     }
@@ -86,6 +99,10 @@ public class InMemoryContributionRegistry implements IContributionRegistry {
         }
         Map<String, Contribution> inner = byType.computeIfAbsent(contribution.getType(), k -> new LinkedHashMap<>());
 
+        // 3.1-MA-14 (裁定 D): register participates in the compound-lock
+        // global order (compoundLock → inner) so it cannot interleave with
+        // unregisterSource's remove sequence.
+        synchronized (compoundLock) {
         synchronized (inner) {
             Contribution existing = inner.get(contribution.getId());
             if (existing != null && !existing.getSource().equals(contribution.getSource())) {
@@ -99,11 +116,15 @@ public class InMemoryContributionRegistry implements IContributionRegistry {
             // successful registration (return true).
             inner.put(contribution.getId(), contribution);
 
-            // Keep reverse index in sync under the same per-type lock. The
-            // bySource inner set is mutated only here and in unregisterSource
-            // (which also acquires the matching per-type locks).
+            // Keep reverse index in sync. 3.1-MA-14 (裁定 D): the bySource
+            // inner set is mutated only here and in unregisterSource, both
+            // under the compoundLock global order (compoundLock → inner) —
+            // the pre-fix javadoc claim ("same per-type lock") was inaccurate
+            // because unregisterSource removed the bySource key OUTSIDE any
+            // per-type lock.
             bySource.computeIfAbsent(contribution.getSource(), k -> ConcurrentHashMap.newKeySet())
                     .add(new TypeIdKey(contribution.getType(), contribution.getId()));
+        }
         }
         return true;
     }
@@ -113,24 +134,34 @@ public class InMemoryContributionRegistry implements IContributionRegistry {
         if (source == null) {
             return;
         }
-        Set<TypeIdKey> keys = bySource.remove(source);
-        if (keys == null || keys.isEmpty()) {
-            return;
-        }
-        // For each (type, id) recorded under this source, remove from the
-        // matching per-type inner map under that map's own lock. We only
-        // remove entries whose source matches (defensive — a same-(type,id)
-        // re-register from a different source would have failed fast in
-        // register, but we still guard against source mismatch).
-        for (TypeIdKey key : keys) {
-            Map<String, Contribution> inner = byType.get(key.type);
-            if (inner == null) {
-                continue;
+        // 3.1-MA-14 (裁定 D): the bySource key removal and the per-type
+        // registry removals now run under ONE global order (compoundLock →
+        // inner). The pre-fix form took ownership of the key set with a
+        // lock-free {@code bySource.remove} BEFORE acquiring any per-type
+        // lock — a registration completing concurrently entered a NEW set
+        // that this snapshot never observed, and the inner-map removal pass
+        // could then delete that just-registered contribution anyway via the
+        // stale snapshot (completed registration silently rolled back).
+        synchronized (compoundLock) {
+            Set<TypeIdKey> keys = bySource.remove(source);
+            if (keys == null || keys.isEmpty()) {
+                return;
             }
-            synchronized (inner) {
-                Contribution c = inner.get(key.id);
-                if (c != null && source.equals(c.getSource())) {
-                    inner.remove(key.id);
+            // For each (type, id) recorded under this source, remove from the
+            // matching per-type inner map under that map's own lock. We only
+            // remove entries whose source matches (defensive — a same-(type,id)
+            // re-register from a different source would have failed fast in
+            // register, but we still guard against source mismatch).
+            for (TypeIdKey key : keys) {
+                Map<String, Contribution> inner = byType.get(key.type);
+                if (inner == null) {
+                    continue;
+                }
+                synchronized (inner) {
+                    Contribution c = inner.get(key.id);
+                    if (c != null && source.equals(c.getSource())) {
+                        inner.remove(key.id);
+                    }
                 }
             }
         }

@@ -20,4 +20,10 @@ public class AdaptedBatchLoaderProvider<S> implements IBatchLoaderProvider<S> {
         IBatchLoader<S> loader = provider.setup(context);
         return adapter.apply(loader, context);
     }
+
+    /** 1.7-C6-008（plan 2545 W-07；closure audit R3 Major-1）：透传被包装 provider 的压实能力。 */
+    @Override
+    public boolean hasChunkCompaction() {
+        return provider.hasChunkCompaction();
+    }
 }

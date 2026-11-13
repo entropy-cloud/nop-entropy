@@ -13,6 +13,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -91,6 +92,82 @@ class TestCliDiffAndWatchFixes {
 
         assertEquals(0, exit, "`nop-cli diff` must execute through the real entry point");
         assertTrue(Files.readString(out).contains("\"y\""));
+    }
+
+    /**
+     * C10-004 leg 2 (plan 2563 I-C4-002 / adjudication E): a script that throws inside
+     * processEvents must be logged (error level) and swallowed - the watch loop survives and
+     * later events are still processed (aligns CliWatchCommand with CliWatchZipCommand's
+     * catch+LOG.error shape).
+     *
+     * <p>Log-capture seam: cli-core's active SLF4J backend is jboss-logmanager (no logback on
+     * the test classpath), so the design's ListAppender is realized as a JBoss LogManager
+     * Handler attached to the command's logger (registered deviation).
+     */
+    @Test
+    void watchProcessEventsLogsScriptFailureAndKeepsProcessingLaterEvents() throws Exception {
+        java.util.List<java.util.logging.LogRecord> captured =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        java.util.logging.Handler handler = new java.util.logging.Handler() {
+            @Override
+            public void publish(java.util.logging.LogRecord record) {
+                captured.add(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        // attach on the ROOT logger: the error record comes from CliWatchCommand, the
+        // "later events processed" proof comes from c:log's own logger - both must be captured
+        org.jboss.logmanager.Logger jbossLogger =
+                org.jboss.logmanager.LogContext.getLogContext().getLogger("");
+        java.util.logging.Level oldLevel = jbossLogger.getLevel();
+        jbossLogger.addHandler(handler);
+        jbossLogger.setLevel(java.util.logging.Level.FINEST);
+        try {
+            Path badScript = write("boom.xpl", "<c:script><![CDATA[undefinedFnBoom();]]></c:script>");
+            Path goodScript = write("ok.xpl", "<c:log info=\"second-run-ok\"/>");
+
+            CliWatchCommand cmd = new CliWatchCommand();
+            cmd.watchDirs = new File[]{tempDir.toFile()};
+            cmd.outputDir = tempDir.resolve("out").toFile();
+            cmd.scriptFile = badScript.toString();
+
+            io.nop.core.resource.IResource badRes =
+                    io.nop.core.resource.ResourceHelper.resolveRelativePathResource(badScript.toString());
+            io.nop.xlang.api.XplModel badXpl =
+                    io.nop.xlang.api.XLang.parseXpl(badRes, io.nop.xlang.ast.XLangOutputMode.none);
+
+            Map<String, Object> state = new java.util.concurrent.ConcurrentHashMap<>();
+            // first event batch: script throws - must be logged and swallowed, not propagated
+            assertDoesNotThrow(() -> cmd.processEvents(badXpl,
+                    java.util.Collections.emptyList(), state));
+
+            // jboss-logmanager maps ERROR to its own Level instance; compare by intValue
+            boolean errorLogged = captured.stream()
+                    .anyMatch(r -> r.getLevel().intValue() >= java.util.logging.Level.SEVERE.intValue());
+            assertTrue(errorLogged, "script failure must be visible as an ERROR log record");
+
+            // a later event batch is still processed (loop-not-dead semantics)
+            io.nop.core.resource.IResource goodRes =
+                    io.nop.core.resource.ResourceHelper.resolveRelativePathResource(goodScript.toString());
+            io.nop.xlang.api.XplModel goodXpl =
+                    io.nop.xlang.api.XLang.parseXpl(goodRes, io.nop.xlang.ast.XLangOutputMode.none);
+            assertDoesNotThrow(() -> cmd.processEvents(goodXpl,
+                    java.util.Collections.emptyList(), state));
+            boolean secondRunLogged = captured.stream()
+                    .anyMatch(r -> r.getMessage() != null
+                            && String.valueOf(r.getMessage()).contains("second-run-ok"));
+            assertTrue(secondRunLogged, "a later event batch must still be processed after a failure");
+        } finally {
+            jbossLogger.removeHandler(handler);
+            jbossLogger.setLevel(oldLevel);
+        }
     }
 
     @Test

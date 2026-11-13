@@ -89,6 +89,74 @@ public class LocalReconciliationProcessor implements IReconciliationProcessor {
         return matched;
     }
 
+    /**
+     * W-08（plan 2528 裁定⑥）：候选池批载入 + 显式上界。{@code poolLimit}（
+     * {@code nop.metadata.reconciliation.candidate-pool-limit}，缺省 1000）经 QueryBean limit
+     * 下推到池查询（C5-104 无界 findAllByQuery 同站点闭合）；池行数超界显式失败
+     * {@code ERR_RECON_CANDIDATE_POOL_EXCEED_LIMIT}（不静默截断——截断即静默改变匹配语义，
+     * 对齐同模块血缘 maxEdges fail-fast 先例）。properties 随池解析缓存（单次执行内每候选一次）。
+     */
+    @Override
+    public ReconciliationCandidatePool loadCandidatePool(String targetType, String identifierSpace, int poolLimit) {
+        IEntityDao<NopMetaReconciliationEntity> dao = daoProvider.daoFor(NopMetaReconciliationEntity.class);
+        QueryBean q = new QueryBean();
+        if (poolLimit > 0) {
+            // C5-104：池查询显式 limit（超出该 limit 的候选池在拾取结果计数中检出并 fail-fast——
+            // limit+1 拾取可区分「恰在界内」与「超界」，此处取 limit+1 以检出超界）
+            q.setLimit(poolLimit + 1);
+        }
+        if (targetType != null && !targetType.isEmpty()) {
+            q.addFilter(FilterBeans.eq(NopMetaReconciliationEntity.PROP_NAME_entityType, targetType));
+        }
+        if (identifierSpace != null && !identifierSpace.isEmpty()) {
+            q.addFilter(FilterBeans.eq(NopMetaReconciliationEntity.PROP_NAME_identifierSpace, identifierSpace));
+        }
+        List<NopMetaReconciliationEntity> pool = dao.findAllByQuery(q);
+        if (poolLimit > 0 && pool.size() > poolLimit) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_CANDIDATE_POOL_EXCEED_LIMIT)
+                    .param(NopMetadataErrors.ARG_TARGET_TYPE, String.valueOf(targetType))
+                    .param(NopMetadataErrors.ARG_IDENTIFIER_SPACE, String.valueOf(identifierSpace))
+                    .param(NopMetadataErrors.ARG_POOL_SIZE, pool.size())
+                    .param(NopMetadataErrors.ARG_POOL_LIMIT, poolLimit);
+        }
+        List<ReconciliationCandidatePool.PoolEntry> entries = new ArrayList<>(pool.size());
+        for (NopMetaReconciliationEntity entity : pool) {
+            entries.add(new ReconciliationCandidatePool.PoolEntry(
+                    entity.getEntityId(), entity.getEntityName(), entity.getEntityType(),
+                    parseProperties(entity.getProperties())));
+        }
+        return new ReconciliationCandidatePool(targetType, identifierSpace, entries);
+    }
+
+    /**
+     * W-08（裁定⑥）池上匹配：与逐行版同一打分/排序/截断语义（候选实体要素取自池快照，
+     * properties 已随池解析缓存）。
+     */
+    @Override
+    public List<ReconciliationCandidate> reconcile(String value, ReconciliationCandidatePool pool,
+                                                   String matchStrategy, Integer limit) {
+        if (value == null || value.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (pool == null || pool.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ReconciliationCandidate> matched = new ArrayList<>();
+        for (ReconciliationCandidatePool.PoolEntry entry : pool.getEntries()) {
+            double s = score(value, entry.getEntityName(), matchStrategy);
+            if (s > 0.0) {
+                matched.add(new ReconciliationCandidate(
+                        entry.getEntityId(), entry.getEntityName(), entry.getEntityType(), s,
+                        entry.getProperties()));
+            }
+        }
+        matched.sort(SCORE_DESC);
+        if (limit != null && limit > 0 && matched.size() > limit) {
+            return new ArrayList<>(matched.subList(0, limit));
+        }
+        return matched;
+    }
+
     /** 按 targetType + identifierSpace 加载候选实体（任一为空则该维度不限）。 */
     private List<NopMetaReconciliationEntity> loadCandidates(String targetType, String identifierSpace) {
         IEntityDao<NopMetaReconciliationEntity> dao = daoProvider.daoFor(NopMetaReconciliationEntity.class);

@@ -19,6 +19,7 @@ import io.nop.datav.dao.entity.NopDatavAlertState;
 import io.nop.datav.dao.entity.NopDatavDashboard;
 import io.nop.datav.dao.entity.NopDatavPanel;
 import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.NopDatavSchedulerAfterCommit;
 import io.nop.datav.service.alert.AlertEvaluator;
 import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.report.NopDatavReportTaskStatus;
@@ -80,20 +81,26 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
         if (io.nop.biz.BizConstants.METHOD_SAVE.equals(action)) {
             initializeStateIfAbsent(entity);
         }
-        // 联动调度注册
+        // 联动调度注册（裁定⑫：afterCommit 后置——save 路径回滚则不联动）
         if (alertScheduler != null) {
+            String alertRuleId = entity.getAlertRuleId();
             if (NopDatavReportTaskStatus.isEnabled(entity.getStatus() == null ? 0 : entity.getStatus())) {
-                alertScheduler.registerRule(entity.getAlertRuleId());
+                NopDatavSchedulerAfterCommit.run(txn(), "afterEntityChange.register:" + alertRuleId,
+                        () -> alertScheduler.registerRule(alertRuleId));
             } else {
-                alertScheduler.unregisterRule(entity.getAlertRuleId());
+                NopDatavSchedulerAfterCommit.run(txn(), "afterEntityChange.unregister:" + alertRuleId,
+                        () -> alertScheduler.unregisterRule(alertRuleId));
             }
         }
     }
 
     /**
      * Gap #3 修复（plan 2026-08-14-2020-1）：标准 {@code delete(id)} / {@code batchDelete} /
-     * {@code deleteByQuery} 均虚分派到本方法；删除后即时注销 cron job（原先 3 参
+     * {@code deleteByQuery} 均虚分派到本方法；删除后注销 cron job（原先 3 参
      * {@code afterEntityChange} 覆写在 delete 路径不触发，job 进程内残留直至重启）。
+     *
+     * <p>裁定⑫（plan 2526，CL-019）：注销经 afterCommit 后置——AlertState 级联删除失败回滚时
+     * 注销不触发（与回滚后 ENABLED 行一致）。</p>
      */
     @Override
     protected void doDeleteEntity(@Name("entity") NopDatavAlertRule entity,
@@ -102,7 +109,9 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
                                   IServiceContext context) {
         super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
         if (alertScheduler != null) {
-            alertScheduler.unregisterRule(entity.getAlertRuleId());
+            String alertRuleId = entity.getAlertRuleId();
+            NopDatavSchedulerAfterCommit.run(txn(), "doDeleteEntity.unregister:" + alertRuleId,
+                    () -> alertScheduler.unregisterRule(alertRuleId));
         }
         // P1-09（plan 2026-08-15-2146-3 Phase 3）：级联物理删除 AlertState 子行（unregisterRule 保持；
         // deleteByQuery 批量物理删除，与 Dashboard/Screen 级联模式一致；失败异常传播无静默跳过）
@@ -132,8 +141,10 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
         rule.setStatus(NopDatavReportTaskStatus.ENABLED);
         touchUpdate(rule, NopDatavOperatorResolver.resolveOperator(context));
         daoProvider().daoFor(NopDatavAlertRule.class).updateEntityDirectly(rule);
+        // 裁定⑫：afterCommit 后置——回滚则不注册（无 phantom job）
         if (alertScheduler != null) {
-            alertScheduler.registerRule(alertRuleId);
+            NopDatavSchedulerAfterCommit.run(txn(), "enableAlertRule.register:" + alertRuleId,
+                    () -> alertScheduler.registerRule(alertRuleId));
         }
         return rule;
     }
@@ -143,12 +154,14 @@ public class NopDatavAlertRuleBizModel extends CrudBizModel<NopDatavAlertRule>
     @Auth(permissions = "NopDatavAlertRule:disableAlertRule")
     public NopDatavAlertRule disableAlertRule(@Name("id") String alertRuleId, IServiceContext context) {
         NopDatavAlertRule rule = requireRuleWithOwnership(alertRuleId, context);
-        if (alertScheduler != null) {
-            alertScheduler.unregisterRule(alertRuleId);
-        }
+        // 先落库 DISABLED，注销经 afterCommit 后置（裁定⑫：落库失败回滚则不注销）
         rule.setStatus(NopDatavReportTaskStatus.DISABLED);
         touchUpdate(rule, NopDatavOperatorResolver.resolveOperator(context));
         daoProvider().daoFor(NopDatavAlertRule.class).updateEntityDirectly(rule);
+        if (alertScheduler != null) {
+            NopDatavSchedulerAfterCommit.run(txn(), "disableAlertRule.unregister:" + alertRuleId,
+                    () -> alertScheduler.unregisterRule(alertRuleId));
+        }
         return rule;
     }
 

@@ -96,7 +96,13 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
 
     private boolean hasOneToOneRelation;
 
-    private boolean dependByOtherEntity;
+    /**
+     * 2.3-C1-016（plan 2552 裁定 I，方向一最小修）：volatile——运行期 topo 重建写点
+     * （OrmModelTopEntryBuilder:35）对冻结实体模型的无同步写与 persist 驱动读点
+     * （JdbcEntityPersistDriver:240/:254、BatchActionQueueImpl:253）之间 HB 闭合。
+     * 方向二（伴生视图根治）= watch-only（plan 2552 Deferred）。
+     */
+    private volatile boolean dependByOtherEntity;
 
     private Map<String, IEntityPropModel> props;
     private Map<String, OrmColumnModel> colsByCode;
@@ -105,7 +111,8 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
 
     private boolean tenantModel;
 
-    private boolean inited;
+    // 2.3-C1-019（plan 2552 裁定 L）：volatile——check-then-act 初始化标志的跨线程可见性
+    private volatile boolean inited;
 
     public OrmEntityModel() {
         setCheckVersionWhenLazyLoad(true);
@@ -424,6 +431,10 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     }
 
     public void addProp(IEntityPropModel prop) {
+        // 2.3-C1-017（plan 2552 裁定 J）：守卫前置——原形态先污染 props 再守卫（冻结模型
+        // 被半更新后抛出）。setDependByOtherEntity 显式豁免本守卫族（裁定 J/I：C1-016
+        // sanctioned 运行期写点）。
+        checkAllowChange();
         if (props == null || props.isEmpty()) {
             props = new HashMap<>();
         }

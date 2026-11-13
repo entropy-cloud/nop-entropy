@@ -155,7 +155,9 @@ public class BatchTaskMetricsImpl implements IBatchTaskMetrics {
 
     @Override
     public long getLoadItemCount() {
-        return loadSuccessTimer.count() + loadFailureTimer.count();
+        // 1.7-C8-007（plan 2546 W-08）：原实现返回 Timer 采样次数（= chunk 次数），
+        // 按名取数（item count）做容量对账会错几个数量级。正确来源是 endLoad 中按条数递增的 loadCounter。
+        return (long) loadCounter.count();
     }
 
     @Override

@@ -11,6 +11,12 @@ import io.nop.gateway.core.interceptor.IGatewayInterceptor;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
 import io.nop.gateway.core.interceptor.InterceptedGatewayInvocation;
 import io.nop.gateway.core.streaming.StreamingResponse;
+import io.nop.gateway.model.GatewayRouteModel;
+import io.nop.gateway.model.GatewayStreamingModel;
+import io.nop.http.api.client.HttpRequest;
+import io.nop.http.api.client.IHttpClient;
+import io.nop.http.api.client.IHttpResponse;
+import io.nop.http.api.client.IServerEventResponse;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -21,54 +27,158 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class GatewayFixTest {
 
-    // ===== Test 1: 背压测试 — StreamingProcessor request(1) 流控 =====
+    @org.junit.jupiter.api.BeforeAll
+    static void init() {
+        io.nop.core.initialize.CoreInitialization.initialize();
+    }
+
+    @org.junit.jupiter.api.AfterAll
+    static void destroy() {
+        io.nop.core.initialize.CoreInitialization.destroy();
+    }
+
+    // ===== Test 1: 背压测试 — BufferedStreamingPublisher 真实实例化 + demand 门控授信 =====
     @Test
-    void streamingProcessor_requestsOneByOne() {
+    void bufferedStreamingPublisher_requestsOneByOneViaDemandGate() {
         AtomicInteger requested = new AtomicInteger(0);
         AtomicInteger received = new AtomicInteger(0);
         int itemCount = 5;
 
-        // 创建一个Publisher，跟踪request次数
-        Flow.Publisher<Object> source = subscriber -> {
+        // 逐元素拉取的上游（真实 SSE 拉取形态）：每次 request 发射一个元素
+        Flow.Publisher<IServerEventResponse> source = subscriber -> {
             subscriber.onSubscribe(new Flow.Subscription() {
+                private int cursor;
+
                 @Override
                 public void request(long n) {
                     requested.addAndGet((int) n);
+                    if (cursor < itemCount) {
+                        subscriber.onNext(new IServerEventResponse() {
+                            @Override
+                            public int getHttpStatus() {
+                                return 200;
+                            }
+
+                            @Override
+                            public String getId() {
+                                return null;
+                            }
+
+                            @Override
+                            public String getEvent() {
+                                return "message";
+                            }
+
+                            @Override
+                            public String getData() {
+                                return String.valueOf(cursor++);
+                            }
+
+                            @Override
+                            public java.util.Map<String, String> getHeaders() {
+                                return java.util.Collections.emptyMap();
+                            }
+                        });
+                    } else {
+                        subscriber.onComplete();
+                    }
                 }
 
                 @Override
                 public void cancel() {
                 }
             });
-            // 同步发送所有数据
-            for (int i = 0; i < itemCount; i++) {
-                subscriber.onNext(i);
-            }
-            subscriber.onComplete();
         };
 
-        // 订阅并消费
-        source.subscribe(new Flow.Subscriber<>() {
-            private Flow.Subscription subscription;
+        GatewayStreamingModel streaming = new GatewayStreamingModel();
+        streaming.setContentType("text/event-stream");
+        streaming.setBufferEnabled(true);
+        streaming.setBufferSize(10);
+        // 窗口期 = 0：元素即刻越窗透传（本测试隔离 request(1) 流控形态，不测窗口缓冲）
+        streaming.setBufferTimeMs(0L);
+        GatewayRouteModel route = new GatewayRouteModel();
+        route.setId("stream-route");
+        route.setStreaming(streaming);
+
+        // 真实实例化被测类（修复 N1 虚假覆盖：旧用例只自建匿名 publisher，未触及被测类）
+        IHttpClient fakeHttpClient = new IHttpClient() {
+            @Override
+            public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, io.nop.api.core.util.ICancelToken cancelToken) {
+                throw new UnsupportedOperationException();
+            }
 
             @Override
+            public Flow.Publisher<IServerEventResponse> fetchServerEventFlow(HttpRequest request, io.nop.api.core.util.ICancelToken cancelToken) {
+                return source;
+            }
+
+            @Override
+            public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, io.nop.http.api.client.IHttpOutputFile targetFile,
+                    io.nop.http.api.client.DownloadOptions options, io.nop.api.core.util.ICancelToken cancelToken) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, io.nop.http.api.client.IHttpInputFile inputFile,
+                    io.nop.http.api.client.UploadOptions options, io.nop.api.core.util.ICancelToken cancelToken) {
+                throw new UnsupportedOperationException();
+            }
+        };
+        BufferedStreamingPublisher publisher = new BufferedStreamingPublisher(
+                fakeHttpClient, route, new ApiRequest<>(), new GatewayContextImpl(), streaming,
+                null, null,
+                eventPublisher -> downstream -> eventPublisher.subscribe(new Flow.Subscriber<IServerEventResponse>() {
+                    private Flow.Subscription up;
+
+                    @Override
+                    public void onSubscribe(Flow.Subscription s) {
+                        this.up = s;
+                        downstream.onSubscribe(s);
+                        s.request(1); // 映射链自驱动首拉（与 createMappedPublisher 形态一致）
+                    }
+
+                    @Override
+                    public void onNext(IServerEventResponse item) {
+                        downstream.onNext(item.getData());
+                        up.request(1); // 映射链自驱动逐元素 request(1)（经缓冲层授信门控）
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        downstream.onError(t);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        downstream.onComplete();
+                    }
+                }),
+                new HttpRequest());
+
+        final Flow.Subscription[] subRef = new Flow.Subscription[1];
+        final AtomicReference<Throwable> errorRef = new AtomicReference<>();
+        publisher.subscribe(new Flow.Subscriber<Object>() {
+            @Override
             public void onSubscribe(Flow.Subscription s) {
-                this.subscription = s;
-                s.request(1);
+                subRef[0] = s;
+                s.request(1); // 初始授信 1：demand 门控下才允许上游拉取
             }
 
             @Override
             public void onNext(Object item) {
                 received.incrementAndGet();
-                subscription.request(1);
+                subRef[0].request(1); // 逐元素再授信（映射链 request(1) 经门控逐次放行）
             }
 
             @Override
             public void onError(Throwable t) {
+                errorRef.set(t);
             }
 
             @Override
@@ -76,10 +186,10 @@ public class GatewayFixTest {
             }
         });
 
-        // 验证request(1) + onNext后request(1) 的流控模式
-        // 初始request(1) + 5个onNext各request(1) = 6
-        assertEquals(itemCount + 1, requested.get());
+        assertNull(errorRef.get(), "流不得报错: " + errorRef.get());
+        // demand 门控授信：上游拉取次数 == 消费授信数（逐元素 request(1)，不预取）
         assertEquals(itemCount, received.get());
+        assertEquals(itemCount + 1, requested.get(), "初始 1 + 每元素 1 = 6（授信记账：不超授信拉取）");
     }
 
     // ===== Test 2: 断连测试 — StreamingResponse abort() =====

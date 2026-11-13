@@ -3,6 +3,7 @@ package io.nop.ai.code_analyzer.maven;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -163,13 +164,18 @@ public class JavaSourceFileFinder {
      * 获取所有Java源码文件
      */
     public List<File> getAllJavaSourceFiles() {
-        List<File> results = new ArrayList<>();
-
-        moduleStructure.getModules().values().parallelStream()
+        // C1-001 (plan 2520): per-module local lists are thread-confined — the old
+        // shared-ArrayList forEach add from parallelStream workers silently lost
+        // files (or threw AIOOBE) on multi-module workspaces
+        return moduleStructure.getModules().values().parallelStream()
                 .map(this::resolveModuleDirectory)
-                .forEach(moduleDir -> findJavaFilesInModule(moduleDir, results));
-
-        return results;
+                .map(moduleDir -> {
+                    List<File> local = new ArrayList<>();
+                    findJavaFilesInModule(moduleDir, local);
+                    return local;
+                })
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
     }
 
     /**

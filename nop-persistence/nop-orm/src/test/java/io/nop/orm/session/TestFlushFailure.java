@@ -112,7 +112,11 @@ public class TestFlushFailure extends AbstractOrmTestCase {
             ((IOrmSessionImplementor) session).getBatchActionQueue(null)
                     .addDelayTask("test-delay-key", () -> delayTaskRun[0] = true);
 
-            jdbcTemplate.executeUpdate(SQL.begin().sql("drop table " + collegeModel.getTableName()).end());
+            // plan 2517 R2-14 裁定⑫语义适配：flush 失败后 dirty 保持为 true（重试语义修复），
+            // runInNewSession 收尾的重试 flush 会真实重发 DML，因此这里用 RENAME（保留数据）而非 DROP，
+            // 并在回调返回前恢复表名——既有断言（失败时延迟任务不执行）不变
+            jdbcTemplate.executeUpdate(SQL.begin()
+                    .sql("alter table " + collegeModel.getTableName() + " rename to SIMS_COLLEGE_BK").end());
 
             Throwable error = null;
             try {
@@ -123,6 +127,10 @@ public class TestFlushFailure extends AbstractOrmTestCase {
             assertNotNull(error);
             // 批量动作执行失败，延迟任务不应被执行
             assertFalse(delayTaskRun[0]);
+
+            jdbcTemplate.executeUpdate(SQL.begin()
+                    .sql("alter table SIMS_COLLEGE_BK rename to " + collegeModel.getTableName()).end());
+            session.flush();
             return null;
         });
 

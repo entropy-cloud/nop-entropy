@@ -108,6 +108,9 @@ public interface DaoErrors {
     ErrorCode ERR_TXN_DUPLICATE_SUB_TRANSACTION = define("nop.err.dao.txn.duplicate-sub-transaction",
             "不允许注册多个txnGroup相同的子事务:{txnGroup}", ARG_TXN_GROUP);
 
+    ErrorCode ERR_TXN_LATE_SUB_TRANSACTION = define("nop.err.dao.txn.late-sub-transaction",
+            "事务已进入提交/回滚阶段，不允许再注册子事务:{txnGroup}", ARG_TXN_GROUP);
+
     ErrorCode ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT = define("nop.err.dao.txn.rollback-only-not-allow-commit",
             "事务标记为只允许回滚，因此不能提交此事务:{txnGroup}", ARG_TXN_GROUP);
 
@@ -209,4 +212,11 @@ public interface DaoErrors {
 
     ErrorCode ERR_DAO_INVALID_SQL_DATA_TYPE =
             define("nop.err.dao.invalid-sql-data-type", "非法的SQL数据类型：{sqlDataType}", ARG_SQL_DATA_TYPE);
+    // 2.3-C5-001/C5-005（plan 2553 裁定 L）：findAll 全量物化行数超上界
+    String ARG_ROW_COUNT = "rowCount";
+    String ARG_MAX_ROWS = "maxRows";
+
+    ErrorCode ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED = define("nop.err.dao.find-all-row-limit-exceeded",
+            "findAll 全量物化行数[{rowCount}]超过上界[{maxRows}]，请改用 findPage 或调高 nop.dao.find-all-max-rows",
+            ARG_ROW_COUNT, ARG_MAX_ROWS);
 }

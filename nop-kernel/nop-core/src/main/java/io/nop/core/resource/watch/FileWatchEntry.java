@@ -17,6 +17,9 @@ class FileWatchEntry {
     private final WatchKey watchKey;
     private final Path path;
 
+    // C6-006（plan 2548）：父 entry 反向引用——unwatch 递归摘除时回写父的 subEntries，消除单调累积
+    private FileWatchEntry parent;
+
     private final Path root;
 
     private final Predicate<Path> filter;
@@ -72,10 +75,22 @@ class FileWatchEntry {
     }
 
     public void addSubEntry(FileWatchEntry entry) {
+        entry.parent = this;
         subEntries.put(entry.getPath(), entry);
     }
 
     public FileWatchEntry getSubEntry(Path subPath) {
         return subEntries.get(subPath);
+    }
+
+    /**
+     * C6-006（plan 2548）：unwatch 递归时回写摘除，防止父的 subEntries 单调累积。
+     */
+    public void removeSubEntry(FileWatchEntry entry) {
+        subEntries.remove(entry.getPath(), entry);
+    }
+
+    FileWatchEntry getParent() {
+        return parent;
     }
 }

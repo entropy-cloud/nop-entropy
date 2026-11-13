@@ -621,7 +621,7 @@ class StreamingProcessorBufferingTest {
 
     /** 重订阅后 abort 委托<b>新</b>活跃 sub（B-11：不取消旧 sub）。 */
     @Test
-    void abortAfterResubscribeCancelsNewSubscription() {
+    void abortAfterResubscribeCancelsNewSubscription() throws InterruptedException {
         GatewayStreamingModel streaming = streamingModel(true, 10);
         GatewayRouteModel route = route(streaming);
         GatewayContextImpl context = new GatewayContextImpl();
@@ -662,7 +662,11 @@ class StreamingProcessorBufferingTest {
             public void onComplete() {
             }
         });
-        // 重订阅已同步完成（attempt 2 = silent in-flight）；abort 应取消 attempt 2 的 sub。
+        // 重订阅经指数退避异步推进（2.3-C3-004，plan 2550）：有界等待第二次 fetch 出现；
+        // abort 应取消 attempt 2 的 sub。
+        for (int i = 0; i < 500 && fake.publishers.size() < 2; i++) {
+            Thread.sleep(10);
+        }
         assertEquals(2, fake.publishers.size(), "重订阅必须已发起第二次 fetch");
         streamingResponse.abort();
 

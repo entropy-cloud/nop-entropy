@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.task.TaskConstants.BEAN_PREFIX_TASK_STEP_DECORATOR;
+import static io.nop.task.TaskConfigs.CFG_TASK_STEP_SYNC_WAIT_TIMEOUT_MS;
 import static io.nop.task.TaskErrors.ARG_ATTR_NAME;
 import static io.nop.task.TaskErrors.ARG_ATTR_VALUE;
 import static io.nop.task.TaskErrors.ARG_REASON;
@@ -112,7 +113,9 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         step = addOutput(stepModel, step);
 
         if (stepModel.getRetry() != null) {
-            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel));
+            // 传入步骤级 executor 配置（1.5-C4-001/C4-008，plan 2498 Phase 2）：延迟重试轮次的
+            // 步骤体与簿记在该池上执行，executor 隔离对延迟路径真实生效（未配置回退 globalWorker）
+            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel), stepModel.getExecutor());
         }
 
         if (!StringHelper.isEmpty(stepModel.getExecutor())) {
@@ -134,8 +137,34 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
             step = new TimeoutTaskStepWrapper(step, stepModel.getTimeout());
         }
 
+        // plan 2514 MA-03（1.5-C3-002，裁定③）：sync × executor 同池嵌套构建期 fail-fast——
+        // sync（外层，调用线程阻塞等待）× executor（内层，池上执行）同池嵌套时池饱和即全体永久互等
+        // （syncGet 无外部取消源时无法解围）。与 timeout/rateLimit 硬失败同码同位（plan 364 [02-06] 先例），
+        // 破坏性构建期约束：存量模型须先移除该组合再升级（owner doc 升级注记落 Phase 3）
+        if (stepModel.isSync() && !StringHelper.isEmpty(stepModel.getExecutor())) {
+            throw invalidStepConfig(stepModel, "sync/executor", stepModel.getExecutor(),
+                    "sync=true must not be combined with executor (same-pool nesting deadlock)");
+        }
+        // plan 2514 MA-03：sync 等待时限配置负值装配期 fail-fast（0=不限时，仅取消唤醒）
+        if (stepModel.isSync() && CFG_TASK_STEP_SYNC_WAIT_TIMEOUT_MS.get() < 0) {
+            throw invalidStepConfig(stepModel, "syncWaitTimeoutMs", CFG_TASK_STEP_SYNC_WAIT_TIMEOUT_MS.get(),
+                    "must be >= 0");
+        }
+
         if (stepModel.getThrottle() != null) {
             TaskThrottleModel throttleModel = stepModel.getThrottle();
+            // W-05（CRA 8.48 R4-08，MA-12 裁定 A）：throttle 参数构建期校验（同码同位——对齐
+            // timeout/sync×executor/rateLimit 硬失败先例）。maxConcurrency<=0 先等待后必拒绝、
+            // 负值崩在首次执行期、maxWait<0 有空位仍成功——均在装配期显式拒绝。
+            // 破坏性构建期约束：存量模型须先修正再升级（owner doc 升级注记落 Phase 3）
+            if (throttleModel.getMaxConcurrency() <= 0) {
+                throw invalidStepConfig(stepModel, "throttle.maxConcurrency", throttleModel.getMaxConcurrency(),
+                        "must be > 0 when throttle is configured");
+            }
+            if (throttleModel.getMaxWait() < 0) {
+                throw invalidStepConfig(stepModel, "throttle.maxWait", throttleModel.getMaxWait(),
+                        "must be >= 0");
+            }
             step = new ThrottleTaskStepWrapper(step, throttleModel.isGlobal(),
                     throttleModel.getMaxConcurrency(), throttleModel.getMaxWait(),
                     throttleModel.getKeyExpr());

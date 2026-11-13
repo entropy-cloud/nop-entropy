@@ -75,7 +75,11 @@ public class ChangeSubscriptions {
             }
         }
 
+        // C4-007（plan 2549 裁定 B）：逐监听器计时观测——一个阻塞 refreshConfig 搁浅全平台配置传播前
+        // 先有可观测信号（>1s WARN）。串行内联保持（executor 单线程契约 + 通知顺序）；
+        // 跨订阅通知顺序 = HashSet hash 序（不声明注册序），本批不改收集结构（LinkedHashSet 范围外）。
         for (IConfigChangeListener listener : triggered) {
+            long begin = System.nanoTime();
             try {
                 listener.onConfigChange(provider, oldValues);
             } catch (Exception e) {
@@ -83,6 +87,12 @@ public class ChangeSubscriptions {
                 //（属性重绑定失败不得导致本轮其余 bean 的配置更新静默丢失）
                 LOG.error("nop.config.trigger-change-listener-fail:listener={}",
                         listener.getClass().getName(), e);
+            } finally {
+                long costMs = (System.nanoTime() - begin) / 1_000_000L;
+                if (costMs > 1000) {
+                    LOG.warn("nop.warn.config.listener-slow:listener={},costMs={}",
+                            listener.getClass().getName(), costMs);
+                }
             }
         }
     }

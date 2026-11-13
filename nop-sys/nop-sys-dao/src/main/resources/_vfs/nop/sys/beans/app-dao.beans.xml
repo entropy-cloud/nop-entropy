@@ -43,6 +43,11 @@
     <bean id="nopOrmEntityChangeLogInterceptor" class="io.nop.sys.dao.log.OrmEntityChangeLogInterceptor"
           feature:on="nop.orm.audit.enabled == '' or nop.orm.audit.enabled"/>
 
+    <!-- 5.2-MA-04（plan 2502）：sys_lock/sys_change_log 双面账本保留期周期清理（LifeCycleSupport
+         @PostConstruct start → doStart 周期调度，taskName=nop-sys-ledger-cleanup；必须放
+         app-dao.beans.xml 手维护文件防 codegen 覆盖） -->
+    <bean id="nopSysDaoLedgerCleaner" class="io.nop.sys.dao.cleanup.SysDaoLedgerCleaner" ioc:default="true"/>
+
     <bean id="nopNamingService" class="io.nop.sys.dao.naming.SysDaoNamingService" ioc:default="true">
         <ioc:condition>
             <if-property name="nop.cluster.discovery.sys-dao-naming-service.enabled" enableIfMissing="false"/>

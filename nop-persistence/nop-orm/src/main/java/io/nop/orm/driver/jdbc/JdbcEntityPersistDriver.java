@@ -124,7 +124,9 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
     @Override
     public CompletionStage<Void> loadAsync(ShardSelection shard, IOrmEntity entity, IntArray propIds,
                                            FieldSelectionBean subSelection, IOrmSessionImplementor session) {
-        return FutureHelper.futureCall(() -> {
+        return // 2.3-C4-001（plan 2553 裁定 I 声明面）：伪异步载体契约——同步执行于调用线程，
+                // 返回 future 仅作完成信号，调用方不得假设载体切换。
+                FutureHelper.futureCall(() -> {
             IDialect dialect = getDialect(shard);
             EntitySQL loadSql = this.loadSql;
             if (dialect != this.dialect || !loadSql.propIds.equals(propIds)) {
@@ -187,7 +189,9 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
     @Override
     public CompletionStage<Void> batchLoadAsync(ShardSelection shard, Collection<IOrmEntity> entities, IntArray propIds,
                                                 FieldSelectionBean subSelection, IOrmSessionImplementor session) {
-        return FutureHelper.futureCall(() -> {
+        return // 2.3-C4-001（plan 2553 裁定 I 声明面）：伪异步载体契约——同步执行于调用线程，
+                // 返回 future 仅作完成信号，调用方不得假设载体切换。
+                FutureHelper.futureCall(() -> {
             IDialect dialect = getDialect(shard);
             EntitySQL batchLoadSqlPart = this.batchLoadSqlPart;
             if (dialect != this.dialect || !batchLoadSqlPart.propIds.equals(propIds)) {
@@ -233,7 +237,9 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
     public CompletionStage<Void> batchExecuteAsync(boolean topoAsc, String querySpace,
                                                    List<IBatchAction.EntitySaveAction> saveActions, List<IBatchAction.EntityUpdateAction> updateActions,
                                                    List<IBatchAction.EntityDeleteAction> deleteActions, IOrmSessionImplementor session) {
-        return FutureHelper.futureCall(() -> {
+        return // 2.3-C4-001（plan 2553 裁定 I 声明面）：伪异步载体契约——同步执行于调用线程，
+                // 返回 future 仅作完成信号，调用方不得假设载体切换。
+                FutureHelper.futureCall(() -> {
             IDialect dialect = getDialect(querySpace);
 
             if (topoAsc) {

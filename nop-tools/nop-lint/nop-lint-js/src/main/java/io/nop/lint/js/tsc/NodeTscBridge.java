@@ -56,13 +56,14 @@ public final class NodeTscBridge implements AutoCloseable {
     private static final Object EOF = new Object();
 
     private final TscBridgeConfig config;
-    private final LinkedBlockingQueue<Object> inbound = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<Object> inbound = new LinkedBlockingQueue<>();
 
     private Process process;
     private BufferedWriter peerInput;
     private State state = State.NEW;
     private int restartsLeft;
     private int nextId;
+    private int generation;
     private boolean closed;
 
     public NodeTscBridge(TscBridgeConfig config) {
@@ -161,7 +162,18 @@ public final class NodeTscBridge implements AutoCloseable {
             throw new TscQueryException("BRIDGE_CRASHED",
                     "tsc bridge peer died before answering request " + id + " (" + op + ")");
         }
-        Map<String, Object> frame = TscProtocol.decode((String) answer);
+        Map<String, Object> frame;
+        try {
+            frame = TscProtocol.decode((String) answer);
+        } catch (RuntimeException e) {
+            // An undecodable frame means the frame boundary is gone: every
+            // later frame of this stream is unalignable, so the process is
+            // recycled right here, the same way the correlation-mismatch
+            // case below recycles (W-12 — the late recycle used to burn an
+            // extra restart slot on the already-dead process).
+            handleProcessFailure("peer frame is not decodable (stream desync)");
+            throw e;
+        }
         if (TscProtocol.isOk(frame)) {
             Map<String, Object> result = TscProtocol.resultOf(id, frame);
             Object answerId = frame.get("id");
@@ -173,7 +185,18 @@ public final class NodeTscBridge implements AutoCloseable {
             return result;
         }
         // A structured error frame is a healthy peer's answer: the process
-        // stays up, only this query failed.
+        // stays up, only this query failed — but only when the frame really
+        // answers THIS request. A mismatched id means the stream has drifted
+        // and the error belongs to some other conversation (the helper's
+        // synthetic frames use id=-1): recycle before failing (W-09), and
+        // name the peer's code so the diagnosis is not misleading.
+        Object answerId = frame.get("id");
+        if (!Integer.valueOf(id).equals(answerId)) {
+            handleProcessFailure("correlation id mismatch on error frame");
+            throw new TscQueryException("BAD_FRAME", "error frame id " + answerId
+                    + " does not match request " + id
+                    + " (peer error code: " + TscProtocol.errorCodeOf(frame) + ")");
+        }
         throw TscProtocol.errorOf(id, frame);
     }
 
@@ -194,23 +217,41 @@ public final class NodeTscBridge implements AutoCloseable {
 
     private void spawn() {
         destroyProcess();
-        inbound.clear();
         ProcessBuilder builder = new ProcessBuilder(config.spawnCommand());
         builder.redirectErrorStream(false);
+        Process current;
         try {
-            process = builder.start();
+            current = builder.start();
         } catch (IOException e) {
             state = State.EXHAUSTED;
             throw new TscBridgeUnavailableException("tsc bridge cannot spawn " + config.spawnCommand()
                     + ": " + e.getMessage(), e);
         }
-        peerInput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
-        Thread reader = new Thread(this::drainPeerOutput, "nop-lint-tsc-bridge-reader");
+        process = current;
+        peerInput = new BufferedWriter(new OutputStreamWriter(current.getOutputStream(), StandardCharsets.UTF_8));
+        // Generation fence (plan 2531 adjudication 1): every generation owns
+        // a private queue, and the reader receives it — together with this
+        // generation's process — as spawn-frame captured locals. The
+        // Thread.start() happens-before makes the capture binding structural:
+        // the previous generation's reader can only ever target its own
+        // captured queue, so a stale data frame or a stale EOF sentinel is
+        // physically unable to enter this generation's handshake or query
+        // path (the abandoned queue dies with the old reader).
+        LinkedBlockingQueue<Object> generationQueue = new LinkedBlockingQueue<>();
+        inbound = generationQueue;
+        Thread reader = new Thread(() -> drainPeerOutput(current, generationQueue),
+                "nop-lint-tsc-bridge-reader-" + ++generation);
         reader.setDaemon(true);
         reader.start();
 
         Object answer = pollWithDeadline(config.handshakeTimeout(), "handshake");
         if (answer == EOF) {
+            // EOF means "this process is unusable" exactly like the
+            // validateReady branch below: recycle the dead process handle
+            // instead of leaking it to GC (W-11 — destroyForcibly on an
+            // already-dead process is a safe idempotent no-op). The
+            // terminal-unavailable semantics are unchanged.
+            destroyProcess();
             state = State.EXHAUSTED;
             throw new TscBridgeUnavailableException("tsc bridge peer exited before the ready frame "
                     + "(is the helper script importable and does node run it? command=" + config.spawnCommand() + ")");
@@ -228,17 +269,25 @@ public final class NodeTscBridge implements AutoCloseable {
         state = State.READY;
     }
 
-    private void drainPeerOutput() {
+    /**
+     * Pumps one generation's peer output into that generation's queue. Both
+     * arguments are the spawn-frame captured locals: the reader never
+     * dereferences the shared {@code process} field (whose nulling by
+     * {@link #destroyProcess()} used to be the reader NPE variant), and its
+     * EOF sentinel lands in its own generation's abandoned queue — never in
+     * the replacement generation's.
+     */
+    private void drainPeerOutput(Process peer, LinkedBlockingQueue<Object> queue) {
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                new InputStreamReader(peer.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                inbound.put(line);
+                queue.put(line);
             }
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
-            inbound.offer(EOF);
+            queue.offer(EOF);
         }
     }
 

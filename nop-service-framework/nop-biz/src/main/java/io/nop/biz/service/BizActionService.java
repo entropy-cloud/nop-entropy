@@ -12,6 +12,8 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.biz.IBizActionService;
 import io.nop.api.core.biz.IBizHashFunction;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.FutureHelper;
@@ -26,12 +28,17 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import jakarta.inject.Inject;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.biz.BizErrors.ERR_BIZ_EXECUTOR_NOT_PARTITIONED;
+import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_EXECUTOR;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION;
 
 public class BizActionService implements IBizActionService {
@@ -71,12 +78,26 @@ public class BizActionService implements IBizActionService {
 
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
 
-        Runnable task = () -> {
-            IRpcServiceInvocation inv = newInvocation(actor, bizAction, request);
+        // C3-007：受管提交（裁定③快照+executeWithContext 形态）——提交线程快照调用方 IContext，
+        // 任务体内经捕获 context 的 executeWithContext 附着执行（finally 语义恢复原附着，restore
+        // 由原语承载）。调用方 tenant/locale/trace/callExpireTime 传播到 worker 线程；任务体内的
+        // ServiceContextImpl 字段初始化（getOrCreateContext）捕获的是调用方 context 而非新建/残留
+        // context，消除池线程永久附着与跨任务串号。双分支（executeForPartition/execute）同批闭合。
+        IContext callerContext = ContextProvider.currentContext();
 
-            inv.proceedAsync().whenComplete((res, err) -> {
-                FutureHelper.complete(future, res, err);
-            });
+        Runnable task = () -> {
+            try {
+                if (callerContext != null) {
+                    callerContext.executeWithContext(() -> {
+                        proceedInvocation(actor, bizAction, request, future);
+                        return null;
+                    });
+                } else {
+                    proceedInvocation(actor, bizAction, request, future);
+                }
+            } catch (Throwable e) {
+                FutureHelper.complete(future, null, e);
+            }
         };
 
         try {
@@ -96,6 +117,20 @@ public class BizActionService implements IBizActionService {
         return future;
     }
 
+    /** 测试缝：按名解析执行器（与 callActionAsync 同路径） */
+    Object getBeanForTest(String name) {
+        return beanContainer.getBean(name);
+    }
+
+    private void proceedInvocation(IBizObject actor, String bizAction, ApiRequest<?> request,
+                                   CompletableFuture<ApiResponse<?>> future) {
+        IRpcServiceInvocation inv = newInvocation(actor, bizAction, request);
+
+        inv.proceedAsync().whenComplete((res, err) -> {
+            FutureHelper.complete(future, res, err);
+        });
+    }
+
     private IRpcServiceInvocation newInvocation(IBizObject bizObj, String bizAction, ApiRequest<?> request) {
         IServiceContext rt = new ServiceContextImpl();
         rt.setRequest(request.getData());
@@ -110,5 +145,56 @@ public class BizActionService implements IBizActionService {
         if (executor == null)
             return BizConstants.DEFAULT_WORK_EXECUTOR_NAME;
         return executor;
+    }
+
+    /**
+     * 2.3-C4-001（plan 2551 裁定 A②）：启动期执行器校验（类型感知）。遍历全部 biz 对象的
+     * actionModel：①executor 名必须可解析（beanContainer 内存在）；②bizSequential 动作解析到的
+     * executor 须实现 {@link IPartitionedExecutor}（缺省执行器无分区串行档，非法组合启动期即拒，
+     * 列全违例动作名——运行期不可达）。容器未装配（纯 JVM 测试语境）时跳过（无动作即无守卫面）。
+     * 由 IoC 容器 @PostConstruct / BizObjectManager delayInit 阶段调用（beans 装配挂接）。
+     */
+    public void validateExecutors() {
+        if (bizObjManager == null || beanContainer == null)
+            return;
+
+        List<String> unknownExecutors = null;
+        List<String> nonPartitionedUsages = null;
+
+        for (String objName : bizObjManager.getBizObjNames()) {
+            IBizObject actor = bizObjManager.getBizObject(objName);
+            IBizModel bizModel = actor == null ? null : actor.getBizModel();
+            if (bizModel == null)
+                continue;
+            List<? extends IBizActionModel> actions = bizModel.getActions();
+            if (actions == null)
+                continue;
+            for (IBizActionModel actionModel : actions) {
+                String executorName = getWorkExecutorBean(actionModel);
+                Object executor;
+                try {
+                    executor = beanContainer.getBean(executorName);
+                } catch (Throwable e) {
+                    if (unknownExecutors == null)
+                        unknownExecutors = new ArrayList<>();
+                    unknownExecutors.add(objName + "__" + actionModel.getName() + " -> " + executorName);
+                    continue;
+                }
+                if (actionModel.isBizSequential() && !(executor instanceof IPartitionedExecutor)) {
+                    if (nonPartitionedUsages == null)
+                        nonPartitionedUsages = new ArrayList<>();
+                    nonPartitionedUsages.add(objName + "__" + actionModel.getName() + " -> " + executorName);
+                }
+            }
+        }
+
+        if (unknownExecutors != null) {
+            throw new NopException(ERR_BIZ_UNKNOWN_EXECUTOR)
+                    .param("executors", String.join("; ", unknownExecutors));
+        }
+        if (nonPartitionedUsages != null) {
+            throw new NopException(ERR_BIZ_EXECUTOR_NOT_PARTITIONED)
+                    .param("actions", String.join("; ", nonPartitionedUsages));
+        }
     }
 }

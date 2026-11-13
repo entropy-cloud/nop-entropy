@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
@@ -49,7 +51,14 @@ public class PgVectorStore extends IVectorStore<VectorData> {
     private final DataSource dataSource;
     private final int dimension;
     private final String defaultCollection;
-    private volatile boolean schemaReady;
+    /**
+     * C6-001（plan 2520，三登记一处闭合）：per-collection 就绪门禁。实例级
+     * volatile 布尔会把「首个 collection 已建表」误标为「整个 store 就绪」，
+     * 多 index 部署从第二个 collection 起永久确定性 SQL 失败。ready set 的
+     * add 底层为 putIfAbsent：幂等不抛错，返回值忽略；并发首建同 collection
+     * 的双跑 DDL 由 IF NOT EXISTS 幂等承载。
+     */
+    private final Set<String> readyCollections = ConcurrentHashMap.newKeySet();
 
     public PgVectorStore(DataSource dataSource, int dimension, String defaultCollection) {
         if (dataSource == null) {
@@ -80,7 +89,7 @@ public class PgVectorStore extends IVectorStore<VectorData> {
     }
 
     private void ensureSchema(Connection connection, String collection) throws SQLException {
-        if (schemaReady) {
+        if (readyCollections.contains(collection)) {
             return;
         }
         try (PreparedStatement stmt = connection.prepareStatement(
@@ -91,7 +100,24 @@ public class PgVectorStore extends IVectorStore<VectorData> {
             // (expected benign case — full trace retained below for diagnosis)
             LOG.info("nop.ai.rag.pgvector.create-extension-skipped: {}", String.valueOf(e), e);
         }
-        // table name cannot be parameterized — validated by the whitelist above
+        // table name cannot be parameterized — validated by the whitelist above.
+        // C6-001: concurrent first-build on the same collection can collide inside
+        // pg catalog (e.g. pg_type duplicate key) — retry once; the second failure
+        // propagates (no silent swallow)
+        try {
+            executeCreateTable(connection, collection);
+        } catch (SQLException first) {
+            try {
+                executeCreateTable(connection, collection);
+            } catch (SQLException second) {
+                second.addSuppressed(first);
+                throw second;
+            }
+        }
+        readyCollections.add(collection);
+    }
+
+    private static void executeCreateTable(Connection connection, String collection) throws SQLException {
         try (PreparedStatement stmt = connection.prepareStatement(
                 "CREATE TABLE IF NOT EXISTS " + collection
                         + " (id text NOT NULL, embedding vector, "
@@ -99,7 +125,6 @@ public class PgVectorStore extends IVectorStore<VectorData> {
                         + "UNIQUE(tenant_id, id))")) {
             stmt.execute();
         }
-        schemaReady = true;
     }
 
     @Override

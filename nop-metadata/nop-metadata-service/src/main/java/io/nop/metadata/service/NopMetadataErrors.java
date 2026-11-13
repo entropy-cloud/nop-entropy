@@ -16,7 +16,7 @@ import io.nop.api.core.exceptions.ErrorCode;
  * 这是该模块的有意选择，与框架核心模块的点分命名不同。子域分组（按字母序）：
  * aggr / catalog / checkpoint / col-lineage / contract / datasource / dialect /
  * dimension / dto / event / external-table / field / filter-definition / granularity / join /
- * lineage / link-asset / manifest / measure / method / module / orm-resource / pagination / entity-tag /
+ * ledger / lineage / link-asset / manifest / measure / method / module / orm-resource / pagination / entity-tag /
  * profiling / profiling-rule / quality / quality-rule / query / query-filter /
  * recon / score / search / sql / sql-module / sql-type-inference / table /
  * tableref / tag-label.

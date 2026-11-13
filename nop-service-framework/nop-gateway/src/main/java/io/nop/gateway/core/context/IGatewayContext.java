@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.core.context.IServiceContext;
 import io.nop.gateway.model.GatewayRouteModel;
+import io.nop.http.api.server.IHttpServerContext;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -109,4 +110,11 @@ public interface IGatewayContext extends IServiceContext {
 
     ApiResponse<?> getResponse();
 
+    /**
+     * CL-025（plan 2550 裁定 E）：底层 HTTP server 上下文（客户端断连观测原语载体）。
+     * 默认 null = 不可观测档（纯构造语境/测试桩）；GatewayHttpFilter 装配路径注入。
+     */
+    default IHttpServerContext getHttpServerContext() {
+        return null;
+    }
 }

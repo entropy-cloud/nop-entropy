@@ -55,7 +55,8 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
         } catch (IOException e) {
             throw NopException.adapt(e);
         }
-        executor = ExecutorHelper.newSingleThreadExecutor("nio-file-watch-service", 1, false);
+        // C6-007（plan 2548）：daemon 化——watcher 线程不再阻止 JVM 退出（语义变更登记：JVM 退出不再等待 watcher）
+        executor = ExecutorHelper.newSingleThreadExecutor("nio-file-watch-service", 1, true);
         future = executor.submit(this::checkChange);
     }
 
@@ -136,6 +137,17 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
         } while (isActive());
     }
 
+    /**
+     * C6-006（plan 2548）：按路径查找既有 entry（表小，线性扫描可接受）。
+     */
+    private FileWatchEntry findEntryByPath(Path absPath) {
+        for (FileWatchEntry entry : watchKeyMap.values()) {
+            if (entry.getPath().equals(absPath))
+                return entry;
+        }
+        return null;
+    }
+
     FileWatchEntry register(Path root, Path path, Predicate<Path> filter, boolean recursive,
                             IFileWatchListener listener) throws IOException {
 
@@ -156,6 +168,14 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
     public synchronized Runnable watch(final Path path, final Predicate<Path> filter, boolean recursive,
                                        final IFileWatchListener listener) {
         try {
+            // C6-006（plan 2548）：同路径重复 watch 复用同一 entry 并返回既有 cleanup 句柄（幂等），
+            // 避免「新 WatchKey 覆盖旧 entry → 注销交叉误伤」
+            Path absPath = path.toAbsolutePath();
+            FileWatchEntry existing = findEntryByPath(absPath);
+            if (existing != null) {
+                LOG.debug("nop.core.resource.watch.reuse-entry:{}", absPath);
+                return () -> unwatch(existing);
+            }
             FileWatchEntry entry = register(path, path, filter, recursive, listener);
             if (recursive) {
                 Files.walkFileTree(path,
@@ -202,8 +222,19 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
         }
         watchKeyMap.clear();
 
-        if (executor != null)
+        if (executor != null) {
             executor.shutdown();
+            // C6-007（plan 2548）：有界等待 watcher 循环退出，裸 shutdown() 会留下未终止线程窗
+            try {
+                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            executor = null;
+        }
         if (watchService != null) {
             IoHelper.safeClose(watchService);
             watchService = null;
@@ -214,6 +245,12 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
         LOG.debug("nop.core.resource.cancel-watch:{}", entry.getPath());
         this.watchKeyMap.remove(entry.getWatchKey());
         entry.getWatchKey().cancel();
+
+        // C6-006（plan 2548）：从父的 subEntries 回写摘除，防止单调累积
+        FileWatchEntry parent = entry.getParent();
+        if (parent != null) {
+            parent.removeSubEntry(entry);
+        }
 
         for (FileWatchEntry subEntry : entry.getSubEntries().values()) {
             unwatch(subEntry);

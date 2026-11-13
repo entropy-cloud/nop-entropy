@@ -293,9 +293,21 @@ nop-rule 不是 Drools 等 Rete 推理引擎的替代品，而是 Nop 平台 DSL
 
 - **业务规则 = 确定性映射表**，非事实推理网。Rete/冲突消解/前向链等技术概念在 ERP 评分场景中与业务概念不直接对应。
 - **时间窗口/跨行聚合**由聚合根对象的业务属性和方法提供（如 `order.averageDailySales`），或通过上下文 `IEvalScope` 注入帮助函数。规则引擎不需要知道"窗口"，它只看到已算好的输入值。
-- **VFS 热更新**：所有 DSL（rule / task / workflow / xsql 等）统一通过 `ResourceComponentManager` 从 VFS 加载，更新文件后自动清缓存重编译，nop-rule 自然继承此能力。
+- **VFS 热更新**：所有 DSL（rule / task / workflow / xsql 等）统一通过 `ResourceComponentManager` 从 VFS 加载，更新文件后自动清缓存重编译，nop-rule 自然继承此能力。规则以数据库行存储时（`DaoRuleModelLoader`），失效判定粒度覆盖定义行与全部节点行，见下节「规则热更新失效传播契约」。
 - **函数扩展**：通过 `IEvalScope` 上下文注入自定义帮助对象和方法，规则表达式直接调用 `helper.computeScore(...)`。
 - **版本管理**：`ruleName` + `ruleVersion` 复合主键，支持规则生效期控制、回滚和追溯。
+
+
+## 规则热更新失效传播契约
+
+规则以数据库行存储时，`DaoRuleModelLoader.loadRule` 的依赖钉定集 = **定义行 + 全部 NopRuleNode 子行**（装载时对定义行与 `entity.getRuleNodes()` 逐节点补 `traceDepends(节点行资源路径)`）。判定树谓词/分支输出取自节点子行，因此**任何写路径**（一等 GraphQL/RPC CRUD、daoProvider 直写、管理脚本）对节点行的变更都会改变该行 updateTime，被平台失效判据检出——下一次装载触发重编译，「保存即生效」契约在节点级编辑上同样成立；不存在"只改子行不触定义行导致旧编译规则无限期服务"的静默漂移。修复不裁剪子行写面（节点行一等 CRUD 语义维持）。
+
+与平台失效判据的关系（判据载体 = `DefaultResourceChangeChecker` 平台单点，规则模块零自建判据）：
+
+- **判据**：mtime 相等比较 + 写入新鲜度宽限双条件（宽限锚 = 文件/实体写入时刻），配合装载前后双窗口比对与 TTL 兜底强制重载；平台事务型资源（dao 实体行）经 `DaoEntityResource` 同判据接入。
+- **配置键**（平台侧，非本模块）：`nop.core.component.resource-cache.change-grace-period`（缺省 2s，0=关闭档）、`nop.orm.dao-resource-check-interval`（缺省 5000ms，检查周期）、`nop.core.component.resource-cache.timeout`（缺省 5min TTL 兜底）、`nop.core.component.resource-cache.refresh-min-interval`（缺省 100ms）。
+- **开销界定**：每条规则模型的失效检查成本 = 节点数 × 每 5s 至多 1 次主键点查（判据自节流），典型规则数十节点属廉价查询；调优旋钮 = 既有 `dao-resource-check-interval`，零新参数。
+- 定义级保存的正常失效路径不受影响（同一判据，粒度更细）。
 
 ## 适用场景
 

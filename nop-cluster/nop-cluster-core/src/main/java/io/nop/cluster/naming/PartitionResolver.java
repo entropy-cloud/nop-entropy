@@ -7,9 +7,11 @@
  */
 package io.nop.cluster.naming;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.cluster.discovery.ServiceInstance;
 import org.slf4j.Logger;
@@ -46,8 +48,26 @@ public class PartitionResolver {
     private boolean enableCluster;
     private IntRangeSet assignedPartitions;
 
+    /**
+     * 4.2-C8-006（plan 2559 裁定 H）：空列表/未命中负缓存 TTL（可配，缺省 5000ms）；
+     * 正缓存 CACHE_TTL_MS 硬编码常量保持。
+     */
+    public static final String NEGATIVE_TTL_CONFIG = "nop.cluster.partition-negative-ttl-ms";
+
+    private long negativeTtlMs = 5000;
+
     private volatile long lastResolveTime;
     private volatile IntRangeSet cachedPartitions;
+    private volatile boolean negativeCached;
+
+    @InjectValue("@cfg:" + NEGATIVE_TTL_CONFIG + "|5000")
+    public void setNegativeCacheTtlMs(long negativeTtlMs) {
+        this.negativeTtlMs = negativeTtlMs;
+    }
+
+    public long getNegativeCacheTtlMs() {
+        return negativeTtlMs;
+    }
 
     public void setNamingService(INamingService namingService) {
         this.namingService = namingService;
@@ -86,14 +106,30 @@ public class PartitionResolver {
         }
 
         long now = CoreMetrics.currentTimeMillis();
-        if (cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS) {
+        // 4.2-C8-006（plan 2559 裁定 H）：负缓存命中期内直接返回空（不查 NamingService）
+        if (negativeCached) {
+            if ((now - lastResolveTime) < negativeTtlMs) {
+                return null;
+            }
+            negativeCached = false;
+        } else if (cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS) {
             return cachedPartitions;
         }
 
         String svcName = serviceName != null && !serviceName.isEmpty()
                 ? serviceName : AppConfig.appName();
-        List<ServiceInstance> servers = namingService.getInstances(svcName);
+        List<ServiceInstance> servers;
+        try {
+            servers = namingService.getInstances(svcName);
+        } catch (Exception e) {
+            // 4.2-C8-006（plan 2559 裁定 R25-3 fail 语义）：异常路径 typed 上抛、不缓存异常
+            // （快速失败，弃「负缓存化异常态」与「stale 回退」两候选），正/负缓存均不写
+            throw NopException.wrap(e);
+        }
         if (servers == null || servers.isEmpty()) {
+            // 空列表/未命中 → 负缓存短 TTL；静态路径（assignedPartitions 非空/enableCluster off）不缓存
+            negativeCached = true;
+            lastResolveTime = now;
             return null;
         }
 
@@ -104,12 +140,16 @@ public class PartitionResolver {
         IntRangeBean myRange = PartitionAssignHelper.getMyRange(sorted, myInstanceId);
         if (myRange.isEmpty()) {
             LOG.warn("nop.cluster.partition.my-instance-not-found:instanceId={}", myInstanceId);
+            // 未命中同走负缓存（裁定 H）
+            negativeCached = true;
+            lastResolveTime = now;
             return null;
         }
 
         LOG.debug("nop.cluster.partition.resolved:range={}", myRange);
         IntRangeSet result = myRange.toRangeSet();
         cachedPartitions = result;
+        negativeCached = false;
         lastResolveTime = now;
         return result;
     }

@@ -1,0 +1,5 @@
+type Tree {
+    id: String
+    name: String
+    batchName: String
+}

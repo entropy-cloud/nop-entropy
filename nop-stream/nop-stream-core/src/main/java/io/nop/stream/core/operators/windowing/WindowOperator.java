@@ -580,11 +580,19 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         return copy;
     }
 
-    /** Scope tag this instance's drop counter registers under (test-visible). */
+    /**
+     * Scope tag this instance's drop counter registers under (test-visible).
+     * W-15 (CRA 8.41 R4-01, ruling E.3): the no-location fallback is the stable
+     * literal {@code "window"} + the subtask tag — the pre-fix
+     * {@code identityHashCode} suffix minted a fresh meter on every redeploy
+     * (the counter fleet grew with every restart). Registered deviation from
+     * ruling E.3's {@code vertexId|subtaskIndex}: the operator has no vertexId
+     * source without a deployment location.
+     */
     String getLateDropMetricOperatorTag() {
         return lateDropMetricOperator != null
                 ? lateDropMetricOperator
-                : "window@" + Integer.toHexString(System.identityHashCode(this));
+                : "window";
     }
 
     /** Subtask scope tag this instance's drop counter registers under (test-visible). */
@@ -819,6 +827,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public void close() throws Exception {
+        // W-15 (CRA 8.41 R4-01, ruling E.3): remove this instance's drop counter
+        // from the registry — matched removal, idempotent (close runs once per
+        // operator lifecycle; the shared counter disappears when the LAST instance
+        // on its scope closes).
+        if (numLateRecordsDropped != null) {
+            io.nop.stream.core.metrics.StreamMetricsRegistries.registry()
+                    .remove(numLateRecordsDropped.getId());
+            numLateRecordsDropped = null;
+        }
         super.close();
         timestampedCollector = null;
         triggerContext = null;

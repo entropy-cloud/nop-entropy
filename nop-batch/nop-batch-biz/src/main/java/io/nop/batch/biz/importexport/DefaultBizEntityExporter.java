@@ -38,11 +38,7 @@ public class DefaultBizEntityExporter extends AbstractBizEntityService implement
         IBizObject bizObj = bizObjManager.getBizObject(bizObjName);
         IEntityDao<IOrmEntity> dao = BizObjHelper.getDao(bizObj, context);
 
-        if (config.getConcurrency() > maxConcurrency)
-            config.setConcurrency(maxConcurrency);
-
-        if (config.getBatchSize() > maxBatchSize)
-            config.setBatchSize(maxBatchSize);
+        clampConfig(config, maxConcurrency, maxBatchSize);
 
         LOG.info("nop.biz.export-by-query:bizObjName={},concurrency={},batchSize={}", bizObjName,
                 config.getConcurrency(), config.getBatchSize());
@@ -62,6 +58,25 @@ public class DefaultBizEntityExporter extends AbstractBizEntityService implement
         }).whenComplete((ret, err) -> {
             cleanup(err, tempResource);
         });
+    }
+
+    /**
+     * 1.7-C8-010（plan 2546 W-11）：导出并发/批量的**上下界**钳制（package-private 纯函数，供单测直测）。
+     * <p>
+     * 原实现只判 {@code >} 上界；client 传 {@code batchSize=0/负} 会原样穿透到 builder，
+     * 经 {@code adjustBatchSize} 钳到 1 → 每行一 chunk（日志/状态文件写放大）。
+     * 下界归一后与 {@code BatchTask.normalizeConcurrency} 构成双保险。
+     */
+    static void clampConfig(BizEntityExportConfig config, int maxConcurrency, int maxBatchSize) {
+        if (config.getConcurrency() > maxConcurrency)
+            config.setConcurrency(maxConcurrency);
+        if (config.getConcurrency() <= 0)
+            config.setConcurrency(1);
+
+        if (config.getBatchSize() > maxBatchSize)
+            config.setBatchSize(maxBatchSize);
+        if (config.getBatchSize() <= 0)
+            config.setBatchSize(maxBatchSize);
     }
 
     protected void cleanup(Throwable err, IResource tempResource) {

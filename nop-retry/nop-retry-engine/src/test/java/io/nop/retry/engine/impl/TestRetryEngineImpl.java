@@ -1033,6 +1033,11 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         }
 
         @Override
+        public void reconcileStaleRunningAttempts(String recordId) {
+            delegate.reconcileStaleRunningAttempts(recordId);
+        }
+
+        @Override
         public List<NopRetryRecord> fetchPendingRecords(int limit, io.nop.api.core.beans.IntRangeSet partitions) {
             return delegate.fetchPendingRecords(limit, partitions);
         }
@@ -1050,6 +1055,16 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         @Override
         public void deleteRecord(NopRetryRecord record) {
             delegate.deleteRecord(record);
+        }
+
+        @Override
+        public void replaceRecord(NopRetryRecord existingRecord, NopRetryRecord newRecord) {
+            delegate.replaceRecord(existingRecord, newRecord);
+        }
+
+        @Override
+        public boolean renewLease(NopRetryRecord record, long leaseTimeoutMs) {
+            return delegate.renewLease(record, leaseTimeoutMs);
         }
 
         @Override
@@ -1080,6 +1095,11 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         @Override
         public long getCurrentTime() {
             return delegate.getCurrentTime();
+        }
+
+        @Override
+        public long purgeExpiredLedgerRows(long retentionTimeMillis, int batchSize) {
+            return delegate.purgeExpiredLedgerRows(retentionTimeMillis, batchSize);
         }
 
         @Override

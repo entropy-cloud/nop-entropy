@@ -129,19 +129,32 @@ public class OrmModel extends _OrmModel implements IOrmModel, INeedInit {
         return collectionMap.get(collectionName);
     }
 
+    /**
+     * 2.3-C1-019（plan 2552 裁定 L，R1-Low-7 形态补钉）：volatile 守卫 + 同步块双检
+     * （对齐 OrmModelValidatorRegistry DCL 形态——裸同步块不给 lock-free 读侧 HB）。
+     */
+    private volatile boolean inited;
+
     @Override
     public void init() {
-        OrmModelInitializer initializer = new OrmModelInitializer(this);
-        this.topoEntryMap = initializer.getEntryMap();
-        Map<TopoEntry<IEntityModel>, IEntityModel> map = new TreeMap<>();
-        this.topoEntryMap.values().forEach(entry -> {
-            map.put(entry, entry.getValue());
-        });
-        this.sortedEntityModels = map.values().stream().collect(Collectors.toUnmodifiableList());
-        this.entityModelMap = initializer.getEntityMap();
-        this.entityModelByTableMap = initializer.getEntityModelByTableMap();
-        this.collectionMap = initializer.getCollectionMap();
-        this.anyEntityUseTenant = this.entityModelMap.values().stream().anyMatch(IEntityModel::isUseTenant);
-        this.snakeCaseNameMap = initializer.getUnderscoreNameMap();
+        if (inited)
+            return;
+        synchronized (this) {
+            if (inited)
+                return;
+            OrmModelInitializer initializer = new OrmModelInitializer(this);
+            this.topoEntryMap = initializer.getEntryMap();
+            Map<TopoEntry<IEntityModel>, IEntityModel> map = new TreeMap<>();
+            this.topoEntryMap.values().forEach(entry -> {
+                map.put(entry, entry.getValue());
+            });
+            this.sortedEntityModels = map.values().stream().collect(Collectors.toUnmodifiableList());
+            this.entityModelMap = initializer.getEntityMap();
+            this.entityModelByTableMap = initializer.getEntityModelByTableMap();
+            this.collectionMap = initializer.getCollectionMap();
+            this.anyEntityUseTenant = this.entityModelMap.values().stream().anyMatch(IEntityModel::isUseTenant);
+            this.snakeCaseNameMap = initializer.getUnderscoreNameMap();
+            this.inited = true;
+        }
     }
 }

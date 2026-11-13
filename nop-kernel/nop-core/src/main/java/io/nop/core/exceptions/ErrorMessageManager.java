@@ -39,7 +39,13 @@ import static io.nop.core.CoreConfigs.CFG_ERROR_MESSAGE_PUBLIC_FOR_NO_MAPPING;
 public class ErrorMessageManager implements IErrorMessageManager {
     static final Logger LOG = LoggerFactory.getLogger(ErrorMessageManager.class);
 
-    static ErrorMessageManager _instance = new ErrorMessageManager();
+    /**
+     * 1.7-C1-009（plan 2547 裁定 G；draft review R1 M-5 勘正）：本类的 {@code _instance} 只在静态初始化
+     * 赋值一次、此后永不替换（全仓无 {@code ErrorMessageManager._instance =}），因此它**不属于**
+     * 「可替换槽位族」，无需 volatile 语义上的槽位保护；这里加 volatile 仅为跨线程发布可见性兜底。
+     * 真实缺陷是构造器的 this-escape——见下方静态初始化块。
+     */
+    static volatile ErrorMessageManager _instance;
 
     public static final ErrorMessageManager instance() {
         return _instance;
@@ -111,8 +117,18 @@ public class ErrorMessageManager implements IErrorMessageManager {
         this.addErrorCodeMappings(mappings);
     }
 
-    public ErrorMessageManager(){
-        NopException.registerErrorMessageManager(this);
+    /**
+     * 1.7-C1-009：原实现在构造器内 {@code NopException.registerErrorMessageManager(this)}——
+     * this-escape（对象尚未构造完成即被外部持有）。改为构造器保持纯净，由静态初始化在赋值**之后**
+     * 注册，确保外部只看到完全构造的实例。
+     */
+    public ErrorMessageManager() {
+    }
+
+    static {
+        ErrorMessageManager instance = new ErrorMessageManager();
+        _instance = instance;
+        NopException.registerErrorMessageManager(instance);
     }
 
     @Override

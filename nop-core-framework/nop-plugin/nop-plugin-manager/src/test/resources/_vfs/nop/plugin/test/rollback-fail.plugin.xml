@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin name="rollback-fail"
+        if-property="test.rollbackfail.enabled|true"
+        activator="failActivator"
+        x:schema="/nop/schema/plugin/plugin.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <beans>
+        <bean id="failActivator" class="io.nop.plugin.test.FailActivator"/>
+        <bean id="failingDestroy.bean" class="io.nop.plugin.test.FailingDestroyBean" destroy-method="onDestroy"/>
+    </beans>
+</plugin>

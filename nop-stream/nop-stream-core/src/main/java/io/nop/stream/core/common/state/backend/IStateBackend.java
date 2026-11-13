@@ -53,4 +53,23 @@ public interface IStateBackend extends Serializable {
     default int getMaxParallelism() {
         return KeyGroup.DEFAULT_MAX_PARALLELISM;
     }
+
+    /**
+     * plan 2511 C5-002 (engine checkpoint-mode coherence): pin the snapshot FORM
+     * produced by the keyed state backends created from this factory. The
+     * runtime engine's restore path ({@code RescaleStateAssembler}) merges
+     * full-form {@code "states"} maps; a backend producing incremental markers
+     * while the job's checkpoint coordinator runs non-incremental would make
+     * every restore silently lose keyed state. The engine therefore pins the
+     * backend form to the coordinator's incremental mode; direct/embedded
+     * backend users keep the backend's own default (incremental, per C5-002
+     * adjudication 5).
+     *
+     * <p>Default: no-op — backends whose snapshot form is fixed (e.g. the
+     * Memory backend, which only produces full-form snapshots) ignore the pin.
+     */
+    default void setIncrementalCheckpointEnabled(boolean incrementalCheckpointEnabled) {
+        // no-op default: backends without an incremental/full snapshot-form
+        // duality have nothing to pin.
+    }
 }

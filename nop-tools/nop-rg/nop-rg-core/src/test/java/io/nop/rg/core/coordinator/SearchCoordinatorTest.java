@@ -56,7 +56,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator coordinator = new SearchCoordinator(4, true, false);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false,
-                        List.of("**/*.java", "**/*.md", "**/out.txt"), 0));
+                        List.of("**/*.java", "**/*.md", "**/out.txt"), 0)).results();
 
         // gen/ 被 gitignore 剪掉；bin.dat 二进制跳过；src/Util.java 无命中不出现
         assertEquals(2, results.size());
@@ -82,7 +82,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, true,
-                        List.of("src/*.java"), 0));
+                        List.of("src/*.java"), 0)).results();
         FileMatches main = results.get("src/Main.java");
         // -i：第二行 "Needle" 也命中
         assertEquals(2, main.lineCount());
@@ -95,7 +95,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(root, "n[e]edle = \\d", SearchCoordinator.Strategy.REGEX, false,
-                        List.of("**/*.java"), 0));
+                        List.of("**/*.java"), 0)).results();
         FileMatches main = results.get("src/Main.java");
         assertEquals(1, main.lineCount());
         assertEquals("int needle = 0;", main.getLines().get(0).getText());
@@ -110,7 +110,7 @@ public class SearchCoordinatorTest {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
         Map<String, FileMatches> results = coordinator.search(
-                new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
+                new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0)).results();
         assertFalse(results.containsKey("bin.dat"));
         assertTrue(results.containsKey("README.md"));
     }
@@ -120,7 +120,7 @@ public class SearchCoordinatorTest {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
         Map<String, FileMatches> results = coordinator.search(
-                new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of("README.md"), 1));
+                new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of("README.md"), 1)).results();
         FileMatches readme = results.get("README.md");
         assertEquals(1, readme.lineCount());
         assertTrue(readme.isTruncated());
@@ -141,14 +141,14 @@ public class SearchCoordinatorTest {
         // includeLineText=false = count 口径
         SearchCommand command = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                 false, List.of("count.txt"), 0, false);
-        Map<String, FileMatches> countResults = coordinator.search(command);
+        Map<String, FileMatches> countResults = coordinator.search(command).results();
         assertEquals(4, countResults.get("count.txt").lineCount());
         assertFalse(countResults.get("count.txt").isTruncated());
 
         // 文本口径（includeLineText=true 走 buildLineMatches）行数必须一致
         SearchCommand textCommand = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                 false, List.of("count.txt"), 0, true);
-        Map<String, FileMatches> textResults = coordinator.search(textCommand);
+        Map<String, FileMatches> textResults = coordinator.search(textCommand).results();
         assertEquals(4, textResults.get("count.txt").getLines().size());
         assertEquals(textResults.get("count.txt").lineCount(),
                 countResults.get("count.txt").lineCount());
@@ -156,7 +156,7 @@ public class SearchCoordinatorTest {
         // maxLines 截断：2 行命中后截断
         SearchCommand truncCommand = new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
                 false, List.of("count.txt"), 2, false);
-        Map<String, FileMatches> truncResults = coordinator.search(truncCommand);
+        Map<String, FileMatches> truncResults = coordinator.search(truncCommand).results();
         assertEquals(2, truncResults.get("count.txt").lineCount());
         assertTrue(truncResults.get("count.txt").isTruncated());
     }
@@ -188,11 +188,11 @@ public class SearchCoordinatorTest {
             Files.writeString(f, content);
 
             Map<String, FileMatches> countResults = coordinator.search(
-                    new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
-                            false, List.of("fuzz-" + iter + ".txt"), 0, false));
+                new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                            false, List.of("fuzz-" + iter + ".txt"), 0, false)).results();
             Map<String, FileMatches> textResults = coordinator.search(
-                    new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
-                            false, List.of("fuzz-" + iter + ".txt"), 0, true));
+                new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL,
+                            false, List.of("fuzz-" + iter + ".txt"), 0, true)).results();
             int expected = textResults.get("fuzz-" + iter + ".txt").getLines().size();
             int actual = countResults.get("fuzz-" + iter + ".txt").lineCount();
             assertEquals(expected, actual, "content=" + content + "（count 口径与文本口径行数不一致）");
@@ -207,7 +207,7 @@ public class SearchCoordinatorTest {
                 "first line\r\nneedle crlf\r\nlast\r\n".getBytes(StandardCharsets.UTF_8));
         SearchCoordinator coordinator = new SearchCoordinator(1, true, false);
         Map<String, FileMatches> results = coordinator.search(
-                new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0));
+                new SearchCommand(tempDir, "needle", SearchCoordinator.Strategy.LITERAL, false, List.of(), 0)).results();
         FileMatches matches = results.get("crlf.txt");
         assertEquals(1, matches.lineCount());
         LineMatch line = matches.getLines().get(0);
@@ -241,23 +241,32 @@ public class SearchCoordinatorTest {
 
     @Test
     public void testRegexOnFileAboveChunkedThresholdFailsExplicitly() throws IOException {
-        // 契约裁定（plan 2265 Phase 3）：REGEX + >阈值文件显式抛异常，不静默回退
+        // 契约裁定（plan 2265 Phase 3）：REGEX + >阈值文件显式失败，不静默回退——
+        // plan 2564 W-05 起显式失败落地为该文件的错误项（语义迁移 R1-M1：强化非弱化，
+        // 显式性由「错误项含路径 + 其余结果照常」承载，不再以弃全异常承载）
         StringBuilder big = new StringBuilder();
         for (int i = 0; i < 100; i++) {
             big.append("some text line ").append(i).append('\n');
         }
         Path file = tempDir.resolve("big-regex.txt");
         Files.writeString(file, big.toString()); // > 64 字节阈值
+        Files.writeString(tempDir.resolve("ok.txt"), "needle here\n");
         SearchCoordinator coordinator = new SearchCoordinator(1, false, false, 64);
-        assertThrows(NopRgException.class, () -> coordinator.search(
+        SearchOutcome outcome = coordinator.search(
                 new SearchCommand(tempDir, "n[e]edle|text", SearchCoordinator.Strategy.REGEX,
-                        false, List.of(), 0)));
+                        false, List.of(), 0));
+        assertTrue(outcome.errors().stream()
+                        .anyMatch(e -> e.relativePath().equals("big-regex.txt")
+                                && e.message() != null && e.message().contains("big-regex.txt")),
+                "超阈值文件显式失败必须归错误项且消息含路径: " + outcome.errors());
+        assertEquals(1, outcome.results().get("ok.txt").lineCount(), "其余文件照常返回: " + outcome.results());
     }
 
     @Test
     public void testVectorStrategyExplicitlyFails() throws IOException {
         Path root = buildTree();
         SearchCoordinator coordinator = new SearchCoordinator(1, true, false);
+        // VECTOR provider 解析在 coordinator 主线程（任务创建前）——保持 coordinator 级失败
         assertThrows(NopRgException.class, () -> coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.VECTOR, false, List.of(), 0)));
     }
@@ -277,7 +286,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator coordinator = new SearchCoordinator(2, true, false);
         Map<String, FileMatches> skipped = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false,
-                        List.of(), 0, true, false));
+                        List.of(), 0, true, false)).results();
         FileMatches skippedMain = skipped.get("src/Main.java");
         assertEquals("int needle = 0;", skippedMain.getLines().get(0).getText());
         assertEquals("", skippedMain.getLines().get(0).getSubmatches().get(0).text());
@@ -286,7 +295,7 @@ public class SearchCoordinatorTest {
 
         Map<String, FileMatches> kept = coordinator.search(
                 new SearchCommand(root, "needle", SearchCoordinator.Strategy.LITERAL, false,
-                        List.of(), 0));
+                        List.of(), 0)).results();
         assertEquals("needle", kept.get("src/Main.java").getLines().get(0).getSubmatches().get(0).text());
     }
 
@@ -300,7 +309,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator coordinator = new SearchCoordinator(1, false, false);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(tempDir, "aa", SearchCoordinator.Strategy.LITERAL, false,
-                        List.of("overlap.txt"), 0));
+                        List.of("overlap.txt"), 0)).results();
         List<Submatch> subs = results.get("overlap.txt").getLines().get(0).getSubmatches();
         // 非重叠链 {0,2,4}；修复前重叠枚举为 {0,1,2,3,4}
         assertEquals(3, subs.size());
@@ -319,7 +328,7 @@ public class SearchCoordinatorTest {
         SearchCoordinator coordinator = new SearchCoordinator(1, false, false, 4);
         Map<String, FileMatches> results = coordinator.search(
                 new SearchCommand(tempDir, "aaa", SearchCoordinator.Strategy.LITERAL, false,
-                        List.of("overlap-big.txt"), 0));
+                        List.of("overlap-big.txt"), 0)).results();
         List<Submatch> subs = results.get("overlap-big.txt").getLines().get(0).getSubmatches();
         // 非重叠链 {2,5}（与 rg 一致）；跨 chunk 重叠出现 {3,4} 被压制
         assertEquals(2, subs.size());

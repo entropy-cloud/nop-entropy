@@ -223,7 +223,9 @@ class TestRocksDBKeyGroupPrefixLayout {
     private RocksDBKeyedStateBackend<String> newBackend(int shardCount) {
         java.io.File sub = new java.io.File(tempDir, "db-" + System.nanoTime());
         sub.mkdirs();
-        return new RocksDBKeyedStateBackend<>(sub.getAbsolutePath(), String.class, shardCount, null);
+        RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(sub.getAbsolutePath(), String.class, shardCount, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
+        return backend;
     }
 
     private static int compareBytes(byte[] a, byte[] b) {

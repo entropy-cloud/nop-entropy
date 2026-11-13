@@ -312,12 +312,17 @@ public class TestFileTwoPhaseCommitSink {
         // Recovery: a fresh sink instance restores pendingCommits and re-commits durable epoch 2
         FileTwoPhaseCommitSink<String> recovered =
                 new FileTwoPhaseCommitSink<>(outputDir.toString(), StandardCharsets.UTF_8);
-        recovered.beginTransaction();
+        // CRA 8.44 R4-04 W-08 drive-order adaptation (E-2537-4): beginTransaction runs
+        // at the recovery chain's LAST step (setPendingCommits → restoreFromEpoch →
+        // beginTransaction, base-class order) — the pre-fix placement before the
+        // whitelist was populated is an order the real chain never produces; every
+        // assertion below is byte-identical.
         // R6 plan 2325 (closure audit M1): restore through the HONEST entry so the
         // provenance guard marks epoch 2 recover-safe (a bare put would make a
         // future collision look like a this-run fresh-run collision).
         recovered.setPendingCommits(java.util.Map.of(2L, epoch2Pending));
         recovered.restoreFromEpoch(2L, null);
+        recovered.beginTransaction();
 
         // Assertions: no dupes, no loss
         // Epoch 1 final file: 3 lines (committed once, not re-committed by restore since ledger/manifest guards)
@@ -417,7 +422,12 @@ public class TestFileTwoPhaseCommitSink {
         s0.beginTransaction();
         s1.beginTransaction();
 
-        int epochs = 25;
+        // CRA 8.43 R4-03 E-2536-4: 25 → 8 — the W-04 pendingCommits bound
+        // (DEFAULT_MAX_PENDING_EPOCHS=8, adjudication C.1) now rejects an
+        // unconverged stack beyond 8 epochs BY DESIGN; the drive shrinks into
+        // the declared envelope so the pin's manifest-race assertions (verbatim
+        // below) keep exercising the AR-14 interleave.
+        int epochs = 8;
         // Stage all epochs' temp files first (mirrors saveState-per-barrier), so the
         // concurrent phase below concentrates on the manifest read-modify-write race.
         for (long epoch = 1; epoch <= epochs; epoch++) {

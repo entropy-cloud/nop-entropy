@@ -156,8 +156,6 @@ public interface CoreConstants extends ResourceConstants {
 
     String POSTFIX_NOT_DELETE = ".not-delete";
 
-    String RESOURCE_TIMESTAMP_CACHE_NAME = "resource-timestamp-cache";
-
     int MAX_FUNCTION_ARG_COUNT = 100;
 
     String NAMESPACE_X = "x";

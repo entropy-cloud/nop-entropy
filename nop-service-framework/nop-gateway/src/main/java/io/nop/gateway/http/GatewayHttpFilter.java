@@ -151,6 +151,20 @@ public class GatewayHttpFilter implements IHttpServerFilter {
                     return next.get();
                 }
 
+                // 2.3-C3-010（plan 2550 裁定 E）：断连注册——CL-025 onClientAbort 钩子收到
+                // 客户端断连事件时关闭在途下游调用（best-effort Future 取消；不可观测适配器
+                // 为无操作，零破坏）。同时注入 server context 供 InvokeProcessor/AiFailover
+                // 的转发前/重试前 isClientAborted() 检查。
+                if (gatewayCtx instanceof io.nop.gateway.core.context.GatewayContextImpl) {
+                    ((io.nop.gateway.core.context.GatewayContextImpl) gatewayCtx).setHttpServerContext(context);
+                }
+                context.onClientAbort(() -> {
+                    LOG.warn("nop.gateway.client-abort:path={}", context.getRequestPath());
+                    if (future instanceof java.util.concurrent.Future<?>) {
+                        ((java.util.concurrent.Future<?>) future).cancel(true);
+                    }
+                });
+
                 return future.thenCompose(ret -> write(context, ret, gatewayCtx));
             }).exceptionally(ex -> {
                 // P1-check-gw-49 (plan 2390): async-segment failures (body read, JSON
@@ -246,6 +260,20 @@ public class GatewayHttpFilter implements IHttpServerFilter {
     private String serializeStreamElement(Object item, String contentType) {
         if (item == null) {
             return null;
+        }
+
+        // 2.3-C9-005（plan 2551 裁定 L）：透传快径半边——String 元素为上游原始 SSE 载荷
+        //（快径档免 parse，此处对称免 serialize），线缆字节与上游输出逐字节一致。
+        // 带变换路由的元素恒为 Map（parse 后形态），不走本分支。
+        if (item instanceof String) {
+            String data = (String) item;
+            if (contentType.contains("event-stream")) {
+                return "data: " + data + "\n\n";
+            }
+            if (contentType.contains("ndjson")) {
+                return data + "\n";
+            }
+            return data;
         }
 
         if (contentType.contains("event-stream")) {

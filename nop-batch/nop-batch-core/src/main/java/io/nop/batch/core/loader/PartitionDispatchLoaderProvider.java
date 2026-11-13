@@ -42,7 +42,13 @@ public class PartitionDispatchLoaderProvider<S>
         return loadBatchMultiplyFactor;
     }
 
+    /** 1.7-C8-009（plan 2546 W-10）：factor 必须 >=1——<=0 会使队列容量退化为 0 导致挂死。 */
     public void setLoadBatchMultiplyFactor(int loadBatchMultiplyFactor) {
+        if (loadBatchMultiplyFactor < 1)
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_FACTOR_INVALID)
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_NAME, "loadBatchMultiplyFactor")
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_VALUE, loadBatchMultiplyFactor);
         this.loadBatchMultiplyFactor = loadBatchMultiplyFactor;
     }
 
@@ -50,7 +56,13 @@ public class PartitionDispatchLoaderProvider<S>
         return maxLockQueueCountPerThread;
     }
 
+    /** 1.7-C8-009（plan 2546 W-10）：maxLock 必须 >=1。 */
     public void setMaxLockQueueCountPerThread(int maxLockQueueCountPerThread) {
+        if (maxLockQueueCountPerThread < 1)
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_FACTOR_INVALID)
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_NAME, "maxLockQueueCountPerThread")
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_VALUE, maxLockQueueCountPerThread);
         this.maxLockQueueCountPerThread = maxLockQueueCountPerThread;
     }
 

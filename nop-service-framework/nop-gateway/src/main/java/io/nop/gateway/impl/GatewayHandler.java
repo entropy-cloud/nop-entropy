@@ -73,7 +73,8 @@ public class GatewayHandler {
 
         // 初始化处理器组件
         this.mappingProcessor = new MappingProcessor(mappingManager);
-        this.invokeProcessor = new InvokeProcessor(rpcServiceInvoker, httpClient);
+        // 2.3-C8-002（plan 2508）：主腿与 fallback 腿共享上游在途许可池
+        this.invokeProcessor = new InvokeProcessor(rpcServiceInvoker, httpClient, UpstreamAdmission.shared());
         this.forwardProcessor = new ForwardProcessor(model);
         this.streamingProcessor = new StreamingProcessor(httpClient, mappingProcessor);
         this.routeExecutor = new RouteExecutor(

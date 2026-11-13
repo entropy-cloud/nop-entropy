@@ -70,6 +70,7 @@ class TestRocksDBDescriptorAggregatingStateRestore {
         RocksDBStateBackend factory = new RocksDBStateBackend(tempDir.getAbsolutePath());
         RocksDBKeyedStateBackend<String> backend =
                 (RocksDBKeyedStateBackend<String>) factory.createKeyedStateBackend(String.class);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         backend.setCurrentKey("k1");
         InternalAppendingState<String, Object, Long, long[], Long> state =
                 backend.getInternalAppendingState(desc);
@@ -84,6 +85,7 @@ class TestRocksDBDescriptorAggregatingStateRestore {
         // live descriptor function before the deferred restore runs.
         RocksDBKeyedStateBackend<String> restored =
                 (RocksDBKeyedStateBackend<String>) factory.createKeyedStateBackend(String.class);
+        restored.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         restored.registerRestoreAggregateFunction("window-contents", liveFn);
         restored.restoreState(snapshot);
 
@@ -111,6 +113,7 @@ class TestRocksDBDescriptorAggregatingStateRestore {
         RocksDBStateBackend factory = new RocksDBStateBackend(tempDir.getAbsolutePath());
         RocksDBKeyedStateBackend<String> backend =
                 (RocksDBKeyedStateBackend<String>) factory.createKeyedStateBackend(String.class);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         backend.setCurrentKey("k1");
         InternalAppendingState<String, Object, Long, long[], Long> state =
                 backend.getInternalAppendingState(desc);
@@ -121,6 +124,7 @@ class TestRocksDBDescriptorAggregatingStateRestore {
 
         RocksDBKeyedStateBackend<String> restored =
                 (RocksDBKeyedStateBackend<String>) factory.createKeyedStateBackend(String.class);
+        restored.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         assertThrows(StreamException.class, () -> restored.restoreState(snapshot),
                 "Restore of a capturing aggregate function without a registered live "
                         + "function must fail fast (NoSuchMethodException → StreamException)");

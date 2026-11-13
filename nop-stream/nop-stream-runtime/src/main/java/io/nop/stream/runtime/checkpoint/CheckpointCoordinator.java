@@ -169,6 +169,17 @@ public class CheckpointCoordinator {
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
     private volatile Set<TaskLocation> tasksToAcknowledge;
 
+    // W-13 site ⑧ (CRA 8.41 R4-01, ruling E.1): per-coordinator three-state
+    // suppression for the periodic persist-failure ERROR (first full / window
+    // aggregate / cleared on the next persist success). Per-site instance — no
+    // cross-thread shared state beyond the suppressor's own atomics.
+    // Initialized in the constructor (jobId is a blank final assigned there).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor persistFailureSuppressor;
+
+    // W-13 site ④ (ruling E.1): retry-failed-commits WARN suppression; the
+    // recovery signal is the retry ledger emptying (all participants recovered).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor retryCommitSuppressor;
+
     /**
      * C3 (plan 369): tasks that reported a terminal (COMPLETED) state and were
      * contracted out of the checkpoint participant set. Their state is
@@ -221,10 +232,74 @@ public class CheckpointCoordinator {
      * retries — previously run inline UNDER the coordinator monitor, serializing
      * the whole control plane behind slow sinks/nodes. Serial (single thread)
      * preserves the retry→current-epoch commit order and the cross-epoch ordering
-     * of the queue; bounded queue + CallerRuns mirror the tm-commit-* precedent
-     * (TaskManager commit executor).
+     * of the queue; the bounded wait queue mirrors the tm-commit-* precedent
+     * (TaskManager commit executor). W-06/W-12 (CRA 8.41 R4-01, ruling C.2):
+     * saturation parks the rejected task on a bounded overflow re-dispatch queue
+     * (drained at task boundaries on the fan-out thread — never inline under
+     * this monitor) and the shutdown window delivers inline (CC-17); see
+     * {@link #getOrCreateCommitFanoutExecutor()}.
      */
     private ExecutorService commitFanoutExecutor;    private volatile boolean isShutdown = false;
+
+    /**
+     * Default capacity of the commit-fanout executor's wait queue (tm-commit
+     * alignment). Overridable through the package-private constructor seam
+     * (S1, CRA 8.41 红③) so tests can shrink it and reach saturation
+     * deterministically.
+     */
+    static final int DEFAULT_COMMIT_FANOUT_QUEUE_CAPACITY = 1000;
+
+    /**
+     * Capacity of the saturation overflow re-dispatch queue (CRA 8.41 ruling
+     * C.2, W-06): mirrors the main wait queue's bound — a second unbounded
+     * structure is explicitly forbidden; when the overflow queue is full the
+     * epoch is dropped (healed by the next epoch's subsuming commit or the
+     * checkpoint-timeout abort, same declared safety net as C4-012).
+     */
+    static final int COMMIT_FANOUT_OVERFLOW_CAPACITY = 1000;
+
+    /**
+     * S1 seam (CRA 8.41 红③): commit-fanout wait-queue capacity, injected via
+     * the package-private constructor (the TaskManager {@code commitQueueCapacity}
+     * constructor-param shape). Read once when the executor is lazily created.
+     */
+    private final int commitFanoutQueueCapacity;
+
+    /**
+     * W-06 (C2-003): bounded overflow re-dispatch queue. A fan-out task rejected
+     * by a FULL (but not shutdown) wait queue is parked here with its complete
+     * body; the fan-out thread drains it at every task boundary BEFORE the task
+     * body — so the re-dispatched commits stay serial on the fan-out thread and
+     * execute before later-arriving tasks (the retry→current-epoch serial
+     * contract holds again in the saturation window, without ever running I/O
+     * under the coordinator monitor).
+     */
+    private volatile java.util.concurrent.LinkedBlockingDeque<Runnable> commitFanoutOverflow;
+
+    /** W-06: fan-out tasks re-dispatched through the overflow queue (observable saturation). */
+    private final AtomicInteger commitFanoutOverflows = new AtomicInteger(0);
+
+    /**
+     * W-06: fan-out tasks DISCARDED because the overflow queue itself was full
+     * (second-order saturation). The epoch is healed by the next epoch's
+     * subsuming commit or the checkpoint-timeout abort.
+     */
+    private final AtomicInteger commitFanoutDiscards = new AtomicInteger(0);
+
+    /**
+     * C7-011 (plan 2510 adjudication 5, layer 4 of the checkpoint
+     * defense-in-depth): leadership activity flag re-checked at the
+     * persist-success entry and before the participant commit fan-out dispatch.
+     * A degrade to standby (via {@link #onLeaderDeactivated()}) flips this to
+     * false so an in-flight persist completing AFTER the degrade is discarded -
+     * the zombie standby never becomes a second writer on the checkpoint
+     * durability plane. Layer 4 supplements (never rewrites) the existing three
+     * defenses: collectAck active gating, pending timeout, new-leader abort.
+     */
+    private volatile boolean leaderActive = true;
+
+    /** C7-011: counter of checkpoints discarded by the standby degrade re-check. */
+    private final AtomicInteger standbyDiscardedCheckpoints = new AtomicInteger(0);
 
     /**
      * Dedicated single-thread executor for
@@ -280,6 +355,39 @@ public class CheckpointCoordinator {
     // this map (abort must drop the terminal marker).
     final ConcurrentHashMap<Long, Boolean> checkpointSuccessMap = new ConcurrentHashMap<>();
 
+    /**
+     * W-03 (CRA 8.42 R4-02, ruling A.2): consecutive retry-failure count per
+     * participant. At {@link #commitRetryEscalationThreshold} consecutive failed
+     * finishCommit retries the participant is deregistered and the escalation
+     * handler fires once (typed) — the ledger entry then terminalizes through the
+     * existing stillFailing-empty removal path. Package-private for the red③ pin.
+     */
+    final java.util.concurrent.ConcurrentHashMap<CheckpointParticipant, Integer> commitRetryFailureCounts =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * W-03 (ruling A.2): consecutive-retry-failure threshold. Configurable via
+     * {@code nop.stream.checkpoint.commit-retry-escalation-threshold} (values
+     * &le; 0 fail fast typed at resolve time). Package-visible and volatile so
+     * focused tests can shorten it (the production default stays 6 — six
+     * checkpoint cycles ≈ 3 minutes at the default 30s cadence: longer than
+     * transient I/O jitter, far shorter than infinite retry).
+     */
+    static volatile int commitRetryEscalationThreshold = 6;
+    /** Config key for {@link #commitRetryEscalationThreshold} (ruling A.2). */
+    static final String COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG =
+            "nop.stream.checkpoint.commit-retry-escalation-threshold";
+
+    /**
+     * W-03 (ruling A.2): one-shot escalation callback. Invoked AFTER the retry
+     * iteration completes (never mid-iteration — the coordinator must not be
+     * terminalized while a fanout task body is draining it) with the typed
+     * escalation error. JobCoordinator wires this to
+     * {@code failJob(ERR_STREAM_COMMIT_RETRY_ESCALATED)} at the abortHandler
+     * wiring point; already-terminal jobs take the existing WARN branch.
+     */
+    private volatile java.util.function.Consumer<Throwable> commitRetryEscalationHandler;
+
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
     /**
@@ -298,7 +406,35 @@ public class CheckpointCoordinator {
             CheckpointIDCounter checkpointIdCounter,
             ICheckpointStorage checkpointStorage,
             CheckpointConfig config) {
+        this(jobId, pipelineId, checkpointIdCounter, checkpointStorage, config,
+                DEFAULT_COMMIT_FANOUT_QUEUE_CAPACITY);
+    }
+
+    /**
+     * Package-private constructor with an explicit commit-fanout wait-queue
+     * capacity — the S1 test seam (CRA 8.41 红③), shaped after the TaskManager
+     * {@code commitQueueCapacity} constructor parameter. A non-positive
+     * capacity fails fast.
+     */
+    CheckpointCoordinator(
+            String jobId,
+            String pipelineId,
+            CheckpointIDCounter checkpointIdCounter,
+            ICheckpointStorage checkpointStorage,
+            CheckpointConfig config,
+            int commitFanoutQueueCapacity) {
+        if (commitFanoutQueueCapacity <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "commitFanoutQueueCapacity must be positive (got " + commitFanoutQueueCapacity + ")");
+        }
+        this.commitFanoutQueueCapacity = commitFanoutQueueCapacity;
         this.jobId = jobId;
+        this.persistFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "checkpoint.persist-failed:" + jobId, 30_000L);
+        this.retryCommitSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "checkpoint.retry-commit-still-failing:" + jobId, 30_000L);
         this.pipelineId = pipelineId;
         this.checkpointIdCounter = checkpointIdCounter;
         this.checkpointStorage = checkpointStorage;
@@ -349,6 +485,47 @@ public class CheckpointCoordinator {
 
     public void removeParticipant(CheckpointParticipant participant) {
         participants.remove(participant);
+    }
+
+    /**
+     * W-03 (ruling A.2): wires the one-shot commit-retry escalation callback.
+     * See {@link #commitRetryEscalationHandler}.
+     */
+    public void setCommitRetryEscalationHandler(java.util.function.Consumer<Throwable> handler) {
+        this.commitRetryEscalationHandler = handler;
+    }
+
+    /**
+     * S3 test seam (red③): shortens the consecutive-failure escalation threshold.
+     * Package-private; the production value flows from
+     * {@link #COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG} with the default 6.
+     */
+    void setCommitRetryEscalationThresholdForTest(int threshold) {
+        if (threshold <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "commit-retry-escalation-threshold must be positive (got " + threshold + ")");
+        }
+        commitRetryEscalationThreshold = threshold;
+    }
+
+    /**
+     * W-03 (ruling A.2): resolves the escalation threshold from
+     * {@code nop.stream.checkpoint.commit-retry-escalation-threshold} (falls back
+     * to {@link #commitRetryEscalationThreshold}); values &le; 0 fail fast typed
+     * (parameter discipline aligned with adjudication ② / 8.41 thresholds).
+     */
+    static int resolveCommitRetryEscalationThreshold() {
+        Integer configured = Integer.getInteger(COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG);
+        int effective = configured != null ? configured : commitRetryEscalationThreshold;
+        if (effective <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG + " must be > 0, got: " + effective);
+        }
+        return effective;
     }
 
     public List<CheckpointParticipant> getParticipants() {
@@ -960,6 +1137,32 @@ public class CheckpointCoordinator {
                                           boolean asyncRetention) {
         long checkpointId = completed.getCheckpointId();
 
+        // W-13 site ⑧ recovery: a persist success clears the failure window
+        // (one CLEARED entry on the transition).
+        if (persistFailureSuppressor.success()
+                == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+            LOG.info("Checkpoint persist recovered for job {} (failure window cleared)", jobId);
+        }
+
+        // C7-011 layer 4: the persist completed AFTER this coordinator degraded
+        // to standby - discard it (no latestCompleted update, no commit fan-out,
+        // no completion notification) and count the discard.
+        if (!leaderActive) {
+            if (pendingCheckpoints.remove(checkpointId, pending)) {
+                standbyDiscardedCheckpoints.incrementAndGet();
+                LOG.warn("Discarding checkpoint {} for job {}: the coordinator degraded to standby "
+                        + "before persist completion - no commit fan-out (C7-011 second-writer guard)",
+                        checkpointId, jobId);
+                recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                        checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.ABORTED,
+                        pending.getTriggerTimestamp(), 0L, 0L,
+                        "discarded: coordinator degraded to standby before persist completion",
+                        CoreMetrics.currentTimeMillis()));
+                pending.forceFail("coordinator degraded to standby before persist completion", null);
+            }
+            return;
+        }
+
         if (!pendingCheckpoints.remove(checkpointId, pending)) {
             LOG.debug("Skip completing checkpoint {} because pending state changed", checkpointId);
             return;
@@ -1010,8 +1213,21 @@ public class CheckpointCoordinator {
         // notify (the abort-path gating reads failedCommitParticipants, which the
         // task itself may populate).
         final long fanoutCheckpointId = checkpointId;
+        final boolean activeAtDispatch = leaderActive;
         getOrCreateCommitFanoutExecutor().execute(() -> {
             try {
+                // C7-011 layer 4: re-check at the fan-out commit point - the
+                // coordinator may have degraded between the dispatch decision and
+                // the queued task running.
+                if (!activeAtDispatch || !leaderActive) {
+                    standbyDiscardedCheckpoints.incrementAndGet();
+                    LOG.warn("Skipping commit fan-out for checkpoint {} on job {}: coordinator "
+                            + "degraded to standby before fan-out execution (C7-011 second-writer guard)",
+                            fanoutCheckpointId, jobId);
+                    checkpointSuccessMap.remove(fanoutCheckpointId);
+                    return;
+                }
+
                 retryFailedCommits();
 
                 // §12 invariant 5: commit happens only after manifest is durable (forceComplete above).
@@ -1051,7 +1267,22 @@ public class CheckpointCoordinator {
     private void onCompletePersistFailure(CompletedCheckpoint completed, PendingCheckpoint pending,
                                           String failMessage, Exception cause) {
         long checkpointId = completed.getCheckpointId();
-        LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
+        // W-13 site ⑧ (CRA 8.41 R4-01, ruling E.1): three-state suppression on the
+        // trigger-cadence persist failure (first full / window aggregate / cleared
+        // on the next persist success). The aggregate line deliberately does NOT
+        // repeat the original message shape (compat: TestCheckpointCoordinatorPersistFailureLog
+        // asserts the full ERROR appears exactly once — the single-failure path is
+        // unchanged; the aggregate is a separate summary-only line).
+        io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a = cause != null
+                ? persistFailureSuppressor.failure(cause)
+                : persistFailureSuppressor.failure(failMessage);
+        if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+            LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
+        } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+            LOG.warn("Checkpoint persist failures for job {} — {} suppressed in the last {}ms window; last: {}",
+                    jobId, persistFailureSuppressor.getLastWindowSuppressedCount(),
+                    persistFailureSuppressor.getWindowMs(), persistFailureSuppressor.getLastSummary());
+        }
         metrics.recordFailure(failMessage);
         // Engine-layer meter + job event (failureCause carried).
         engineMetrics().checkpointFailed();
@@ -1093,16 +1324,167 @@ public class CheckpointCoordinator {
         return persistExecutor;
     }
 
-    /** R6 CC-01 (plan 2326): lazy single-thread fan-out executor (tm-commit shape). */
+    /**
+     * R6 CC-01 (plan 2326): lazy single-thread fan-out executor (tm-commit shape).
+     *
+     * <p>W-06/W-12 (CRA 8.41 R4-01, ruling C.2): the rejection handler is
+     * SPLIT-WINDOW and the executor's wait queue is bounded
+     * ({@link #commitFanoutQueueCapacity}). Every submitted body is wrapped as a
+     * {@link CommitFanoutTask} that drains the overflow re-dispatch queue BEFORE
+     * its own body — so a saturated fan-out task is parked (with its full body,
+     * including the layer-4 re-check captured in its closure) on the bounded
+     * overflow queue and executes serially on the fan-out thread at the next
+     * task boundary. The submitting thread — which holds the coordinator
+     * monitor at all three execute points — only performs the non-blocking
+     * overflow offer, never the sink I/O (C2-003 body: CallerRuns would pull
+     * finishCommit file/JDBC I/O back under the monitor and break the serial
+     * commit contract). When the overflow queue itself is full the epoch is
+     * dropped and counted (healed by the next epoch's subsuming commit or the
+     * checkpoint-timeout abort). In the shutdown window the submission runs
+     * INLINE on the caller (CC-17 precedent, W-12 grace-window face; the
+     * overflow residue is discarded by shutdownNow with the same semantics as
+     * the queued tasks).
+     */
     private ExecutorService getOrCreateCommitFanoutExecutor() {
         if (commitFanoutExecutor == null) {
-            commitFanoutExecutor = new java.util.concurrent.ThreadPoolExecutor(1, 1,
+            java.util.concurrent.ThreadPoolExecutor executor = new java.util.concurrent.ThreadPoolExecutor(1, 1,
                     0L, java.util.concurrent.TimeUnit.MILLISECONDS,
-                    new java.util.concurrent.LinkedBlockingQueue<>(1000),
+                    new java.util.concurrent.LinkedBlockingQueue<>(commitFanoutQueueCapacity),
                     NopStreamThreadFactory.named("checkpoint-commit-fwd-" + jobId),
-                    new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+                    this::commitFanoutRejected);
+            commitFanoutOverflow = new java.util.concurrent.LinkedBlockingDeque<>(COMMIT_FANOUT_OVERFLOW_CAPACITY);
+            commitFanoutExecutor = new OverflowDrainingExecutorService(executor);
         }
         return commitFanoutExecutor;
+    }
+
+    /**
+     * W-06 split-window rejection handler: saturation → bounded overflow
+     * re-dispatch (counted, WARNed, NEVER inline — the caller holds the
+     * coordinator monitor); shutdown → deliver inline (CC-17, W-12).
+     */
+    private void commitFanoutRejected(Runnable r, java.util.concurrent.ThreadPoolExecutor executor) {
+        if (executor.isShutdown()) {
+            // W-12 (C4-012) grace window: post-shutdown submissions deliver
+            // inline on the caller (CC-17 precedent). The body runs WITHOUT the
+            // overflow drain — the overflow residue is discarded by shutdownNow
+            // with the same semantics as the queued tasks (review R1 Minor-7),
+            // and draining it here would run sink I/O on this monitor-holding
+            // caller thread (CC-01 violation).
+            ((CommitFanoutTask) r).body.run();
+            return;
+        }
+        // W-06 (C2-003) saturation window: park the wrapped task on the bounded
+        // overflow queue — re-dispatched serially on the fan-out thread at the
+        // next task boundary, before later-arriving tasks.
+        if (commitFanoutOverflow.offerLast(r)) {
+            commitFanoutOverflows.incrementAndGet();
+            // Rate-limiting of this WARN lands with the W-13 suppressor carrier
+            // (ruling E.1 coverage row 12, Group D); counted on every event so
+            // sustained saturation stays observable.
+            LOG.warn("Commit fan-out wait queue saturated for job {} (capacity={}); task parked on the "
+                            + "overflow re-dispatch queue ({}/{}), overflows={}",
+                    jobId, commitFanoutQueueCapacity, commitFanoutOverflow.size(),
+                    COMMIT_FANOUT_OVERFLOW_CAPACITY, commitFanoutOverflows.get());
+            return;
+        }
+        commitFanoutDiscards.incrementAndGet();
+        LOG.warn("Commit fan-out overflow queue full for job {}; discarding the fan-out task "
+                + "(the epoch is healed by the next epoch's subsuming commit or the checkpoint-timeout abort)",
+                jobId);
+    }
+
+    /**
+     * W-06: drains the overflow re-dispatch queue ON THE FAN-OUT THREAD. Called
+     * at every task boundary before the task body (and re-entrantly from each
+     * re-dispatched task — nested drain converges because each drained task
+     * carries its own body and the loop keeps polling until the deque is empty).
+     */
+    private void drainCommitFanoutOverflow() {
+        java.util.concurrent.LinkedBlockingDeque<Runnable> overflow = this.commitFanoutOverflow;
+        if (overflow == null) {
+            return;
+        }
+        Runnable redispatched;
+        while ((redispatched = overflow.pollFirst()) != null) {
+            redispatched.run();
+        }
+    }
+
+    /** W-06: overflow re-dispatch counter (observable saturation; 红③ driver seam). */
+    public int getCommitFanoutOverflows() {
+        return commitFanoutOverflows.get();
+    }
+
+    /** W-06: second-order saturation discard counter. */
+    public int getCommitFanoutDiscards() {
+        return commitFanoutDiscards.get();
+    }
+
+    /**
+     * W-06: a committed fan-out body wrapped with the task-boundary overflow
+     * drain. Overflow elements carry the SAME wrapper, so a re-dispatched task
+     * re-drains before its body (nested drain convergence). The shutdown-window
+     * rejection path runs {@link #body} directly — without the drain — because
+     * the overflow residue belongs to shutdownNow's discard semantics, not to
+     * the caller thread.
+     */
+    private final class CommitFanoutTask implements Runnable {
+        final Runnable body;
+
+        CommitFanoutTask(Runnable body) {
+            this.body = body;
+        }
+
+        @Override
+        public void run() {
+            drainCommitFanoutOverflow();
+            body.run();
+        }
+    }
+
+    /**
+     * W-06: executor view that wraps every submitted command into a
+     * {@link CommitFanoutTask} (task-boundary overflow drain + body) executed on
+     * the single fan-out thread. Lifecycle methods delegate to the underlying
+     * pool.
+     */
+    private final class OverflowDrainingExecutorService extends java.util.concurrent.AbstractExecutorService {
+        private final java.util.concurrent.ThreadPoolExecutor delegate;
+
+        OverflowDrainingExecutorService(java.util.concurrent.ThreadPoolExecutor delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            delegate.execute(new CommitFanoutTask(command));
+        }
+
+        @Override
+        public void shutdown() {
+            delegate.shutdown();
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return delegate.shutdownNow();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return delegate.isShutdown();
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return delegate.isTerminated();
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+            return delegate.awaitTermination(timeout, unit);
+        }
     }
 
     private ExecutorService createPersistExecutor() {
@@ -1526,7 +1908,9 @@ public class CheckpointCoordinator {
         }
     }
 
-    private void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
+    // Package-private for tests (S3 seam, red③): the W-03 pin drives the exact
+    // production notify/retry sequence synchronously.
+    void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
         checkpointSuccessMap.put(checkpointId, success);
         for (int i = participants.size() - 1; i >= 0; i--) {
             CheckpointParticipant participant = participants.get(i);
@@ -1540,8 +1924,23 @@ public class CheckpointCoordinator {
         }
     }
 
-    private void retryFailedCommits() {
+    // Package-private for tests (S3 seam, red③): see notifyParticipantsFinishCommit.
+    void retryFailedCommits() {
         if (failedCommitParticipants.isEmpty()) return;
+
+        // W-03 (CRA 8.42 R4-02, ruling A.2): consecutive-failure escalation. A
+        // participant whose finishCommit retry keeps failing is counted per ROUND
+        // (one increment per retryFailedCommits invocation, never per entry) and,
+        // at N consecutive failed rounds, deregistered (removeParticipant) — its
+        // ledger entries then drain through the EXISTING stillFailing-empty
+        // removal path below (abort gating + successMap terminal-marker semantics
+        // untouched). The escalation action itself (typed failJob via the handler)
+        // fires AFTER the iteration completes — never mid-iteration, so the
+        // coordinator is not terminalized while a fanout task body is draining it.
+        int threshold = resolveCommitRetryEscalationThreshold();
+        Set<CheckpointParticipant> countedThisRound = ConcurrentHashMap.newKeySet();
+        List<CheckpointParticipant> escalated = new ArrayList<>();
+        List<Exception> escalatedCauses = new ArrayList<>();
 
         Iterator<Map.Entry<Long, Set<CheckpointParticipant>>> it = failedCommitParticipants.entrySet().iterator();
         while (it.hasNext()) {
@@ -1555,10 +1954,37 @@ public class CheckpointCoordinator {
                 if (participants.contains(participant)) {
                     try {
                         participant.finishCommit(failedEpoch, originalSuccess);
+                        // W-03: a successful retry resets the consecutive-failure count.
+                        commitRetryFailureCounts.remove(participant);
                         LOG.info("Retried finishCommit for participant on epoch {} with success={} succeeded", failedEpoch, originalSuccess);
                     } catch (Exception e) {
-                        LOG.warn("Retry finishCommit for participant on epoch {} still failing", failedEpoch, e);
-                        stillFailing.add(participant);
+                        // W-13 site ④ (CRA 8.41 R4-01, ruling E.1): three-state
+                        // suppression on the checkpoint-cadence retry WARN (first
+                        // full / window aggregate / cleared when the retry ledger
+                        // empties).
+                        io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                                retryCommitSuppressor.failure(e);
+                        if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                            LOG.warn("Retry finishCommit for participant on epoch {} still failing", failedEpoch, e);
+                        } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                            LOG.warn("Retry finishCommit failures for job {} — {} suppressed in the last "
+                                            + "{}ms window; last: {}",
+                                    jobId, retryCommitSuppressor.getLastWindowSuppressedCount(),
+                                    retryCommitSuppressor.getWindowMs(), retryCommitSuppressor.getLastSummary());
+                        }
+                        // W-03: count ONE consecutive failed round per participant;
+                        // at the threshold, deregister — the entry then drains via
+                        // the existing empty-stillFailing removal path (the
+                        // participant is NOT added to stillFailing).
+                        if (countedThisRound.add(participant)
+                                && commitRetryFailureCounts.merge(participant, 1, Integer::sum) >= threshold) {
+                            removeParticipant(participant);
+                            escalated.add(participant);
+                            escalatedCauses.add(e);
+                        } else if (!countedThisRound.contains(participant)
+                                || commitRetryFailureCounts.get(participant) < threshold) {
+                            stillFailing.add(participant);
+                        }
                     }
                 }
             }
@@ -1566,6 +1992,19 @@ public class CheckpointCoordinator {
             if (stillFailing.isEmpty()) {
                 it.remove();
                 checkpointSuccessMap.remove(failedEpoch);
+                // W-03: the entry is terminal — drop the participants' counters
+                // (entry-removal is the documented reset event for the survivors).
+                for (CheckpointParticipant participant : failedParts) {
+                    if (!escalated.contains(participant)) {
+                        commitRetryFailureCounts.remove(participant);
+                    }
+                }
+                // W-13 site ④ recovery: the retry ledger emptied — every failed
+                // participant recovered (one CLEARED entry on the transition).
+                if (failedCommitParticipants.isEmpty() && retryCommitSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    LOG.info("Retried finishCommit fully recovered for job {} (failure window cleared)", jobId);
+                }
             } else {
                 // 原位替换，不经 remove：remove 与 put 之间存在条目暂时消失的窗口，
                 // 并发的 abort 门控（containsKey）会把仍在重试的 epoch 误判为无失败者，
@@ -1573,6 +2012,64 @@ public class CheckpointCoordinator {
                 failedCommitParticipants.put(failedEpoch, stillFailing);
             }
         }
+
+        // W-03: the escalation exit — AFTER the iteration (ruling A.2: collect in
+        // the loop, act at the tail). One-shot typed terminal event: explicit
+        // ERROR log (never routed through the periodic suppressor) + the handler
+        // JobCoordinator wired to failJob(ERR_STREAM_COMMIT_RETRY_ESCALATED)
+        // (idempotent — an already-terminal job takes the existing WARN branch).
+        // The handler's own failure is logged, never swallowed (adjudication ④
+        // discipline).
+        for (int i = 0; i < escalated.size(); i++) {
+            CheckpointParticipant participant = escalated.get(i);
+            commitRetryFailureCounts.remove(participant);
+            io.nop.api.core.exceptions.NopException typed =
+                    new io.nop.stream.core.exceptions.StreamException(
+                            io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_COMMIT_RETRY_ESCALATED,
+                            escalatedCauses.get(i))
+                            .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                    String.valueOf(threshold) + " (job " + jobId + ", participant "
+                                            + participant + ")");
+            LOG.error("Commit-retry escalation for job {}: participant deregistered after {} "
+                    + "consecutive failed retry rounds", jobId, threshold, typed);
+            java.util.function.Consumer<Throwable> handler = this.commitRetryEscalationHandler;
+            if (handler != null) {
+                try {
+                    handler.accept(typed);
+                } catch (Exception handlerFailure) {
+                    LOG.error("Commit-retry escalation handler failed for job {}", jobId, handlerFailure);
+                }
+            }
+        }
+    }
+
+    /**
+     * C7-011 (plan 2510 adjudication 5): leadership-loss degrade entry point,
+     * invoked by the JobCoordinator when it deactivates to standby. Arms the
+     * layer-4 re-check and ACTIVELY aborts every in-flight pending checkpoint -
+     * upgrading the previously passive "wait for timeout / new-leader abort"
+     * posture into an active terminalization.
+     */
+    public void onLeaderDeactivated() {
+        this.leaderActive = false;
+        for (PendingCheckpoint pending : new ArrayList<>(pendingCheckpoints.values())) {
+            try {
+                abortPendingCheckpoint(pending, "coordinator deactivated to standby (C7-011)");
+            } catch (Exception e) {
+                LOG.error("Failed to abort pending checkpoint {} during standby degrade for job {}",
+                        pending.getCheckpointId(), jobId, e);
+            }
+        }
+    }
+
+    /** C7-011: leadership re-grant re-arms the persist/commit activity re-check. */
+    public void setLeaderActive(boolean active) {
+        this.leaderActive = active;
+    }
+
+    /** C7-011 observability: checkpoints discarded by the standby degrade re-check. */
+    public int getStandbyDiscardedCheckpoints() {
+        return standbyDiscardedCheckpoints.get();
     }
 
     public void shutdown() {
@@ -1608,7 +2105,10 @@ public class CheckpointCoordinator {
 
         // R6 CC-01 (plan 2326): participant commit/abort fan-out executor shares
         // the terminal-only lifecycle (grace window drains queued fan-outs so a
-        // shutdown racing a completion still delivers the epoch's commits).
+        // shutdown racing a completion still delivers the epoch's commits;
+        // post-shutdown submissions deliver inline on the caller (CC-17, W-12).
+        // Overflow re-dispatch queue residue is discarded by shutdownNow with
+        // the same semantics as the queued tasks (CRA 8.41 ruling C.3 #4).
         ExecutorService fe = commitFanoutExecutor;
         if (fe != null) {
             fe.shutdown();

@@ -43,4 +43,22 @@ public interface NopCepConfigs {
     IConfigReference<Duration> CEP_CACHE_STATISTICS_INTERVAL =
             varRef(s_loc, "nop.cep.pipeline.sharedbuffer.cache.statistics-interval", Duration.class, Duration.of(30, ChronoUnit.MINUTES));
 
+    /**
+     * CRA 8.43 R4-03 W-10 (C8-002, adjudication C.2): subtask-level upper bound
+     * of in-flight (buffered, not yet watermark-consumed) match events across
+     * ALL keys of one CEP operator instance. The match buffer
+     * ({@code elementQueueState} buckets + the SharedBuffer backing that grows
+     * with them) consumes only when the watermark advances — an idle source
+     * partition or a long-period pattern without {@code within} otherwise
+     * accumulates without bound until OOM. Overflow fails the task typed
+     * (visible failure over silent OOM); the typed param carries key, current
+     * count and limit as the minimal observability face (depth gauges belong
+     * to the observability governance track, C8-008 deferred).
+     */
+    @Description("Maximum number of in-flight match-buffer events per CEP "
+            + "operator subtask (across all keys). Overflow fails the task "
+            + "typed with guidance to check watermark progress or add a "
+            + "pattern within clause. Must be > 0.")
+    IConfigReference<Integer> MATCH_BUFFER_MAX_EVENTS =
+            varRef(s_loc, "nop.cep.pipeline.match-buffer.max-events", Integer.class, 100000);
 }

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<batch x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+       taskName="cra412.dispatch.metrics" batchSize="10" concurrency="1" retryOneByOne="true">
+
+    <loader>
+        <provider><![CDATA[
+            import io.nop.batch.dsl.TestCraR412DispatchMetricsE2E;
+            // 仅首 chunk 返回数据，其后空页终止（固定列表会无限循环）
+            if (TestCraR412DispatchMetricsE2E.served.compareAndSet(false, true)) {
+                return [1, 2, 3];
+            }
+            return [];
+        ]]></provider>
+        <dispatcher fetchThreadCount="1" loadBatchSize="10"/>
+    </loader>
+
+    <processor name="p">
+        <source><![CDATA[
+            import io.nop.batch.dsl.TestCraR412DispatchMetricsE2E;
+            // 首次处理首个 item 必败 → 制造一次重试（C8-007 要求重试计数 > 0）
+            TestCraR412DispatchMetricsE2E.maybeFail();
+            consume(item);
+        ]]></source>
+    </processor>
+
+    <consumer name="all">
+        <source><![CDATA[
+            import io.nop.batch.dsl.TestCraR412DispatchMetricsE2E;
+            items.forEach(item => TestCraR412DispatchMetricsE2E.consumed.add(item));
+        ]]></source>
+    </consumer>
+
+    <retryPolicy maxRetryCount="2" retryDelay="1"/>
+</batch>

@@ -72,6 +72,12 @@ public interface IocErrors {
 
     String ARG_CONFIG_PREFIX = "configPrefix";
 
+    String ARG_CREATE_THREAD = "createThread";
+
+    String ARG_INIT_THREAD = "initThread";
+
+    String ARG_WAIT_CHAIN = "waitChain";
+
     ErrorCode ERR_IOC_SCOPE_ALREADY_EXISTS = define("nop.err.ioc.scope-already-exists", "scope[{scope}]已经存在",
             ARG_SCOPE);
 
@@ -233,4 +239,25 @@ public interface IocErrors {
 
     ErrorCode ERR_IOC_INVALID_PROP_VALUE_TYPE = define("nop.err.ioc.invalid-prop-value-type",
             "bean[{beanName}]的属性[{propName}]的值类型[{value}]不被支持", ARG_BEAN_NAME, ARG_PROP_NAME, ARG_VALUE);
+
+    ErrorCode ERR_IOC_START_JOIN_TIMEOUT = define("nop.err.ioc.start-join-timeout",
+            "Timeout waiting for concurrent startup of IoC container [{containerId}] to finish. "
+                    + "The startup graph is permanently pending or a startup failure was not propagated. "
+                    + "Configure nop.ioc.app-beans-container.start-join-timeout to adjust the bound",
+            ARG_CONTAINER_ID);
+
+    ErrorCode ERR_IOC_BEAN_CREATION_CIRCULAR_WAIT = define("nop.err.ioc.bean-creation-circular-wait",
+            "Cross-thread creation wait for bean [{beanName}] forms a cycle: {waitChain}", ARG_BEAN_NAME, ARG_WAIT_CHAIN);
+
+    ErrorCode ERR_IOC_BEAN_CREATION_WAIT_TIMEOUT = define("nop.err.ioc.bean-creation-wait-timeout",
+            "Timeout waiting for bean [{beanName}] creation (configure nop.ioc.bean-init.wait-timeout to adjust): {waitChain}",
+            ARG_BEAN_NAME, ARG_WAIT_CHAIN);
+
+    ErrorCode ERR_IOC_BEAN_INIT_CIRCULAR_WAIT = define("nop.err.ioc.bean-init-circular-wait",
+            "Cross-thread init wait for bean [{beanName}] forms a cycle: {waitChain}", ARG_BEAN_NAME, ARG_WAIT_CHAIN);
+
+    ErrorCode ERR_IOC_BEAN_INIT_WAIT_TIMEOUT = define("nop.err.ioc.bean-init-wait-timeout",
+            "Timeout waiting for bean [{beanName}] initialization (configure nop.ioc.bean-init.wait-timeout to adjust): "
+                    + "createThread={createThread}, initThread={initThread}, chain={waitChain}",
+            ARG_BEAN_NAME, ARG_CREATE_THREAD, ARG_INIT_THREAD, ARG_WAIT_CHAIN);
 }

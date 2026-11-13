@@ -1,5 +1,9 @@
 package io.nop.gateway.core.interceptor;
 
+import io.nop.gateway.GatewayConfigs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -8,6 +12,20 @@ import java.util.Map;
 
 final class OpenAiDeltaAccumulator {
 
+    /**
+     * 2.3-C8-003（plan 2551 裁定 G）：聚合缓冲字节上界（键
+     * nop.gateway.streaming.accumulate-max-bytes，缺省 2MB）——失控上游线性推高堆的轨迹钳制。
+     * 覆盖面：contentBuilder 与每个 ToolCallAccumulator.argumentsBuilder（per-tool-call，N 个）
+     * 分别受同一键上界约束；超限截断 + 一次性 WARN（{@code nop.gateway.streaming-accumulate-truncated}）
+     * + 截断标记（{@value #TRUNCATION_MARKER} 尾标）。拒绝方案：不加界（线性堆推高维持）。
+     */
+    static final int DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
+    static final String TRUNCATION_MARKER = "[TRUNCATED]";
+
+    private static final Logger LOG = LoggerFactory.getLogger(OpenAiDeltaAccumulator.class);
+
+    private final int maxBytes;
+    private boolean truncationWarned;
     private String id;
     private String model;
     private String object;
@@ -17,6 +35,41 @@ final class OpenAiDeltaAccumulator {
     private Map<String, Object> usage;
 
     OpenAiDeltaAccumulator() {
+        this(readConfiguredMaxBytes());
+    }
+
+    private static int readConfiguredMaxBytes() {
+        Long v = GatewayConfigs.CFG_GATEWAY_STREAM_ACCUMULATE_MAX_BYTES.get();
+        return v == null ? DEFAULT_MAX_BYTES : v.intValue();
+    }
+
+    OpenAiDeltaAccumulator(int maxBytes) {
+        this.maxBytes = Math.max(1024, maxBytes);
+    }
+
+    /** 追加受上界约束：超限截断 + 一次性 WARN + 截断标记（调用方持本类的单线程聚合语境） */
+    private void appendBounded(StringBuilder builder, String segment, String what) {
+        int current = builder.length();
+        int allowed = maxBytes - current;
+        if (allowed <= 0) {
+            warnTruncatedOnce(what);
+            return;
+        }
+        if (segment.length() > allowed) {
+            builder.append(segment, 0, allowed);
+            warnTruncatedOnce(what);
+            builder.append(TRUNCATION_MARKER);
+            return;
+        }
+        builder.append(segment);
+    }
+
+    private void warnTruncatedOnce(String what) {
+        if (truncationWarned) {
+            return;
+        }
+        truncationWarned = true;
+        LOG.warn("nop.gateway.streaming-accumulate-truncated:what={},maxBytes={}", what, maxBytes);
     }
 
     @SuppressWarnings("unchecked")
@@ -65,7 +118,7 @@ final class OpenAiDeltaAccumulator {
             Map<String, Object> delta = (Map<String, Object>) deltaObj;
             Object contentObj = delta.get("content");
             if (contentObj instanceof String) {
-                contentBuilder.append((String) contentObj);
+                appendBounded(contentBuilder, (String) contentObj, "content");
             }
             accumulateToolCalls(delta.get("tool_calls"));
         }
@@ -95,7 +148,7 @@ final class OpenAiDeltaAccumulator {
                 }
                 Object argsObj = func.get("arguments");
                 if (argsObj instanceof String) {
-                    acc.argumentsBuilder.append((String) argsObj);
+                    appendBounded(acc.argumentsBuilder, (String) argsObj, "tool-call-arguments:" + index);
                 }
             }
         }

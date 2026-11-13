@@ -19,8 +19,11 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_PROMPT_TEMPLATE_NULL;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_PROMPT_USE_UNDEFINED_VAR;
 
 public class PromptModel extends _PromptModel implements INeedInit, IComponentModel {
-    private String name;
-    private IPromptTemplate promptTemplate;
+    // 3.1-MA-13（plan 2555 裁定 C / C1-001）：promptTemplate 由 PromptTemplateManager
+    // 在请求热路径惰性写入，volatile 化保证跨线程可见。setter 契约：仅装载/首用期写入
+    // 一次（记忆化），运行期换装不在契约内。
+    private volatile String name;
+    private volatile IPromptTemplate promptTemplate;
 
     public PromptModel() {
 

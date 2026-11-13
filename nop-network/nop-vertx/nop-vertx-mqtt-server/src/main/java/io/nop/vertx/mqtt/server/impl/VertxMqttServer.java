@@ -8,13 +8,16 @@
 package io.nop.vertx.mqtt.server.impl;
 
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.vertx.commons.NopVertx;
 import io.nop.vertx.mqtt.server.IMqttConnection;
 import io.nop.vertx.mqtt.server.IMqttHandler;
+import io.nop.vertx.mqtt.server.MqttErrors;
 import io.nop.vertx.mqtt.server.auth.IMqttAuthChecker;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.mqtt.MqttAuth;
 import io.vertx.mqtt.MqttEndpoint;
 import io.vertx.mqtt.MqttServer;
@@ -27,6 +30,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 import jakarta.inject.Inject;
@@ -40,6 +46,11 @@ public class VertxMqttServer extends LifeCycleSupport {
 
     private Future<MqttServer> listenFuture;
 
+    // MA-14（4.3-MA-14 / plan 2560 裁定 G）：bean 级 Vertx 注入缝——测试可注入
+    // 受控 Vertx（如 listen 必败的 stub）；缺省回退 NopVertx.instance()。
+    // 不改 NopVertx 全局静态（registerInstance 已存在，勿造全局污染面）。
+    private volatile Vertx vertx;
+
     private IMqttAuthChecker authChecker;
 
     private IMqttHandler mqttHandler;
@@ -51,6 +62,10 @@ public class VertxMqttServer extends LifeCycleSupport {
 
     public void setServerOptions(MqttServerOptions serverOptions) {
         this.serverOptions = serverOptions;
+    }
+
+    public void setVertx(Vertx vertx) {
+        this.vertx = vertx;
     }
 
     @Inject
@@ -67,11 +82,40 @@ public class VertxMqttServer extends LifeCycleSupport {
     protected void doStart() {
         Guard.notNull(serverOptions, "serverOptions");
 
-        mqttServer = MqttServer.create(NopVertx.instance(), serverOptions);
+        // MA-14（4.3-MA-14 / plan 2560 裁定 G）：bean 级注入缝优先，缺省回退全局实例
+        Vertx vertx = this.vertx != null ? this.vertx : NopVertx.instance();
+        mqttServer = MqttServer.create(vertx, serverOptions);
         mqttServer.exceptionHandler(err -> {
             LOG.error("nop.vertx.mqtt.server.start-fail", err);
         }).endpointHandler(this::handleEndpoint);
         listenFuture = mqttServer.listen();
+        // C6-028 / MA-14：listenFuture 不得只记录不观察——listen 失败时 doStart 必须抛出
+        // （fail-fast），并先关闭已创建的 MqttServer、触发 stop 收敛半启动状态。
+        CountDownLatch listenLatch = new CountDownLatch(1);
+        AtomicReference<Throwable> listenError = new AtomicReference<>();
+        listenFuture.<Void>onFailure(listenError::set).onComplete(res -> listenLatch.countDown());
+        try {
+            if (!listenLatch.await(30, TimeUnit.SECONDS)) {
+                listenError.set(new NopException(MqttErrors.ERR_MQTT_LISTEN_FAIL)
+                        .param(MqttErrors.ARG_PORT, serverOptions.getPort())
+                        .description("listen timeout"));
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            listenError.set(e);
+        }
+        Throwable error = listenError.get();
+        if (error != null) {
+            LOG.error("nop.vertx.mqtt.server.listen-fail", error);
+            try {
+                mqttServer.close();
+            } catch (Exception closeErr) {
+                LOG.error("nop.vertx.mqtt.server.close-fail", closeErr);
+            }
+            doStop();
+            throw new NopException(MqttErrors.ERR_MQTT_LISTEN_FAIL, error)
+                    .param(MqttErrors.ARG_PORT, serverOptions.getPort());
+        }
     }
 
     private void handleEndpoint(MqttEndpoint endpoint) {
@@ -122,6 +166,11 @@ public class VertxMqttServer extends LifeCycleSupport {
         if (old != null && old != connection) {
             LOG.info("nop.vertx.mqtt.session-takeover:clientId={}", connection.getClientId());
         }
+
+        // C6-020 窗口①（plan 2523）：accept（CONNACK）先注册后发出——否则客户端在注册前
+        // 收到 CONNACK 即发 SUBSCRIBE，订阅先落表、随后 addConnection 接管清空（订阅丢失）。
+        // 窗口①修复与 C1-018 close 回调挂载面相邻（close 回调已在 accept 前挂载，不受影响）。
+        connection.accept();
     }
 
     /**
@@ -172,17 +221,33 @@ public class VertxMqttServer extends LifeCycleSupport {
 
     @Override
     protected void doStop() {
-        if (mqttServer != null) {
-            // Vert.x 5:close 回调重载移除,改 Future API(plan 2431 WI5)
-            mqttServer.close().onComplete(res -> {
+        MqttServer server = this.mqttServer;
+        if (server != null) {
+            // MA-14/C6-028（4.3-MA-14 / plan 2560 裁定 G）：stop 必须等待 close 完成——
+            // CountDownLatch + close().onComplete(countDown) + 带超时 await（防永久挂起），
+            // 完成后再置空引用并清空会话表（stop→start 不携带旧会话/订阅）。
+            CountDownLatch latch = new CountDownLatch(1);
+            int port = server.actualPort();
+            server.close().onComplete(res -> {
                 if (res.failed()) {
                     LOG.error("nop.vertx.mqtt.server.stop-fail", res.cause());
                 } else {
-                    LOG.info("nop.vertx.mqtt.server.stopped:port={}", mqttServer.actualPort());
+                    LOG.info("nop.vertx.mqtt.server.stopped:port={}", port);
                 }
+                latch.countDown();
             });
+            try {
+                if (!latch.await(30, TimeUnit.SECONDS)) {
+                    LOG.error("nop.vertx.mqtt.server.stop-timeout:port={}", port);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOG.error("nop.vertx.mqtt.server.stop-interrupted:port={}", port, e);
+            }
             mqttServer = null;
             listenFuture = null;
+            // 裁定 G：sessions + subscriptions 两表同清
+            sessionManager.clear();
         }
     }
 }

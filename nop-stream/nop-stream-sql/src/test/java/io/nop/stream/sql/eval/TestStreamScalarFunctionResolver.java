@@ -3,15 +3,28 @@
  */
 package io.nop.stream.sql.eval;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.nop.stream.flow.spi.IScalarFunctionResolver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import io.nop.stream.core.exceptions.StreamException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import io.nop.stream.core.exceptions.StreamException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -114,5 +127,169 @@ public class TestStreamScalarFunctionResolver {
     public void spiInterfaceExposed() {
         IScalarFunctionResolver spi = resolver;
         assertTrue(spi.contains("reverse"));
+    }
+
+    // ------------------------------------------------------------------
+    // C10-001 (plan 2512 C1-001 / adjudication ①): concurrency acceptance
+    // gate. In the pre-fix state (LinkedHashMap) these trip-wires were red;
+    // with the ConcurrentHashMap registry they must stay green.
+    // ------------------------------------------------------------------
+
+    @Test
+    public void c10_001_concurrentRegisterAndCallNoTearOrLoss() throws Exception {
+        int writers = 4;
+        int perWriter = 2000;
+        int totalNames = writers * perWriter;
+        ExecutorService pool = Executors.newFixedThreadPool(6);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        CountDownLatch start = new CountDownLatch(1);
+        List<Callable<Void>> tasks = new ArrayList<>();
+
+        for (int w = 0; w < writers; w++) {
+            final int base = w * perWriter;
+            tasks.add(() -> {
+                start.await();
+                for (int i = 0; i < perWriter; i++) {
+                    resolver.register("fn_" + (base + i), args -> (long) args.length);
+                }
+                return null;
+            });
+        }
+
+        // readers hammer the per-record hot path (static call) while the
+        // writers force table resize — pre-fix this could tear reads or
+        // observe a null mapping for an already-registered name
+        for (int r = 0; r < 2; r++) {
+            tasks.add(() -> {
+                start.await();
+                for (int i = 0; i < 20000; i++) {
+                    try {
+                        Object out = StreamScalarFunctionResolver.call("len",
+                                new Object[]{"abc"});
+                        if (((Number) out).intValue() != 3)
+                            failure.compareAndSet(null, new AssertionError(
+                                    "torn read of registered function: " + out));
+                    } catch (Throwable t) {
+                        failure.compareAndSet(null, t);
+                        return null;
+                    }
+                }
+                return null;
+            });
+        }
+
+        try {
+            // submit first, THEN release the latch — invokeAll would block until
+            // every task finishes while all tasks are still waiting on the latch
+            List<Future<Void>> futures = new ArrayList<>();
+            for (Callable<Void> task : tasks)
+                futures.add(pool.submit(task));
+            start.countDown();
+            for (Future<Void> f : futures)
+                f.get(60, TimeUnit.SECONDS);
+            assertNull(failure.get(), () -> "concurrent register/call failed: "
+                    + failure.get());
+        } finally {
+            pool.shutdownNow();
+        }
+
+        // every concurrently-registered name must be visible afterwards
+        for (int i = 0; i < totalNames; i++) {
+            assertEquals(1L, StreamScalarFunctionResolver.call("fn_" + i,
+                    new Object[]{"x"}));
+        }
+    }
+
+    @Test
+    public void c10_001_namesListNoCmeDuringConcurrentRegistration() throws Exception {
+        for (int i = 0; i < 200; i++)
+            resolver.register("pre_" + i, args -> null);
+
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(2);
+
+        Thread writer = new Thread(() -> {
+            try {
+                start.await();
+                for (int i = 0; i < 50000; i++)
+                    resolver.register("w_" + i, args -> null);
+            } catch (Throwable t) {
+                failure.compareAndSet(null, t);
+            } finally {
+                done.countDown();
+            }
+        });
+
+        Thread reader = new Thread(() -> {
+            try {
+                start.await();
+                for (int i = 0; i < 20000 && failure.get() == null; i++) {
+                    try {
+                        // compile-time iteration faces: snapshot via namesList and
+                        // iterate via registeredNames while puts are in flight
+                        List<String> names = resolver.namesList();
+                        if (names.size() < 200)
+                            failure.compareAndSet(null, new AssertionError(
+                                    "lost registration observed: " + names.size()));
+                        for (String s : resolver.registeredNames()) {
+                            if (s == null)
+                                failure.compareAndSet(null, new AssertionError(
+                                        "null name in iteration"));
+                        }
+                    } catch (Throwable t) {
+                        failure.compareAndSet(null, t);
+                        return;
+                    }
+                }
+            } catch (Throwable t) {
+                failure.compareAndSet(null, t);
+            } finally {
+                done.countDown();
+            }
+        });
+
+        writer.start();
+        reader.start();
+        start.countDown();
+        assertTrue(done.await(60, TimeUnit.SECONDS), "stress threads did not finish");
+        assertNull(failure.get(), () -> "iteration face failed under concurrent "
+                + "registration: " + failure.get());
+    }
+
+    @Test
+    public void c10_001_runtimeRebindWarnsAndTakesEffect() {
+        Logger slf4jLogger = LoggerFactory.getLogger(StreamScalarFunctionResolver.class);
+        ch.qos.logback.classic.Logger logbackLogger =
+                (ch.qos.logback.classic.Logger) slf4jLogger;
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logbackLogger.addAppender(appender);
+        StreamScalarFunctionResolver rebound = new StreamScalarFunctionResolver();
+        try {
+            // a default is already registered (setUp): re-binding must be
+            // permitted (application-side hot swap) but leave a WARN trace
+            rebound.register("shout", args -> String.valueOf(args[0]).toUpperCase());
+            StreamScalarFunctionResolver.setDefault(rebound);
+
+            boolean warned = appender.list.stream()
+                    .anyMatch(e -> e.getLevel() == Level.WARN
+                            && e.getFormattedMessage().contains("rebound"));
+            assertTrue(warned, "runtime rebind must emit a WARN log; events="
+                    + appender.list.size());
+
+            // the rebind takes effect for subsequent per-record lookups
+            // without recompilation (static call goes through defaultResolver)
+            assertEquals("ABC", StreamScalarFunctionResolver.call("shout",
+                    new Object[]{"abc"}));
+            assertThrows(IllegalStateException.class,
+                    () -> StreamScalarFunctionResolver.call("reverse",
+                            new Object[]{"abc"}),
+                    "the new resolver's function table must be authoritative "
+                            + "after rebinding");
+        } finally {
+            logbackLogger.detachAppender(appender);
+            StreamScalarFunctionResolver.setDefault(null);
+        }
     }
 }

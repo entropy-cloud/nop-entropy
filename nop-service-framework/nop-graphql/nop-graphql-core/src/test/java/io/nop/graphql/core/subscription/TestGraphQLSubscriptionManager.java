@@ -261,6 +261,7 @@ public class TestGraphQLSubscriptionManager {
         Map<String, Object> message = Map.of("userId", "123", "action", "updated");
         testMessageService.deliverMessage("graphql-subscription/onUserChanged/123", message);
 
+        awaitSentMessages(session);
         List<String> sentMessages = session.getSentMessages();
         assertFalse(sentMessages.isEmpty());
         assertTrue(sentMessages.get(0).contains("\"jsonrpc\":\"2.0\""));
@@ -298,6 +299,7 @@ public class TestGraphQLSubscriptionManager {
         Map<String, Object> message = Map.of("userId", "123");
         testMessageService.deliverMessage("graphql-subscription/onUserChanged/123", message);
 
+        awaitSentMessages(session);
         List<String> sentMessages = session.getSentMessages();
         assertEquals(1, sentMessages.size());
         assertTrue(sentMessages.get(0).contains("\"userId\":\"123\""),
@@ -349,8 +351,24 @@ public class TestGraphQLSubscriptionManager {
         Map<String, Object> message = Map.of("userId", "123", "action", "updated");
         testMessageService.deliverMessage("graphql-subscription/onUserChanged/123", message);
 
+        awaitSentMessages(session);
         List<String> sentMessages = session.getSentMessages();
         assertFalse(sentMessages.isEmpty());
+    }
+
+
+    /**
+     * plan 2498 Phase 3 (2.3-C8-001): pushes are drained asynchronously on the shared worker
+     * pool via the per-session send pump, so delivery assertions await the pump instead of
+     * assuming a synchronous send. Content assertions are unchanged.
+     */
+    private static void awaitSentMessages(MockWebSocketSession session) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 10000;
+        while (session.getSentMessages().isEmpty()) {
+            if (System.currentTimeMillis() > deadline)
+                break;
+            Thread.sleep(5);
+        }
     }
 
     @Test

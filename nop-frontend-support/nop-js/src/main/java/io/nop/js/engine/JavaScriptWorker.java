@@ -42,8 +42,10 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static io.nop.js.JsErrors.ARG_MAX_WAITING_TASKS;
 import static io.nop.js.JsErrors.ERR_JS_CONTEXT_ALREADY_CLOSED;
 import static io.nop.js.JsErrors.ERR_JS_ERROR;
+import static io.nop.js.JsErrors.ERR_JS_WORKER_QUEUE_FULL;
 
 /**
  * 单线程执行任务队列中的任务
@@ -51,7 +53,14 @@ import static io.nop.js.JsErrors.ERR_JS_ERROR;
 public class JavaScriptWorker implements Runnable, AutoCloseable {
     static final Logger LOG = LoggerFactory.getLogger(JavaScriptWorker.class);
 
-    private final BlockingQueue<Consumer<Boolean>> taskQueue = new LinkedBlockingQueue<>();
+    /**
+     * 每个 worker 等待任务数的准入软上界（CRA 8.40 W-01 失效层③）：execute 准入检查拒绝超量提交，
+     * 封住失控异步提交者的无界积压。物理队列维持 JDK 无界 LinkedBlockingQueue，close 的 pill 直送
+     * 队列、永不经准入检查（close 语义零劣化）。软上界的越界幅度至多为并发提交者数，非精确配额。
+     */
+    public static final int MAX_WAITING_TASKS = 1000;
+
+    private final BlockingQueue<Consumer<Boolean>> taskQueue;
     private final LongAdder completedTasks = new LongAdder();
     private volatile boolean closed;
     private volatile boolean shutdownGracefully;
@@ -66,6 +75,18 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
     private LogOutputStream errStream;
 
     private volatile Thread executeThread;
+
+    public JavaScriptWorker() {
+        this(new LinkedBlockingQueue<>());
+    }
+
+    /**
+     * 队列注入构造缝（CRA 8.40 测试缝 S1，包内可见）：测试以闩控队列在提交线程首次入队前阻塞，
+     * 确定性构造「终局排空后入队」的搁浅窗口。生产路径走无参构造器。
+     */
+    JavaScriptWorker(BlockingQueue<Consumer<Boolean>> taskQueue) {
+        this.taskQueue = taskQueue;
+    }
 
     public Thread getExecuteThread() {
         return executeThread;
@@ -99,7 +120,22 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
         if (closed)
             throw new NopException(ERR_JS_CONTEXT_ALREADY_CLOSED);
 
+        // 准入软上界（W-01 失效层③）：达界同步拒绝，物理队列不受界（close pill 直送永不经此检查）
+        if (taskQueue.size() >= MAX_WAITING_TASKS)
+            throw new NopException(ERR_JS_WORKER_QUEUE_FULL).param(ARG_MAX_WAITING_TASKS, MAX_WAITING_TASKS);
+
         taskQueue.add(task);
+
+        // 入队后复查（W-01 失效层①，Dekker 闭合）：若 worker 已在本线程入队与复查之间完成终局序列
+        // （closed=true 先于排空 poll），复查必见 true——
+        // * 同引用移除成功：任务从未对消费方可见，按前置检查同码同步拒绝（调用方不可区分，有意为之）；
+        // * 移除失败：任务已被消费方取走（run 循环或终局排空），由 invokeFunction 读字段走
+        //   CancellationException 交付（或先于关闭被正常执行）。
+        // 两分支覆盖全部交错，无残窗。
+        if (closed) {
+            if (taskQueue.remove(task))
+                throw new NopException(ERR_JS_CONTEXT_ALREADY_CLOSED);
+        }
     }
 
     public void shutdownGracefully() {
@@ -140,8 +176,7 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
             future.completeExceptionally(new CancellationException("closed"));
         } else {
             if (funcName.equals(JsConstants.FUNC_REINIT)) {
-                IoHelper.safeClose(this.context);
-                this.init();
+                reinit(future);
             } else {
                 long beginTime = CoreMetrics.currentTimeMillis();
                 try {
@@ -155,6 +190,30 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
                     LOG.debug("nop.js.invoke-func:funcName={},usedTime={}", funcName, CoreMetrics.currentTimeMillis() - beginTime);
                 }
             }
+        }
+    }
+
+    /**
+     * FUNC_REINIT = build-then-swap（CRA 8.40 CL-201）：先完整构建新执行单元（context + globals +
+     * 构建副产物），成功后一次性换绑全部字段并关闭旧 context，future 正常完成；构建失败则关闭半成品
+     * 新 context、旧单元全部字段保持不变且可继续服务，future 以失败原因异常完成——禁止
+     * 「先关旧再建新」的半状态（旧 init 失败后 globals 悬挂指向已关闭 context），也禁止 reinit
+     * future 永不完成。
+     */
+    private void reinit(CompletableFuture<Object> future) {
+        try {
+            ContextUnit unit = buildContextUnit();
+            Context old = this.context;
+            this.context = unit.context;
+            this.globals = unit.globals;
+            this.fileSystem = unit.fileSystem;
+            this.outStream = unit.outStream;
+            this.errStream = unit.errStream;
+            IoHelper.safeClose(old);
+            future.complete(null);
+        } catch (Exception e) {
+            LOG.error("nop.js.reinit-fail", e);
+            future.completeExceptionally(e);
         }
     }
 
@@ -316,10 +375,72 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
     }
 
     private void init() {
-        this.context = createContext();
-        Value bindings = context.getBindings("js");
-        registerGlobals(bindings);
-        runInitScript();
+        ContextUnit unit = buildContextUnit();
+        this.context = unit.context;
+        this.globals = unit.globals;
+        this.fileSystem = unit.fileSystem;
+        this.outStream = unit.outStream;
+        this.errStream = unit.errStream;
+    }
+
+    /**
+     * 重建原子单元（CRA 8.40 CL-201）：完整构建 context/globals 及其副产物且不发布任何实例字段；
+     * 构建中途失败时自负责关闭半成品 context 后原样上抛。
+     */
+    private ContextUnit buildContextUnit() {
+        ResourceFileSystem newFileSystem = new ResourceFileSystem();
+        newFileSystem.setCurrentPath(initScriptPath);
+        LogOutputStream newOut = new LogOutputStream(LOG, false);
+        LogOutputStream newErr = new LogOutputStream(LOG, true);
+        Context newContext = Context.newBuilder("js").allowCreateProcess(false)
+                .allowCreateThread(false).allowHostClassLoading(true)
+                .allowHostAccess(HostAccess.ALL).allowIO(true).fileSystem(newFileSystem)
+                .allowHostClassLookup(className -> true)
+                .logHandler(new SLF4JBridgeHandler())
+                .out(newOut).err(newErr)
+                .allowExperimentalOptions(true)
+                .option("js.esm-eval-returns-exports", "true")
+                .option("js.console", "true")
+                .option("js.interop-complete-promises", "false")
+                .option("js.unhandled-rejections", "warn")
+                // .option("js.function-cache-limit", "4096")
+                // .option("js.function-constructor-cache-size", "4096")
+                .build();
+        try {
+            Value bindings = newContext.getBindings("js");
+            registerGlobals(bindings);
+
+            String text = ScriptLoader.loadScript(initScriptPath);
+            Source source = Source.newBuilder("js", text, initScriptPath)
+                    .mimeType("application/javascript+module").build();
+            long beginTime = CoreMetrics.currentTimeMillis();
+            Value newGlobals = newContext.eval(source);
+            Set<String> keys = newGlobals.getMemberKeys();
+            LOG.info("nop.js.init-globals:usedTime={},names={}",
+                    CoreMetrics.currentTimeMillis() - beginTime, keys);
+            return new ContextUnit(newContext, newGlobals, newFileSystem, newOut, newErr);
+        } catch (Exception e) {
+            LOG.error("nop.js.run-init-script-fail:path={}", initScriptPath, e);
+            IoHelper.safeClose(newContext);
+            throw NopException.adapt(e);
+        }
+    }
+
+    static final class ContextUnit {
+        final Context context;
+        final Value globals;
+        final ResourceFileSystem fileSystem;
+        final LogOutputStream outStream;
+        final LogOutputStream errStream;
+
+        ContextUnit(Context context, Value globals, ResourceFileSystem fileSystem,
+                    LogOutputStream outStream, LogOutputStream errStream) {
+            this.context = context;
+            this.globals = globals;
+            this.fileSystem = fileSystem;
+            this.outStream = outStream;
+            this.errStream = errStream;
+        }
     }
 
     private void cancelAllTasks() {
@@ -334,43 +455,6 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
                 LOG.error("nop.err.js.cancel-task-fail", e);
             }
         } while (true);
-    }
-
-    private Context createContext() {
-        this.fileSystem = new ResourceFileSystem();
-        this.fileSystem.setCurrentPath(initScriptPath);
-        this.outStream = new LogOutputStream(LOG, false);
-        this.errStream = new LogOutputStream(LOG, true);
-        return Context.newBuilder("js").allowCreateProcess(false)
-                .allowCreateThread(false).allowHostClassLoading(true)
-                .allowHostAccess(HostAccess.ALL).allowIO(true).fileSystem(fileSystem)
-                .allowHostClassLookup(className -> true)
-                .logHandler(new SLF4JBridgeHandler())
-                .out(outStream).err(errStream)
-                .allowExperimentalOptions(true)
-                .option("js.esm-eval-returns-exports", "true")
-                .option("js.console", "true")
-                .option("js.interop-complete-promises", "false")
-                .option("js.unhandled-rejections", "warn")
-                // .option("js.function-cache-limit", "4096")
-                // .option("js.function-constructor-cache-size", "4096")
-                .build();
-    }
-
-    private void runInitScript() {
-        String text = ScriptLoader.loadScript(initScriptPath);
-        try {
-            Source source = Source.newBuilder("js", text, initScriptPath)
-                    .mimeType("application/javascript+module").build();
-            long beginTime = CoreMetrics.currentTimeMillis();
-            this.globals = context.eval(source);
-            Set<String> keys = this.globals.getMemberKeys();
-            LOG.info("nop.js.init-globals:usedTime={},names={}",
-                    CoreMetrics.currentTimeMillis() - beginTime, keys);
-        } catch (Exception e) {
-            LOG.error("nop.js.run-init-script-fail:path={}", initScriptPath, e);
-            throw NopException.adapt(e);
-        }
     }
 
     private void registerGlobals(Value bindings) {

@@ -49,4 +49,12 @@ public interface ConfigErrors {
             "配置表达式存在循环引用: 属性 ${property}, 解析链: ${resolutionChain}",
             ARG_PROPERTY, ARG_RESOLUTION_CHAIN);
 
+    /**
+     * 2.2-C1-009（plan 2506 裁定④）closed 防退化守卫：close 与刷新任务体经 this monitor 全量
+     * 串行后，关闭状态下不可能再到达连接重建点；此码供守卫命中时类型化抛错（定位为防未来
+     * 新增调用点绕过互斥重建连接，非静默 return）。
+     */
+    ErrorCode ERR_CONFIG_SOURCE_CLOSED = define("nop.err.config.source-closed",
+            "Config source is closed: refresh connection rebuild is not allowed after close()");
+
 }

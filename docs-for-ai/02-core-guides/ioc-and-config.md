@@ -231,6 +231,123 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 - **`ioc:lazy-property` 属性在 bean 创建阶段不可用**：懒加载属性首次访问时才解析；`@PostConstruct` 内若触发事务/使用该依赖（如 `DataInitInitializer` 开事务），属性未注入 → NPE。
 - **`bean-init-self-wait`**：bean 初始化同线程重入自等待（如 sessionFactory ↔ sequenceGenerator 相互依赖）。断环手段：`ioc:lazy-property` 延迟一方，或 `ioc:ignore-depends` 显式忽略依赖检查。诊断：启动日志含 `bean-init-self-wait` 且指向相互引用的两个 bean。
 
+## 模型装载与退役代际并发契约
+
+平台模型装载与共享池资源退役的并发行为契约（实现锚点见 `../04-reference/source-anchors.md` `RETIRE-001`/`RETIRE-002`/`LOCK-001`/`LOCK-002`；选型与语义权威 = AI 开发记录区 concurrency 设计集 kernel-retirement-generation-and-model-load-locking.md，按边界规则此处不直接链接；本节为使用方口径）。
+
+### 模型循环依赖：类型化收敛（不再死锁/SOE）
+
+- 模型装载统一不变式：**监视器内只做同 key 去重 + 占位，装载体在监视器外**（`ResourceCacheEntry` 装载状态机 + `LoadWaitGraph` 等待图环检测；XPL 标签编译层同不变式单飞）。
+- 循环依赖三形态全部类型化报错，无永久死锁、无 StackOverflowError 路径：同线程重入环 `nop.err.core.component.resource-cache.load-reentrant-loop`；跨线程等待环 `...load-circular-wait`；检测竞态漏检由有界等待兜底 `...load-wait-timeout`（携带等待链快照）。三码均携带 `resourcePath`。
+- **xdef 循环引用错误迁移（对外可见变化）**：xdef 循环引用由旧错误码 `ref-not-allow-circular-reference` 收敛为 `load-reentrant-loop`——旧码依赖的装载器重入路径已消除、不再触达；迁移先例 `TestXDefRef.testLoop`。对循环引用做错误码断言的测试/工具需按新码对齐。
+- 配置键 `nop.core.component.resource-cache.load-wait-timeout`（默认 60s；`≤0` = 不设上界档）。
+- 装载失败占位复位不驻留：失败后下次访问重新装载（与缓存失效门语义共存，见 `../04-reference/source-anchors.md` `CACHE-001`）。
+
+### 退役代际：旧代资源延迟关闭（grace 契约）
+
+- 共享池/句柄/缓存类资源（`RoundRobinSupplier` 连接池、VFS zip 句柄、模型缓存条目）的替换点**只发布新代、不内联关闭旧代**：旧代登记进 `ResourceRetirementQueue` 延迟退役；已交付在用资源自登记起存活 ≥ 宽限期。
+- 配置键 `nop.commons.concurrent.retirement.grace-period`（默认 5s；`≤0` = 关闭档，退化为同步立即关闭的现行语义）。
+- 配置刷新链（`refreshConfig` → resize 缩容）：被裁剪的共享连接不再被热关，取用窗口无瞬时命令失败尖峰。Lettuce 使用面契约：`getConnection`/`getAsyncCommands`/`getSyncCommands` 返回的共享连接**调用方不得 close**（显式 close 不走 autoReconnect、直接杀死共享连接；pubsub 为独立建连、调用方拥有、豁免此契约）。
+- VFS 热刷新（DevTool refresh）：重建发布新 store 后旧 zip 句柄延迟关闭，在飞读者宽限期内完成读取。
+
+## 插件生命周期与配置源生命周期并发契约
+
+插件双轨（VFS `*.plugin.xml` 轨 / uber-jar 轨）生命周期锁面、状态机失败落定与恢复入口，以及配置源（jdbc/file）的构造序与关闭互斥契约（实现锚点见 `../04-reference/source-anchors.md` `PLG-010`/`PLG-011`/`PLG-012`/`CFG-002`；选型与语义权威 = AI 开发记录区 concurrency 设计集 plugin-lifecycle-and-config-source-hardening.md，按边界规则此处不直接链接；本节为使用方口径）。
+
+### 插件生命周期锁契约（双锁单向序）
+
+- 两把锁、单向获取：manager 编排锁（`reconcileLock`，所有 `loadPlugin/unloadPlugin/activatePlugin/deactivatePlugin/reconcile/reloadPlugin` 全程持有）→ 单插件生命周期锁（`lifecycleLock`，`load/unload/activate/deactivate/start/stop/updateConfig` 的状态迁移全程持有）。两轨对齐：jar 轨 `AbstractPlugin` 与 VFS 轨同形入锁、生命周期字段同为 volatile。
+- **硬规则**：持有 `lifecycleLock` 期间不触发 `reconcile`。`updateConfig` 的变更回调（`onConfigChanged` = manager reconcile）一律在最外层临界区退出后派发；`start(config)` 路径的回调因此落在 activate **之后**（含 activate 抛错路径仍派发）——reconcile 见到的是终态而非激活中的插件。
+- **用户代码契约**：插件 activator、effect dispose、bean destroy-method 内**不得**调用 `IPluginManager` 生命周期 API 或 `reconcilePlugins`（这些用户代码在 `lifecycleLock` 内执行，回调 manager 会与编排锁构成反向获取）。
+- 消费侧复合读（`getScope`/`getService`/命令路由）统一为「取引用 → 复核状态」双检，deactivate 翻转窗内一律得到 `nop.err.plugin.inactive`（不再出现 NOT_STARTED/ISE 混型）；双检不承诺在途请求排空（quiescence 非本契约范围）。
+
+### 插件状态机：失败落定与恢复入口
+
+- 六态不变（`UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED`）；`ACTIVATING/DEACTIVATING` 只在临界区内存在，任何失败路径（effect dispose 抛错、bean destroy 抛错、activator 抛错、rollback 抛错、`CoreInitialization.destroy` 抛错）在退出临界区前落定终态——activate 失败落 `FAILED`，**deactivate 失败亦落 `FAILED`（不回退 `ACTIVATED`：半停容器不可信）**，`lastActivationError` 记因。
+- `FAILED` 态语义扩展：定义上 scope/container 引用**可能非 null**（失败路径保留原引用供诊断与恢复；成功路径清理后置空）。读到 `FAILED` 且字段非 null = 残留半停容器待恢复。
+- **恢复入口** `PluginManagerImpl.forceUnload(pluginId)`（实现类公共方法，**不在** `IPluginManager` 接口上）：受理前置态 `{ACTIVATING, DEACTIVATING, FAILED, LOADED}` → 尽力逐段清理残留 scope/container → `UNLOADED` → manager 侧 holder 移除/索引清理/classLoader 关闭/尾部 reconcile；对 `ACTIVATED` 抛类型化异常（须先走 `deactivatePlugin` 正常通道，不强杀健康容器）；`UNLOADED`/不存在幂等返回。既有 `unload/activate` 守卫零改动，`forceUnload` 是中间态唯一合法出口。
+- jar 轨加载失败（坏包：缺 `plugin.json`、类加载失败、配置拉取失败）在 holder 建立前即确定性释放 `PluginClassLoader` 与 jar 句柄（重试不累积）；holder 建立后的 `unloadPlugin` 失败保留 classLoader 可重试（两类失败终态语义不同）。
+
+### 配置源（jdbc/file）构造序与关闭契约
+
+- **先加载成功再调度**：`JdbcConfigSource`/`AbstractFileConfigSource`（含 `KeyFileConfigSource`/`PropsFileConfigSource`）构造器先同步执行初始 `loadConfig`，成功后才注册周期刷新任务（调度槽 `globalTimer` + 任务体 `executeOn(globalWorker)` 卸载形态不变）。初始加载失败 → 构造抛错且**零残留周期任务**；jdbc 变体同时关闭已建连接。
+- **close 与刷新互斥**：`JdbcConfigSource.close()` 与刷新任务体/变更回调同 monitor 串行。停机时若有在途刷新，`close` 等待该轮完成（上界 = 一轮 SQL[受 `queryTimeout` 约束] + 用户回调时长），换取连接零泄漏；`close` 后任何重建连接路径命中 `closed` 守卫抛类型化异常（防退化守卫，正常路径不可达）。
+- 变更回调 per-callback 隔离（异常不杀刷新链）与 R1-02 的卸载/超时语义不受本契约影响。
+
+### Shell 子进程兜底（nop-shell）
+
+- `ShellRunner.run` 的任何退出路径（正常/超时/stdin 断管/中断/收集线程抛错/调度拒绝）均保证已创建子进程被销毁（锚点 `SHELL-001`）：`destroy()` 后有界等待 2s 未退出升级 `destroyForcibly()`；stderr 读取线程随进程销毁经 EOF 退出，不再 pin 住 `cachedThreadPool` 线程。`timeout=0` 的无限等待悬挂为相邻缺陷，不在本契约范围。
+
+## IoC 并发启动与配置发布协议并发契约
+
+IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化等待的环检出与有界化，以及配置引用（`IConfigReference`）热刷新的原子发布契约；连带 ORM 分片迁移路由热替换与写门集群语义（实现锚点见 `../04-reference/source-anchors.md` `IOC-004`/`IOC-005`/`CFG-003`/`ORM-MIG-001`；选型与语义权威 = AI 开发记录区 concurrency 设计集 ioc-startup-graph-and-config-publish-protocol.md，按边界规则此处不直接链接；本节为使用方口径）。
+
+### 并发启动：join + 有界 + 失败传导
+
+- `nop.ioc.concurrent-start=true` 时，app 容器启动在 `IocCoreInitializer` 启动序内**同步 join** 异步启动图（配置键 `nop.ioc.app-beans-container.start-join-timeout`，默认 60s；`≤0` = 不设上界档）。任一 bean 启动失败（含 `Error`、成功回调内抛错、无超时 pending）统一收敛为**失败终态**：在飞/孤儿启动任务取消 → 容器 stop（已建 bean 销毁）→ 失败标记 → 类型化异常抛出。
+- 传导链：`IocCoreInitializer.initialize()` 抛出 → `CoreInitialization.initialize()` 原样重抛 → `NopApplication.run()` 主任务不执行、进程非零退出。standalone 宿主**无代码改动**即获得该语义；quarkus/spring 宿主的健康检查/退出码联动属宿主集成面（见 `../01-repo-map/module-groups.md` 宿主模块），不在本契约内。
+- 失败后 `awaitStartFinished()` 快速失败（不再静默返回）；失败终态收敛幂等（成功回调路径已收敛的不重复 stop）。
+
+### bean 创建/初始化等待：环检出 + 有界兜底
+
+- 同一机制单点：bean 定义级创建等待（`getBean0` 临界区）与 `ProducedBeanInstance` 跨实例初始化等待均登记到平台等待图（与模型装载 `LoadWaitGraph` 同一载体），等待前检环——命中即抛类型化环错误（携带等待链快照与双方 beanId），不再永久死锁；检出竞态漏检由有界等待兜底（配置键 `nop.ioc.bean-init.wait-timeout`，默认 60s；`≤0` = 不设上界档，两域共用）。
+- 构建期拓扑序与 `nop.ioc.allow-cycle`（默认 `true`）**维持现状**：type-injection / factoryBean / 表达式等运行期才可见的依赖边**不进入**拓扑序与 `ioc:init-order` 校验（现网可启动的配置零破坏），只在运行期等待点参与环检出。
+- 60s 默认档对合法的超长 bean 构造（>60s）会以超时错误失败：这是对死锁确定性暴露的有意取舍；此类场景调大键值或设 `≤0` 逃生档。同线程递归 `getBean` 的可重入与自依赖 fail-fast 行为不变。
+
+### 配置引用热刷新：单一不可变 holder
+
+- `IConfigReference` 的 `location + provider` 收拢为一个不可变 holder，刷新链（`DefaultConfigProvider` 配置源变更 / `updateConfigValue` / `assignConfigValue` / `reset`）以**单次 volatile 发布**替换整代：读侧要么见全旧代、要么见全新代，不再出现「新 location + 旧 provider」撕裂快照，刷新后 `get()` 立即可见。
+- `IConfigReference` 接口签名零变更；`defaultValue` 为独立字段（启动期写定、只读），`get()` 在 provider 值为 `null` 时回落 `defaultValue` 的语义不变。
+- 下游消费（JDBC/文件配置源刷新链、ORM 分片路由 `shardSelector` 热替换）依赖本发布协议获得可见性；`SessionFactoryImpl.shardSelector` 为 volatile 发布，`rebuildRouting` 读回确认失配即记 `gateFailed`。
+
+### ORM 迁移写门：租约 fail-open（集群语义）
+
+- 写门 `OrmMigrationWriteGate` 的 closed 态经配置源传播到各实例；每个实例**自观察到 closed 起计租约**（配置键 `nop.orm.migration.write-gate-lease-seconds`，默认 1800s；`≤0` = 关闭租约档即现行永久关门语义）。租约到期该实例自动 fail-open（恢复写）并 **WARN 留痕**——到期是显式运维信号，不是静默恢复。配置 true→false 时租约清零，再次 closed 重新起租。
+- **残余风险（显式接受）**：若租约在 VERIFY 中段到期而迁移未完成，写直达旧分片路由（双写窗）。硬条款：租约默认值必须 ≥ 迁移全程预期时长；收到到期 WARN 须人工介入（abort 或延长）。
+- 编排器 `runVerify`/`confirmSwitch` 在关键窗口复核门态：窗口内门被翻开（含 fail-open）→ 迁移状态行记 `gateFailed` + 类型化失败，不静默继续。多实例操作顺序：先在全部实例观察到 closed（配置源刷新到位）再进入 VERIFY；`completeSwitch`/`abort` 开门经配置源传播。
+
+
+## 平台并发原语纪律（plan 2547 R4-13）
+
+本平台并发原语（`nop-commons` 的锁 / 调度 / 池 / 缓存）遵循以下纪律；触及这些原语时须遵守。
+
+- **复合操作必须单原子域**：`ConcurrentHashMap` 的「读-判-改」多步操作一律改 `compute`/`computeIfAbsent`，禁止裸 `get` + 后续 `put/remove`（`RateLimitExecutorImpl.debounce` 修复为此形态）。**但 `computeIfAbsent` 内不得做重活**（编译 / 类加载 / 大对象构建）——需要时用 `CompletableFuture` 占位：`computeIfAbsent` 只放占位，构建在锁外完成后 `complete`/`completeExceptionally`。**判定「是否本次新建」必须用 `boolean[]`/`AtomicBoolean`**——`computeIfAbsent` 的返回值区分不出既有与新建。
+- **中断语义透传**：`IResourceLock` 家族的 `lockInterruptibly()` / `tryLock(time,unit)` 在等待中被中断时抛 `InterruptedException`（不是 `NopException`）。底层 `tryLockWithLease` 保持不抛受检异常（源兼容），中断信息以 `InterruptedException` 作为 cause 保留，由上层识别重抛。
+- **回调不得在监视器内执行**：`CycleSynchronizer` 的回调列表在锁内**快照**、锁外逐个执行，且每个回调独立 `try/catch`（一个失败不中断其余、不改写 promise 终态）。周期代号（generation）保证旧周期的延迟收尾不会清掉新周期状态。
+- **线程池 `destroy()` 语义**：`waitForTasksToCompleteOnShutdown` 与 `awaitTerminationSeconds` 已生效——**仅当二者同时满足（true && >0）**才「停止接收 → 有界等待 → 超时强制终止」；否则保持 `shutdown()`（不等待、不中断在飞任务）。未 `init()` 就 `destroy()` 抛 `nop.err.commons.concurrent.thread-pool-not-initialized`（不再裸 NPE）。
+  - **注意**：`GlobalExecutors.register()` 会 destroy 旧池；若该池配置了有界等待，注册热更新路径可能阻塞——配置热更新场景请避免在该池上开启 `waitForTasksToCompleteOnShutdown`。
+- **拒绝与丢弃必须显式**：`SequentialTaskExecutor.execute` 在队列满时抛 `RejectedExecutionException` 并 WARN（不静默丢任务）；`AbstractBatchProcessService.destroy` 先置 `accepting=false`、等消费循环把队列 drain 空、再 cancel；超时残量逐条记录丢弃清单后告警。**绕过 `AbstractBatchProcessService.send()` 直调 `getQueue().send()` 的生产方不在 drain 契约覆盖内。**
+- **`execute` 路径的上下文卫生**：`DefaultThreadPoolExecutor.execute` 在任务结束后 `detachContext()`，防止池线程上的 `IContext` 跨任务驻留。**不清中断标志**（周期任务守卫依赖中断传递）。`DefaultScheduledExecutor` / `BindScheduledExecutor` 的 `execute` 不包装——其命令由 `PeriodicTaskHelper` 绝缘守卫管理，外层包装会让拒绝回调重复触发。
+- **异步缓存 executor**：`CacheConfig.executor` 可指定异步加载/刷新所用 executor；缺省 `null` 沿用 Caffeine 的 `ForkJoinPool.commonPool()`。I/O 型 async 缓存建议显式指定独立池。
+- **`IAsyncCache.getAllAsync` 契约（按实现分叉，非普遍承诺）**：未命中 key 的行为取决于实现与配置——
+  `LocalCache` + `async=true`：**整体失败**（Caffeine 拒 `k->null`，抛 `NullMapCompletionException`，不加载、无部分结果）；
+  `LocalCache` + `async=false` + **有 loader**：**加载缺失 key**并返回完整 map；
+  `LocalCache` 无 loader / `MapCache` / `ISyncCache` 的默认实现（如 `EhcacheCache`/`HazelcastCache`）：**仅返回已缓存条目**（缺席 map）。
+  需要「miss 即加载」用 `computeIfAbsentAsync`/`getAsync`；只要已缓存条目且不希望触发任何加载，**优先用 `getAllPresent`**（语义最明确）。
+
+## 平台销毁链纪律（plan 2548 R4-14）
+
+平台设施在「销毁/驱逐/等待」动作上的对称性纪律；触及以下原语时须遵守。
+
+- **destroy 侧必须有终态化载体**：`ExecutorHelper.submit/schedule` 的 wrapper future 在 `shutdownNow()` 丢弃排队任务后永不完成。排队/在飞任务的 future 终态由**待结算登记表**保证——`submitTracked`/`scheduleTracked` 把返回的 `CompletableFuture` 登记到 `DefaultScheduledExecutor` 的 pending 集合，`destroy()` 按「周期链拒绝循环 → `shutdownNow()` → pending 逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)`」顺序收口。**顺序是语义的一部分**：周期链先拒绝可避免 `watchNativeHandle` 与 `rejectChain` 双触发 listener。**不要**依赖 `shutdownNow()` 返回值识别 wrapper（提交的是匿名 `Callable`，载体不存在）。
+- **平台池销毁唯一入口**：`GlobalExecutors.destroyAndUnregister(name)`（unregister + destroy 原子序）；借用方直调 `executor.destroy()` 会留下死实例（use-after-destroy），owner 约定「平台池不得由借用方直接 destroy」（residual，R-G 裁定）。`destroyAll()` 供宿主关闭（nop-boot 接线归 8.55）。
+- **指标绑定/注销对称**：`ExecutorHelper.registerMetrics` / `LocalCache.registerMetrics` 返回 `AutoCloseable` 句柄，池/缓存实例持有并在 `destroy()` 时 `close()`。`LocalCache` 注册前先移除同名（`cache.` 前缀 + tag `cache`=name）旧 meter——`tenant-` 多实例场景防重复注册。不做「换 registry 自动重绑」（R-G）。
+- **阻塞等待必须有界**：`throttleExecute` 用 `tryAcquire(throttle-acquire-timeout-ms)`（缺省 60s，`<=0`=保持无限），超时抛 `ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT`、中断恢复标志；`IRateLimiter.acquire()/acquire(permits)` 默认上界 `rate-limit-acquire-timeout-ms`（缺省 5min，`<=0`=无限），超时抛 `ERR_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT`。Guava `sleepMicrosUninterruptibly` 的不可中断面 = watch-only（调用方已有 20min 护栏）。新写的阻塞等待原语**禁止** `acquireUninterruptibly` 无限形态。
+- **缓存销毁链双条件**：驱逐/关闭路径执行销毁回调需要「容器/配置 `destroyOnRemove=true`」**且**「值类型 `implements IDestroyable`」——缺一即假阳性。`CacheConfig` 拷贝构造必须带 `destroyOnRemove`/`refreshAfterWrite`（`executor` 为 transient 池引用，不拷贝）。entry 失效≠驱逐：**不在 `ResourceCacheEntry.clear` 淘汰 dependencyMap**（会断开其它条目的变更感知链，E-2548-2）；逐条淘汰用 `ResourceDependsManager.removeDependency` 显式调用，容量水位 10000 告警兜底。
+- **监听器生命周期**：`NioFileWatchService` watcher 线程 daemon 化 + `doStop` 有界 `awaitTermination(5s)`（JVM 退出不再等待 watcher）；递归 `unwatch` 回写摘除父 `subEntries`；同路径重复 `watch` 幂等复用同一 entry。
+- **`scheduleAtFixedRate` 补偿语义**（Decision）：任务超周期后按 JDK 原生 fixed-rate 语义立即补跑（可能突发）；不接受补偿节奏的调用方用 `scheduleWithFixedDelay`。`CycleSynchronizer` 推进者死亡时 `processing` 卡死**无自动超时**，解除入口是外部 `restart()`。
+
+## IoC 生命周期 / 配置刷新链纪律（plan 2549 R4-15）
+
+- **容器生命周期互斥 + 代际令牌**：`BeanContainerImpl.start/stop/restart` 为 `synchronized`（不嵌套 2506 的 lifecycleLock——锁序契约：容器公开入口不得再入 lifecycleLock）；`singletonScope` volatile。`startGeneration` 代际令牌：**`handleStartError` 的代际校验必须先于 `startFailed` 置位**（顺序颠倒会让旧代失败污染新代终态——`whenComplete` 的 `!startFailed` 分支被跳过，`started` 永不翻转，E-2549-3 由载体 pin1b 抓获）；`joinStart` 侧快照取 `startFuture` 配对代际。
+- **stop 顺序 = 先销毁后清状态**：`BeanContainerImpl.stop` 先执行 scope close + `onContainerStop` 回调，再清 `running/started`；`IocCoreInitializer.destroy` 先 `stop` 后 `registerInstance(parent)`（销毁期解析不落死容器/新建孤儿）。
+- **启动图补边**：`BeanDefinition.collectDepends` 必须包含 `ioc:interceptors` 依赖边——concurrentStart 下拦截器 bean 先于宿主 init（缺边 = 未 init 拦截器被注入 + 环入口 +1）。
+- **失败广播口径**：bean 装配失败（含 Error）必须走 `markPropSetFailed` 广播（`catch Throwable`），否则实例滞留 STATUS_CREATED、后续获取者只能等超时（无根因）。2507 的 waitQuietly 有界化不回退。
+- **销毁序与异常聚合**：`BeanScopeImpl.close` 按 `beanTopoIndex` 降序销毁（依赖方先销毁；查无定义 WARN+哈希序兜底）。`BeanDefinition.destroyBean` 的 destroyMethod 与 `ioc:destroy` **逐方法隔离**（一个抛错不跳过另一个），**首异常在末尾重抛**——不得吞（插件 deactivate 等调用方依赖 destroy 抛错落定 FAILED 态，No-Silent 契约）；容器 stop 层已有 try/catch 收集，不在销毁回调层吞。
+- **scope 上下文摘除**：`BeanScopeContextImpl.onContainerStop` 在 close 后摘除 scopes 条目 + 清 containerScopes（否则 restart 后自定义 scope 永久 ALREADY_CLOSED + 死容器强引用滞留）。
+- **配置刷新链**：`DefaultConfigProvider.applyChange` 为 `synchronized`（复合操作收口，单线程 executor 契约互补）；`configSource` volatile。`ChangeSubscriptions.trigger` 逐监听器计时观测（>1s WARN `nop.warn.config.listener-slow`）；**跨订阅通知顺序不保证**（HashSet hash 序），同订阅内注册序保证——新监听器不得依赖跨订阅顺序。订阅清理一律用 `listeners.compute` 单域（`remove→isEmpty→remove` 三步与 `remove(key,list)` 两参都会留孤儿 → 配置通知永久失聪）。
+- **插件索引/装载原子性**：`unregisterNameIndex(pluginId, name)` 单 map compute（移除+判空清理同域）；`reloadPlugin` 成功路径 `plugins.compute` **原子替换** holder（无 remove→put 窗口），name 索引沿「先摘旧→登新」顺序（**先登后摘会误删同 pluginId 新索引**）；`loadPluginFromJar` 双检+锁外构建（HTTP/SHA256/start 不进 bin 锁临界区）+ `putIfAbsent` 回写，竞争失败方按 aware→unload / 非 aware→stop 回收插件后再关自建 classLoader（只关 classLoader 会丢弃已 start 插件）。2506 的 try 收窄+失败释放语义与「N2 钉零回改」义务继承。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。

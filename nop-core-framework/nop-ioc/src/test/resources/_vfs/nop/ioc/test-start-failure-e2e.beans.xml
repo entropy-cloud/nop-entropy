@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- 端到端链路 1（rule 22）：经 CoreInitialization → IocCoreInitializer 真实入口的
+         concurrent-start 失败传导 fixture（经 nop.ioc.app-beans-files 注入 app 容器）。 -->
+    <bean id="okBean" class="test.io.entropy.beans.TestStartOkBean" destroy-method="destroyMe"/>
+    <bean id="failInitBean" class="test.io.entropy.beans.TestStartFailInitBean" init-method="initMe"
+          depends-on="okBean"/>
+</beans>

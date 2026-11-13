@@ -11,6 +11,8 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.biz.api.IBizObject;
@@ -19,6 +21,10 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.api.core.rpc.IRpcServiceInvocation;
 
 import java.util.concurrent.CompletionStage;
+
+import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
+import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.biz.BizErrors.ERR_BIZ_ASYNC_INVOCATION_NO_CONTEXT;
 
 public class BizActionInvocation implements IRpcServiceInvocation {
     private final IBizObject bizObj;
@@ -57,8 +63,16 @@ public class BizActionInvocation implements IRpcServiceInvocation {
     @Override
     public CompletionStage<ApiResponse<?>> proceedAsync() {
         try {
-            IServiceContext ctx = (IServiceContext) ContextProvider.currentContext()
-                    .getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+            // C3-007 fail-fast：无线附着时语义化错误（非静默附着，也不允许无上下文NPE）——
+            // 异步任务体必须经 BizActionService 的受管提交（快照+executeWithContext）携带
+            // 调用方 context 执行
+            IContext current = ContextProvider.currentContext();
+            if (current == null) {
+                throw new NopException(ERR_BIZ_ASYNC_INVOCATION_NO_CONTEXT)
+                        .param(ARG_BIZ_OBJ_NAME, getServiceName())
+                        .param(ARG_ACTION_NAME, action);
+            }
+            IServiceContext ctx = (IServiceContext) current.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
             if (ctx == null) {
                 ctx = new ServiceContextImpl();
                 ctx.setRequestHeaders(request.getHeaders());

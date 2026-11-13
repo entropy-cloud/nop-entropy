@@ -66,14 +66,20 @@ public class JsonRpcWebSocketEndpoint extends Endpoint {
         JakartaWebSocketSession wsSession = new JakartaWebSocketSession(session);
         JsonRpcWebSocketHandler handler = new JsonRpcWebSocketHandler(executionService, wsSession, initialHeaders);
 
-        // 设置用户上下文提取器
-        IUserContextExtractor userContextExtractor = BeanContainer.instance().getBeanByType(IUserContextExtractor.class);
+        // 4.4-C4-002（plan 2562 裁定 E③）：tryGet 对齐（Spring 侧 :74 已 tryGet）——
+        // extractor 未配置时 null-degrade 进 handler（boundUserId 保持未绑定语义），
+        // 不再因缺 bean 使 onOpen 直接抛断连。
+        IUserContextExtractor userContextExtractor = BeanContainer.instance().tryGetBeanByType(IUserContextExtractor.class);
         handler.setUserContextExtractor(userContextExtractor);
 
 
         session.getUserProperties().put("graphql.handler", handler);
 
         session.addMessageHandler(String.class, handler::onMessage);
+
+        // 4.4-C4-002（plan 2562 裁定 E②）：装配完成（extractor 注入 + message handler 注册）
+        // 后才入 LIVE_HANDLERS——keepalive ping 不再发往半装配 session。
+        handler.markReady();
     }
 
     private ApiRequest<?> toApiRequest(JsonRpcRequest request) {
@@ -123,6 +129,7 @@ public class JsonRpcWebSocketEndpoint extends Endpoint {
                 }
             }
         } catch (Exception expected) {
+            // best-effort: client addr 仅用于诊断 header，取不到时静默降级（不阻断 WS 握手）
         }
 
         return headers;

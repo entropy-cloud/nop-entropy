@@ -61,24 +61,34 @@ public class ContextTaskQueue {
                 return f.syncGet();
 
             if (beginProcess()) {
+                boolean exited = false;
                 try {
                     do {
+                        f = result.get();
                         Runnable task = tasks.poll();
-                        if (task == null)
-                            break;
-
-                        try {
-                            task.run();
-                        } catch (Throwable e) {
-                            LOG.error("nop.core.context.run-task-fail", e);
+                        if (task != null) {
+                            try {
+                                task.run();
+                            } catch (Throwable e) {
+                                LOG.error("nop.core.context.run-task-fail", e);
+                            }
+                            continue;
                         }
 
-                        f = result.get();
-                        if (f != null)
-                            return f.syncGet();
+                        // C2-016：队列已空时以原子形态退出处理态（与flush面同构的排空-复检-退出）——
+                        // 锁内确认队列空才清processingThread；退出窗口内又收到新任务则继续排空，
+                        // 消除「enqueue返回false+flush静默放弃」交错下的任务滞留/丢失唤醒窗
+                        if (endProcessIfIdle()) {
+                            exited = true;
+                            if (f != null)
+                                return f.syncGet();
+                            break;
+                        }
                     } while (true);
-                } finally {
-                    endProcess();
+                } catch (Throwable t) {
+                    if (!exited)
+                        endProcess();
+                    throw t;
                 }
             }
 

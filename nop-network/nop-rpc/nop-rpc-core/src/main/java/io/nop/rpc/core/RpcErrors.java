@@ -34,6 +34,8 @@ public interface RpcErrors {
 
     String ARG_CANCEL_REASON = "cancelReason";
 
+    String ARG_POLL_TIMEOUT = "pollTimeout";
+
     ErrorCode ERR_RPC_CHANNEL_CLOSED = define("nop.err.rpc.channel-closed", "RPC连接已关闭");
 
     ErrorCode ERR_RPC_TOO_MANY_INFLIGHT_MESSAGES = define("nop.err.rpc.too-many-inflight-messages",
@@ -68,6 +70,9 @@ public interface RpcErrors {
             ARG_SERVICE_METHOD);
 
     ErrorCode ERR_RPC_CANCELLED = define("nop.err.rpc.cancelled", "RPC调用已取消，原因:{reason}", ARG_CANCEL_REASON);
+
+    ErrorCode ERR_RPC_POLL_DEADLINE_EXCEEDED = define("nop.err.rpc.poll-deadline-exceeded",
+            "轮询状态在整体截止时间[{pollTimeout}]内未完成，轮询链终止", ARG_POLL_TIMEOUT);
 
     ErrorCode ERR_RPC_FLOW_CONTROL_REJECT = define("nop.err.rpc.flow-control-reject", "RPC调用被限流");
 }

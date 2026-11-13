@@ -125,4 +125,17 @@ public interface ClusterRegistry {
      * @param subtaskIndex the subtask index
      */
     void removeTaskAssignment(String jobId, String vertexId, int subtaskIndex);
+
+    /**
+     * C1-006 (plan 2510 adjudication 7, R01 ledger-retention member row): removes
+     * ALL task assignment history rows for the given TERMINAL job (InMemory:
+     * jobId-prefix keyed entries; JDBC: {@code job_id} predicate DELETE). Called
+     * from the terminal transition point only - active jobs keep their
+     * append-only attempt semantics untouched (+1 pin / monotonic pin preserved).
+     */
+    default void removeJobTaskAssignments(String jobId) {
+        // Default no-op so lightweight test doubles stay compile-compatible; both
+        // production implementations (InMemory / Jdbc) override this with the real
+        // terminal-job cleanup.
+    }
 }

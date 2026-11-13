@@ -15,6 +15,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.ProcessResult;
+import io.nop.batch.core.BatchConfigs;
 import io.nop.batch.core.BatchTaskGlobals;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchChunkProcessorProvider;
@@ -33,12 +34,17 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static io.nop.batch.core.BatchErrors.ARG_MAX_CONCURRENCY_CAP;
+import static io.nop.batch.core.BatchErrors.ARG_PARAM_NAME;
+import static io.nop.batch.core.BatchErrors.ARG_PARAM_VALUE;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_CONCURRENCY_EXCEEDS_CAP;
 
 public class BatchTask<S> implements IBatchTask {
 
@@ -59,14 +65,30 @@ public class BatchTask<S> implements IBatchTask {
     private final int concurrency;
 
     private final Boolean allowStartIfComplete;
+
+    /** 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门（null = 保持既有拒绝）。 */
+    private final Boolean allowRestartIfKilled;
     private final int startLimit;
 
+    /**
+     * 1.7-C7-012（plan 2546 W-06）：保留既有 11 参签名（3 处既有调用点零改），转调全参构造器。
+     */
     public BatchTask(String taskName, long taskVersion,
                      IEvalFunction taskKeyExpr, Executor executor, int concurrency,
                      List<Consumer<IBatchTaskContext>> initializers,
                      IBatchLoaderProvider<S> loaderProvider,
                      IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore,
                      Boolean allowStartIfComplete, int startLimit) {
+        this(taskName, taskVersion, taskKeyExpr, executor, concurrency, initializers, loaderProvider,
+                chunkProcessorProvider, stateStore, allowStartIfComplete, startLimit, null);
+    }
+
+    public BatchTask(String taskName, long taskVersion,
+                     IEvalFunction taskKeyExpr, Executor executor, int concurrency,
+                     List<Consumer<IBatchTaskContext>> initializers,
+                     IBatchLoaderProvider<S> loaderProvider,
+                     IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore,
+                     Boolean allowStartIfComplete, int startLimit, Boolean allowRestartIfKilled) {
         this.taskName = taskName;
         this.taskVersion = taskVersion;
         this.taskKeyExpr = taskKeyExpr;
@@ -74,16 +96,41 @@ public class BatchTask<S> implements IBatchTask {
         this.loaderProvider = loaderProvider;
         this.chunkProcessorProvider = chunkProcessorProvider;
         this.stateStore = stateStore;
-        this.concurrency = concurrency <= 0 ? 1 : concurrency;
+        this.concurrency = normalizeConcurrency(concurrency);
         this.allowStartIfComplete = allowStartIfComplete;
+        this.allowRestartIfKilled = allowRestartIfKilled;
         this.startLimit = startLimit;
         this.executor = getExecutor(executor);
     }
 
+    /**
+     * concurrency 装配期护栏（1.7-C8-003，plan 2498 Phase 5）：<=0 归一为 1（既有文档化行为），
+     * 超过 {@link BatchConfigs#CFG_BATCH_MAX_CONCURRENCY_CAP} 装配期类型化 fail-fast——
+     * 防止单任务把平台共享兜底池提交面放大到超界（线程占用/达界拒绝风暴在装配期即不可达）。
+     */
+    static int normalizeConcurrency(int concurrency) {
+        int normalized = Math.max(concurrency, 1);
+        int cap = BatchConfigs.CFG_BATCH_MAX_CONCURRENCY_CAP.get();
+        if (normalized > cap) {
+            throw new NopException(ERR_BATCH_CONCURRENCY_EXCEEDS_CAP)
+                    .param(ARG_PARAM_NAME, "concurrency")
+                    .param(ARG_PARAM_VALUE, concurrency)
+                    .param(ARG_MAX_CONCURRENCY_CAP, cap);
+        }
+        return normalized;
+    }
+
+    /**
+     * 兜底池形态（1.7-C8-003 评估结论，plan 2498 Phase 5）：维持平台共享 cached 池兜底。
+     * 该池经 R1-02 裁定④基线加固——池宽上界由配置项 nop.commons.concurrent.cached-pool.maxPoolSize
+     * 控制（缺省 200），达界提交获得显式拒绝信号（nop.err.commons.concurrent.cached-pool-saturated），
+     * 线程爆炸面已在设施层闭合；本模块装配期护栏（normalizeConcurrency）在其上再封单任务并发上界。
+     * 不迁移到 globalWorker：chunk 循环为长任务体，按平台族契约（调度槽 vs 执行体）不得常驻平台共享 worker。
+     */
     static Executor getExecutor(Executor executor) {
         if (executor != null)
             return executor;
-        // concurrency在构造器中已归一化为>=1，chunk循环统一由cachedThreadPool执行
+        // concurrency在构造器中已归一化为>=1且不超装配期上界，chunk循环统一由cachedThreadPool执行
         return GlobalExecutors.cachedThreadPool();
     }
 
@@ -99,9 +146,19 @@ public class BatchTask<S> implements IBatchTask {
         if (context.getStartLimit() <= 0)
             context.setStartLimit(startLimit);
 
-        IBatchTaskMetrics metrics = context.getMetrics();
-        Object meter = metrics == null ? null : metrics.beginTask();
+        // 1.7-C7-012（plan 2546 W-06）：缺省注入（对齐 allowStartIfComplete 模式）
+        if (context.getAllowRestartIfKilled() == null && allowRestartIfKilled != null)
+            context.setAllowRestartIfKilled(allowRestartIfKilled);
 
+        // 1.7-C8-004（plan 2546 W-07）：metrics 解析/创建与 beginTask 一并放在 setTaskName 之后——
+        // BatchTaskMetricsImpl 构造器即按 tag 建全部 meter，无法"延后重绑"；若在 setTaskName 之前
+        // 建 meters，全部 tag 会落 "default"。单漏斗覆盖 DSL/exp/biz 三链（外部已注入时不覆盖）。
+        // 用单元素数组承载 meter：它必须在 try 内 setTaskName 之后才创建（lambda 捕获要求 effectively-final）
+        Object[] meterRef = new Object[1];
+
+        // 1.7-C1-001（plan 2545 W-01）：保存外层上下文——嵌套批任务（processor 内同步执行子任务）
+        // 在此覆盖并 remove 会确定性清空外层 TL，使外层后半程 xpl 监听助手 NPE/失聪。
+        Object prevTaskContext = BatchTaskGlobals.saveTaskContext();
         BatchTaskGlobals.provideTaskContext(context);
         try {
             // 如果context中已经设置，则以context中的值为准
@@ -111,6 +168,15 @@ public class BatchTask<S> implements IBatchTask {
                 context.setTaskVersion(taskVersion);
 
             initTaskKey(context);
+
+            // 1.7-C8-004（plan 2546 W-07）：此处 taskName/taskVersion/taskKey 均已就绪
+            IBatchTaskMetrics metrics = context.getMetrics();
+            if (metrics == null && BatchConfigs.CFG_BATCH_METRICS_ENABLED.get()) {
+                metrics = new io.nop.batch.core.metrics.BatchTaskMetricsImpl(
+                        io.nop.commons.metrics.GlobalMeterRegistry.instance(), null, null, context.getTaskName());
+                context.setMetrics(metrics);
+            }
+            meterRef[0] = metrics == null ? null : metrics.beginTask();
 
             if (stateStore != null) {
                 stateStore.loadTaskState(context);
@@ -135,24 +201,38 @@ public class BatchTask<S> implements IBatchTask {
                 context.fireTaskBegin();
             } catch (Exception e) {
                 // onTaskBegin中有可能分配资源，必须调用onTaskEnd来释放资源
-                onTaskComplete(future, meter, e, context);
+                onTaskComplete(future, meterRef[0], e, context);
                 return future;
             }
 
             // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
             CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
-            for (int i = 0; i < concurrency; i++) {
-                futures[i] = executeChunkLoop(context, i, chunkProcessor);
+            try {
+                for (int i = 0; i < concurrency; i++) {
+                    futures[i] = executeChunkLoop(context, i, chunkProcessor);
+                }
+            } catch (Exception e) {
+                // C6-002（plan 2516，含 C7-002A 吸收面）：提交循环包络——任一 executor.execute 同步拒绝时，
+                // 已提交的 futures[0..i-1] 幽灵链必须逐个显式结算，否则 allOf 永不触发 → onTaskComplete 不执行 →
+                // reader/output/JDBC连接泄漏 + 任务行永久 RUNNING。future 终态化使 allOf 立即触发；
+                // 已在运行的加载线程由既有 fail-fast cancel（CANCEL_REASON_STOP）短路承接，不中断数据一致性。
+                // 随后直达 onTaskComplete 既有终态化+关闭链（与 setup 失败路径同型）。
+                for (CompletableFuture<?> submitted : futures) {
+                    if (submitted != null)
+                        submitted.completeExceptionally(e);
+                }
+                onTaskComplete(future, meterRef[0], e, context);
+                return future;
             }
 
             CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
-                onTaskComplete(future, meter, err, context);
+                onTaskComplete(future, meterRef[0], err, context);
             });
 
             return future;
 
         } finally {
-            BatchTaskGlobals.removeTaskContext();
+            BatchTaskGlobals.restoreTaskContext(prevTaskContext);
         }
     }
 
@@ -207,13 +287,34 @@ public class BatchTask<S> implements IBatchTask {
                     if (stateStore != null) {
                         stateStore.saveTaskState(true, err, context);
                     }
+                } catch (Throwable x) {
+                    // C6-009 S4/S6（plan 2516）：终态写失败不吞不替换——ERROR 显式留痕（携 taskId/taskName）
+                    // 后放弃本次状态写（行残留由裁定① stale 接管承接），X 不得替代原始 err
+                    // （S6：setup 失败路径进入时对外仍以原始 e 结算）。context.completeExceptionally(err) 必达。
+                    LOG.error("nop.err.batch.task-terminal-save-fail:taskName={},taskId={}",
+                            context.getTaskName(), context.getTaskId(), x);
                 } finally {
                     context.completeExceptionally(err);
                 }
             }
         } finally {
-            if (metrics != null)
-                metrics.endTask(meter, err == null);
+            // C6-009 S5（plan 2516）：metrics.endTask 独立 try——endTask 抛出不得跳过 FutureHelper.complete，
+            // 否则返回 future 成为孤儿、调用方永久挂死。不改 finally 内顺序（plan 2496/2381 已修面零回退）。
+            try {
+                if (metrics != null)
+                    metrics.endTask(meter, err == null);
+            } catch (Throwable x) {
+                LOG.error("nop.err.batch.task-metrics-end-fail:taskName={},taskId={}",
+                        context.getTaskName(), context.getTaskId(), x);
+            }
+
+            // 1.7-C7-005（plan 2546 W-01）：跳过可审计——被跳过的记录不进 completedItems、
+            // 也不进 historyStore（saveProcessed 仅收成功集），故终态必须显式汇总规模，
+            // 否则运维无从得知"实际处理了多少、跳过了多少"（死信账本为独立能力，见 plan Deferred）。
+            long skipped = context.getSkipItemCount();
+            if (skipped > 0)
+                LOG.warn("nop.warn.batch.task-skipped-items:taskName={},taskId={},taskKey={},skipItemCount={}",
+                        context.getTaskName(), context.getTaskId(), context.getTaskKey(), skipped);
 
             FutureHelper.complete(future, null, err);
         }
@@ -223,13 +324,20 @@ public class BatchTask<S> implements IBatchTask {
                                              IBatchChunkProcessorProvider.IBatchChunkProcessor<S> chunkProcessor) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        executor.execute(() -> {
+        try {
+            executor.execute(() -> {
             LOG.info("nop.batch.run-chunk-loop:threadIndex={},threadName={}", threadIndex, Thread.currentThread().getName());
             ContextProvider.runWithContext(ctx -> {
-                propagateContext(ctx, context);
-
-                BatchTaskGlobals.provideTaskContext(context);
+                // C6-010（plan 2496，与 C6-001 同 diff）：守卫起点上移到 lambda 首行——propagateContext /
+                // provideTaskContext 等守卫生效前的段抛出的异常也必须被结算管线捕获
+                Object prevTaskContext = null;
                 try {
+                    propagateContext(ctx, context);
+
+                    // 1.7-C1-001（plan 2545 W-01）：同 executeAsync——保存/恢复而非裸 provide/remove
+                    prevTaskContext = BatchTaskGlobals.saveTaskContext();
+                    BatchTaskGlobals.provideTaskContext(context);
+
                     do {
                         if (context.isCancelled())
                             throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
@@ -240,7 +348,10 @@ public class BatchTask<S> implements IBatchTask {
                     } while (true);
 
                     future.complete(null);
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    // C6-001（plan 2496）：catch 宽度放宽到 Throwable（含 Error）——Error 逃逸曾使 future
+                    // 永不结算 → allOf 永不触发 → afterComplete 关闭链失守 → reader/writer/连接泄漏 +
+                    // 任务行永久 RUNNING + 调用方挂死。结算管线对任何 Throwable 都必须走通。
                     NopException.logIfNotTraced(LOG, "nop.batch.execute-chunk-loop-fail", e);
                     // P1-3.3-003（plan 2381）：CAS 收集首个非取消异常作为 primaryError
                     //（时序竞态下 allOf 可能交付兄弟线程的 BatchCancelException，掩蔽真根因）
@@ -253,12 +364,19 @@ public class BatchTask<S> implements IBatchTask {
                     if (!context.isCancelled())
                         context.cancel(ICancellable.CANCEL_REASON_STOP);
                 } finally {
-                    BatchTaskGlobals.removeTaskContext();
+                    BatchTaskGlobals.restoreTaskContext(prevTaskContext);
                 }
                 return null;
             });
-
         });
+
+        } catch (RejectedExecutionException rex) {
+            // C6-002（plan 2516 裁定⑥）：提交点防御——REE 在 lambda 执行前抛出，lambda 内 catch Throwable 管不到。
+            // future 终态化使 allOf 立即触发清理链（lambda 未执行无数据泄漏面），任务不再滞留 RUNNING。
+            LOG.error("nop.err.batch.chunk-loop-submit-rejected:taskName={},taskId={},threadIndex={}",
+                    context.getTaskName(), context.getTaskId(), threadIndex, rex);
+            future.completeExceptionally(rex);
+        }
         return future;
     }
 

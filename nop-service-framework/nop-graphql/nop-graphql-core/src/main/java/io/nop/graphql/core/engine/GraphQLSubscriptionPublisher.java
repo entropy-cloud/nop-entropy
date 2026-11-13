@@ -50,6 +50,9 @@ public class GraphQLSubscriptionPublisher implements Flow.Publisher<GraphQLRespo
 
                 @Override
                 public void cancel() {
+                    // 2.3-C3-005（plan 2550 裁定 C）：取消是第三条终止路径——取消订阅若不
+                    // complete 上下文，上下文级清理回调永不触发（泄漏）。三条终止路径对称。
+                    context.complete();
                     upstreamSubscription.cancel();
                 }
             });
@@ -72,6 +75,9 @@ public class GraphQLSubscriptionPublisher implements Flow.Publisher<GraphQLRespo
 
         @Override
         public void onError(Throwable throwable) {
+            // 2.3-C3-005（plan 2550 裁定 C）：错误终止路径对称补上下文 complete（onComplete
+            // 路径已有；取消路径见 cancel()）——错误后上下文清理回调同样必须触发。
+            context.complete();
             GraphQLResponseBean response = engine.buildGraphQLResponse(null, throwable, context);
             downstream.onNext(response);
             downstream.onComplete();

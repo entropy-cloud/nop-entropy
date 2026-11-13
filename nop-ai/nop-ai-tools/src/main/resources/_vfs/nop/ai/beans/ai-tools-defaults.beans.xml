@@ -8,6 +8,8 @@
     <bean id="nopSequentialThinkingBizModel"
           class="io.nop.ai.tools.sequential_thinking.service.SequentialThinkingBizModel">
         <property name="storageDirPath" value="@cfg:nop.ai.sequential-thinking-tool.storage-dir-path|./_tmp/ai/sequential-thinking/store"/>
+        <!-- plan 2557 C6-007 (ruling E): TTL retention days, 0 = off -->
+        <property name="thoughtRetentionDays" value="@cfg:nop.ai.tools.thought-retention-days|0"/>
     </bean>
 
 </beans>

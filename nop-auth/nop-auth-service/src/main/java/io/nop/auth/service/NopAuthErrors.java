@@ -229,4 +229,12 @@ public interface NopAuthErrors {
     ErrorCode ERR_AUTH_MFA_COOLDOWN = define(API_STATUS_BAD_REQUEST, "nop.err.auth.mfa-cooldown",
             "Too many failed MFA verification attempts; please retry after the cooldown window",
             ARG_USER_ID);
+
+    // ===== 账本保留策略（5.1-MA-01，plan 2502；fail-fast 包络——错配置启动期拒绝不降级） =====
+
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
+
+    ErrorCode ERR_AUTH_LEDGER_CONFIG_INVALID = define("nop.err.auth.ledger-config-invalid",
+            "Invalid auth ledger retention config: {configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }

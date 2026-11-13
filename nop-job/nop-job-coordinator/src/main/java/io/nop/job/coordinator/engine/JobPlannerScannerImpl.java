@@ -154,7 +154,26 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
     }
 
     private void planSchedule(NopJobSchedule schedule, Timestamp dueFireTime) {
-        Timestamp nextFireTime = calculateNextFireTime(schedule);
+        Timestamp nextFireTime;
+        try {
+            nextFireTime = calculateNextFireTime(schedule);
+        } catch (NopException e) {
+            if (isTriggerConfigError(e)) {
+                // CRA 8.46 R4-07 W-08 (1.4-C7-009, adjudication C.3): 配置类错误 →
+                // schedule 置 PAUSED（SCHEDULE_STATUS_PAUSED=20 写点与 completion
+                // 既有 SCHEDULE_STATUS_COMPLETED 直写先例同形——checker/completion
+                // 直写状态为模块既有形态）——60s 隐式节流环+静默停摆升格为显式
+                // PAUSED+告警（resumeSchedule 既有通道可恢复：试构建校验通过方可
+                // resume——NopJobScheduleBizModel 保存/试构建校验闭环）。
+                schedule.setScheduleStatus(_NopJobCoreConstants.SCHEDULE_STATUS_PAUSED);
+                scheduleStore.advanceScheduleAfterSkip(schedule, null);
+                LOG.error("nop.job.planner.config-error-paused:scheduleId={},code={}",
+                        schedule.getJobScheduleId(),
+                        e.getErrorCode(), e);
+                return;
+            }
+            throw e;
+        }
 
         if (schedule.getScheduleStatus() != null
                 && !JobScheduleStateMachine.isEnabled(schedule.getScheduleStatus())) {
@@ -212,6 +231,16 @@ public class JobPlannerScannerImpl extends AbstractBatchScanner implements IJobP
 
         scheduleStore.insertFireAndAdvanceSchedule(schedule, fire, nextFireTime,
                 _NopJobCoreConstants.FIRE_STATUS_WAITING);
+    }
+
+    /** CRA 8.46 R4-07 W-08: 配置类错误白名单判定（同 JobCompletionProcessorImpl.isTriggerConfigError——双侧同形）。 */
+    static boolean isTriggerConfigError(NopException e) {
+        String code = e.getErrorCode();
+        return code != null && (
+                code.equals(JobCoreErrors.ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL.getErrorCode())
+                || code.equals(JobCoreErrors.ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT.getErrorCode())
+                || code.equals(JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode())
+                || code.equals(JobCoreErrors.ERR_JOB_TRIGGER_CONFIG_INVALID.getErrorCode()));
     }
 
     private Timestamp calculateNextFireTime(NopJobSchedule schedule) {

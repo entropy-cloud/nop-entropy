@@ -148,10 +148,18 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
             this.flushing = true;
             List<CompletionStage<?>> futures = new ArrayList<>();
 
+            // 2.3-C2-009（plan 2553 裁定 B）：swap-then-capture——先置新空容器再捕获旧引用，
+            // 重入 flush 的追加进新容器（不落被丢弃旧容器被静默丢弃）。三捕获槽全换
+            //（collectionActions/delayTasks/actionMap——actionMap.clear 的 finally 擦除是
+            // 同一静默丢失类，ContextTaskQueue.syncGet 排空同线程任务时可重入 enqueue）。
             List<IBatchAction.CollectionBatchAction> collActions = this.collectionActions;
+            this.collectionActions = null;
             Map<String, Runnable> delayTasks = this.delayTasks;
+            this.delayTasks = null;
+            Map<String, BatchActionHolder> capturedActions = new HashMap<>(this.actionMap);
+            this.actionMap.clear();
 
-            List<IEntityModel> sortedList = model.getEntityModelsInTopoOrder(actionMap.keySet());
+            List<IEntityModel> sortedList = model.getEntityModelsInTopoOrder(capturedActions.keySet());
 
             // 记录中断时未提交的实体模型范围，这些模型的动作不会收到任何回调
             AtomicReference<Throwable> errorRef = new AtomicReference<>();
@@ -159,10 +167,17 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
             int phase1FailIndex = sortedList.size();
             for (int i = 0; i < sortedList.size(); i++) {
                 IEntityModel entityModel = sortedList.get(i);
-                BatchActionHolder holder = actionMap.get(entityModel.getName());
+                BatchActionHolder holder = capturedActions.get(entityModel.getName());
                 IEntityPersister persister = model.requireEntityPersister(entityModel.getName());
                 CompletionStage<Void> future = persister.batchExecuteAsync(true, querySpace, holder.saveActions,
                         holder.getUpdateActions(), holder.getDeleteActions(), session);
+                // 2.3-C3-004（plan 2553 裁定 H）：两阶段拓扑依赖 future 同步完成假说——异步驱动下
+                // 阶段1 future 未完成即进入阶段2 会违反依赖序。fail-fast 显式违约（不静默）。
+                if (future.toCompletableFuture().isDone() == false) {
+                    throw new OrmException(OrmErrors.ERR_ORM_BATCH_FLUSH_ABORTED)
+                            .param("entityName", entityModel.getName())
+                            .param("phase", 1);
+                }
 
                 FutureHelper.collectWaiting(future, futures);
                 future.whenComplete((v, err) -> {
@@ -181,11 +196,17 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
             if (!bError) {
                 for (int i = sortedList.size() - 1; i >= 0; i--) {
                     IEntityModel entityModel = sortedList.get(i);
-                    BatchActionHolder holder = actionMap.get(entityModel.getName());
+                    BatchActionHolder holder = capturedActions.get(entityModel.getName());
                     IEntityPersister persister = model.requireEntityPersister(entityModel.getName());
 
                     CompletionStage<Void> future = persister.batchExecuteAsync(false, querySpace, holder.saveActions,
                             holder.getUpdateActions(), holder.getDeleteActions(), session);
+                    if (future.toCompletableFuture().isDone() == false) {
+                        throw new OrmException(OrmErrors.ERR_ORM_BATCH_FLUSH_ABORTED)
+                                .param("entityName", entityModel.getName())
+                                .param("phase", 2);
+                    }
+
                     FutureHelper.collectWaiting(future, futures);
                     future.whenComplete((v, err) -> {
                         if (err != null)
@@ -204,7 +225,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
             if (bError) {
                 // 中断后未提交的动作不会收到任何回调，这里统一补发失败通知，
                 // 避免依赖onFailure做清理的扩展实现被静默跳过
-                notifyUnsubmittedFailure(sortedList, phase1FailIndex, phase2FailIndex, errorRef.get());
+                notifyUnsubmittedFailure(sortedList, phase1FailIndex, phase2FailIndex, errorRef.get(), capturedActions);
             }
 
             CompletionStage<Void> retFuture = FutureHelper.waitAll(futures);
@@ -230,9 +251,12 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
                 }
             });
         } finally {
-            // 无论是否异步返回，这里都可以清空map了
+            // 无论是否异步返回，这里都可以清空map了（capturedActions 已 swap 持有本轮快照——
+            // flush 窗口内 enqueue 落入新 actionMap 不丢失，2.3-C2-009）
             actionMap.clear();
-            delayTasks = null;
+            // 2.3-C3-003（plan 2553 裁定 G）：this 前缀修正——原局部变量遮蔽使字段永不清、
+            // 跨 flush 重放已消费的延迟任务
+            this.delayTasks = null;
             this.collectionActions = null;
             this.flushing = false;
         }
@@ -243,15 +267,15 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
      * 逆序阶段在phase2FailIndex处中断时，其前(下标更小)且被其他实体依赖的实体模型的delete动作只在逆序阶段执行，也不会被提交
      */
     private void notifyUnsubmittedFailure(List<IEntityModel> sortedList, int phase1FailIndex, int phase2FailIndex,
-                                          Throwable err) {
+                                          Throwable err, Map<String, BatchActionHolder> capturedActions) {
         Throwable error = err != null ? err : new OrmException(OrmErrors.ERR_ORM_BATCH_FLUSH_ABORTED);
         for (int i = phase1FailIndex + 1; i < sortedList.size(); i++) {
-            notifyHolderFailure(actionMap.get(sortedList.get(i).getName()), error, true);
+            notifyHolderFailure(capturedActions.get(sortedList.get(i).getName()), error, true);
         }
         for (int i = 0; i < phase2FailIndex; i++) {
             IEntityModel entityModel = sortedList.get(i);
             if (entityModel.isDependByOtherEntity()) {
-                notifyHolderFailure(actionMap.get(entityModel.getName()), error, false);
+                notifyHolderFailure(capturedActions.get(entityModel.getName()), error, false);
             }
         }
     }

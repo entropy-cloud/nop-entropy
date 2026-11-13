@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,9 +145,15 @@ public final class FileSplitEnumerator implements SplitEnumerator<FileSplit, Fil
         if (!Files.exists(dir) || !Files.isDirectory(dir)) {
             throw new IOException("Source directory not found or not a directory: " + directoryPath);
         }
-        List<Path> files = Files.walk(dir)
-                .filter(Files::isRegularFile)
-                .collect(Collectors.toList());
+        // CRA 8.44 R4-04 W-09 (C6-011; adjudication C.4): the walk Stream is TWR-owned —
+        // a mid-walk failure (unreadable subdirectory → UncheckedIOException) must still
+        // execute the walker's registered onClose; UnixDirectoryStream has no
+        // finalizer/Cleaner, so the bare shape leaked one directory fd per failed call
+        // until process exit. Same discipline as the SnapshotStrategy (:162) walkers.
+        List<Path> files;
+        try (Stream<Path> stream = Files.walk(dir)) {
+            files = stream.filter(Files::isRegularFile).collect(Collectors.toList());
+        }
         for (Path file : files) {
             long size = Files.size(file);
             FileSplit split = new FileSplit(file.toString(), size);

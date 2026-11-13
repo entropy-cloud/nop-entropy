@@ -42,6 +42,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -142,7 +144,14 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         // 清空资源文件的依赖关系缓存
-        this.dependsManager.clearDependencies();
+        dependsManager.clearDependencies();
+    }
+
+    /**
+     * C7-008（plan 2548）：条目失效/清理时的逐条淘汰入口（委托 dependsManager）。
+     */
+    public void removeDependency(String resourcePath) {
+        this.dependsManager.removeDependency(resourcePath);
     }
 
     public void setChangeChecker(IResourceChangeChecker changeChecker) {
@@ -340,7 +349,34 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         if (StringHelper.isEmpty(transform) || modelType.equals(transform))
             return entry.model;
 
-        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform(entry.model));
+        // 1.7-C2-003（plan 2547 裁定 A）：原实现把 transformer.transform（编译级重计算）放在
+        // ConcurrentHashMap.computeIfAbsent 的 mapping function 内执行——CHM bin 锁内重活，且
+        // transformer 若再入同一 map 会触发递归 compute。改为「CompletableFuture 占位 + 锁外构建」。
+        // 判定「是否本次新建」必须用 boolean[]（computeIfAbsent 的返回值区分不出既有/新建，
+        // 见设计 §四.1 / draft review R1 B-4）。
+        final boolean[] created = new boolean[1];
+        CompletableFuture<Object> future = entry.transformed.computeIfAbsent(transform, k -> {
+            created[0] = true;
+            return new CompletableFuture<>();
+        });
+        if (created[0]) {
+            try {
+                Object value = transformer.transform(entry.model);
+                future.complete(value);
+            } catch (Throwable e) {
+                // 1.7-C2-003（closure audit R1 M-1）：失败后**移除占位**——避免把瞬态错误
+                //（类加载器竞态、磁盘抖动）永久固化在缓存里，使后续调用永远拿到同一失败。
+                // 下次调用会重新尝试（与旧 computeIfAbsent 语义一致）。
+                entry.transformed.remove(transform, future);
+                future.completeExceptionally(e);
+            }
+        }
+        try {
+            return future.join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            throw NopException.adapt(cause == null ? e : cause);
+        }
     }
 
     private IComponentTransformer<Object, Object> getTransformer(String modelType, String transform) {
@@ -417,7 +453,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     static class ComponentCacheEntry implements IObjectChangeDetectable {
         Object model;
-        Map<String, Object> transformed = new ConcurrentHashMap<>();
+        /** 1.7-C2-003：值类型为 CompletableFuture（占位-完成模式），见 loadComponentModel。 */
+        Map<String, CompletableFuture<Object>> transformed = new ConcurrentHashMap<>();
 
         @Override
         public boolean isObjectChanged() {

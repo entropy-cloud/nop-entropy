@@ -28,7 +28,8 @@ import static io.nop.orm.OrmConfigs.CFG_ORM_MODEL_CACHE_CHECK_CHANGE;
 public class DynOrmModelProvider implements IOrmModelProvider {
     private final CacheEntryManagement<ILoadedOrmModel> cache;
 
-    private IDynamicEntityModelProvider entityModelLoader;
+    // volatile + DCL（MA-06/C1-003）：懒初始化检查-然后-行动无同步存在双实例竞态与JMM可见性窗
+    private volatile IDynamicEntityModelProvider entityModelLoader;
 
     public DynOrmModelProvider() {
         this.cache = ResourceTenantManager.instance().makeCacheEntry("dyn-loaded-orm-model-cache", isUseTenant(), null);
@@ -39,9 +40,18 @@ public class DynOrmModelProvider implements IOrmModelProvider {
      * 直接注入存在循环依赖的问题，ioc初始化失败。
      */
     public IDynamicEntityModelProvider getEntityModelLoader(){
-        if(entityModelLoader == null)
-            entityModelLoader = BeanContainer.getBeanByType(IDynamicEntityModelProvider.class);
-        return entityModelLoader;
+        IDynamicEntityModelProvider loader = entityModelLoader;
+        if (loader == null) {
+            synchronized (this) {
+                loader = entityModelLoader;
+                if (loader == null) {
+                    // 循环依赖规避语义保持：延迟到首次访问时经容器解析（构造期注入会失败）
+                    loader = BeanContainer.getBeanByType(IDynamicEntityModelProvider.class);
+                    entityModelLoader = loader;
+                }
+            }
+        }
+        return loader;
     }
 
     @Override

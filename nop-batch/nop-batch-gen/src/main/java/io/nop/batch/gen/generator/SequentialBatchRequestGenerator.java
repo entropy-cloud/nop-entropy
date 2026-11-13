@@ -28,8 +28,15 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
         this.subContext = genContext.newSubContext();
     }
 
+    /**
+     * 1.7-C1-006（plan 2545 W-06）：asyncProcessor 模式下 nextRequest（chunk 线程）与
+     * onResponse（异步回调线程）会并发驱动本实例的 {@code subIndex}/{@code subContext} 字段——
+     * 前者推进游标、后者按 {@code subIndex-1} 回读 outputVars，跨线程无同步会取错 case
+     * （outputVars 错位）并对 HashMap 局部 scope 产生数据竞争。实例级监视器粒度正确
+     * （generator 本身按 chunk 独立构造，锁不跨 chunk）。
+     */
     @Override
-    public S nextRequest(IBatchChunkContext context) {
+    public synchronized S nextRequest(IBatchChunkContext context) {
         subContext.getEvalScope().setLocalValue(null, BatchGenConstants.VAR_BATCH_CHUNK_CONTEXT, context);
         do {
             if (subIndex >= subCases.size()) {
@@ -60,7 +67,7 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
     }
 
     @Override
-    public void onResponse(R response, IBatchChunkContext context) {
+    public synchronized void onResponse(R response, IBatchChunkContext context) {
         int lastIndex = subIndex - 1;
         BatchGenState subCase = subCases.get(lastIndex);
         Map<String, Object> outputVars = subCase.getOutputVars();

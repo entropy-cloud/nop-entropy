@@ -63,6 +63,16 @@ public class NettyTcpClient extends LifeCycleSupport {
     private volatile ChannelFuture connectFuture;
 
     private final AtomicInteger connectFailCount = new AtomicInteger();
+
+    // MA-10 stop 世代守卫（4.3-MA-14 / plan 2560 裁定 C）：doStart 记录启动时世代，
+    // stop 递增 stopGeneration——此后任何重连调度（channelInactive → scheduleReconnect）、
+    // 已调度任务触发、在途连接完成回调均以 stopGeneration != startGeneration 判定放弃，
+    // 单点覆盖两类「stop 后复活」路径。doStop 现状不置空 connectFuture（历史行为），
+    // 世代校验即为复活路径的唯一闸门；stop 后 status 回到 CREATED（allowRestart），
+    // isStopping() 不再可靠，故以世代判定而非状态位。
+    private final AtomicInteger stopGeneration = new AtomicInteger();
+    private volatile int startGeneration;
+
     private IRetryPolicy<NettyTcpClient> retryPolicy;
     private String remoteHost;
     private int remotePort;
@@ -129,6 +139,9 @@ public class NettyTcpClient extends LifeCycleSupport {
 
     @Override
     protected void doStart() {
+        // MA-10（裁定 C）：记录本轮 start 的世代——此后 stop 递增 stopGeneration，
+        // 所有复活路径以此判定放弃；stop→start 重启时刷新为本轮世代
+        startGeneration = stopGeneration.get();
         createBootstrap();
         if (retryPolicy == null) {
             retryPolicy = RetryPolicy.<NettyTcpClient>createRetryPolicy()
@@ -202,8 +215,15 @@ public class NettyTcpClient extends LifeCycleSupport {
         // 但是，这个 socket此时还是有效的，可以一段时间之后再次调用 close方法进行关闭尝试。
     }
 
-    private void doConnect() {
+    protected void doConnect() {
         if (isStopping()) {
+            return;
+        }
+
+        // MA-10（裁定 C）：stop 世代失配 → 放弃本次连接建立
+        if (stopGeneration.get() != startGeneration) {
+            LOG.debug("nop.netty.client.connect-abandoned-after-stop:startGeneration={},stopGeneration={}",
+                    startGeneration, stopGeneration.get());
             return;
         }
 
@@ -214,6 +234,16 @@ public class NettyTcpClient extends LifeCycleSupport {
         this.connectFuture = future;
         future.addListener(new ChannelFutureListener() {
             public void operationComplete(ChannelFuture f) {
+                // 在途连接完成回调：stop 已递增世代 → 放弃（不得递增失败计数、
+                // 不得继续调度重连复活连接）
+                if (stopGeneration.get() != startGeneration) {
+                    LOG.debug("nop.netty.client.connect-abandoned-after-stop:startGeneration={},stopGeneration={}",
+                            startGeneration, stopGeneration.get());
+                    if (f.channel() != null) {
+                        NettyHelper.safeClose(f.channel());
+                    }
+                    return;
+                }
                 if (!f.isSuccess()) {
                     connectFailCount.incrementAndGet();
                     scheduleReconnect(f.channel().eventLoop(), f.cause());
@@ -230,6 +260,14 @@ public class NettyTcpClient extends LifeCycleSupport {
     protected void scheduleReconnect(EventLoopGroup eventLoop, Throwable e) {
         if (isStopping())
             return;
+
+        // MA-10（裁定 C）：重连调度世代校验——stop 后（含 stop 期间 channelInactive
+        // 触发的迟到调度）不得再挂载重连任务
+        if (stopGeneration.get() != startGeneration) {
+            LOG.debug("nop.netty.client.reconnect-abandoned-after-stop:startGeneration={},stopGeneration={}",
+                    startGeneration, stopGeneration.get());
+            return;
+        }
 
         if (config.isAutoReconnect()) {
             long delay = getConnectRetryDelay(e);
@@ -248,7 +286,16 @@ public class NettyTcpClient extends LifeCycleSupport {
                         connectFailCount.get());
             }
 
-            eventLoop.schedule(this::doConnect, delay, TimeUnit.MILLISECONDS);
+            eventLoop.schedule(() -> {
+                // 世代失配：stop 已发生，废弃本次复活（任务触发时二次校验，
+                // 覆盖「调度在 stop 前、触发在 stop 后」的窗口）
+                if (stopGeneration.get() != startGeneration) {
+                    LOG.debug("nop.netty.client.reconnect-abandoned-after-stop:startGeneration={},stopGeneration={}",
+                            startGeneration, stopGeneration.get());
+                    return;
+                }
+                doConnect();
+            }, delay, TimeUnit.MILLISECONDS);
         } else if (e != null) {
             LOG.error("nop.netty.client.connect-fail:removeHost={},remotePort={},failCount={}", getRemoteHost(), getRemotePort(),
                     connectFailCount.get());
@@ -261,6 +308,12 @@ public class NettyTcpClient extends LifeCycleSupport {
 
     @Override
     protected void doStop() {
+        // MA-10（4.3-MA-14 / plan 2560 裁定 C）：stop 递增世代——在途 connectFuture 完成
+        // 回调、已调度重连任务与 stop 期间 channelInactive 的迟到调度均检测到
+        // stopGeneration != startGeneration 即放弃。connectFuture 现状不置空（历史行为），
+        // 世代校验即为复活路径的唯一闸门。
+        stopGeneration.incrementAndGet();
+
         ChannelFuture f = this.connectFuture;
         if (f != null) {
             NettyHelper.safeClose(f.channel());

@@ -55,8 +55,8 @@ public class NopMetaEntityQueryAction {
     private final MetaEntityReferenceResolver tableRefResolver = new MetaEntityReferenceResolver(
             dataSourceResolver, fieldResolver);
     private final FilterToSqlTranslator filterTranslator = new FilterToSqlTranslator();
-    private SqlViewFieldTypeInferrer sqlFieldTypeInferrer;
-    private TableReferenceExecutor tableRefExecutor;
+    private volatile SqlViewFieldTypeInferrer sqlFieldTypeInferrer; // W-04（plan 2528 裁定③）
+    private volatile TableReferenceExecutor tableRefExecutor; // W-04（plan 2528 裁定③）
 
     private static final Set<String> SUPPORTED_DIALECTS =
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList("H2", "MySQL", "PostgreSQL")));

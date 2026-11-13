@@ -65,7 +65,28 @@ import org.slf4j.LoggerFactory;
 class CodeGraphService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeGraphService.class);
-    private static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
+    /**
+     * 社区检测节点规模上界（编译期常量，包内可见——GraphMetricMaterializer 引用同一常量，
+     * 禁第二常量漂移源；与 BETWEENNESS_MAX_NODES 同族分立，配置化归 follow-up 候选）。
+     */
+    static final int MAX_NODES_FOR_COMMUNITY_DETECTION = 10000;
+    // W-17 (plan 2565, adjudication L / F2; 2532 erratum-5 single-source duty): hard cap on the
+    // ASSEMBLY entity materialization surface. Independent semantic — this is the entity chunk
+    // load cap for graph DTO assembly, NOT the metric finder row cap; the finder row cap single
+    // source lives in GraphMetricStore.findByMetric javadoc (:50-56) and its VALUE is
+    // deliberately not copied here. Cross-reference only.
+    static final int DEFAULT_MAX_ASSEMBLY_SYMBOLS = 10000;
+    private volatile int maxAssemblySymbols = DEFAULT_MAX_ASSEMBLY_SYMBOLS;
+
+    void setMaxAssemblySymbolsForTest(int max) {
+        this.maxAssemblySymbols = max;
+    }
+
+    /** observable truncation flag of the last loadSymbolsByIds run (F2 form #1) */
+    volatile boolean lastAssemblyTruncated;
+
+    /** counting seam (R2-3): id-set size requested by the last loadSymbolsByIds call */
+    volatile int lastAssemblyRequestSize;
     private static final int BATCH_QUERY_LIMIT = 10000;
 
     private static final int SYMBOL_LOOKUP_CHUNK = 500;
@@ -256,12 +277,20 @@ class CodeGraphService {
             }
             Map<String, int[]> hubs = metricStore.loadHubs(indexId);
             int limit = topN > 0 ? topN : 20;
+            // W-17 (R1-B3/R2-3 re-adjudication): ONLY the :263 entryPoints input is trimmed to
+            // the topN window — the DTO output consumes entries within the limit. The sibling
+            // sites :148 (communities -> findDominantPackageByNames public labels) and :864
+            // (hubs -> bridge nodes reference ids outside the hub set) deliberately keep FULL
+            // input: truncating those would change public output (they are protected by the
+            // GraphMetricStore finder row cap + the hard cap below instead).
+            List<NopCodeGraphMetric> entryPointWindow = entryPoints.size() > limit
+                    ? entryPoints.subList(0, limit) : entryPoints;
             Map<String, NopCodeSymbol> symbolsById = loadSymbolsByIds(
-                    entryPoints.stream().map(NopCodeGraphMetric::getSymbolId).collect(Collectors.toSet()));
+                    entryPointWindow.stream().map(NopCodeGraphMetric::getSymbolId).collect(Collectors.toSet()));
 
             List<GodNodeDTO> godNodes = new ArrayList<>();
             List<String> isolatedSymbols = new ArrayList<>();
-            for (NopCodeGraphMetric row : entryPoints) {
+            for (NopCodeGraphMetric row : entryPointWindow) {
                 int[] degree = hubs.get(row.getSymbolId());
                 int inDeg = degree != null ? degree[1] : 0;
                 int outDeg = degree != null ? degree[2] : 0;
@@ -517,6 +546,14 @@ class CodeGraphService {
                 (g, e) -> g.addEdge(e.getCallerId(), e.getCalleeId()));
         SymbolTable targetSymbolTable = cacheManager.getOrRebuildSymbolTable(targetIndexId, daoProvider,
                 CodeSymbolConverter::toCodeSymbol);
+        // target-side twin of the baseline early-exit above (5.6-W-04 / plan 2530 裁定③:
+        // diffGraph must be symmetric — an oversize graph on either side yields the empty
+        // diff instead of an unguarded Leiden run on the target)
+        if (targetSymbolTable.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("Target graph too large for community detection diff ({} > {}), returning empty diff",
+                    targetSymbolTable.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
+            return new GraphDiffDTO();
+        }
         Set<String> targetNodes = targetCallGraph.getAllNodeIds();
         CommunityResult targetCommunities = runCommunityDetection(targetCallGraph);
         Map<String, Integer> targetCommunityMap = buildCommunityMap(targetCommunities);
@@ -741,9 +778,25 @@ class CodeGraphService {
         return inh;
     }
 
+    /**
+     * In-memory community detection with the size guard sunk here (5.6-W-04 / plan 2530
+     * 裁定③ — one sink closes the 4 unguarded call faces: detectCommunities fallback,
+     * getKnowledgeGaps, exportGraph, diffGraph target side). Over-limit graphs
+     * skip-and-degrade to the same empty-result shape as the &lt;2 short-circuit (aligned
+     * with getCriticalNodes' existing guard semantics) — an explicit WARN keeps the degrade
+     * observable. Production behavior change: graphs over the limit previously computed
+     * Leiden here (the 60s timeout bounded the hang but not the memory peak); they now
+     * return the empty community result. The observable label stays the "LEIDEN" literal.
+     */
     private CommunityResult runCommunityDetection(CallGraph callGraph) {
         Set<String> nodeSet = callGraph.getAllNodeIds();
         if (nodeSet.size() < 2) {
+            return new CommunityResult(Collections.emptyList(), nodeSet.size(), 0, 0, 0, "LEIDEN", 0);
+        }
+        if (nodeSet.size() > MAX_NODES_FOR_COMMUNITY_DETECTION) {
+            LOG.warn("Graph too large for community detection ({} > {}), skipping Leiden and "
+                            + "returning an empty community result",
+                    nodeSet.size(), MAX_NODES_FOR_COMMUNITY_DETECTION);
             return new CommunityResult(Collections.emptyList(), nodeSet.size(), 0, 0, 0, "LEIDEN", 0);
         }
         LeidenConfig config = LeidenConfig.create()
@@ -897,6 +950,16 @@ class CodeGraphService {
             return result;
         }
         List<String> ids = new ArrayList<>(symbolIds);
+        lastAssemblyRequestSize = ids.size();
+        if (ids.size() > maxAssemblySymbols) {
+            // W-17: assembly entity hard cap — truncate + WARN + flag
+            LOG.warn("nop.code.assembly-symbols-capped:indexCap={},requested={}",
+                    maxAssemblySymbols, ids.size());
+            ids = ids.subList(0, maxAssemblySymbols);
+            lastAssemblyTruncated = true;
+        } else {
+            lastAssemblyTruncated = false;
+        }
         IEntityDao<NopCodeSymbol> dao = daoProvider.daoFor(NopCodeSymbol.class);
         for (int from = 0; from < ids.size(); from += SYMBOL_LOOKUP_CHUNK) {
             List<String> chunk = ids.subList(from, Math.min(from + SYMBOL_LOOKUP_CHUNK, ids.size()));

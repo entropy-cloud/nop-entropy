@@ -67,7 +67,11 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IJdbcTemplate jdbcTemplate;
 
-    private IShardSelector shardSelector = EmptyShardSelector.INSTANCE;
+    /**
+     * plan 2507 裁定⑤（2.5-C1-007）：升 volatile——rebuildRouting 热替换（setShardSelector）
+     * 对每查询读面（getShardSelector）跨线程安全发布；写少读多，开销可忽略。
+     */
+    private volatile IShardSelector shardSelector = EmptyShardSelector.INSTANCE;
 
     private ICacheProvider globalCache;
 
@@ -83,9 +87,18 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IOrmEntityBizProvider entityBizProvider;
 
-    private List<IOrmInterceptor> interceptors = Collections.emptyList();
+    /**
+     * 2.3-C1-005（plan 2552 裁定 C）：COW 列表 volatile——读侧无锁一致视图（写侧整体替换发布）。
+     */
+    private volatile List<IOrmInterceptor> interceptors = Collections.emptyList();
 
-    private MultiOrmDaoListener daoListeners = null;
+    /**
+     * 2.3-C1-005（plan 2552 裁定 C）：常驻容器（读侧恒非 null 单引用）——原形态 null+
+     * check-then-act 两步创建存在丢失更新窗口。消费方（JdbcQueryExecutor/CollectionPersisterImpl 等）
+     * 的 null 检查容忍非 null 空容器（空 listener 集合回调为 no-op，热路径行为零变化——R1-Low-5
+     * 消费方核验义务履行记录：JdbcQueryExecutor:155、CollectionPersisterImpl:87/:119 等逐点核验）。
+     */
+    private final MultiOrmDaoListener daoListeners = new MultiOrmDaoListener();
 
     private Map<String, IQueryExecutor> queryExecutors = Collections.emptyMap();
 
@@ -271,9 +284,7 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public void addDaoListener(IOrmDaoListener daoListener) {
-        if (daoListeners == null)
-            daoListeners = new MultiOrmDaoListener();
-
+        // 常驻容器：直接注册（原 null 检查-then-创建的 check-then-act 面已消除）
         daoListeners.addDaoListener(daoListener);
     }
 
@@ -285,8 +296,6 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public void removeDaoListener(IOrmDaoListener daoListener) {
-        if (daoListeners == null)
-            return;
         daoListeners.removeDaoListener(daoListener);
     }
 
@@ -459,6 +468,10 @@ public class SessionFactoryImpl implements IPersistEnv {
     @Override
     public ILoadedOrmModel reloadModel() {
         ormModelHolder.clearCache();
+        // 2.3-C1-008（plan 2552 裁定 F，C10-003 残面补钉）：模型热刷新必须同时清除查询计划缓存
+        // ——旧模型编译的查询计划在新模型语义下可能失配。(a)(b) 良性双编译面无动作；
+        // 细粒度计划级世代校验=watch-only（plan 2552 Deferred）。
+        clearQueryPlanCache();
         return ormModelHolder.getOrmModel(this);
     }
 }

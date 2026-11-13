@@ -61,7 +61,29 @@ public class TscProtocolTest {
 
     @Test
     public void readyFrameWithTypescriptIsAccepted() {
-        TscProtocol.validateReady(Map.of("type", "ready", "node", "v25.3.0", "typescript", "5.9.3"));
+        TscProtocol.validateReady(Map.of("type", "ready", "node", "v25.3.0", "typescript", "5.9.3",
+                "protocolVersion", TscProtocol.PROTOCOL_VERSION));
+    }
+
+    @Test
+    public void readyFrameWithoutProtocolVersionIsRejected() {
+        Map<String, Object> frame = new LinkedHashMap<>();
+        frame.put("type", "ready");
+        frame.put("node", "v25.3.0");
+        frame.put("typescript", "5.9.3");
+        TscBridgeUnavailableException ex = assertThrows(TscBridgeUnavailableException.class,
+                () -> TscProtocol.validateReady(frame));
+        assertTrue(ex.getMessage().contains("protocol version"), ex.getMessage());
+    }
+
+    @Test
+    public void readyFrameWithMismatchedProtocolVersionIsRejected() {
+        Map<String, Object> frame = Map.of("type", "ready", "node", "v25.3.0",
+                "typescript", "5.9.3", "protocolVersion", "999");
+        TscBridgeUnavailableException ex = assertThrows(TscBridgeUnavailableException.class,
+                () -> TscProtocol.validateReady(frame));
+        assertTrue(ex.getMessage().contains("999"), ex.getMessage());
+        assertTrue(ex.getMessage().contains(TscProtocol.PROTOCOL_VERSION), ex.getMessage());
     }
 
     @Test

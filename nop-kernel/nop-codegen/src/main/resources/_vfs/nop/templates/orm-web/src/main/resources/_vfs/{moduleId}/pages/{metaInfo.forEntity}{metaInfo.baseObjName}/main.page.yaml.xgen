@@ -1,0 +1,17 @@
+<c:unit xpl:outputMode="text">
+<c:script>
+    let objMeta = metaInfo.objMeta;
+    let renderer = objMeta.getExtProp('web:renderer') || objMeta['ext:web-renderer'] || '';
+</c:script>
+<c:choose>
+    <when test="${renderer == 'flux'}"><c:out escape="none"><![CDATA[
+x:gen-extends: |
+    <flux-web:GenPage view="${metaInfo.objName}.view.xml" page="main" xpl:lib="/nop/web/xlib/flux-web.xlib" />
+]]></c:out></when>
+    <otherwise><c:out escape="none"><![CDATA[
+x:gen-extends: |
+    <web:GenPage view="${metaInfo.objName}.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+]]></c:out></otherwise>
+</c:choose>
+
+</c:unit>

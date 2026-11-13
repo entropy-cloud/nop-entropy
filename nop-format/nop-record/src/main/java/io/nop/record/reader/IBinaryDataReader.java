@@ -603,8 +603,15 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
 
     IBinaryDataReader subInput(long maxLength) throws IOException;
 
+    /**
+     * 返回与本实例相互独立的 reader：二者读位置互不影响，生命周期独立（关闭其一不影响另一个）。
+     * 初始位置等于调用时本实例的位置。与 {@link #subInput(long)} 不同，后者返回共享底层读位置的视图
+     */
     IBinaryDataReader detach() throws IOException;
 
+    /**
+     * 与 {@link #detach()} 相同的独立性契约
+     */
     IBinaryDataReader duplicate() throws IOException;
 
     boolean isDetached();

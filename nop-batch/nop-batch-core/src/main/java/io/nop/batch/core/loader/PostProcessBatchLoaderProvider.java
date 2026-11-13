@@ -18,4 +18,10 @@ public class PostProcessBatchLoaderProvider<S> implements IBatchLoaderProvider<S
         IBatchLoader<S> loader = loaderProvider.setup(context);
         return new PostProcessBatchLoader<>(loader, afterLoad);
     }
+
+    /** 1.7-C6-008（plan 2545；closure audit R2 BL-1）：透传被包装 provider 的 chunk 压实能力。 */
+    @Override
+    public boolean hasChunkCompaction() {
+        return loaderProvider.hasChunkCompaction();
+    }
 }

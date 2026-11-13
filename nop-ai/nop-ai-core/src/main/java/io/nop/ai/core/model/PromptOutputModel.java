@@ -13,11 +13,14 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import java.util.List;
 
 public class PromptOutputModel extends _PromptOutputModel implements INeedInit, IActionOutputModel {
-    private IXDefinition xdefObj;
-    private String xdefForAi;
+    // 3.1-MA-13（plan 2555 裁定 C / C1-002 惰性 clone 发布面）：init() 在装载临界区内
+    // 一次性写入，volatile 保证跨线程发布；markdownTplWithoutDetail 为惰性 clone 派生面
+    // （休眠：全库 main 无调用方），volatile 化 + 构造后只读契约（除惰性 clone 一次性写入）
+    private volatile IXDefinition xdefObj;
+    private volatile String xdefForAi;
 
-    private MarkdownDocument markdownTpl;
-    private MarkdownDocument markdownTplWithoutDetail;
+    private volatile MarkdownDocument markdownTpl;
+    private volatile MarkdownDocument markdownTplWithoutDetail;
 
     public PromptOutputModel() {
 
@@ -51,6 +54,8 @@ public class PromptOutputModel extends _PromptOutputModel implements INeedInit, 
     }
 
     public MarkdownDocument getMarkdownTplWithoutDetail() {
+        // 3.1-MA-13（plan 2555 裁定 C）：惰性 clone 单次发布——重复 clone 仅冗余无害，
+        // 发布后的文档对调用方只读（removeSectionWithTag 仅发生在发布前的私有副本上）
         if (markdownTplWithoutDetail == null) {
             if (markdownTpl != null) {
                 MarkdownDocument doc = markdownTpl.cloneInstance();

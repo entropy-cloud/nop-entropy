@@ -1,5 +1,6 @@
 package io.nop.batch.core;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.consumer.RetryConsumeHelper;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
@@ -18,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -179,7 +182,7 @@ public class TestBatchBugVerification {
                     assertTrue(await(siblingLoaded));
                     assertTrue(await(s1Recorded));
                     failed.countDown();
-                    throw new RuntimeException("boom on " + item);
+                    throw new TestBoomException("boom on " + item);
                 }
                 // S1 是失败前的在途 chunk，直接记录；S2/S3 一旦到达 consumer 即为失败后继续处理的证据
                 processedAll.add(item);
@@ -305,6 +308,303 @@ public class TestBatchBugVerification {
                         "resume must re-deliver failed rows 1-2, actual first batch: " + resumed));
     }
 
+    // ------------------------------------------------------------------
+    // 缺陷 12a（1.7-C6-002，plan 2516 裁定⑥；C10-001）: REE 首次提交即拒绝——裸逃逸 executeAsync
+    // 位置: BatchTask.executeChunkLoop → executor.execute
+    // 缺陷态（红）: REE 在 lambda 执行前抛出，无 catch → 直接逃逸 executeAsync →
+    //   setup 打开的 reader/output 泄漏、future 丢失、任务行永久 RUNNING。
+    // 修复后（绿）: 提交点防御使 future 结算 + afterComplete 关闭链必达。
+    // ------------------------------------------------------------------
+    @Test
+    public void defect12a_reeOnFirstSubmit_settlesFutureAndRunsCompleteChain() {
+        Executor rejectingExecutor = task -> {
+            throw new RejectedExecutionException("pool-saturated");
+        };
+
+        List<String> chain = new CopyOnWriteArrayList<>();
+        BatchTaskContextImpl ctx = new BatchTaskContextImpl();
+        ctx.setTaskName("defect12a");
+        ctx.onAfterComplete(err -> chain.add("afterComplete:" + (err == null ? "ok" : err.getClass().getSimpleName())));
+
+        CompletableFuture<Void> future = BatchTaskBuilder.<String, String>create()
+                .loader(taskCtx -> (batchSize, chunkCtx) -> Collections.singletonList("x"))
+                .consumer(taskCtx -> (items, c) -> {
+                })
+                .concurrency(1)
+                .executor(rejectingExecutor)
+                .buildTask()
+                .executeAsync(ctx).toCompletableFuture();
+
+        // future 必结算（缺陷态：executeAsync 直接抛 REE，future 永不返回/永不结算）
+        ExecutionException ex = assertThrows(ExecutionException.class, () -> future.get(20, TimeUnit.SECONDS));
+        assertTrue(ex.getCause() instanceof RejectedExecutionException,
+                "cause should be the REE, got: " + ex.getCause());
+
+        // onTaskComplete 关闭链必达：afterComplete 回调被触发（资源关闭钩子）
+        assertEquals(Collections.singletonList("afterComplete:RejectedExecutionException"), chain,
+                "afterComplete close chain must run on REE submission failure");
+    }
+
+    // ------------------------------------------------------------------
+    // 缺陷 12b（1.7-C6-002，plan 2516 裁定⑥；C7-002A 吸收面；C10-001）: 提交循环中途 REE——
+    // 已提交 futures[0..i-1] 幽灵链无人结算
+    // 位置: BatchTask.executeAsync futures 提交循环
+    // 缺陷态（红）: REE 裸逃逸 executeAsync，幽灵 future 永不结算。
+    // 修复后（绿）: 循环包络逐个结算已提交链 → 直达 onTaskComplete 终态化+关闭链。
+    // ------------------------------------------------------------------
+    @Test
+    public void defect12b_reeMidLoop_ghostFuturesSettledExplicitly() throws Exception {
+        AtomicInteger submits = new AtomicInteger();
+        Executor rejectOnSecondSubmit = task -> {
+            if (submits.incrementAndGet() >= 2)
+                throw new RejectedExecutionException("pool-saturated-mid-loop");
+            task.run();
+        };
+
+        List<String> chain = new CopyOnWriteArrayList<>();
+        BatchTaskContextImpl ctx = new BatchTaskContextImpl();
+        ctx.setTaskName("defect12b");
+        ctx.onAfterComplete(err -> chain.add("afterComplete"));
+
+        CompletableFuture<Void> future = BatchTaskBuilder.<String, String>create()
+                .loader(taskCtx -> (batchSize, chunkCtx) -> Collections.emptyList())
+                .consumer(taskCtx -> (items, c) -> {
+                })
+                .concurrency(2)
+                .executor(rejectOnSecondSubmit)
+                .buildTask()
+                .executeAsync(ctx).toCompletableFuture();
+
+        ExecutionException ex = assertThrows(ExecutionException.class, () -> future.get(20, TimeUnit.SECONDS));
+        assertTrue(ex.getCause() instanceof RejectedExecutionException,
+                "cause should be the mid-loop REE, got: " + ex.getCause());
+        assertEquals(Collections.singletonList("afterComplete"), chain,
+                "onTaskComplete close chain must run after ghost futures are settled");
+    }
+
+    // ------------------------------------------------------------------
+    // 缺陷 13a（1.7-C6-009 S5，plan 2516 裁定⑦）: metrics.endTask 抛出使 FutureHelper.complete 被跳过
+    // 位置: BatchTask.onTaskComplete finally 段
+    // 缺陷态（红）: future 成为孤儿，调用方 get() 永久挂死（测试超时即红）。
+    // 修复后（绿）: endTask 独立 try，complete 必达。
+    // ------------------------------------------------------------------
+    @Test
+    public void defect13a_metricsEndTaskFailureDoesNotOrphanFuture() throws Exception {
+        IBatchTaskMetrics failingMetrics = new FailingEndTaskMetrics();
+
+        BatchTaskContextImpl ctx = new BatchTaskContextImpl();
+        ctx.setTaskName("defect13a");
+        ctx.setMetrics(failingMetrics);
+
+        CompletableFuture<Void> future = BatchTaskBuilder.<String, String>create()
+                .loader(taskCtx -> {
+                    boolean[] first = {true};
+                    return (batchSize, chunkCtx) -> {
+                        // 只投递一条，随后 EOF——loader 每次返回非空会使 chunk 循环无法自然终止
+                        if (first[0]) {
+                            first[0] = false;
+                            return Collections.singletonList("x");
+                        }
+                        return Collections.emptyList();
+                    };
+                })
+                .consumer(taskCtx -> (items, c) -> {
+                })
+                .concurrency(1)
+                .executor(GlobalExecutors.cachedThreadPool())
+                .buildTask()
+                .executeAsync(ctx).toCompletableFuture();
+
+        // 成功任务必须正常结算（缺陷态：endTask 抛出 → complete 被跳过 → get 超时失败即红）
+        assertEquals(null, future.get(20, TimeUnit.SECONDS), "successful task must complete despite metrics failure");
+    }
+
+    // ------------------------------------------------------------------
+    // 缺陷 13b（1.7-C6-009 S4/S6，plan 2516 裁定⑦）: 终态写失败不吞不替换原始 err
+    // 位置: BatchTask.onTaskComplete err!=null 分支
+    // 契约钉: saveTaskState(true, err) 抛出时——原始 err 必须保持为对外结算根因（S6 语义），
+    // completeExceptionally(err) 必达，afterComplete 收到原始 err（终态写失败事实由 store 侧 ERROR 留痕）。
+    // ------------------------------------------------------------------
+    @Test
+    public void defect13b_terminalSaveFailureDoesNotReplaceOriginalError() throws Exception {
+        IBatchStateStore store = new IBatchStateStore() {
+            @Override
+            public void loadTaskState(IBatchTaskContext context) {
+            }
+
+            @Override
+            public void saveTaskState(boolean complete, Throwable ex, IBatchTaskContext context) {
+                if (complete)
+                    throw new IllegalStateException("terminal-save-db-flap");
+            }
+        };
+
+        List<Throwable> afterCompleteErrors = new CopyOnWriteArrayList<>();
+        BatchTaskContextImpl ctx = new BatchTaskContextImpl();
+        ctx.setTaskName("defect13b");
+        ctx.onAfterComplete(afterCompleteErrors::add);
+
+        CompletableFuture<Void> future = BatchTaskBuilder.<String, String>create()
+                .loader(taskCtx -> (batchSize, chunkCtx) -> Collections.singletonList("x"))
+                .consumer(taskCtx -> (items, c) -> {
+                    throw new TestBoomException("boom-original");
+                })
+                .concurrency(1)
+                .executor(GlobalExecutors.cachedThreadPool())
+                .stateStore(store)
+                .buildTask()
+                .executeAsync(ctx).toCompletableFuture();
+
+        ExecutionException ex = assertThrows(ExecutionException.class, () -> future.get(20, TimeUnit.SECONDS));
+        assertEquals("boom-original", ex.getCause().getMessage(),
+                "original error must not be replaced by terminal save failure");
+        assertEquals(1, afterCompleteErrors.size());
+        assertEquals("boom-original", afterCompleteErrors.get(0).getMessage());
+    }
+
+    // ------------------------------------------------------------------
+    // 红④行为面（1.7-C5-001，plan 2516 裁定④；C10-011）: maxCountExpr 截断生效
+    // ResourceRecordLoaderProvider.setup 在 beforeRead 后应用 input.limit(maxCount)，
+    // 超出 maxCount 的条目不进入处理。缺陷态为接线丢失（maxCountExpr 接线断开、配置被忽略），
+    // DSL 侧接线断言见 nop-batch-dsl TestFileBatchSupportExcelMaxCount。
+    // ------------------------------------------------------------------
+    @Test
+    public void c10011_maxCountExprLimitsReadItems() {
+        ResourceRecordLoaderProvider<String> provider = newLoaderProvider(10);
+
+        BatchTaskContextImpl ctx = new BatchTaskContextImpl();
+        ctx.setTaskKey("c10011");
+        provider.setMaxCountExpr(scope -> 2L);
+
+        IBatchLoaderProvider.IBatchLoader<String> loader = provider.setup(ctx);
+        List<String> batch = loader.load(100, ctx.newChunkContext());
+
+        assertEquals(Arrays.asList("1", "2"), batch,
+                "maxCountExpr must truncate read items to the configured upper bound");
+    }
+
+    // ------------------------------------------------------------------
+    // C10-004 放大面机理证明（1.7-C8-002，plan 2516 裁定③）：batchSize=0 被钳位到 1 后每行一 chunk——
+    // 3 行数据产生 3 次 consumer 调用（每 chunk 一条 INFO 日志 + 一次 saveTaskState 状态写）。
+    // 正常 batchSize（>=行数）只产生 1 次。ExportDbTool 守卫（exp 侧）消除 Export 链唯一的 0 值
+    // 投递路径（与 ImportDbTool :302 守卫同型）；本用例为放大机理 + 钳位语义钉，两侧等绿。
+    // ------------------------------------------------------------------
+    @Test
+    public void c10004_zeroBatchSizeClampsToPerRowChunks_amplificationMechanics() throws Exception {
+        assertEquals(3, runWithBatchSize(0), "batchSize=0 must clamp to 1 → per-row chunks");
+        assertEquals(1, runWithBatchSize(100), "batchSize>=row count must produce a single chunk");
+    }
+
+    private int runWithBatchSize(int batchSize) throws Exception {
+        AtomicInteger consumerCalls = new AtomicInteger();
+        CompletableFuture<Void> future = BatchTaskBuilder.<String, String>create()
+                .loader(taskCtx -> {
+                    List<String> data = new ArrayList<>(Arrays.asList("a", "b", "c"));
+                    // 尊重请求的 batch 大小——每 chunk 只投递 batch 条，模拟真实分批读取
+                    return (batch, chunkCtx) -> {
+                        if (data.isEmpty())
+                            return Collections.emptyList();
+                        int n = Math.min(batch, data.size());
+                        List<String> page = new ArrayList<>(data.subList(0, n));
+                        data.subList(0, n).clear();
+                        return page;
+                    };
+                })
+                .consumer(taskCtx -> (items, c) -> consumerCalls.incrementAndGet())
+                .batchSize(batchSize)
+                .concurrency(1)
+                .executor(GlobalExecutors.cachedThreadPool())
+                .buildTask()
+                .executeAsync(new BatchTaskContextImpl()).toCompletableFuture();
+        future.get(20, TimeUnit.SECONDS);
+        return consumerCalls.get();
+    }
+
+    /**
+     * endTask 抛出（metrics 后端故障注入）的 IBatchTaskMetrics 桩。lint gate：测试桩异常用
+     * IllegalStateException + 英文消息（非裸 RuntimeException）。
+     */
+    static class FailingEndTaskMetrics implements IBatchTaskMetrics {
+        @Override
+        public Object beginTask() {
+            return new Object();
+        }
+
+        @Override
+        public void endTask(Object meter, boolean success) {
+            throw new IllegalStateException("metrics-backend-down");
+        }
+
+        @Override
+        public Object beginChunk() {
+            return new Object();
+        }
+
+        @Override
+        public void endChunk(Object meter, boolean success) {
+        }
+
+        @Override
+        public Object beginLoad() {
+            return new Object();
+        }
+
+        @Override
+        public void endLoad(Object meter, int count, boolean success) {
+        }
+
+        @Override
+        public Object beginConsume(int count) {
+            return new Object();
+        }
+
+        @Override
+        public void endConsume(Object meter, int count, boolean success) {
+        }
+
+        @Override
+        public Object beginProcess() {
+            return new Object();
+        }
+
+        @Override
+        public void endProcess(Object meter, boolean success) {
+        }
+
+        @Override
+        public void retry(int count) {
+        }
+
+        @Override
+        public void skipError(int count) {
+        }
+
+        @Override
+        public long getLoadItemCount() {
+            return 0;
+        }
+
+        @Override
+        public long getProcessItemCount() {
+            return 0;
+        }
+
+        @Override
+        public long getSkipItemCount() {
+            return 0;
+        }
+
+        @Override
+        public long getRetryItemCount() {
+            return 0;
+        }
+
+        @Override
+        public long getConsumeItemCount() {
+            return 0;
+        }
+    }
+
     private static ResourceRecordLoaderProvider<String> newLoaderProvider(int maxCount) {
         ResourceRecordLoaderProvider<String> p = new ResourceRecordLoaderProvider<>();
         p.setResourcePath("/test.txt");
@@ -406,7 +706,7 @@ public class TestBatchBugVerification {
         AtomicInteger attempts = new AtomicInteger();
         IBatchConsumerProvider.IBatchConsumer<String> fail200ThenSucceed = (items, ctx) -> {
             if (attempts.incrementAndGet() <= 200)
-                throw new RuntimeException("fail#" + attempts.get());
+                throw new TestBoomException("fail#" + attempts.get());
         };
 
         RuntimeException thrown = assertThrows(RuntimeException.class, () ->
@@ -414,5 +714,15 @@ public class TestBatchBugVerification {
                         Collections.singletonList("x"), chunkCtx));
         assertEquals("fail#1", thrown.getMessage());
         assertEquals(1, attempts.get(), "null retryPolicy must give up after first failure");
+    }
+
+
+    /** test-local failure payload (lint: no raw RuntimeException). */
+    static class TestBoomException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        TestBoomException(String message) {
+            super(message);
+        }
     }
 }

@@ -44,6 +44,11 @@ public class IocCoreInitializer implements ICoreInitializer {
         if (CFG_CORE_MAX_INITIALIZE_LEVEL.get() > INITIALIZER_PRIORITY_ANALYZE) {
             try {
                 appContainer.start();
+                // concurrent-start 框架级 join（plan 2507 裁定①）：与 start() 同一 try 界内有界等待
+                // 启动图终态。失败终态/join 超时经 awaitStartFinished 类型化抛出 → 本 catch 恢复
+                // parentContainer 后重抛 → CoreInitialization.initializeTo → NopApplication.run()
+                // 自然传播（主任务不启动、进程非零退出；NopApplication 零改动）。
+                appContainer.awaitStartFinished();
             } catch (Exception e) {
                 BeanContainer.registerInstance(parentContainer);
                 throw NopException.adapt(e);
@@ -56,8 +61,10 @@ public class IocCoreInitializer implements ICoreInitializer {
         if (this.appContainer != null) {
             IBeanContainerImplementor container = this.appContainer;
             this.appContainer = null;
-            BeanContainer.registerInstance(parentContainer);
+            // C6-008（plan 2549 裁定 A）：先 stop 后切注册表指针——原顺序先 registerInstance(parent)
+            // 再 stop，销毁期内解析会落 parent/新建孤儿 singleton
             container.stop();
+            BeanContainer.registerInstance(parentContainer);
         }
     }
 }

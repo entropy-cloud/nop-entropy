@@ -47,7 +47,8 @@ public class DefaultConfigProvider extends AbstractConfigProvider {
 
     private final IConfigValueEnhancer configValueEnhancer;
 
-    private IConfigSource configSource;
+    // C2-008（plan 2549 裁定 B）：变更源引用 volatile 化——changeConfigSource 写点与 applyChange 读点跨线程可见
+    private volatile IConfigSource configSource;
     private volatile Map<String, DefaultConfigReference<?>> configRefs; //NOSONAR
     private volatile Map<String, ValueWithLocation> configValues; //NOSONAR
     private ConfigModel configModel;
@@ -250,9 +251,12 @@ public class DefaultConfigProvider extends AbstractConfigProvider {
     }
 
     /**
-     * 检查ConfigSource是否发生变化，并触发注册的监听器
+     * 检查ConfigSource是否发生变化，并触发注册的监听器。
+     * <p>C1-008/C2-008（plan 2549 裁定 B）：本方法为复合操作（双 volatile 快照交换 + diff + refs 重建 +
+     * 触发监听），且为 public——单线程 config-executor 契约不覆盖子类/直接调用方，synchronized 收口
+     * 消除「双 volatile 代际窗 + 跨键读撕裂 + 重复通知」。与 executor 单线程契约互补不冲突。
      */
-    public void applyChange() {
+    public synchronized void applyChange() {
         Map<String, ValueWithLocation> lastVars = this.configValues;
 
         // 当存在灰度配置时，getConfigVars返回的IConfigReference.getName()可能与entry.getKey()不同

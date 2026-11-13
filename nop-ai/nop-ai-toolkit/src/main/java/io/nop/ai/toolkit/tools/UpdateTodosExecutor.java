@@ -92,34 +92,27 @@ public class UpdateTodosExecutor implements IToolExecutor {
 
     private AiToolCallResult handleWrite(AiToolCall call, String listKey) {
         List<TodoItem> newTodos = parseTodos(call);
-        List<TodoItem> oldTodos = todoLists.getOrDefault(listKey, new ArrayList<>());
 
+        // 3.2-C1-004（plan 2557 裁定 B）：clear/write 收敛为 compute 单次原子决策——
+        // 旧形态 getOrDefault→put/remove 是三个独立 map 操作，并发 clear+write 存在
+        // 丢单更新面；compute 在同一临界区内完成「读旧→决策→写新」。
         StringBuilder changesSummary = new StringBuilder();
-
-        if (newTodos.isEmpty()) {
-            todoLists.remove(listKey);
-            changesSummary.append("Todo list cleared");
-        } else {
-            todoLists.put(listKey, newTodos);
-
-            int completed = 0, inProgress = 0, pending = 0, cancelled = 0;
-            for (TodoItem item : newTodos) {
-                switch (item.status) {
-                    case "completed": completed++; break;
-                    case "in_progress": inProgress++; break;
-                    case "pending": pending++; break;
-                    case "cancelled": cancelled++; break;
-                }
+        todoLists.compute(listKey, (k, oldTodos) -> {
+            if (newTodos.isEmpty()) {
+                changesSummary.append("Todo list cleared");
+                return null;
             }
 
-            if (newTodos.size() != oldTodos.size()) {
+            List<TodoItem> prev = oldTodos != null ? oldTodos : new ArrayList<>();
+
+            if (newTodos.size() != prev.size()) {
                 changesSummary.append("Created ").append(newTodos.size()).append(" todo items");
             } else {
                 changesSummary.append("Updated: ");
                 boolean first = true;
                 for (int i = 0; i < newTodos.size(); i++) {
                     TodoItem newItem = newTodos.get(i);
-                    TodoItem oldItem = i < oldTodos.size() ? oldTodos.get(i) : null;
+                    TodoItem oldItem = i < prev.size() ? prev.get(i) : null;
                     if (oldItem == null || !oldItem.status.equals(newItem.status)) {
                         if (!first) changesSummary.append(", ");
                         first = false;
@@ -130,7 +123,8 @@ public class UpdateTodosExecutor implements IToolExecutor {
                     changesSummary.append("No changes");
                 }
             }
-        }
+            return newTodos;
+        });
 
         AiToolCallResult result = new AiToolCallResult();
         result.setId(call.getId());

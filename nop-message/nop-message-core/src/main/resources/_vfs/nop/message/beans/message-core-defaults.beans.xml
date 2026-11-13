@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
-    <bean id="nopLocalMessageService" class="io.nop.message.core.local.LocalMessageService"/>
+    <!-- 4.1-MA-04（plan 2558 裁定 C）: destroy-method releases the lazily-created
+         redelivery scheduler / delivery worker (hand-maintained resource, not generated). -->
+    <bean id="nopLocalMessageService" class="io.nop.message.core.local.LocalMessageService"
+          destroy-method="destroy"/>
 
     <bean id="nopReflectionMessageSubscriptionRegistrar"
           class="io.nop.message.core.reflection.ReflectionMessageSubscriptionRegistrar" ioc:delay-method="register">

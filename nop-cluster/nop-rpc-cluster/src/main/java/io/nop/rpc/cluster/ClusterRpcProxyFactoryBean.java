@@ -9,6 +9,8 @@ package io.nop.rpc.cluster;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.cluster.chooser.IServerChooser;
+import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.cluster.lb.ILoadBalanceAdapter;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.api.core.rpc.IRpcService;
@@ -21,6 +23,7 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     private IServerChooser<ApiRequest<?>> serverChooser;
     private IRpcClientInstanceProvider clientProvider;
     private IScheduledExecutor timer;
+    private ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter;
 
     @Inject
     public void setServerChooser(IServerChooser<ApiRequest<?>> serverChooser) {
@@ -32,6 +35,15 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
         this.clientProvider = clientProvider;
     }
 
+    /**
+     * 4.2-C8-001（plan 2559 裁定 G(c) 装配）：活跃计数 adapter 注入（新 bean 引用
+     * nopServiceLoadBalanceAdapter），透传给 ClusterRpcClient 的 begin/end 挂接点。
+     */
+    @Inject
+    public void setLoadBalanceAdapter(ILoadBalanceAdapter<ServiceInstance> loadBalanceAdapter) {
+        this.loadBalanceAdapter = loadBalanceAdapter;
+    }
+
     public void setTimer(IScheduledExecutor timer) {
         this.timer = timer;
     }
@@ -40,10 +52,15 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     @PostConstruct
     public void init() {
         if (timer == null)
-            timer = GlobalExecutors.globalTimer();
+            // 4.2-C4-003（plan 2498 Phase 6，设计 pool-facility-hardening §3.1.2 矩阵 D4 行）：
+            // 裸 globalTimer 会使轮询任务体（全量请求体序列化等同步前缀）在 timer 线程执行——
+            // 经 executeOn(globalWorker) 卸载（与 AbstractPollingLeaderElector/AutoRegistration C 类先例同口径），
+            // timer 只承载触发，Bind 载体继承 R1-01 绝缘覆盖
+            timer = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
 
         ClusterRpcClient rpcService = new ClusterRpcClient(getServiceName(), serverChooser, clientProvider, timer);
         rpcService.setRetryCount(getRetryCount());
+        rpcService.setLoadBalanceAdapter(loadBalanceAdapter);
         setRpcService(rpcService);
         super.init();
     }

@@ -39,4 +39,16 @@ public interface RecordConstants {
     String VAR_FILE_NAME_SUFFIX = "fileNameSuffix";
 
     int DEFAULT_MAX_COLLECTION_SIZE = 1000000;
+
+    /**
+     * 数据驱动（lengthExpr）字段/对象长度上界：超出即在分配前拒绝。与 DynLV 变长字段 64MB 上界同族
+     */
+    int DEFAULT_MAX_FIELD_LENGTH = 64 * 1024 * 1024;
+
+    /**
+     * rawVarName 诊断变量最大字符数：只保留区域前缀，超出部分以截断标记代替
+     */
+    int MAX_RAW_DATA_DIAG_CHARS = 4096;
+
+    String RAW_DATA_TRUNCATED_MARK = "...(truncated)";
 }

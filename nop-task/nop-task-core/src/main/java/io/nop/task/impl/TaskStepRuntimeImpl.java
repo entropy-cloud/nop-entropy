@@ -12,19 +12,21 @@ import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     static final Logger LOG = LoggerFactory.getLogger(TaskStepRuntimeImpl.class);
 
     /**
      * plan 364 [维度05-06] 访问约束不变式（plan 349 Phase 4 的延续）：
-     * 除 {@code cancelToken}/{@code stepState}（volatile）外，其余可变字段
-     * （outputNames/exception/persistVars/stepCleanups/enabledFlags/recoverMode）的写
+     * 除 {@code cancelToken}/{@code stepState}（volatile）与 {@code stepCleanups}
+     * （并发队列，plan 2541 W-11 MA-20 裁定 C (b)）外，其余可变字段
+     * （outputNames/exception/persistVars/enabledFlags/recoverMode）的写
      * 必须发生在 step 创建线程或经 future 链的同步点（thenCompose/whenComplete 的
      * happens-before）传递；新增不经 future 链的跨线程读写时必须显式加同步。
      */
@@ -50,8 +52,51 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     private boolean recoverMode;
     private Set<String> persistVars;
 
-    private List<Runnable> stepCleanups;
+    // W-11（CRA 8.48 R4-08，MA-20 裁定 C 三选一 (b)）：无锁并发容器 + 单消费者 drain——
+    // 与 TaskRuntimeImpl.cleanups（Cancellable 正例）防护水平对齐，公开扩展点生产者出现即
+    // 触达安全（synchronized 写 × 非同步 drain 的不对称锁纪律已消除）
+    private final Queue<Runnable> stepCleanups = new ConcurrentLinkedQueue<>();
     private Throwable exception;
+
+    // W-04（CRA 8.48 R4-08，MA-11 裁定 A）：throttle 重入检测执行链持有键集（impl 内部载体，
+    // 不入 ITaskStepRuntime 公共契约）。held 集=同任务祖先链/自身判定（raw key）；heldGlobal 集=
+    // CallTaskStep 跨任务 inherited 快照取材（仅 global 键跨任务共享 permit 池）。惰性创建。
+    private Set<String> throttleHeldKeys;
+    private Set<String> throttleHeldGlobalKeys;
+    // 同任务内父 stepRt 引用（newStepRuntime 建立子 runtime 时赋值；main stepRt 恒 null——链终止）
+    private TaskStepRuntimeImpl parentStepRt;
+
+    // W-04 键集访问面：public 于 impl 类（ITaskStepRuntime 公共契约零变化——载体为 impl
+    // 内部字段，仅 TaskStepHelper 经 instanceof 调用）
+    public Set<String> peekThrottleHeldKeys() {
+        return throttleHeldKeys;
+    }
+
+    public Set<String> peekThrottleHeldGlobalKeys() {
+        return throttleHeldGlobalKeys;
+    }
+
+    public void addThrottleHeldKey(String key, boolean global) {
+        if (throttleHeldKeys == null)
+            throttleHeldKeys = ConcurrentHashMap.newKeySet();
+        throttleHeldKeys.add(key);
+        if (global) {
+            if (throttleHeldGlobalKeys == null)
+                throttleHeldGlobalKeys = ConcurrentHashMap.newKeySet();
+            throttleHeldGlobalKeys.add(key);
+        }
+    }
+
+    public void removeThrottleHeldKey(String key, boolean global) {
+        if (throttleHeldKeys != null)
+            throttleHeldKeys.remove(key);
+        if (global && throttleHeldGlobalKeys != null)
+            throttleHeldGlobalKeys.remove(key);
+    }
+
+    public TaskStepRuntimeImpl getParentStepRt() {
+        return parentStepRt;
+    }
 
     public TaskStepRuntimeImpl(ITaskRuntime taskRt, ITaskStateStore stateStore, IEvalScope scope) {
         this.taskRt = taskRt;
@@ -162,6 +207,10 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         newStepRt.setState(newState);
         newStepRt.setPersistVars(persistVars);
         newStepRt.setCancelToken(cancelToken);
+        // W-04（CRA 8.48 R4-08，MA-11 裁定 A）：同任务内父链引用——throttle 重入检测沿
+        // parentStepRt 上溯遍历祖先 held 集；fork 分支各有独立子 stepRt（AbstractForkTaskStep
+        // executeFork 每分支独立 newStepRuntime），兄弟分支 held 集天然隔离
+        newStepRt.parentStepRt = this;
         return newStepRt;
     }
 
@@ -178,19 +227,19 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     }
 
     @Override
-    public synchronized void addStepCleanup(Runnable cleanup) {
+    public void addStepCleanup(Runnable cleanup) {
         if (cleanup == null)
             return;
-        if (stepCleanups == null)
-            stepCleanups = new ArrayList<>();
-        stepCleanups.add(cleanup);
+        // W-11（MA-20 裁定 C (b)）：offer 原子（synchronized 已移除——写×drain 对称无锁化）
+        stepCleanups.offer(cleanup);
     }
 
     @Override
     public void runStepCleanups() {
-        if (stepCleanups != null) {
-            stepCleanups.forEach(this::runCleanup);
-            stepCleanups.clear();
+        // W-11（MA-20 裁定 C (b)）：单消费者 drain（poll 循环至空）——与并发 offer 无锁安全
+        Runnable cleanup;
+        while ((cleanup = stepCleanups.poll()) != null) {
+            runCleanup(cleanup);
         }
     }
 

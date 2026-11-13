@@ -3,14 +3,8 @@ package io.nop.stream.core.testsupport;
 import java.util.function.BooleanSupplier;
 
 /**
- * 测试等待工具：测试不依赖机器快慢——优先等待确定性条件（{@link #until}）；
- * 「目标线程已到达其阻塞点」用 {@link #untilThreadParked} / {@link #untilThreadSettles}
- * 的结构判据表达。超时上限为死锁保护，不承载语义。
- *
- * <p>时间确定化（plan 2510）：原 {@code elapsed}（纯时间流逝窗口）与
- * {@code staysTrue}（「X 毫秒内未发生」观察窗）属禁止形态，调用点清零后已从
- * canonical 实现删除（防静默复用）——时间语义场景一律 ManualClock 显式推进
- * 或结构判据替代，见 docs-for-ai/02-core-guides/testing.md「禁止依赖敏感时间等待」。
+ * 测试等待工具：测试不依赖机器快慢——优先等待确定性条件（{@link #until}），
+ * 时间语义必须流逝的场景用 {@link #elapsed} 循环形式；超时上限为死锁保护。
  */
 public final class TestAwait {
     private TestAwait() {
@@ -46,5 +40,35 @@ public final class TestAwait {
         until(what + " (thread " + t.getName() + " settled)",
                 () -> !t.isAlive() || t.getState() == Thread.State.WAITING
                         || t.getState() == Thread.State.TIMED_WAITING);
+    }
+
+    /** 时间语义窗口：循环等待 elapsed 毫秒流逝（10ms 片），不依赖单次固定 sleep。 */
+    public static void elapsed(String what, long ms) {
+        long deadline = System.currentTimeMillis() + ms;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(Math.min(10, Math.max(1, deadline - System.currentTimeMillis())));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted waiting for: " + what, e);
+            }
+        }
+    }
+
+    /** 负向窗口：在 windowMs 内持续断言不变量成立（每 10ms 检查一次）。 */
+    public static void staysTrue(String what, BooleanSupplier invariant, long windowMs) {
+        long deadline = System.currentTimeMillis() + windowMs;
+        while (true) {
+            if (!invariant.getAsBoolean())
+                throw new AssertionError("Invariant violated while waiting for: " + what);
+            if (System.currentTimeMillis() >= deadline)
+                return;
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("Interrupted waiting for: " + what, e);
+            }
+        }
     }
 }

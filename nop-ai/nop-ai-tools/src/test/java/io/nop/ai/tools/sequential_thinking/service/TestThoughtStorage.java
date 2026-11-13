@@ -166,6 +166,10 @@ public class TestThoughtStorage {
 
         storage.clearHistory("s1");
         assertTrue(storage.getAllThoughts("s1").isEmpty(), "clearHistory must empty the session");
+        // plan 2557 C6-007 (ruling E, C10-021): clear deletes the session file
+        // outright — storage returns to the pre-session baseline, no residual
+        // empty-session JSON stays on disk.
+        assertFalse(new File(dir, "s1.json").exists(), "clearHistory must delete the session file");
     }
 
     @Test

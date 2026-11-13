@@ -63,6 +63,12 @@ public class LoggingInterceptor implements IGatewayInterceptor {
     @Override
     public Object onStreamError(Throwable exception, IGatewayContext svcCtx) {
         logger.logError(exception, svcCtx);
+        // 2.3-C8-003（plan 2551 裁定 G）：错误终态清理 accumulator 引用——不再持有聚合缓冲
+        // （失控上游的堆驻留随流终止释放，不延续到请求对象生命周期）。
+        if (svcCtx != null) {
+            // removeAttribute（而非 set null——CHM 属性表不接受 null value）
+            svcCtx.removeAttribute(OpenAiDeltaAccumulator.class.getName());
+        }
         return null;
     }
 }

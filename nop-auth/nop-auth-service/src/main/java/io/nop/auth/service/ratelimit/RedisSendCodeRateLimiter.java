@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.service.mfa.MfaContacts;
+import io.nop.auth.service.support.RedisTtlGuard;
 import io.nop.commons.util.StringHelper;
 import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlService;
@@ -53,6 +54,9 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_SMS_RATE_LIMITED;
  */
 public class RedisSendCodeRateLimiter implements ISendCodeRateLimiter {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RedisSendCodeRateLimiter.class);
+
+
     private static final String KEY_PREFIX = "auth:rl:";
 
     private final INosqlService nosql;
@@ -85,8 +89,9 @@ public class RedisSendCodeRateLimiter implements ISendCodeRateLimiter {
         // 目标层：先递增后检查（被拒尝试消耗日配额，跨后端语义一致）
         long count = nosql.counter(counterKey).increment(1);
         if (count == 1L) {
-            // 首次递增设 TTL（后续不刷新——日界键自然过期即跨天重置；PEXPIRE 先例 RedisMfaChallengeStore）
-            FutureHelper.syncGet(nosql.setTimeoutAsync(counterKey, trackerTtlMillis()));
+            // 首次递增设 TTL（后续不刷新——日界键自然过期即跨天重置；PEXPIRE 先例 RedisMfaChallengeStore）。
+            // 5.1-MA-02（plan 2569）：附着失败补偿删除（当日配额重置劣于毒键锁死配额，日键有界）
+            RedisTtlGuard.attachTtl(nosql, counterKey, trackerTtl(), LOG);
         }
         // 间隔门 = 单键原子 SETNX+PX：并发突发同目标恰好一个占位成功（含当日首次——
         // INCR 与 SETNX 的固定先后序消除双写竞态；跨键复合的残存漂移见类注释）
@@ -103,7 +108,7 @@ public class RedisSendCodeRateLimiter implements ISendCodeRateLimiter {
             String ipKey = KEY_PREFIX + scope + ':' + channel + ":ip:" + clientIp + ":d" + CoreMetrics.today().toEpochDay();
             long ipCount = nosql.counter(ipKey).increment(1);
             if (ipCount == 1L) {
-                FutureHelper.syncGet(nosql.setTimeoutAsync(ipKey, trackerTtlMillis()));
+                RedisTtlGuard.attachTtl(nosql, ipKey, trackerTtl(), LOG);
             }
             if (ipCount > ipDailyLimit) {
                 throw dailyLimited(smsErrors, masked);
@@ -113,6 +118,10 @@ public class RedisSendCodeRateLimiter implements ISendCodeRateLimiter {
 
     private String dayKey(String scope, String channel, String target) {
         return KEY_PREFIX + scope + ':' + channel + ':' + target + ":d" + CoreMetrics.today().toEpochDay();
+    }
+
+    private java.time.Duration trackerTtl() {
+        return java.time.Duration.ofMillis(trackerTtlMillis());
     }
 
     private long trackerTtlMillis() {

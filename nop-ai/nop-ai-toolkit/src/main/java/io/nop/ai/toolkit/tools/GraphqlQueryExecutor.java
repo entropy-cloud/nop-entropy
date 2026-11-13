@@ -28,6 +28,22 @@ public class GraphqlQueryExecutor implements IToolExecutor {
     private IHttpClient httpClient;
 
     /**
+     * 3.2-C8-007（plan 2557 裁定 G）：响应体字符上界（read-file 100K 帽族对齐，
+     * 与 http-request 同键 {@code nop.ai.tool.http-max-response-chars}），
+     * 超帽截断 + truncated 标记（错误/成功双路径同帽）。
+     */
+    public static final int DEFAULT_MAX_RESPONSE_CHARS = 100_000;
+
+    private int maxResponseChars = DEFAULT_MAX_RESPONSE_CHARS;
+
+    @io.nop.api.core.annotations.ioc.InjectValue("@cfg:nop.ai.tool.http-max-response-chars|100000")
+    public void setMaxResponseChars(int maxResponseChars) {
+        if (maxResponseChars > 0) {
+            this.maxResponseChars = maxResponseChars;
+        }
+    }
+
+    /**
      * Resolution-time SSRF enforcement (DR-4a). Defaults to
      * {@link SsrfGuardDnsResolver} so every endpoint hostname is resolved
      * through the guard before the transport is reached.
@@ -151,12 +167,31 @@ public class GraphqlQueryExecutor implements IToolExecutor {
 
         return httpClient.fetchAsync(request, null)
             .thenApply(response -> {
+                // 3.2-C8-007（plan 2557 裁定 G）：错误/成功双路径同帽截断-续排空
                 if (response.getHttpStatus() >= 400) {
+                    String errBody = capBody(response.getBodyAsString());
                     return AiToolCallResult.errorResult(call.getId(),
-                        "HTTP " + response.getHttpStatus() + ": " + response.getBodyAsString());
+                        "HTTP " + response.getHttpStatus()
+                                + (response.getBodyAsString() != null
+                                        && response.getBodyAsString().length() > maxResponseChars
+                                        ? " [TRUNCATED]" : "")
+                                + ": " + errBody);
                 }
-                return AiToolCallResult.successResult(call.getId(), response.getBodyAsString());
+                String body = response.getBodyAsString();
+                return AiToolCallResult.successResult(call.getId(), capBody(body));
             })
             .exceptionally(e -> AiToolCallResult.errorResult(call.getId(), e.getMessage()));
+    }
+
+    /**
+     * 3.2-C8-007（plan 2557 裁定 G）：超帽截断 + truncated 标记（呈现面）。
+     */
+    String capBody(String body) {
+        if (body == null || body.length() <= maxResponseChars) {
+            return body;
+        }
+        return body.substring(0, maxResponseChars)
+                + "\n[TRUNCATED: response body exceeded " + maxResponseChars + " chars; total="
+                + body.length() + " chars]";
     }
 }

@@ -1,7 +1,8 @@
-# nop-message 后端行为语义设计（D3 / D5 / D6 / D7 / D9 / D10 / D11）
+# nop-message 后端行为语义设计（D3 / D5 / D6 / D7 / D9 / D10 / D11 / D12）
 
-**日期**：2026-10-04
-**范围**：`nop-message-kafka`、`nop-message-pulsar`、`nop-message-core`（Local）、SPI 返回协议（nop-api-core）、模块图（nop-message-model / nop-message-codec）
+**日期**：2026-10-04（更新于 2026-10-25）
+**Last Reviewed**：2026-10-25（agent_d082ac70 设计评审 + 修订 agent_28bc4b02 M-1/m-1/m-2 落盘）：增量复核 agent_d082ac70 **通过进入实现**
+**范围**：`nop-message-kafka`、`nop-message-pulsar`、`nop-message-core`（Local）、`nop-message-debezium`（CDC 事件交付路径，D12 起扩入）、SPI 返回协议（nop-api-core）、模块图（nop-message-model / nop-message-codec）
 **状态**：active
 **负责人**：nop-message mission 执行 agent（ZCode session 71fd21c6），2026-10-04，依 roadmap `ai-dev/backlog/nop-message-encapsulation-roadmap.md` 前置裁定表生效。注：D11 为 roadmap v3 新增，Rules 落档清单未列，裁定归入本文档（事务语义属后端行为域）。
 
@@ -16,6 +17,7 @@
 5. **D9（错误码前缀，WI26 实现态）**：迁移完成——`nop.err.message.kafka.*` / `nop.err.message.pulsar.*` / `nop.err.message.core.*`，常量名零改名；旧前缀全仓零引用（i18n/properties/字面量断言均无）。六码处置：五码接线（Kafka consumer-create / send 失败双路径 [callback+同步 catch]、Pulsar client-create / producer-create / consumer-create[窄包，subscribe 失败与 seek 失败分离]）；`ERR_KAFKA_SERIALIZATION_FAILED` 删除（无自然挂点：encode 委托共享 codec 携带自身错误，单边接线制造跨后端不对称）。`MessageCoreErrors` 填充 `ERR_LOCAL_REDELIVERY_SCHEDULE_FAILED`（日志语句必须引用常量 getErrorCode——防新码沦为 dead-define）。包装惯例：调用点包装（Pulsar client-create 的 wrap 在 doStart 调用处——方法体内包装会被覆写绕过）+ cause 链保留。
 6. **D10（空壳模块）**：立即删除 `nop-message-model`（两个空类，无任何依赖方）；`nop-message-codec` 降级为 Follow-up（待 D2 信封契约落地后出现非 String payload 实证需求再议）；`nop-bom/pom.xml` 补登模块条目随 WI31 执行。
 7. **D11（事务语义）**：删除 `MessageSubscribeOptions.transactional` 与 `transactionTimeout` 两字段（SPI 破坏性变更，plan-first 承载于 WI14，遵守 message-contract D8 的弃用期规则）。理由：Kafka 侧零处置、Pulsar 侧每消息建事务（粒度错误 + 每消息 broker 往返），保留即违反「不得声明却从不读（或从未正确兑现）」约束。
+8. **D12（Debezium 路径毒事件 endpoint）**：事件投递屏障两极同禁——无屏障炸流（存活极性）与纯吞后静默推进 offset（投递极性）任一单独成立均为缺陷。endpoint 行为终裁为**跳过 + 计数 + 上报 + `ConsumeFailure` 派发**：失败事件对该订阅者 at-most-once（显式声明），可见性由 WARN/计数/回调三通道保底；拒绝「中止本轮投递换 at-least-once」与维持现状两案。`DebeziumEngineWrapper.handleDebeziumEvent` 屏障与 `DebeziumMessageSource.dispatchEvent` 失败分支共用同一 endpoint 语义，禁分叉。详见 §3.3.3。
 
 ## 二、背景与动机
 
@@ -62,6 +64,23 @@
 - **退避（F-21）**：`consumeErrorBackoffMs`（默认 1000）/`consumeErrorBackoffMaxMs`（默认 30000）模块级可配置；循环退避 = `min(base × 2^n, max)`，**n 从 0 起（首错睡 base，与旧常量行为兼容）**；清零条件 = 本轮**成功派发至少一条消息**（空 poll/receive 超时轮中性——否则 Pulsar nack 重投间隙的空轮把升级打回 base，F-21 原样复发）；ConsumeLater 轮算派发成功轮。`computeBackoffMs` 纯函数两后端各留私有静态副本（两后端无共享模块，故意复制）。
 - **注入通道**：backoff base 经构造参数（doSubscribe 读 config 传入）；`maxConsumeAttempts`/`consumeErrorBackoffMaxMs` 经 service 包私有访问器读 config，`defaultConsumerConfig == null` 时回落模块默认常量（**非 0**——直构服务保持生产语义；mock 服务 int 默认 0=off 使既有测试自然保持无限重投行为）。
 - **既有不对称（记录现状，不本计划修）**：Pulsar 的 ConsumeLater 轮清 per-location 计数而 Kafka 不清——cap 语义下两后端对「延迟重投是否重置预算」回答不同；owner doc（WI34）与 3.3.2 同时声明。
+
+### 3.3.3 Debezium 路径毒事件 endpoint 与屏障两极（D12）
+
+- **范围扩入声明**：本文档范围自 D12 起覆盖 `nop-message-debezium` 的事件交付路径（`DebeziumEngineWrapper.handleDebeziumEvent` / `DebeziumMessageSource.dispatchEvent` 及其订阅包装入口）。此前该模块不在本文档范围内、无任何已裁定交付语义；本节把 §3.3 三层失败架构对「无 DLQ substrate 后端」的立场显式延伸到 CDC 路径。裁定来源 = WI 4.1 MA-02 同 diff 配对工单（C3-002 存活极性 + C8-004 投递极性）的工单内前置设计裁定。
+- **两极同禁**：Debezium 事件投递屏障受两极约束，任一极单独成立均为缺陷——
+  - **存活极性（禁整体炸流）**：per-event 屏障必须存在。单个事件的转换异常（非对象 JSON CCE / null key NPE / 数值宽度 CCE 等转换抛点）或订阅者处理异常不得逃逸进 `engine.run()` 使 CDC 流终态死亡——现状 `handleDebeziumEvent` 完全无屏障，一次坏事件即静默断流且 `isStarted()` 撒谎。
+  - **投递极性（禁吞后静默推进）**：屏障捕获失败后不得吞掉异常照常返回。debezium-embedded 的公开契约是「consumer 回调正常返回 = 已投递」，纯吞使 engine 视为投递成功并推进 offset——事件对该订阅者永久丢失，无重投、无预算、无 DLQ、无失败回调。现状 `dispatchEvent` 的 catch 仅 LOG 即属此极。
+  - 两极由**同一 per-event 屏障 + 同一 failure endpoint** 一次收敛，禁分叉：`handleDebeziumEvent` 屏障（convert 调用与订阅者调用统一纳入屏障）与 `dispatchEvent` 失败分支共用同一 endpoint 语义；`subscribeTable`/`subscribeOperation` 等过滤包装入口经 `dispatchEvent` 同源覆盖。
+- **endpoint 行为终裁（跳过 + 计数 + 上报 + ConsumeFailure 派发）**：屏障捕获失败事件后依次——①不向 engine 重抛（流存活，存活极性闭合）；②按事件粒度 WARN 留证并累加毒事件失败计数（观测键 `nop.message.debezium.poison-event`，沿 §3.3/§3.9 用户可见键惯例，对照 §3.9 `nop.message.local.terminate-consume`；计数对指标面可见）；③guarded dispatch `ConsumeFailure`（用户回调自身抛异常不得杀死引擎线程，对齐 §3.3 WI16 派发口径）；④该事件对失败订阅者 **at-most-once**（显式声明，非静默）。engine 随后视为已交付并推进 offset——语义是「交付终点在 endpoint 处 ack：endpoint 承担全部留证与可见性义务」。与纯吞的本质区别 = 失败三通道可观测（日志/计数/回调），bridge 接线方由此获得重放入口。
+- **拒绝「中止本轮投递换 at-least-once」**：①「抛给 engine 使其不推进 offset」的形态在 debezium-embedded 下等价于引擎终态死亡（回调异常逃逸即 `engine.run()` 失败、引擎停止）——恰是存活极性禁止的整体炸流，且直接嵌入方无 checkpoint 基质，死亡后无任何组件保证重启重放；②不炸流的 (b) 变体只能落成屏障内本地重投/阻塞重试循环——消息层自建重试机制违反 §3.3「重试策略统一由 nop-retry 承载，禁止消息层自建重试机制」约束，且对畸形事件（确定性毒，重投必然复现）无意义；③故障订阅者阻塞引擎线程的背压取舍无需以 (b) 换取——慢订阅者阻塞 engine 线程是 CDC 的正确背压形态（handler 正常执行慢 ≠ 失败路径），保留不变。**重放义务归属**：订阅者 handler 内部策略（订阅者自己的代码与重试决策）或第三层 `MessageConsumeFailureBridge`（部署显式接线，§3.3.1）——与 Local 的 substrate-less 立场（§3.9 无 broker 重投循环）一致。
+- **ConsumeFailure 字段映射（CDC 面）**：topic = ChangeEvent destination；location = 连接器名 + 源分区/offset 键（kafka-connect offset key 形态）；message = 事件本体；attempt = 该订阅者在同一 endpoint 的连续失败计数（成功派发清零；内存态，不承担跨重启语义，对齐 §3.3.2 声明）；throwable = 原始异常。
+- **CDC 侧接收面与 convert 归属（M-1，agent_d082ac70 评审裁定，2026-10-25）**：
+  - **失败回调承载面（二选一裁定：subscribe 变体携带失败处理器）**：失败回调经 `subscribe` 重载携带（`Consumer<ChangeEvent>` 之外增挂 `Consumer<ConsumeFailure>` 形态），拒绝 `DebeziumMessageSource` 级单一可选回调注入——CDC 失败面天然 per-subscription（`dispatchEvent` 逐订阅者独立屏障、上条字段映射的 attempt 即订阅者粒度计数，source 级单回调丢失「哪个订阅失败」的归因），且 `subscribeTable`/`subscribeOperation` 等包装入口全部收敛于 `subscribe(...)`，单一重载即同源覆盖；回调不入 `DebeziumConfig`（checkpoint 持久化的 Serializable POJO 不承载回调位——live 核实：现 config 无回调承载位、订阅 API 为裸 `Consumer<ChangeEvent>`、`nop-message-debezium` 全模块零 `ConsumeFailure` 引用）。**不扩 nop-api-core SPI**：`ConsumeFailure` 类型已在 `io.nop.api.core.message`，CDC 面仅消费不复定义；无失败处理器注入时 endpoint 显式退化为 WARN + `nop.message.debezium.poison-event` 计数两通道，回调通道为可选能力、其缺席须显式声明（不静默）。
+  - **convert 阶段 attempt 归属（二选一裁定：固定 0）**：convert 失败发生于任何订阅者之前（`handleDebeziumEvent` 先 convert 后扇出），attempt 归属**固定 0**，拒绝合成「convert」归属身份——对齐 §3.3.2 框架级失败「不 bump 不归属记录 0」先例（归属任一订阅者即污染无辜订阅者预算）；attempt 语义为「同 location 连续失败计数、成功派发清零」，convert 失败无订阅者派发、永无清零事件，合成身份将制造只增不清的漂移计数；事件同一性由 topic/location/message 三字段完整保留、聚合可见性由 poison-event 计数承担，固定 0 无观测损失。
+  - **与 §3.3「唯一派发点」的张力消解**：「`IMessageConsumer.onConsumeFailure(ConsumeFailure)` 为框架唯一派发点」的唯一性住在**协议与派发纪律**（唯一失败事件类型 + guarded dispatch + WARN 先行桥接），不在调用点数量——CDC 面无 `IMessageConsumer` substrate（无 broker 重投、不承担消息层 attempt 预算），per-subscription 失败处理器是该唯一契约在 per-source 形态下的实例化（复用同一 `ConsumeFailure` 类型与同一派发纪律，对齐本节 endpoint ③），不构成第二派发协议。
+- **引擎终态死亡 ≠ 毒事件**：endpoint 只覆盖事件级失败。引擎终态死亡（转换之外的引擎失败、worker 死亡）走 `FAILURE_LISTENERS` 通知链（R5-CON-03 机制）；`DebeziumMessageSource` 必须在启动时注册 failure listener 并把终态死亡反映到 started 标志或健康探针（isStarted 不再撒谎）——endpoint 的「跳过继续」语义不得被用作掩盖引擎死亡的静默通道。listener 接线与死亡可见性为 MA-02 配对义务的实施面。
+- **行为锚定**：毒事件两极场景（畸形事件不炸流 + 失败不静默推进 offset）以 C10-001 建议测试场景 (2) 为本裁定的唯一行为锚定；实施批的回归测试直接消费本节条款。
 
 ### 3.4 D7 消费组身份模型
 
@@ -155,9 +174,12 @@
 - **D7 拒绝 (a) 去掉全局 groupId 与 (c) 维持现状**：(a) 丢失部署级命名空间；(c) 全局优先遮蔽 subscribeName 造成永久分区饥饿，是可用性风险。
 - **D10 拒绝保留 nop-message-model 待实现**：两个空类无任何依赖方，保留即违反「禁止空壳」约束。
 - **D11 拒绝 (a) 保留字段 + Kafka 抛错/Pulsar 修粒度**：两字段无任何后端能完整兑现，保留即继续违反自身 Hard constraint；(c) 仅修 Pulsar 粒度留下 Kafka 零处置的静默违约。
+- **D12 拒绝 (b) 中止本轮投递换 at-least-once**：debezium-embedded 的「回调异常逃逸 = 引擎终态死亡」使该形态与存活极性直接冲突；不炸流的变体只能是屏障内本地重投，违反「重试统一由 nop-retry 承载」的平台约束，且对确定性毒事件重投无意义。at-most-once + 可见性保底（计数/回调/日志）+ 桥接重放（部署显式）是无 DLQ substrate 后端的既定立场，Debezium 路径不例外。
+- **D12 拒绝维持现状（纯吞 + 推进 offset）**：投递极性缺陷本体——失败不可观测且变更事件静默永久丢失，下游物化视图与源库进入未声明漂移；裁定落档前 CDC 路径无任何已声明边界可援引，不存在「现状即边界」的辩护。
 
 ## 五、与已有设计的关系
 
 - `message-contract-design.md`：D1 能力门禁决定本文档各「类型化拒绝」的挂接点；D8 弃用期规则约束 D11 的字段删除执行方式。
+- `../concurrency/registry-lifecycle-contract.md`：CDC offset 基质（`NopStreamOffsetBackingStore` REGISTRY）的生命周期契约为独立裁定（R4-24 实现契约），与本文档 D12 的事件交付语义互补——D12 管「事件失败后交付终点如何行为」，该契约管「恢复位点账本何时存在与释放」；D12 的重放义务（桥接重放）与恢复语义的衔接面见该契约 §3.5。恢复声明窗守卫（该契约 §3.3，R4-24 实施面）的状态粒度经评审裁定（m-2，2026-10-25）落档于此（该契约文档本身原样不动）：守卫挂**桶/绑定代持有者**——任一绑定实例 `start()` 即封窗，窗状态为桶上单调置位、随绑定代释放消亡；拒绝「声明实例级守卫 + 跨实例运行期写由该契约 §3.1 孤儿写入义务兜底」案——兜底不成立：§3.1 孤儿写入义务仅覆盖已释放桶的旧代残留写，活桶上的跨实例 REPLACE 在实例级守卫与孤儿写入义务两处均不触发，属未声明漏洞。守卫挂桶与该契约 §3.1 建桶行的「当前实例登记为该代持有者」同一状态载体，对当前唯一生产调用序（`initializeState` 先于 engine start；生产零窗外调用序的既定事实）零行为变更。
 - Spring 对照（spring-kafka/spring-pulsar）中 AckMode、@RetryableTopic、CommonErrorHandler 的不采纳结论与本文档 D5/D6 一致且互为佐证。
 - 错误码规范见 `docs-for-ai/02-core-guides/error-handling.md`；broker 切换机制（beans.xml + ioc:default）不变。

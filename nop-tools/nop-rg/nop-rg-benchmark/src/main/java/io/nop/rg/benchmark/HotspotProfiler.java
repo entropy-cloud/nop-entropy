@@ -56,7 +56,7 @@ public class HotspotProfiler {
                 while (System.nanoTime() < deadline) {
                     Map<String, FileMatches> results =
                             coordinator.search(new SearchCommand(corpusDir, "needle",
-                                    SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, textMode));
+                                    SearchCoordinator.Strategy.LITERAL, false, List.of(), 0, textMode)).results();
                     if (textMode) {
                         ResultPrinter.print(sink, results, ResultPrinter.OutputMode.TEXT);
                         sink.flush();

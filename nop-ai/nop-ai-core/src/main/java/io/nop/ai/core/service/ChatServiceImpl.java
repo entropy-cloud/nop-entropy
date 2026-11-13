@@ -15,16 +15,20 @@ import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.api.credential.IAiModelCredentialResolver;
+import io.nop.ai.core.dialect.AbstractLlmDialect;
 import io.nop.ai.core.dialect.ILlmDialect;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.dialect.LlmDialectFactory;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
 import jakarta.annotation.Nullable;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.StringHelper;
@@ -44,16 +48,33 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Flow;
+import java.util.concurrent.Future;
 import java.util.concurrent.SubmissionPublisher;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_RATE_LIMIT_ACQUIRE_TIMEOUT;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_READ_TIMEOUT;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_STREAM_IDLE_TIMEOUT;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_STREAM_MAX_ACCUMULATED_CHARS;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_STREAM_MAX_TOOL_CALLS;
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_STREAM_TOTAL_TIMEOUT;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_DETAIL;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.NopAiCoreErrors.ARG_LLM_NAME;
+import static io.nop.ai.core.NopAiCoreErrors.ARG_TIMEOUT;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RATE_LIMITED;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_STREAM_ACCUMULATION_EXCEEDED;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_STREAM_BUFFER_OVERFLOW;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_STREAM_IDLE_TIMEOUT;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING;
+import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_STREAM_TOTAL_TIMEOUT;
 import static io.nop.http.api.HttpApiErrors.ARG_BODY;
 import static io.nop.http.api.HttpApiErrors.ARG_RESPONSE_HEADERS;
 
@@ -67,6 +88,19 @@ import static io.nop.http.api.HttpApiErrors.ARG_RESPONSE_HEADERS;
  */
 public class ChatServiceImpl implements IChatService {
     private static final Logger LOG = LoggerFactory.getLogger(ChatServiceImpl.class);
+
+    /**
+     * 3.1-C3-001 ②（plan 2505）：桥接订阅对上游的 request 窗口（替代 request(MAX_VALUE)
+     * 全速拉取）——传输层 demand 等待被 nop-http 基类有界化后，窗口耗尽时读取线程在
+     * 有界预算内停滞，慢下游不再经 uninterruptible submit 阻塞共享承载线程。
+     */
+    static final long STREAM_REQUEST_WINDOW = 64;
+
+    /**
+     * 3.1-C3-001 ③（plan 2505）：桥接 publisher 的缓冲大小（有界缓冲语义的一部分；
+     * 满载经 {@code offer} fail-loud 处理，不阻塞提交线程）。
+     */
+    static final int STREAM_PUBLISHER_BUFFER_SIZE = 256;
 
     private IHttpClient httpClient;
     private final Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
@@ -199,24 +233,86 @@ public class ChatServiceImpl implements IChatService {
         HttpRequest httpRequest = buildHttpRequest(config, provider, model, request, true, dialect);
         httpRequest.setHeader("accept", "text/event-stream");
 
-        SubmissionPublisher<ChatStreamChunk> publisher = new SubmissionPublisher<>();
+        // 3.1-C3-001 ③（plan 2505）：显式平台受管承载（GlobalExecutors 治理面，daemon cached 池）——
+        // 消除缺省 ForkJoinPool.commonPool 承载（聚合/日志 I/O/AiCommand 延续链全部落共享池的缺陷形态）；
+        // 阻塞日志 I/O 不指向 globalTimer（MA-16 收窄后约束）。有界缓冲 + 满载 fail-loud（②）。
+        SubmissionPublisher<ChatStreamChunk> publisher =
+                new SubmissionPublisher<>(GlobalExecutors.cachedThreadPool(), STREAM_PUBLISHER_BUFFER_SIZE);
 
         Flow.Publisher<IServerEventResponse> eventPublisher = httpClient.fetchServerEventFlow(httpRequest, cancelToken);
         eventPublisher.subscribe(new Flow.Subscriber<>() {
+            private Flow.Subscription upstream;
+
             @Override
             public void onSubscribe(Flow.Subscription subscription) {
-                subscription.request(Long.MAX_VALUE);
+                this.upstream = subscription;
+                // ② 有界 request 窗口（替代 Long.MAX_VALUE 全速拉取）
+                subscription.request(STREAM_REQUEST_WINDOW);
                 if (cancelToken != null) {
-                    cancelToken.appendOnCancelTask(subscription::cancel);
+                    // ① 取消闭合下游（C4-002 同点）：上游 cancel 的同时以可区分的取消终态
+                    // 关闭桥接 publisher——下游订阅有界终止，聚合 future 不再悬挂
+                    cancelToken.appendOnCancelTask(() -> {
+                        subscription.cancel();
+                        publisher.closeExceptionally(new CancellationException("chat stream cancelled"));
+                    });
                 }
             }
 
             @Override
             public void onNext(IServerEventResponse item) {
-                ChatStreamChunk chunk = dialect.parseStreamChunk(item.getData());
-                if (chunk != null) {
-                    publisher.submit(chunk);
+                try {
+                    // Plan 2519 (裁定⑧/C3-028): consume the multi-chunk channel
+                    // — one SSE event enumerates ALL increments (multi
+                    // tool_call entries / usage frames / typed error chunks).
+                    // Falls back to the single-chunk contract for external
+                    // dialect implementations that do not extend
+                    // AbstractLlmDialect (ILlmDialect signature unchanged).
+                    java.util.List<ChatStreamChunk> chunks;
+                    if (dialect instanceof AbstractLlmDialect abstractDialect) {
+                        chunks = abstractDialect.parseStreamChunks(item.getData());
+                    } else {
+                        ChatStreamChunk single = dialect.parseStreamChunk(item.getData());
+                        chunks = single == null ? java.util.List.of() : java.util.List.of(single);
+                    }
+                    for (ChatStreamChunk chunk : chunks) {
+                        if (chunk instanceof io.nop.ai.core.dialect.DialectErrorChunk errorChunk) {
+                            // 裁定⑧: typed in-band error — explicit termination
+                            // signal + traceable log record (never merged into
+                            // assistant text)
+                            LOG.warn("nop.ai.stream-error-chunk: provider in-band error event "
+                                            + "(typed error chunk; stream terminated): provider={}, errorType={}, message={}",
+                                    provider, errorChunk.getErrorType(), errorChunk.getErrorMessage());
+                            upstream.cancel();
+                            publisher.closeExceptionally(new NopException(ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING)
+                                    .param(ARG_LLM_NAME, provider));
+                            return;
+                        }
+                    }
+                    for (ChatStreamChunk chunk : chunks) {
+                        if (chunk != null) {
+                            // ② 有界缓冲满载 fail-loud（替代 submit 的不可中断阻塞）：溢出即显式终态
+                            AtomicBoolean overflow = new AtomicBoolean();
+                            publisher.offer(chunk, (sub, dropped) -> {
+                                overflow.set(true);
+                                return true; // 溢出项由 closeExceptionally 的错误终态承载，不静默降级
+                            });
+                            if (overflow.get()) {
+                                upstream.cancel();
+                                publisher.closeExceptionally(new NopException(ERR_AI_STREAM_BUFFER_OVERFLOW)
+                                        .param(ARG_LLM_NAME, provider));
+                                return;
+                            }
+                        }
+                    }
+                } catch (Throwable e) {
+                    // ① onNext 容错 + closeExceptionally 兜底：解析/提交异常不得使 publisher
+                    // 永不关闭（悬挂流形态）
+                    upstream.cancel();
+                    publisher.closeExceptionally(NopException.adapt(e));
+                    return;
                 }
+                // ② 滑动窗口补给：维持传输侧在途上界
+                upstream.request(1);
             }
 
             @Override
@@ -391,6 +487,9 @@ public class ChatServiceImpl implements IChatService {
     protected CompletionStage<ChatResponse> aggregateStreamToResponse(ChatRequest request, ICancelToken cancelToken) {
         StreamAggregator aggregator = new StreamAggregator();
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+        AtomicReference<Flow.Subscription> upstreamRef = new AtomicReference<>();
+        // C7-001：inactivity 进度基准（订阅时刻起算，每个 chunk 推进）
+        AtomicLong lastActivity = new AtomicLong(CoreMetrics.currentTimeMillis());
 
         String provider = LlmConfigHelper.getProvider(request.getOptions());
         LlmModel config = LlmConfigHelper.loadConfig(provider);
@@ -400,12 +499,27 @@ public class ChatServiceImpl implements IChatService {
         callStream(request, cancelToken).subscribe(new Flow.Subscriber<ChatStreamChunk>() {
             @Override
             public void onSubscribe(Flow.Subscription subscription) {
-                subscription.request(Integer.MAX_VALUE);
+                upstreamRef.set(subscription);
+                // ② 有界 request 窗口（替代 Integer.MAX_VALUE 全速聚合）
+                subscription.request(STREAM_REQUEST_WINDOW);
             }
 
             @Override
             public void onNext(ChatStreamChunk item) {
-                aggregator.addChunk(item);
+                try {
+                    aggregator.addChunk(item);
+                } catch (Exception e) {
+                    // ⑤ 聚合上界超界（或其他累积异常）：显式终态（R21 纪律），不悬挂
+                    Flow.Subscription upstream = upstreamRef.get();
+                    if (upstream != null)
+                        upstream.cancel();
+                    future.completeExceptionally(e);
+                    return;
+                }
+                Flow.Subscription upstream = upstreamRef.get();
+                if (upstream != null)
+                    upstream.request(1);
+                lastActivity.set(CoreMetrics.currentTimeMillis());
             }
 
             @Override
@@ -414,10 +528,9 @@ public class ChatServiceImpl implements IChatService {
                 if (errResponse != null) {
                     errResponse.setRequestId(request.getRequestId());
                     errResponse.setResponseTime(CoreMetrics.currentTimeMillis());
-                    if (logMessage) {
-                        chatLogger.logResponse(request, errResponse);
-                    }
                     future.complete(errResponse);
+                    // ④ 日志盘写异步化：移出终态回调线程，失败不阻断 future 完成（显式可见）
+                    logResponseAsync(request, errResponse, logMessage);
                 } else {
                     future.completeExceptionally(throwable);
                 }
@@ -425,18 +538,107 @@ public class ChatServiceImpl implements IChatService {
 
             @Override
             public void onComplete() {
+                // C7-002（R11 错误以成功交付族纪律）：收到过内容 chunk 但无终止信号
+                // （finishReason/DONE）= 干净半关闭的截断流——按传输级错误显式失败，
+                // 不以成功响应交付（带截断字符数诊断；零 chunk 空流保持既有成功契约）
+                if (aggregator.hasReceivedChunks() && !aggregator.hasTerminationSignal()) {
+                    future.completeExceptionally(new NopException(ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING)
+                            .param(ARG_LLM_NAME, provider)
+                            .param(ARG_DETAIL, String.valueOf(aggregator.totalAccumulatedChars())));
+                    return;
+                }
                 ChatResponse response = aggregator.toResponse();
                 response.setRequestId(request.getRequestId());
                 response.setResponseTime(CoreMetrics.currentTimeMillis());
 
-                if (logMessage) {
-                    chatLogger.logResponse(request, response);
-                }
                 future.complete(response);
+                // ④ 日志盘写异步化（先 complete 后记日志）：序列化/正则/写盘移出终态回调线程，
+                // 日志失败不阻断 future 完成（失败 WARN 显式可见，rule 24 不吞）
+                logResponseAsync(request, response, logMessage);
             }
         });
 
+        // C7-001：全程总期限 + chunk 间 inactivity 上界（独立于 read-timeout 的 headers 语义）。
+        // watchdog 复用平台调度设施（globalTimer，任务体为短动作：检查/取消/异常终态——
+        // 非 MA-16 禁止的长阻塞体直连形态）；超时经 subscription.cancel + completeExceptionally
+        // 走既有错误路径（R21 纪律），失败可见非静默。
+        scheduleStreamWatchdogs(future, upstreamRef, lastActivity, provider);
         return future;
+    }
+
+    /**
+     * ④（3.1-C3-003 悬挂面）：响应日志盘写异步化——logResponse（序列化/正则脱敏/写盘）
+     * 移出终态回调线程，日志失败仅 WARN 可见，不阻断 future 完成。承载为平台受管
+     * cached 池（daemon；不指向 globalTimer——阻塞盘写体不违反 MA-16 收窄后约束）。
+     * <p>落点注记：异步化在 ChatServiceImpl 终态回调侧实现而非 DefaultChatLogger 内部
+     * ——IChatLogger 同步契约保持不变（既有脱敏/落盘测试零回退），异步调度属回调方职责。
+     */
+    private void logResponseAsync(ChatRequest request, ChatResponse response, boolean logMessage) {
+        if (!logMessage || chatLogger == null)
+            return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                chatLogger.logResponse(request, response);
+            } catch (Exception e) {
+                LOG.warn("nop.ai.chat-log-write-fail: log write failed (ignored, response already delivered)", e);
+            }
+        }, GlobalExecutors.cachedThreadPool());
+    }
+
+    /**
+     * C7-001 watchdog 装配：future 级总期限（{@code CoreMetrics.timeoutToExpireTime} 口径）
+     * + chunk 间 inactivity 巡检（固定延迟轮询，非自旋）。终态时双 watchdog 取消，无残留。
+     */
+    private void scheduleStreamWatchdogs(CompletableFuture<ChatResponse> future,
+                                         AtomicReference<Flow.Subscription> upstreamRef,
+                                         AtomicLong lastActivity, String provider) {
+        long totalTimeoutMs = CFG_AI_SERVICE_STREAM_TOTAL_TIMEOUT.get();
+        long idleTimeoutMs = CFG_AI_SERVICE_STREAM_IDLE_TIMEOUT.get();
+        IScheduledExecutor scheduler = GlobalExecutors.globalTimer();
+
+        Future<?> totalTask = null;
+        if (totalTimeoutMs > 0) {
+            totalTask = scheduler.schedule(() -> {
+                fireStreamTimeout(future, upstreamRef, provider, totalTimeoutMs, ERR_AI_STREAM_TOTAL_TIMEOUT);
+                return null;
+            }, totalTimeoutMs, TimeUnit.MILLISECONDS);
+        }
+
+        Future<?> idleTask = null;
+        if (idleTimeoutMs > 0) {
+            long tick = Math.max(100L, idleTimeoutMs / 10);
+            idleTask = scheduler.scheduleWithFixedDelay(() -> {
+                if (future.isDone())
+                    return;
+                long idle = CoreMetrics.currentTimeMillis() - lastActivity.get();
+                if (idle > idleTimeoutMs)
+                    fireStreamTimeout(future, upstreamRef, provider, idleTimeoutMs, ERR_AI_STREAM_IDLE_TIMEOUT);
+            }, tick, tick, TimeUnit.MILLISECONDS);
+        }
+
+        Future<?> totalTaskRef = totalTask;
+        if (totalTaskRef != null || idleTask != null) {
+            Future<?> idleTaskRef = idleTask;
+            future.whenComplete((v, e) -> {
+                if (totalTaskRef != null)
+                    totalTaskRef.cancel(false);
+                if (idleTaskRef != null)
+                    idleTaskRef.cancel(false);
+            });
+        }
+    }
+
+    private void fireStreamTimeout(CompletableFuture<ChatResponse> future,
+                                   AtomicReference<Flow.Subscription> upstreamRef,
+                                   String provider, long timeoutMs, ErrorCode code) {
+        if (future.isDone())
+            return;
+        Flow.Subscription upstream = upstreamRef.get();
+        if (upstream != null)
+            upstream.cancel();
+        future.completeExceptionally(new NopException(code)
+                .param(ARG_LLM_NAME, provider)
+                .param(ARG_TIMEOUT, timeoutMs));
     }
 
     /**
@@ -489,7 +691,47 @@ public class ChatServiceImpl implements IChatService {
         private String finishReason;
         private io.nop.ai.api.chat.messages.ChatUsage usage;
 
+        // ⑤（3.1-C5-001 聚合无界面，plan 2505）：累积上界状态
+        private final int maxAccumulatedChars = CFG_AI_SERVICE_STREAM_MAX_ACCUMULATED_CHARS.get();
+        private final int maxToolCalls = CFG_AI_SERVICE_STREAM_MAX_TOOL_CALLS.get();
+        private long totalAccumulatedChars;
+        private boolean receivedChunks;
+        private boolean terminationSignal;
+
+        boolean hasReceivedChunks() {
+            return receivedChunks;
+        }
+
+        boolean hasTerminationSignal() {
+            return terminationSignal;
+        }
+
+        long totalAccumulatedChars() {
+            return totalAccumulatedChars;
+        }
+
+        private void ensureCharBudget(int additional) {
+            if (maxAccumulatedChars <= 0)
+                return;
+            if (totalAccumulatedChars + additional > maxAccumulatedChars) {
+                throw new NopException(ERR_AI_STREAM_ACCUMULATION_EXCEEDED)
+                        .param(ARG_DETAIL, "accumulatedChars=" + (totalAccumulatedChars + additional)
+                                + ", maxChars=" + maxAccumulatedChars);
+            }
+        }
+
+        private void ensureToolCallBudget(Integer index) {
+            if (maxToolCalls <= 0)
+                return;
+            if (!toolCallAccumulators.containsKey(index) && toolCallAccumulators.size() >= maxToolCalls) {
+                throw new NopException(ERR_AI_STREAM_ACCUMULATION_EXCEEDED)
+                        .param(ARG_DETAIL, "toolCallEntries=" + (toolCallAccumulators.size() + 1)
+                                + ", maxToolCalls=" + maxToolCalls);
+            }
+        }
+
         void addChunk(ChatStreamChunk chunk) {
+            receivedChunks = true;
             if (chunk.getId() != null) {
                 this.id = chunk.getId();
             }
@@ -498,6 +740,10 @@ public class ChatServiceImpl implements IChatService {
             }
             if (chunk.getFinishReason() != null) {
                 this.finishReason = chunk.getFinishReason();
+            }
+            // C7-002：终止信号消费（finishReason 或 DONE 相位任一即视为收到终止信号）
+            if (chunk.getFinishReason() != null || chunk.getPhase() == StreamItemPhase.DONE) {
+                this.terminationSignal = true;
             }
             if (chunk.getUsage() != null) {
                 this.usage = chunk.getUsage();
@@ -510,18 +756,27 @@ public class ChatServiceImpl implements IChatService {
             switch (type) {
                 case text:
                     if (chunk.getDelta() != null) {
+                        ensureCharBudget(chunk.getDelta().length());
                         textBuilder.append(chunk.getDelta());
+                        totalAccumulatedChars += chunk.getDelta().length();
                     }
                     break;
                 case reasoning:
                     if (chunk.getDelta() != null) {
+                        ensureCharBudget(chunk.getDelta().length());
                         reasoningBuilder.append(chunk.getDelta());
+                        totalAccumulatedChars += chunk.getDelta().length();
                     }
                     break;
                 case tool_call:
                     Integer index = chunk.getItemIndex() != null ? chunk.getItemIndex() : 0;
+                    ensureToolCallBudget(index);
                     ToolCallAccumulator acc = toolCallAccumulators.computeIfAbsent(index, k -> new ToolCallAccumulator());
+                    int argumentLength = (chunk.getDelta() != null ? chunk.getDelta().length() : 0)
+                            + (chunk.getArguments() != null ? chunk.getArguments().length() : 0);
+                    ensureCharBudget(argumentLength);
                     acc.apply(chunk);
+                    totalAccumulatedChars += argumentLength;
                     break;
                 default:
                     break;

@@ -29,6 +29,21 @@ public class DocKeywordExtractor implements ISemanticEdgeExtractor {
     private static final double OVERLAP_THRESHOLD = 0.5;
     private static final int MIN_KEYWORDS = 2;
     private static final int MAX_SYMBOLS = 5000;
+    // W-13 (plan 2565, adjudication H / facility F2): output cap aligned with the
+    // AnnotationPatternExtractor MAX_EDGES convention (same-unit oracle)
+    private static final int DEFAULT_MAX_EDGES = 50000;
+
+    private volatile int maxEdges = DEFAULT_MAX_EDGES;
+    private volatile boolean lastRunTruncated;
+
+    void setMaxEdgesForTest(int maxEdges) {
+        this.maxEdges = maxEdges;
+    }
+
+    /** observable truncation flag of the most recent extract() run (F2 form #1) */
+    boolean isLastRunTruncated() {
+        return lastRunTruncated;
+    }
 
     @Override
     public String getExtractorId() {
@@ -55,6 +70,8 @@ public class DocKeywordExtractor implements ISemanticEdgeExtractor {
             withDocs = withDocs.subList(0, MAX_SYMBOLS);
         }
 
+        lastRunTruncated = false;
+        outer:
         for (int i = 0; i < withDocs.size(); i++) {
             Set<String> keywords1 = extractKeywords(withDocs.get(i).getDocumentation());
             if (keywords1.size() < MIN_KEYWORDS) continue;
@@ -73,6 +90,13 @@ public class DocKeywordExtractor implements ISemanticEdgeExtractor {
 
                 double overlap = union.isEmpty() ? 0 : (double) intersection.size() / union.size();
                 if (overlap >= OVERLAP_THRESHOLD) {
+                    if (edges.size() >= maxEdges) {
+                        // W-13: O(N^2) output guard — truncate + WARN + flag
+                        LOG.warn("nop.code.extractor-edges-capped:extractor={},cap={},symbolCount={}",
+                                getExtractorId(), maxEdges, withDocs.size());
+                        lastRunTruncated = true;
+                        break outer;
+                    }
                     String id1 = withDocs.get(i).getId();
                     String id2 = withDocs.get(j).getId();
                     String edgeKey = id1 + "|" + id2;

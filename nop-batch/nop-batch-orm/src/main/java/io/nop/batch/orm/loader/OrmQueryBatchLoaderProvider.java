@@ -8,6 +8,7 @@
 package io.nop.batch.orm.loader;
 
 import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchLoaderProvider;
@@ -17,6 +18,7 @@ import io.nop.dao.api.IDaoProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.nop.dao.api.IEntityDao;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IQueryBuilder;
 import io.nop.orm.sql_lib.ISqlLibManager;
 import jakarta.annotation.PostConstruct;
@@ -40,7 +42,13 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
     private String partitionIndexField;
 
     static class LoaderState<S extends IDaoEntity> {
-        S lastEntity;
+        /**
+         * 1.7-C7-007（plan 2546 W-03）：游标锚点改为**排序键值快照实体**，不再持有上一页的活实体引用。
+         * 活实体引用在「orderBy 列被本任务就地变更」时会漂移（findNext 按实体当前排序值构造排他下界，
+         * 变更后剩余 WAITING 行永久落在窗口外 → 静默丢行）。此实体在 newLoaderState 创建一次并复用，
+         * 每次 load 仅覆盖快照值；状态为 TRANSIENT（不入 cache、不 flush、不触发 DB 装载）。
+         */
+        S cursor;
         QueryBean query;
         IEntityDao<S> dao;
     }
@@ -120,17 +128,19 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
             state.query.addPartitionFilter(partitions, partitionIndexField);
         }
 
-        state.lastEntity = null;
         String entityName = this.entityName;
         if (state.query.getSourceName() != null)
             entityName = state.query.getSourceName();
         state.dao = daoProvider.dao(entityName);
+
+        // 1.7-C7-007（plan 2546 W-03）：快照实体创建一次并复用（避免每 chunk newEntity 的开销与置脏）。
+        state.cursor = null;
         return state;
     }
 
     List<S> load(int batchSize, LoaderState<S> state) {
         IEntityDao<S> dao = state.dao;
-        List<S> list = dao.findNext(state.lastEntity, state.query.getFilter(), state.query.getOrderBy(), batchSize);
+        List<S> list = dao.findNext(state.cursor, state.query.getFilter(), state.query.getOrderBy(), batchSize);
 
         if (list.isEmpty()) {
             return list;
@@ -140,7 +150,35 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
             dao.batchLoadProps(list, batchLoadProps);
 
         // batchLoadProps有可能报错，这里将状态更新放到最后
-        state.lastEntity = list.get(list.size() - 1);
+        snapshotCursor(state, list.get(list.size() - 1));
         return list;
+    }
+
+    /**
+     * 1.7-C7-007（plan 2546 W-03）：把锚点的**排序键值**拷入快照实体，而非保留活实体引用。
+     * <p>
+     * 快照列 = orderBy 列 + 主键列（{@code dao.getPkColumnNames()}，返回 prop 名，与
+     * {@code DaoQueryHelper.appendCursorCmp} 的 {@code field.getName()} 同域）。
+     * 快照实体经 {@code dao.newEntity()} 创建（TRANSIENT、不入 cache、不 flush）。
+     */
+    @SuppressWarnings("unchecked")
+    static <S extends IDaoEntity> void snapshotCursor(LoaderState<S> state, S lastEntity) {
+        IEntityDao<S> dao = state.dao;
+        if (state.cursor == null) {
+            state.cursor = dao.newEntity();
+        }
+        S cursor = state.cursor;
+
+        if (state.query.getOrderBy() != null) {
+            for (OrderFieldBean field : state.query.getOrderBy()) {
+                String name = field.getName();
+                if (StringHelper.isEmpty(name))
+                    continue;
+                cursor.orm_propValueByName(name, lastEntity.orm_propValueByName(name));
+            }
+        }
+        for (String pkName : dao.getPkColumnNames()) {
+            cursor.orm_propValueByName(pkName, lastEntity.orm_propValueByName(pkName));
+        }
     }
 }

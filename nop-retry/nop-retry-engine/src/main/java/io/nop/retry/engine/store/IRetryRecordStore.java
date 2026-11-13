@@ -29,8 +29,22 @@ public interface IRetryRecordStore {
 
     /**
      * 保存执行尝试（插入或更新）。每次执行尝试（含立即重试与延迟重试）一条记录。
+     * <p>
+     * 1.6-C6-002（plan 2515 裁定⑦）：首插 duplicate-key 防御兜底——对账关闭遗留 RUNNING 行后
+     * 以 max(attemptNo)+1 重插一次（与 record 侧并发首提 UK 兜底对称形态），兜底触发 WARN 显式留痕。
      */
     void saveAttempt(NopRetryAttempt attempt);
+
+    /**
+     * 1.6-C6-002（plan 2515 裁定⑦）：遗留 RUNNING attempt 对账（崩溃/挂死恢复语义）。
+     * 将该 record 名下全部 RUNNING attempt 置 STOPPED（KILLED 类终态语义）+ endTime 落账，
+     * 使 UK_RETRY_ATTEMPT_RECORD_NO 碰撞从根消除、僵尸 RUNNING attempt 终态化；
+     * 幂等（无 RUNNING 行时零写）。扫描器重拾与 OVERWRITE 新链的执行入口（executeWithRetry）
+     * 必须先对账再发起新 attempt。
+     *
+     * @param recordId 重试记录 ID
+     */
+    void reconcileStaleRunningAttempts(String recordId);
     /**
      * 获取待处理的重试记录（不锁定）。
      * <p>
@@ -74,6 +88,27 @@ public interface IRetryRecordStore {
      */
     void deleteRecord(NopRetryRecord record);
 
+    /**
+     * 1.6-C6-003（plan 2515 裁定⑤）：OVERWRITE 原子替换包络——delete 旧行 + save 新行在
+     * 同一事务（REQUIRED）内执行，整体提交或整体回滚。方法体内直接使用 dao 原语
+     * （deleteEntityDirectly + saveEntityDirectly），不消费 {@link #deleteRecord}（裸自动提交）
+     * 与 {@link #saveRecord}（REQUIRES_NEW 独立事务）——两条独立事务的无包络组合是原缺陷本体。
+     * 事务失败整体回滚 → 旧记录存活、零蒸发；替换失败由调用方对旧记录执行死信快照。
+     *
+     * @param existingRecord 被替换的旧记录
+     * @param newRecord      替换后的新记录（同 idempotentId）
+     */
+    void replaceRecord(NopRetryRecord existingRecord, NopRetryRecord newRecord);
+
+    /**
+     * 1.6-C3-003（plan 2515 裁定④）：即时重试链每轮 attempt 前的租约续租。经乐观锁版本 CAS
+     * （tryUpdateWithVersionCheck）将 nextTriggerTime 推进 now + leaseTimeoutMs。
+     *
+     * @return true = 续租成功（CAS 1 行）；false = 租约被抢（版本冲突/行已消失），调用方
+     * （引擎）必须以 {@code ERR_RETRY_LEASE_LOST} 显式中止本链（败方语义，不静默续跑）
+     */
+    boolean renewLease(NopRetryRecord record, long leaseTimeoutMs);
+
     NopRetryDeadLetter loadDeadLetter(String deadLetterId);
 
     /**
@@ -87,6 +122,25 @@ public interface IRetryRecordStore {
 
     void moveToDeadLetter(NopRetryRecord record, String errorCode, String errorMessage, String errorStack);
 
+    /**
+     * 1.6-C7-001（plan 2502）：三账本表保留期清理。参数语义 =
+     * ai-dev/design/concurrency/ledger-retention-policy.md §3.4 成员 1 行（时间锚列显式落名）：
+     * <ul>
+     * <li>COMPLETED record：锚列 updateTime、谓词 status=COMPLETED，级联删除其 attempt 行</li>
+     * <li>死信：锚列 createTime，级联删除孤儿 attempt（recordId IN 死信 recordId 集；
+     * sid 为 seq 生成不复用，删除安全）</li>
+     * <li>孤儿 attempt 兜底扫描：锚列 startTime，recordId 不在任何活跃 record 行——统一覆盖
+     * 死信迁移、OVERWRITE 重建（无死信行孤儿源）及历史遗留孤儿</li>
+     * </ul>
+     * 每轮每表先按锚列谓词+limit 有界拾取主键集再按 IN 集批删（单批删除上限 batchSize）；
+     * 谓词幂等，重复触发无害。retentionTimeMillis &lt;= 0 或 batchSize &lt;= 0 时行为未定义，
+     * 由调用方（引擎装配期校验）fail-fast 保证不出现。
+     *
+     * @param retentionTimeMillis 保留期（毫秒）
+     * @param batchSize           单轮单表删除上限
+     * @return 本轮删除的行数（record+attempt+deadLetter 合计）
+     */
+    long purgeExpiredLedgerRows(long retentionTimeMillis, int batchSize);
 
     long getCurrentTime();
 

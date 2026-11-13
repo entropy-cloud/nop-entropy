@@ -79,6 +79,7 @@ import io.nop.stream.core.util.OutputTag;
 import io.micrometer.core.instrument.Counter;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
@@ -188,6 +189,24 @@ public class CepOperator<IN, KEY, OUT>
      * a ledger entry, maintained by {@code registerTimer}) holds for that key.
      */
     private transient Set<Object> reconciledTimerKeys;
+
+    /**
+     * CRA 8.43 R4-03 W-10 (C8-002, adjudication C.2): subtask-level count of
+     * in-flight buffered match events across ALL keys (incremented at
+     * {@link #bufferEvent}, decremented at the drainDueBuckets bucket-removal
+     * point). Single-task-thread mailbox model — a plain field, no atomics.
+     * Transient: a restore restarts the count at 0, so the protection covers
+     * the post-restore growth (under-counts the restored backlog itself — a
+     * guard weakening, not a false kill; declared in the owner doc).
+     */
+    private transient long bufferedEvents;
+
+    /**
+     * CRA 8.43 R4-03 W-10: the subtask-level match-buffer cap, loaded from
+     * {@link NopCepConfigs#MATCH_BUFFER_MAX_EVENTS} at {@link #open()} and
+     * fail-fast rejected when {@code <= 0}.
+     */
+    private transient long matchBufferMaxEvents;
 
     /**
      * Comparator for secondary sorting. Primary sorting is always done on time.
@@ -319,23 +338,147 @@ public class CepOperator<IN, KEY, OUT>
     /**
      * {@inheritDoc}
      *
-     * <p>CEP operator: the NFA factory, user process function, comparator,
-     * skip strategy and the explicit key class (all immutable configuration) are
-     * shared across subtasks. Per-subtask mutable state (computation states,
-     * element queue, shared buffer, NFA, timers, current watermark) is left null
-     * and re-initialized by {@link #open()}.
+     * <p>CEP operator: comparator, skip strategy and the explicit key class
+     * (immutable configuration) are shared across subtasks. Per-subtask mutable
+     * state (computation states, element queue, shared buffer, NFA, timers,
+     * current watermark) is left null and re-initialized by {@link #open()}.
+     *
+     * <p>plan 2511 C1-001 (adjudication ②): the NFA factory and the user process
+     * function are NOT shared by reference — each subtask gets a serialization
+     * round-trip deep copy. The compiled factory holds the pattern's State graph
+     * whose embedded (Rich) conditions are mutated in place by
+     * {@link io.nop.stream.cep.nfa.NFA#open}/{@link io.nop.stream.cep.nfa.NFA#close}
+     * ({@code setFunctionRuntimeContext}/open/close lifecycle): sharing one
+     * instance across subtasks made the runtime context last-writer-wins, opened
+     * every condition N times, and let the first subtask's close() release the
+     * resources of all subtasks. A private copy per subtask closes all three
+     * faces at once. Serialization failure fails typed (no silent sharing
+     * fallback) — the ONLY exception is the explicit shareable-leaf carve-out for
+     * compiled XLang functions (see {@link #serializationRoundTripCopy}).
      */
     @Override
     public CepOperator<IN, KEY, OUT> copyForSubtask() {
         return new CepOperator<>(
                 inputSerializer,
                 isProcessingTime,
-                nfaFactory,
+                serializationRoundTripCopy(nfaFactory),
                 comparator,
                 afterMatchSkipStrategy,
-                getUserFunction(),
+                serializationRoundTripCopy(getUserFunction()),
                 lateDataOutputTag,
                 keyClass);
+    }
+
+    /**
+     * plan 2511 C1-001: Java-serialization round-trip deep copy. Used by
+     * {@link #copyForSubtask()} to give every subtask private NFA condition
+     * graphs and a private user function. Non-serializable user conditions or
+     * functions fail typed here with guidance instead of silently falling back
+     * to the shared (unsafe) instance.
+     *
+     * <p><b>Shareable-leaf carve-out (plan 2511 deviation, live evidence
+     * {@code TestS1CdcPipelineE2E}, red log {@code _tmp/2511-s1-solo.log}):</b>
+     * XPL-script pattern conditions wrap compiled XLang functions
+     * (e.g. {@code io.nop.xlang.exec.MakeScopeEvalFunction}) which are NOT
+     * {@link Serializable} — the scripted-scenario form of the E2E fraud
+     * pipeline round-trip failed typed with {@code NotSerializableException},
+     * blocking a legitimate production shape. Compiled XLang functions are
+     * immutable executables evaluated against a CALLER-PROVIDED
+     * {@code IEvalScope}; they carry no per-subtask state and implement no
+     * RichFunction lifecycle ({@code setRuntimeContext}/open/close never touch
+     * them — {@code FunctionUtils} only dispatches to {@code RichFunction}).
+     * Sharing such a leaf by reference therefore reopens NONE of the three
+     * adjudication-② faces (condition graph privacy, ctx slots, udf lifecycle —
+     * the udf face depends solely on RichFunction state these objects do not
+     * have). During the round trip they are substituted by a {@link ShareRef}
+     * whose {@code readResolve} hands back the SAME shared instance; the
+     * surrounding condition objects are still deep-copied, so the condition
+     * graph stays private per subtask. The carve-out is name-scoped to
+     * {@code io.nop.xlang.*} classes: any OTHER non-Serializable leaf still
+     * fails typed — there is no general silent sharing fallback.
+     */
+    private static <X> X serializationRoundTripCopy(X obj) {
+        if (obj == null) {
+            return null;
+        }
+        try {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            try (java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(bos) {
+                {
+                    // The default ObjectOutputStream does NOT enable object
+                    // replacement; the shareable-leaf carve-out needs it on.
+                    enableReplaceObject(true);
+                }
+
+                @Override
+                protected Object replaceObject(Object o) {
+                    if (isShareableCompiledXlangFunction(o)) {
+                        return new ShareRef(o);
+                    }
+                    return o;
+                }
+            }) {
+                oos.writeObject(obj);
+            }
+            try (java.io.ObjectInputStream ois = new java.io.ObjectInputStream(
+                    new java.io.ByteArrayInputStream(bos.toByteArray()))) {
+                @SuppressWarnings("unchecked")
+                X copy = (X) ois.readObject();
+                return copy;
+            }
+        } catch (Exception e) {
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e)
+                    .param(ARG_DETAIL, "copyForSubtask requires the NFA factory, the pattern conditions "
+                            + "and the user function to be Serializable (per-subtask private copies; only "
+                            + "stateless compiled io.nop.xlang.* eval functions are exempted as shareable "
+                            + "leaves): " + obj.getClass().getName() + " failed serialization round-trip");
+        }
+    }
+
+    /**
+     * The explicit whitelist of the shareable-leaf carve-out: a compiled XLang
+     * eval function — NOT user-serializable, NOT a RichFunction (no udf
+     * lifecycle state), and defined by the {@code io.nop.xlang} engine (whose
+     * compiled functions are immutable executables over caller-provided scopes).
+     * Everything else that is not Serializable keeps failing typed.
+     */
+    private static boolean isShareableCompiledXlangFunction(Object o) {
+        return o instanceof io.nop.core.lang.eval.IEvalFunction
+                && !(o instanceof java.io.Serializable)
+                && !(o instanceof io.nop.stream.core.common.functions.RichFunction)
+                && o.getClass().getName().startsWith("io.nop.xlang.");
+    }
+
+    /**
+     * Serializable stand-in for a shareable leaf: holds only an id on the wire
+     * and resolves back to the shared instance on read. The pool is
+     * JVM-scoped and bounded by the number of distinct compiled XLang functions
+     * in deployed job graphs (a handful per job) — the shared references are the
+     * same immutable compiled objects the rest of the platform reuses anyway.
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<Integer, Object>
+            SHAREABLE_LEAF_POOL = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final java.util.concurrent.atomic.AtomicInteger
+            SHAREABLE_LEAF_SEQ = new java.util.concurrent.atomic.AtomicInteger();
+
+    private static final class ShareRef implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
+        private final int id;
+
+        ShareRef(Object target) {
+            this.id = SHAREABLE_LEAF_SEQ.incrementAndGet();
+            SHAREABLE_LEAF_POOL.put(id, target);
+        }
+
+        private Object readResolve() {
+            Object shared = SHAREABLE_LEAF_POOL.get(id);
+            if (shared == null) {
+                throw new StreamException(ERR_STREAM_INVALID_STATE)
+                        .param(ARG_DETAIL, "shareable XLang function leaf lost from the copy pool: id=" + id);
+            }
+            return shared;
+        }
     }
 
     /**
@@ -400,6 +543,17 @@ public class CepOperator<IN, KEY, OUT>
         resolveKeyedBackend();
         initStateAccess();
         initTimerLedger();
+
+        // CRA 8.43 R4-03 W-10: load the match-buffer envelope at open and fail
+        // fast on a nonsensical (non-positive) declaration.
+        this.matchBufferMaxEvents = NopCepConfigs.MATCH_BUFFER_MAX_EVENTS.get();
+        if (this.matchBufferMaxEvents <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    "Invalid CEP config: nop.cep.pipeline.match-buffer.max-events ("
+                            + this.matchBufferMaxEvents + ") must be > 0 — it bounds the "
+                            + "subtask-level in-flight match-buffer events");
+        }
+        this.bufferedEvents = 0;
 
         internalTimerService = createTimerService();
 
@@ -1039,6 +1193,21 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     private void bufferEvent(IN event, long currentTime) throws Exception {
+        // CRA 8.43 R4-03 W-10: subtask-level in-flight envelope — reject BEFORE
+        // buffering (no queue pollution) when the event would exceed the cap.
+        // The check shares the bufferEvent call site with the existing late-event
+        // branch semantics (a separate, parallel branch — late-record counting is
+        // NOT merged into this path).
+        if (bufferedEvents + 1 > matchBufferMaxEvents) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                    "CEP match-buffer overflow: in-flight buffered events would exceed "
+                            + "nop.cep.pipeline.match-buffer.max-events=" + matchBufferMaxEvents
+                            + " (current in-flight count: " + bufferedEvents + ", key: "
+                            + currentRegistrationKey() + ", event timestamp: " + currentTime
+                            + "). Check watermark progress (idle source partitions stall "
+                            + "the drain), add a within clause to the pattern, or raise "
+                            + "nop.cep.pipeline.match-buffer.max-events");
+        }
         List<IN> elementsForTimestamp = elementQueueState.get(currentTime);
         if (elementsForTimestamp == null) {
             elementsForTimestamp = new ArrayList<>();
@@ -1047,6 +1216,7 @@ public class CepOperator<IN, KEY, OUT>
 
         elementsForTimestamp.add(event);
         elementQueueState.put(currentTime, elementsForTimestamp);
+        bufferedEvents++;
     }
 
     /**
@@ -1181,6 +1351,19 @@ public class CepOperator<IN, KEY, OUT>
             }
         }
         computationStates.clear();
+        // CRA 8.43 R4-03 W-07 (MA-16=C5-001, adjudication D.1): the key's NFA
+        // state is fully gone — its reconciled-ledger marker must go with it.
+        // Pre-fix reconciledTimerKeys grew monotonically per distinct key (every
+        // key ever drained stayed forever, holding a strong key reference — a
+        // stable per-subtask leak under unbounded key cardinality). Removal is
+        // re-reconcile-safe: the backfill is idempotent (a re-drained key whose
+        // legacy delta is empty observes a no-op), so "once per instance
+        // lifetime" becomes "once per key lifetime" — the set's watermark is
+        // bounded by the live key cardinality. Mirrors the
+        // registeredEventTimeTimersByKey "consume-or-remove" cleanup semantics.
+        if (reconciledTimerKeys != null) {
+            reconciledTimerKeys.remove(currentRegistrationKey());
+        }
     }
 
     private Stream<IN> sort(Collection<IN> elements) {
@@ -1253,6 +1436,10 @@ public class CepOperator<IN, KEY, OUT>
                             }
                         });
             }
+            // CRA 8.43 R4-03 W-10: the bucket is consumed — its events leave the
+            // in-flight envelope (decrement by the bucket size at the removal
+            // point, keeping bufferedEvents == live buffered events).
+            bufferedEvents -= elements.size();
             elementQueueState.remove(timestamp);
         }
     }
@@ -1440,6 +1627,15 @@ public class CepOperator<IN, KEY, OUT>
     boolean hasNonEmptyPQ(KEY key) throws Exception {
         setCurrentKey(key);
         return !elementQueueState.isEmpty();
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-07 (S8 seam): package-visible watermark of the
+     * reconciled-ledger marker set — the red ⑦ convergence assertion point.
+     * Zero public API surface.
+     */
+    int reconciledTimerKeysSizeForTesting() {
+        return reconciledTimerKeys == null ? 0 : reconciledTimerKeys.size();
     }
 
     int getPQSize(KEY key) throws Exception {

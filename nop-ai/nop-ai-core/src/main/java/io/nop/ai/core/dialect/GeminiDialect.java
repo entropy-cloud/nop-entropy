@@ -436,90 +436,133 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         return response;
     }
 
+    /**
+     * Plan 2519 (裁定⑧): full enumeration — every part of the first candidate
+     * is emitted (the old first-part return truncated multi-part events), and
+     * the {@code usageMetadata} frame is mapped into the streaming usage
+     * chain (C3-030 four-dialect usage matrix).
+     */
     @Override
-    public ChatStreamChunk parseStreamChunk(String data) {
+    public List<ChatStreamChunk> parseStreamChunks(String data) {
         if (data == null || data.isEmpty() || "[DONE]".equals(data)) {
-            return null;
+            return new ArrayList<>();
         }
-
         @SuppressWarnings("unchecked")
         Map<String, Object> dataMap = (Map<String, Object>) JSON.parse(data);
-        ChatStreamChunk chunk = new ChatStreamChunk();
+        List<ChatStreamChunk> chunks = new ArrayList<>();
 
-        // 解析模型信息
-        chunk.setModel(getStringByPath(dataMap, "model"));
-        if (chunk.getModel() == null) {
-            chunk.setModel(getStringByPath(dataMap, "modelVersion"));
+        // master 侧保留：解析 provider 模型信息（model / modelVersion），附着到本帧所有 chunk
+        String modelName = getStringByPath(dataMap, "model");
+        if (modelName == null) {
+            modelName = getStringByPath(dataMap, "modelVersion");
         }
-
-        // 解析结束原因
-        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "candidates.0.finishReason"));
-        if (finishReason != null) {
-            chunk.setPhase(StreamItemPhase.DONE);
-            chunk.setFinishReason(finishReason);
-        }
-
-        // 解析内容 - 处理 thought 标记 / functionCall（itemIndex 按出现序）
         Object candidatesObj = dataMap.get("candidates");
-        if (candidatesObj instanceof List) {
-            List<?> candidates = (List<?>) candidatesObj;
-            if (!candidates.isEmpty() && candidates.get(0) instanceof Map) {
+        if (candidatesObj instanceof List && !((List<?>) candidatesObj).isEmpty()
+                && ((List<?>) candidatesObj).get(0) instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> candidate = (Map<String, Object>) ((List<?>) candidatesObj).get(0);
+            Object contentObj = candidate.get("content");
+            if (contentObj instanceof Map) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> candidate = (Map<String, Object>) candidates.get(0);
-                Object contentObj = candidate.get("content");
-                if (contentObj instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> contentMap = (Map<String, Object>) contentObj;
-                    Object partsObj = contentMap.get("parts");
-                    if (partsObj instanceof List) {
-                        int order = 0;
-                        for (Object part : (List<?>) partsObj) {
-                            if (part instanceof Map) {
-                                @SuppressWarnings("unchecked")
-                                Map<String, Object> partMap = (Map<String, Object>) part;
-                                Boolean thought = (Boolean) partMap.get("thought");
-                                String text = (String) partMap.get("text");
-                                Object functionCall = partMap.get("functionCall");
-
-                                if (text != null) {
-                                    if (Boolean.TRUE.equals(thought)) {
-                                        chunk.setItemType(StreamItemType.reasoning);
-                                        chunk.setItemIndex(order);
-                                        chunk.setPhase(StreamItemPhase.DELTA);
-                                        chunk.setDelta(text);
-                                    } else {
-                                        chunk.setItemType(StreamItemType.text);
-                                        chunk.setItemIndex(order);
-                                        chunk.setPhase(StreamItemPhase.DELTA);
-                                        chunk.setDelta(text);
-                                    }
-                                    return chunk; // 每个 chunk 通常只有一个内容
-                                }
-                                if (functionCall instanceof Map) {
-                                    @SuppressWarnings("unchecked")
-                                    Map<String, Object> fc = (Map<String, Object>) functionCall;
-                                    chunk.setItemType(StreamItemType.tool_call);
-                                    chunk.setItemIndex(order);
-                                    chunk.setPhase(StreamItemPhase.ADDED);
-                                    chunk.setDelta((String) fc.get("name"));
-                                    // Gemini 流式 functionCall 在单事件内完整下发 name + args（结构化 Map）。
-                                    // 单 chunk 无法再发一个 DELTA 片段，故在 ADDED chunk 上经 arguments 通道
-                                    // 同载完整 args JSON（与 OpenAI/Anthropic 的 name 优先声明语义保持一致）。
-                                    Object args = fc.get("args");
-                                    if (args instanceof Map && !((Map<?, ?>) args).isEmpty()) {
-                                        chunk.setArguments(JSON.stringify(args));
-                                    }
-                                    return chunk;
-                                }
-                                order++;
-                            }
+                Map<String, Object> contentMap = (Map<String, Object>) contentObj;
+                Object partsObj = contentMap.get("parts");
+                if (partsObj instanceof List) {
+                    int order = 0;
+                    for (Object part : (List<?>) partsObj) {
+                        ChatStreamChunk partChunk = toGeminiPartChunk(part, order);
+                        if (partChunk != null) {
+                            chunks.add(partChunk);
                         }
+                        order++;
                     }
                 }
             }
         }
 
-        return chunk;
+        // termination signal: candidates[0].finishReason → DONE (pre-fix single-chunk
+        // contract carried it on the one chunk; multi-chunk attaches to the last
+        // enumerated chunk or emits a standalone DONE chunk — zero regression for
+        // the plan 2505 termination-signal face and the bidirectional closed loop)
+        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "candidates.0.finishReason"));
+        if (finishReason != null) {
+            ChatStreamChunk last = chunks.isEmpty() ? null : chunks.get(chunks.size() - 1);
+            if (last == null) {
+                last = new ChatStreamChunk();
+                chunks.add(last);
+            }
+            last.setPhase(StreamItemPhase.DONE);
+            last.setFinishReason(finishReason);
+        }
+
+        // 裁定⑧: usageMetadata mapping (promptTokenCount/candidatesTokenCount/totalTokenCount)
+        Object usageObj = dataMap.get("usageMetadata");
+        if (usageObj instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> usageMap = (Map<String, Object>) usageObj;
+            ChatUsage usage = new ChatUsage();
+            usage.setPromptTokens(getIntByPath(usageMap, "promptTokenCount"));
+            usage.setCompletionTokens(getIntByPath(usageMap, "candidatesTokenCount"));
+            usage.setTotalTokens(getIntByPath(usageMap, "totalTokenCount"));
+            ChatStreamChunk usageChunk = new ChatStreamChunk();
+            usageChunk.setUsage(usage);
+            chunks.add(usageChunk);
+        }
+
+        if (modelName != null) {
+            for (ChatStreamChunk c : chunks) {
+                if (c.getModel() == null) {
+                    c.setModel(modelName);
+                }
+            }
+        }
+
+        return chunks;
+    }
+
+    /** One candidate part → chunk (text / reasoning / functionCall). */
+    private ChatStreamChunk toGeminiPartChunk(Object part, int order) {
+        if (!(part instanceof Map)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> partMap = (Map<String, Object>) part;
+        Boolean thought = (Boolean) partMap.get("thought");
+        String text = (String) partMap.get("text");
+        Object functionCall = partMap.get("functionCall");
+
+        ChatStreamChunk chunk = new ChatStreamChunk();
+        if (text != null) {
+            chunk.setItemType(Boolean.TRUE.equals(thought)
+                    ? StreamItemType.reasoning : StreamItemType.text);
+            chunk.setItemIndex(order);
+            chunk.setPhase(StreamItemPhase.DELTA);
+            chunk.setDelta(text);
+            return chunk;
+        }
+        if (functionCall instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> fc = (Map<String, Object>) functionCall;
+            chunk.setItemType(StreamItemType.tool_call);
+            chunk.setItemIndex(order);
+            chunk.setPhase(StreamItemPhase.ADDED);
+            chunk.setDelta((String) fc.get("name"));
+            Object args = fc.get("args");
+            if (args instanceof Map && !((Map<?, ?>) args).isEmpty()) {
+                chunk.setArguments(JSON.stringify(args));
+            }
+            return chunk;
+        }
+        return null;
+    }
+
+    /**
+     * Plan 2519 (裁定⑧): single-chunk compatibility delegate (ILlmDialect
+     * contract unchanged).
+     */
+    @Override
+    public ChatStreamChunk parseStreamChunk(String data) {
+        List<ChatStreamChunk> chunks = parseStreamChunks(data);
+        return chunks.isEmpty() ? null : chunks.get(0);
     }
 
     @Override

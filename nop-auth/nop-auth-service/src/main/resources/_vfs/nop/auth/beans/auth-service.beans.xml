@@ -187,12 +187,24 @@
     <!-- 可信设备共享组件（W15-impl，设计 §六）：指纹计算 + 豁免判定 + 登记 + 撤销矩阵统一
           落点。注入 LoginServiceImpl（豁免/登记）/ NopAuthUserBizModel（撤销/管理 API）。
           ioc:default 允许应用覆盖。 -->
+    <!-- 5.1-MA-04（plan 2569）：显式 ref 注入——容器内存在多个 IResourceLockManager 候选
+         （nopSysDaoResourceLockManager 等），by-type 自动装配歧义 fail-fast，故逐消费者显式指名 -->
     <bean id="nopMfaTrustedDeviceManager" class="io.nop.auth.service.mfa.MfaTrustedDeviceManager"
-          ioc:default="true"/>
+          ioc:default="true">
+        <property name="lockManager">
+            <ref bean="nopAuthSessionFlushLockManager"/>
+        </property>
+    </bean>
 
     <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
 
     </bean>
+
+    <!-- 5.1-MA-01（plan 2502）：认证六族账本表保留期周期清扫（形态 A——登录机器速率写入面）。
+         生命周期接线 = 容器创建单例 bean → LifeCycleSupport @PostConstruct start() → doStart
+         周期调度（taskName=nop-auth-ledger-cleanup）；nop.auth.ledger.retention-days=0 可显式禁用。
+         授权边界=六族：trusted-device 过期行清扫第七面不在本组件（R1 修订摘除→R3-01）。 -->
+    <bean id="nopAuthLedgerCleaner" class="io.nop.auth.service.cleanup.NopAuthLedgerCleaner" ioc:default="true"/>
 
     <bean id="nopGraphQLLogger" class="io.nop.auth.service.audit.GraphQLAuditLogger" ioc:default="true">
         <ioc:condition>
@@ -200,10 +212,17 @@
         </ioc:condition>
     </bean>
 
+    <!-- 2.3-C1-010（plan 2568）：saveUserContextAsync per-session 单飞所用的本地资源锁。
+         ioc:default=true：部署方可用分布式 IResourceLockManager 实现覆盖。 -->
+    <bean id="nopAuthSessionFlushLockManager" class="io.nop.commons.concurrent.lock.impl.LocalResourceLockManager" ioc:default="true"/>
+
     <bean id="nopUserContextCache" class="io.nop.auth.service.login.DaoUserContextCache">
         <ioc:condition>
             <if-property name="nop.auth.login.use-dao-user-context-cache"/>
         </ioc:condition>
+        <property name="lockManager">
+            <ref bean="nopAuthSessionFlushLockManager"/>
+        </property>
     </bean>
 
     <bean id="nopAuditService" class="io.nop.auth.service.audit.AuditServiceImpl"/>

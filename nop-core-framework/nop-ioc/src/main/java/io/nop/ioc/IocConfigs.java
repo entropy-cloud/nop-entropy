@@ -27,6 +27,14 @@ public interface IocConfigs {
     @Description("是否初始化IoC容器")
     IConfigReference<Boolean> CFG_IOC_APP_BEANS_CONCURRENT_START = AppConfig.varRef(s_loc, "nop.ioc.app-beans-container.concurrent-start", Boolean.class, false);
 
+    @Description("并发启动模式下容器启动完成等待(join)的超时时间，毫秒。缺省60000。小于等于0表示不限制等待时间")
+    IConfigReference<Integer> CFG_IOC_APP_BEANS_CONTAINER_START_JOIN_TIMEOUT = AppConfig
+            .varRef(s_loc, "nop.ioc.app-beans-container.start-join-timeout", Integer.class, 60_000);
+
+    @Description("bean创建锁获取与初始化阶段跨线程等待的超时时间，毫秒。缺省60000。小于等于0表示不限制等待时间")
+    IConfigReference<Integer> CFG_IOC_BEAN_INIT_WAIT_TIMEOUT = AppConfig.varRef(s_loc, "nop.ioc.bean-init.wait-timeout",
+            Integer.class, 60_000);
+
     @Description("是否自动装载所有模块下的beans/app-*.beans.xml文件")
     IConfigReference<Boolean> CFG_IOC_APP_BEANS_FILE_ENABLED = AppConfig.varRef(s_loc, "nop.ioc.app-beans-file.enabled",
             Boolean.class, true);

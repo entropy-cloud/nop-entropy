@@ -10,6 +10,7 @@ package io.nop.auth.service.mfa.store;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.auth.service.support.RedisTtlGuard;
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.mfa.store.SmsCodeStoreConfig;
@@ -30,6 +31,9 @@ import jakarta.inject.Inject;
  * key 隔离由调用方传入完整逻辑 key 保证（{@code login:{phone}} / {@code mfa:{userId}}）。
  */
 public class RedisSmsCodeStore implements SmsCodeStore {
+
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(RedisSmsCodeStore.class);
+
 
     private static final String CODE_PREFIX = "sms:code:";
     private static final String FAIL_PREFIX = "sms:fail:";
@@ -53,6 +57,10 @@ public class RedisSmsCodeStore implements SmsCodeStore {
 
     private String failKey(String key) {
         return FAIL_PREFIX + key;
+    }
+
+    private java.time.Duration ttlDuration() {
+        return java.time.Duration.ofMillis(ttlMillis());
     }
 
     private long ttlMillis() {
@@ -103,7 +111,8 @@ public class RedisSmsCodeStore implements SmsCodeStore {
         INosqlCounter counter = nosql.counter(failKey(key));
         long fails = counter.increment(1);
         if (fails == 1L) {
-            FutureHelper.syncGet(nosql.setTimeoutAsync(failKey(key), ttlMillis()));
+            // 5.1-MA-02（plan 2569）：附着失败补偿删除（重取验证码，无害）
+            RedisTtlGuard.attachTtl(nosql, failKey(key), ttlDuration(), LOG);
         }
         if (fails >= config.getMaxAttempts()) {
             // 超限作废：删验证码 + 计数

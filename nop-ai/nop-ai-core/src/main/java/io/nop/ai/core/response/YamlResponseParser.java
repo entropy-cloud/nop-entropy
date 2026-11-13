@@ -7,7 +7,8 @@ import io.nop.core.lang.json.JsonTool;
 import java.util.Map;
 
 public class YamlResponseParser {
-    static YamlResponseParser _instance = new YamlResponseParser();
+    // 3.1-MA-12（plan 2555 裁定 B / C1-003）：volatile 保证换装可见 + 安全发布
+    static volatile YamlResponseParser _instance = new YamlResponseParser();
 
     public static YamlResponseParser instance() {
         return _instance;

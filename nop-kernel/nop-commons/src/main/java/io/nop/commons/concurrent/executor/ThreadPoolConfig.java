@@ -20,11 +20,10 @@ public class ThreadPoolConfig extends BaseThreadPoolConfig {
 
     private int keepAliveSeconds = 60;
 
-    private boolean allowCoreThreadTimeOut = false;
+    // C4-011（plan 2548）：threadPriority / allowCoreThreadTimeOut 已删除——全仓零 Java 消费者、
+    // 零配置键使用者（yaml/xml/properties 均无），删除死旋钮；契约变更已在 owner doc 声明
 
     private int queueCapacity = 10000;
-
-    private int threadPriority = Thread.NORM_PRIORITY;
 
     private boolean threadDaemon = false;
 
@@ -54,28 +53,12 @@ public class ThreadPoolConfig extends BaseThreadPoolConfig {
         this.keepAliveSeconds = keepAliveSeconds;
     }
 
-    public boolean isAllowCoreThreadTimeOut() {
-        return allowCoreThreadTimeOut;
-    }
-
-    public void setAllowCoreThreadTimeOut(boolean allowCoreThreadTimeOut) {
-        this.allowCoreThreadTimeOut = allowCoreThreadTimeOut;
-    }
-
     public int getQueueCapacity() {
         return queueCapacity;
     }
 
     public void setQueueCapacity(int queueCapacity) {
         this.queueCapacity = queueCapacity;
-    }
-
-    public int getThreadPriority() {
-        return threadPriority;
-    }
-
-    public void setThreadPriority(int threadPriority) {
-        this.threadPriority = threadPriority;
     }
 
     public boolean isThreadDaemon() {

@@ -168,7 +168,7 @@ jar 轨（Maven 坐标 id，双冒号格式）无 plugin.xdef/VFS 定义载体�
 
 ## 变更检测接线（HMR）
 
-框架核心**不起轮询线程**——提供显式检查入口 `PluginManagerImpl.checkChangedAndReload()`：遍历 VFS 轨已加载定义（仅跳过 UNLOADED，ACTIVATED/中间态定义进入变更检测），用 `ResourceComponentManager.checkChanged`（资源真实 lastModified 严格比对）检测 → 有变更调 `reloadPlugin`。宿主应用**定时调用**接线方式：
+框架核心**不起轮询线程**——提供显式检查入口 `PluginManagerImpl.checkChangedAndReload()`：遍历 VFS 轨已加载定义（仅跳过 UNLOADED，ACTIVATED/中间态定义进入变更检测），判据取 `DefaultResourceChangeChecker` 载体的**纯比较入口** `isLoadMismatch`（资源真实 lastModified 相等比较，**不继承**模型缓存层的「写入年龄宽限期」——插件 reload 为重量级迁移，刚写入/刚加载的 plugin.xml 在宽限窗内不得伪重载）→ 有变更调 `reloadPlugin`。宿主应用**定时调用**接线方式：
 
 ```java
 // 宿主调度（如 nop-job / 定时线程）：
@@ -179,6 +179,10 @@ executor.scheduleWithFixedDelay(manager::checkChangedAndReload, 0, 5, TimeUnit.S
 `reloadPlugin(pluginId)` 编排：若激活态先 `deactivate()`（回退 effect）→ `unload()`（丢弃旧定义）→ `load()`（重解析 plugin.xml，**重放定义级 updateConfig 累积值**）→ `reconcile()`（重新门控激活）。
 
 注意：`checkChangedAndReload` 是 `PluginManagerImpl` 的**实现层方法**（非 `IPluginManager` 接口方法）；jar 轨 `reloadPlugin` 显式抛 `ERR_PLUGIN_RELOAD_NOT_SUPPORTED`。
+
+## 生命周期并发契约（插件开发者须知）
+
+- 双锁单向序 + 用户代码契约：**插件 activator、effect dispose、bean destroy-method 内不得调用 `IPluginManager` 生命周期 API 或 `reconcilePlugins`**（这些用户代码在定义层 `lifecycleLock` 内执行，回调 manager 会与编排锁构成反向获取）；deactivate/activate 失败落定 `FAILED`（不滞留中间态），残留 scope/container 引用经 `PluginManagerImpl.forceUnload(pluginId)`（实现类方法，非接口）恢复到 `UNLOADED` 可重载。契约细节以 `../02-core-guides/ioc-and-config.md`「插件生命周期与配置源生命周期并发契约」节为准（摘要以该节为源）。
 
 ## 源码锚点
 
@@ -197,6 +201,6 @@ executor.scheduleWithFixedDelay(manager::checkChangedAndReload, 0, 5, TimeUnit.S
 
 ## 相关文档
 
-- 实现锚点：`../04-reference/source-anchors.md`（`PLG-001` ~ `PLG-009`）
+- 实现锚点：`../04-reference/source-anchors.md`（`PLG-001` ~ `PLG-012`）
 - 模块分组：`../01-repo-map/module-groups.md`（核心框架分组）
 - 权威设计来源：仓库 ai-dev/design/nop-plugin/ 目录下文档（01-architecture-baseline 架构基线 + 05-artifact-loading-design artifact 加载缓存语义与 SHA256，平台内部文档）——按 docs-for-ai 边界规则不直接链接，需精确定位时从 `04-reference/source-anchors.md` 出发

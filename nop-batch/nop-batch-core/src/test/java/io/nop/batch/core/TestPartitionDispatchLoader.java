@@ -63,9 +63,13 @@ public class TestPartitionDispatchLoader {
             });
         }
 
+        // N3 搭车（plan 2516 裁定②）：latch.await 补超时——防护栏回潮（Semaphore(0) 挂死）时构建失败而非悬挂
         try {
-            latch.await();
-        } catch (Exception e) {
+            if (!latch.await(30, java.util.concurrent.TimeUnit.SECONDS))
+                throw new IllegalStateException("dispatch consumer threads did not finish in time (possible Semaphore(0) deadlock regression, C8-001)");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted while waiting for dispatch consumer threads", e);
         }
 
         context.complete();
@@ -110,9 +114,13 @@ public class TestPartitionDispatchLoader {
             });
         }
 
+        // N3 搭车（plan 2516 裁定②）：latch.await 补超时——防护栏回潮（Semaphore(0) 挂死）时构建失败而非悬挂
         try {
-            latch.await();
-        } catch (Exception e) {
+            if (!latch.await(30, java.util.concurrent.TimeUnit.SECONDS))
+                throw new IllegalStateException("dispatch consumer threads did not finish in time (possible Semaphore(0) deadlock regression, C8-001)");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted while waiting for dispatch consumer threads", e);
         }
 
         context.complete();

@@ -13,4 +13,8 @@ public interface NopAiToolkitErrors {
 
     ErrorCode ERR_AI_TOOLKIT_INVALID_STATE = define("nop.err.ai.toolkit.invalid-state",
             "Invalid state: {detail}", ARG_DETAIL);
+
+    /** 3.2-MA-07（plan 2557 裁定 A）：per-path 排队积压超上界 fail-loud（QueueOverflowPolicy ERROR 语义） */
+    ErrorCode ERR_AI_TOOLKIT_PATH_QUEUE_OVERFLOW = define("nop.err.ai.toolkit.path-queue-overflow",
+            "Path queue overflow: {detail}", ARG_DETAIL);
 }

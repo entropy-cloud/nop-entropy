@@ -91,6 +91,12 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
      */
     private transient io.micrometer.core.instrument.Counter overRowsCounter;
 
+    /** W-15: deployment scope for the stable metric key (null = identity fallback). */
+    private transient io.nop.stream.core.checkpoint.TaskLocation metricLocation;
+
+    /** W-15: index-only fallback identity (copyForSubtask(int) injection; default 0). */
+    private transient int metricSubtaskIdentity;
+
     private long currentWatermark;
 
     public OverWindowOperator(FrameKind kind, int frameSize, String aggId) {
@@ -104,6 +110,40 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
         // fresh instance per subtask — the keyed backend is provisioned per task in
         // open(), so parallel subtasks never share state
         return new OverWindowOperator(kind, frameSize, aggId);
+    }
+
+    /** W-15 (CRA 8.41 R4-01, ruling E.3): deployment identity for the stable metric key. */
+    @Override
+    public OverWindowOperator copyForSubtask(io.nop.stream.core.checkpoint.TaskLocation location) {
+        OverWindowOperator copy = copyForSubtask();
+        copy.metricLocation = location;
+        return copy;
+    }
+
+    /** W-15: index-only fallback identity for the stable metric key. */
+    @Override
+    public OverWindowOperator copyForSubtask(int subtaskIndex) {
+        OverWindowOperator copy = copyForSubtask();
+        copy.metricSubtaskIdentity = subtaskIndex;
+        return copy;
+    }
+
+    /**
+     * W-15 stable scope key: {@code jobId|vertexId|subtaskIndex} under a wired
+     * location, else the injected subtask identity fallback (registered deviation
+     * from ruling E.3's {@code vertexId|subtaskIndex} — no vertexId source without
+     * a deployment location).
+     */
+    private String metricScopeKey() {
+        if (metricLocation != null) {
+            return metricLocation.getJobId() + "|" + metricLocation.getVertexId()
+                    + "|" + metricLocation.getTaskIndex();
+        }
+        return String.valueOf(metricSubtaskIdentity);
+    }
+
+    private int metricSubtaskTag() {
+        return metricLocation != null ? metricLocation.getTaskIndex() : metricSubtaskIdentity;
     }
 
     @Override
@@ -125,9 +165,27 @@ public class OverWindowOperator extends AbstractStreamOperator<String>
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor<>(BUFFER_STATE, String.class, String.class));
         }
+        // W-15 (CRA 8.41 R4-01, ruling E.3): stable scope key — the pre-fix
+        // identityHashCode tag minted a fresh meter on every redeploy; close()
+        // removes the meter (matched removal below).
         overRowsCounter = io.nop.stream.core.metrics.StreamMetricsRegistries.registry()
                 .counter(OVER_OUTPUTS_METRIC_NAME,
-                        "operator", getClass().getSimpleName() + "@" + System.identityHashCode(this));
+                        "operator", metricScopeKey(),
+                        "subtask", String.valueOf(metricSubtaskTag()));
+    }
+
+    /**
+     * W-15 (ruling E.3): removes this instance's registered counter from the
+     * metrics registry on close — matched removal, idempotent.
+     */
+    @Override
+    public void close() throws Exception {
+        if (overRowsCounter != null) {
+            io.nop.stream.core.metrics.StreamMetricsRegistries.registry()
+                    .remove(overRowsCounter.getId());
+            overRowsCounter = null;
+        }
+        super.close();
     }
 
     @Override

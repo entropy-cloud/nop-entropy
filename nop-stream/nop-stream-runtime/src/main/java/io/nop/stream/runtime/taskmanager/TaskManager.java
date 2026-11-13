@@ -49,6 +49,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_FENCING_T
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_QUERY_TIMEOUT;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.protocol.TaskProgress;
@@ -102,7 +104,24 @@ public class TaskManager implements IStreamTaskRpcService {
      */
     static volatile long invokableWaitTimeoutMs = 30_000L;
 
+    /**
+     * W-09 (CRA 8.41 R4-01, ruling D.2): bounded wait for the mailbox-handoff
+     * keyed-state snapshot behind {@code GET .../state}. Configurable via
+     * {@code nop.stream.ops.state-query-timeout-ms} (values &lt;= 0 fail fast
+     * typed at resolve time). Package-visible and volatile so focused tests can
+     * shorten it (the production default stays 5s).
+     */
+    static volatile long stateQueryTimeoutMs = 5_000L;
+    /** Config key for {@link #stateQueryTimeoutMs} (ruling D.2.3). */
+    static final String STATE_QUERY_TIMEOUT_CONFIG = "nop.stream.ops.state-query-timeout-ms";
+
     private final String nodeId;
+
+    // W-13 site ② (CRA 8.41 R4-01, ruling E.1): per-TM heartbeat lease-renewal
+    // failure suppressor (per-site instance — no cross-thread shared state).
+    // Initialized in the primary constructor (nodeId is a blank final there).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor heartbeatFailureSuppressor;
+
     private final String endpoint;
     private final int capacity;
     private final IMessageService messageService;
@@ -143,6 +162,22 @@ public class TaskManager implements IStreamTaskRpcService {
      * the queryable-state-lite surface (no write-back, no cross-process read-RPC:
      * the TM-hosted ops server reads in-process).
      *
+     * <p>W-09 (CRA 8.41 R4-01, ruling D.2): the snapshot is handed off to the
+     * TASK THREAD via the control mailbox (Mail.control → TaskMailbox.put →
+     * drained at the task's safe points), restoring the same-thread-as-writes
+     * snapshot premise the checkpoint path already relies on — a REST read can no
+     * longer tear a map the task thread is mutating. The HTTP (caller) thread
+     * bounded-waits on a future; a stuck task answers the typed
+     * {@link io.nop.stream.core.exceptions.NopStreamErrors#ERR_STREAM_STATE_QUERY_TIMEOUT}
+     * after {@link #stateQueryTimeoutMs} instead of serving torn state or hanging.
+     *
+     * <p>Steady-state filters (ruling D.2.4): an unknown task answers typed
+     * TASK_NOT_FOUND; a FINISHED (retained-entry) task answers typed TASK_NOT_FOUND
+     * too — its post-finish commit notifications keep the entry, but it can no
+     * longer serve live snapshots. A registered task whose task thread is not
+     * running (between install and first run, or already wound down) has no
+     * concurrent writer: the snapshot is served directly.
+     *
      * @return the keyed state snapshot, or an empty snapshot when the task exists but
      *         holds no keyed backend; typed error when the task is not running here
      */
@@ -150,12 +185,68 @@ public class TaskManager implements IStreamTaskRpcService {
             String jobId, String vertexId, int subtaskIndex) {
         String taskKey = taskKey(jobId, vertexId, subtaskIndex);
         RunningTask task = runningTasks.get(taskKey);
-        if (task == null || task.invokable == null) {
+        if (task == null || task.invokable == null || task.isFinished()) {
             throw new io.nop.stream.core.exceptions.StreamException(
                     io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TASK_NOT_FOUND)
                     .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME, taskKey);
         }
-        return task.invokable.keyedStateSnapshot();
+        io.nop.stream.core.execution.task.StreamTaskInvokable invokable = task.invokable;
+        if (!task.hasLiveTaskThread()) {
+            // No live task thread → no concurrent task-thread writer exists; serve
+            // directly (the registered-but-not-running window, e.g. between install
+            // and first run, or an already wound-down attempt).
+            return invokable.keyedStateSnapshot();
+        }
+
+        long timeoutMs = resolveStateQueryTimeoutMs();
+        java.util.concurrent.CompletableFuture<io.nop.stream.core.common.state.backend.StateSnapshot> future =
+                new java.util.concurrent.CompletableFuture<>();
+        io.nop.stream.core.execution.Mail mail = io.nop.stream.core.execution.Mail.control(() -> {
+            try {
+                future.complete(invokable.keyedStateSnapshot());
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        }, "queryable-state-snapshot-" + taskKey);
+        invokable.getMailboxExecutor().getMailbox().put(mail);
+        try {
+            return future.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            // TaskMailbox.put silently drops on a closed mailbox too — the bounded
+            // wait is the single funnel for both "task stuck" and "task stopped".
+            throw new StreamException(ERR_STREAM_STATE_QUERY_TIMEOUT)
+                    .param(ARG_TYPE_NAME, taskKey)
+                    .param(ARG_DETAIL, "no snapshot from the task thread within "
+                            + timeoutMs + "ms (" + STATE_QUERY_TIMEOUT_CONFIG + ")");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e)
+                    .param(ARG_DETAIL, "interrupted while waiting for the keyed-state snapshot of " + taskKey);
+        } catch (java.util.concurrent.ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            if (cause instanceof StreamException) {
+                throw (StreamException) cause;
+            }
+            throw new StreamException(ERR_STREAM_INVALID_STATE, cause)
+                    .param(ARG_DETAIL, "keyed state snapshot failed: " + cause);
+        }
+    }
+
+    /**
+     * W-09 (ruling D.2.3): resolves the bounded state-query window from
+     * {@code nop.stream.ops.state-query-timeout-ms} (falls back to
+     * {@link #stateQueryTimeoutMs}); values ≤ 0 fail fast typed (parameter
+     * discipline aligned with adjudication ② / ⑥).
+     */
+    private static long resolveStateQueryTimeoutMs() {
+        Long configured = Long.getLong(STATE_QUERY_TIMEOUT_CONFIG);
+        long effective = configured != null ? configured : stateQueryTimeoutMs;
+        if (effective <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, STATE_QUERY_TIMEOUT_CONFIG)
+                    .param(ARG_DETAIL, "must be > 0, got: " + effective);
+        }
+        return effective;
     }
 
     /** The currently active fencing epoch for this node (updated on global recovery). */
@@ -227,6 +318,8 @@ public class TaskManager implements IStreamTaskRpcService {
                     .param(ARG_DETAIL, "commitQueueCapacity must be positive (got " + commitQueueCapacity + ")");
         }
         this.nodeId = nodeId;
+        this.heartbeatFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "taskmanager.heartbeat:" + nodeId, 30_000L);
         this.endpoint = endpoint;
         this.capacity = capacity;
         this.messageService = messageService;
@@ -299,22 +392,47 @@ public class TaskManager implements IStreamTaskRpcService {
      * subsuming commit or a restore-time re-commit, so for the last checkpoint
      * of a bounded job an abort would stall the tail commit indefinitely.
      * CallerRuns applies natural backpressure instead and never loses a
-     * notification. The critical-thread concern was checked: the callers of
+     * notification; after shutdown the same always-inline path delivers the
+     * notification on the caller thread (C4-012 correction) — it is never
+     * silently dropped there either. The critical-thread concern was checked:
+     * the callers of
      * {@link #notifyCheckpointComplete} are the TM-side control-topic dispatch
      * thread / coordinator commit forwarder — NOT the checkpoint monitor; the
      * fallback delays at most ONE commit per saturated notify call on that
      * thread, and only while the commit thread is already saturated. The
      * fallback fires are counted ({@code nop.stream.task.commitCallerRuns.total})
      * so sustained saturation is observable.
+     *
+     * <p>W-12 (CRA 8.41 R4-01, ruling C.3): the handler is SPLIT-WINDOW. In the
+     * saturation window (not shutdown, queue full) the R5-CC-10 CallerRuns
+     * semantics is preserved unchanged. In the shutdown window the former
+     * {@code if (!executor.isShutdown())} guard silently DROPPED the commit —
+     * the stop-race window now always runs it inline (CC-17 precedent), so the
+     * TaskManagerMain {@code tm.stop() → messageService.close()} gap can no
+     * longer lose a 2PC commit notification. The counter increments only when
+     * the commit genuinely runs inline (both windows do), keeping the saturation
+     * metric honest (pre-fix it counted a dropped notification as a caller-run).
      */
     private void saturatedCommitQueuePolicy(Runnable r, java.util.concurrent.ThreadPoolExecutor executor) {
+        if (executor.isShutdown()) {
+            // W-12 (C4-012): shutdown race window — always-inline (CC-17
+            // semantics). A dropped notification here is only healed by the next
+            // epoch's subsuming commit; running it on the caller thread keeps
+            // the bounded-job tail commit deliverable through tm.stop().
+            nodeMetrics.commitCallerRun();
+            LOG.warn("Commit executor already shut down on node {}; running the commit on the "
+                            + "caller thread (shutdown drain: running the commit on the caller "
+                            + "thread, C4-012)",
+                    nodeId);
+            r.run();
+            return;
+        }
+        // R5-CC-10: saturation window — CallerRuns backpressure, never dropped.
         nodeMetrics.commitCallerRun();
         LOG.warn("Commit executor queue saturated on node {} (capacity={}); running the commit "
                         + "on the caller thread (CallerRuns backpressure, R5-CC-10)",
                 nodeId, commitQueueCapacity);
-        if (!executor.isShutdown()) {
-            r.run();
-        }
+        r.run();
     }
 
     // ==================== Lifecycle ====================
@@ -450,9 +568,27 @@ public class TaskManager implements IStreamTaskRpcService {
                 if (!renewed) {
                     LOG.warn("Failed to renew lease for node {}. Re-registering.", nodeId);
                     clusterRegistry.registerNode(nodeId, endpoint, capacity);
+                } else if (heartbeatFailureSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    // W-13 site ② recovery: renewal succeeded again
+                    LOG.info("Heartbeat lease renewal recovered for node {} (failure window cleared)",
+                            nodeId);
                 }
             } catch (Exception e) {
-                LOG.error("Heartbeat lease renewal failed for node {}", nodeId, e);
+                // W-13 site ② (CRA 8.41 R4-01, ruling E.1): three-state suppression
+                // on the 5s heartbeat cadence (first full / window aggregate / cleared
+                // on the next successful renewal)
+                io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                        heartbeatFailureSuppressor.failure(e);
+                if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                    LOG.error("Heartbeat lease renewal failed for node {}", nodeId, e);
+                } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                    LOG.warn("Heartbeat lease renewal failures for node {} — {} suppressed in the "
+                                    + "last {}ms window; last: {}",
+                            nodeId, heartbeatFailureSuppressor.getLastWindowSuppressedCount(),
+                            heartbeatFailureSuppressor.getWindowMs(),
+                            heartbeatFailureSuppressor.getLastSummary());
+                }
             }
 
             // Piggyback per-task liveness on the node heartbeat
@@ -563,12 +699,20 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         String taskKey = taskKey(assignment);
-        if (runningTasks.containsKey(taskKey)) {
-            LOG.warn("Task {} already running, ignoring duplicate assignment", taskKey);
-            capacitySemaphore.release();
-            return;
-        }
-
+        // W-02 (CRA 8.41 R4-01, ruling B.1): the duplicate-slot branches (the
+        // former containsKey pre-check and the putIfAbsent race loser) converge
+        // into ONE per-key compute that dispatches by generation:
+        // - incumbent.epoch < assignment.epoch → a zombie slot from an older
+        //   generation (only reachable in the updateFencingToken in-flight
+        //   window) is DISPLACED, CC-02 replacement shape (cancel + permit
+        //   release via the semaphoreReleased CAS). Strict inequality by design
+        //   (review R1 Major-3): selectDisplacedTask's equal-epoch semantic is
+        //   candidate-displaces, which contradicts this branch's reject-on->=
+        //   semantics — the decision shape is reused, not the function.
+        // - incumbent.epoch >= assignment.epoch → same-generation duplicate or
+        //   stale late arrival: REJECT — typed reportAssignmentFailure to the
+        //   coordinator (the RPC is one-way; a warn-and-return is invisible),
+        //   this assignment's permit released, the healthy incumbent untouched.
         // Two-phase assignment: receiveAssignment creates the RunningTask slot (its
         // invokable is not yet installed); the coordinator then populates the
         // invokable via a separate installInvokable() call (see EmbeddedDistributedExecutor
@@ -582,19 +726,64 @@ public class TaskManager implements IStreamTaskRpcService {
                 assignment.getAttemptId(),
                 assignment.getAttemptNumber());
 
-        RunningTask existing = runningTasks.putIfAbsent(taskKey, runningTask);
-        if (existing != null) {
+        RunningTask[] displacedOld = new RunningTask[1];
+        RunningTask[] rejectedIncumbent = new RunningTask[1];
+        runningTasks.compute(taskKey, (k, incumbent) -> {
+            if (incumbent == null) {
+                return runningTask;
+            }
+            if (incumbent.getFencingEpoch() < assignment.getFencingEpoch()) {
+                // newer generation displaces the zombie old-generation slot
+                displacedOld[0] = incumbent;
+                return runningTask;
+            }
+            // same generation or older-than-incumbent: reject, keep incumbent
+            rejectedIncumbent[0] = incumbent;
+            return incumbent;
+        });
+        if (rejectedIncumbent[0] != null) {
+            LOG.warn("Task {} already runs fencing epoch {} >= assignment epoch {}; rejecting "
+                            + "duplicate/stale assignment (incumbent attempt={})",
+                    taskKey, rejectedIncumbent[0].getFencingEpoch(), assignment.getFencingEpoch(),
+                    rejectedIncumbent[0].attemptId);
             capacitySemaphore.release();
+            reportAssignmentFailure(assignment, assignment.getFencingEpoch(),
+                    new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Duplicate/stale assignment for " + taskKey
+                                    + ": slot already runs fencing epoch " + rejectedIncumbent[0].getFencingEpoch()
+                                    + " (>= assignment epoch " + assignment.getFencingEpoch()
+                                    + "); the incumbent is untouched"));
             return;
         }
+        if (displacedOld[0] != null) {
+            LOG.warn("Slot {} displaced older task (epoch {} -> {}, attempt={}); fencing old before "
+                    + "assignment redeploy", taskKey, displacedOld[0].getFencingEpoch(),
+                    assignment.getFencingEpoch(), displacedOld[0].attemptId);
+            displacedOld[0].cancel();
+            if (displacedOld[0].semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
+        }
 
-        nodeMetrics.taskDeployed();
         Future<?> future;
         try {
             future = taskExecutor.submit(runningTask);
         } catch (java.util.concurrent.RejectedExecutionException e) {
             // CC-17 (plan 2435): shutdown race — report assignment failure loud
             // (one-way RPC: bare throw is invisible), mirroring the capacity path.
+            // W-06 (CRA 8.42 R4-02, ruling A.3): BEFORE reporting, run the same
+            // three-step cleanup as the build-failure branch below — a submit
+            // rejection leaves the just-inserted slot entry as a zombie (run()
+            // never executes, so the terminal release is unreachable) and pins
+            // one capacity permit until epoch rotation. Conditional remove (an
+            // interleaved replacement deploy may already have displaced this
+            // entry) + CAS-guarded release (no double release against the
+            // cancelled task's exit path).
+            runningTasks.remove(taskKey, runningTask);
+            runningTask.cancel();
+            if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
             reportAssignmentFailure(assignment, assignment.getFencingEpoch(),
                     new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
                             "Task executor rejected assignment for " + assignment.getVertexId()
@@ -602,6 +791,9 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
         runningTask.setFuture(future);
+        // W-06 (ruling A.3): the deployed counter is only bumped AFTER the submit
+        // succeeded — a rejected (never-run) task must not count as deployed.
+        nodeMetrics.taskDeployed();
 
         LOG.info("TaskManager {} accepted assignment for {}/{} (attempt={})",
                 nodeId, assignment.getVertexId(), assignment.getSubtaskIndex(),
@@ -613,13 +805,26 @@ public class TaskManager implements IStreamTaskRpcService {
      *
      * <p>This is called after {@link #receiveAssignment} when the coordinator sends the
      * serialized operator chain and deployment plan.
+     *
+     * <p>W-02 (CRA 8.41 R4-01, ruling B.1.2): the install carries the assignment's
+     * fencing epoch and is REJECTED when it does not equal the slot's epoch — a
+     * stale install must never mix generations into a live slot. The missing-slot
+     * branch keeps its silent-return contract (the two-phase protocol's slot may
+     * already have been swept by a fencing rotation).
+     *
+     * @param fencingEpoch the fencing epoch of the assignment this invokable belongs to
      */
     public void installInvokable(String jobId, String vertexId, int subtaskIndex,
-                                 StreamTaskInvokable invokable) {
+                                 StreamTaskInvokable invokable, long fencingEpoch) {
         String taskKey = taskKey(jobId, vertexId, subtaskIndex);
         RunningTask runningTask = runningTasks.get(taskKey);
         if (runningTask == null) {
             LOG.warn("No running task slot for {}/{}/{}", jobId, vertexId, subtaskIndex);
+            return;
+        }
+        if (runningTask.getFencingEpoch() != fencingEpoch) {
+            LOG.warn("Rejecting invokable install for {}/{}/{}: slot fencing epoch {} != install epoch {}",
+                    jobId, vertexId, subtaskIndex, runningTask.getFencingEpoch(), fencingEpoch);
             return;
         }
         // Inject per-task data-plane
@@ -745,7 +950,19 @@ public class TaskManager implements IStreamTaskRpcService {
         // stale deploy keeps the incumbent untouched and flags the rejection.
         RunningTask[] displacedOld = new RunningTask[1];
         boolean[] staleRejected = new boolean[1];
+        boolean[] fencingRotated = new boolean[1];
         RunningTask incumbentForError = runningTasks.compute(taskKey, (k, current) -> {
+            // W-02 (CRA 8.41 R4-01, ruling B.1.3): FINAL fencing re-verification
+            // inside the slot-write atomic section — pushes the entry-gate epoch
+            // check (:686-696) into the same atomic segment as the map write, so
+            // an updateFencingToken that rotated the epoch between the gate and
+            // this compute can no longer insert the old-generation task into the
+            // map (the audit's getAndSet→removeIf non-atomic window). The
+            // selectDisplacedTask decision function itself is untouched.
+            if (currentFencingEpoch.get() != descriptor.getFencingEpoch()) {
+                fencingRotated[0] = true;
+                return current;
+            }
             // R6 CC-02 (plan 2326): the decision is delegated to the pinned
             // package-private helper (selectDisplacedTask) so the production
             // path and the unit pin cannot drift apart.
@@ -754,6 +971,18 @@ public class TaskManager implements IStreamTaskRpcService {
             staleRejected[0] = current != null && winner == current;
             return winner;
         });
+        if (fencingRotated[0]) {
+            // the epoch rotated away while this deploy was in flight: the slot is
+            // left untouched (old incumbent kept / empty slot stays empty) and the
+            // deploy fails loud through the typed rejectDeploy channel
+            capacitySemaphore.release();
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, currentFencingEpoch.get())
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch)
+                    .param(ARG_DETAIL, "deployTask fencing re-check failed at slot write for " + taskKey
+                            + ": the active epoch rotated away from " + fencingEpoch
+                            + " before the slot write; the deployment is rejected and the slot is untouched"));
+        }
         if (staleRejected[0]) {
             // newer generation owns the slot: release this deployment's permit
             // (same conservation rule as the reject path below) and fail loud
@@ -774,7 +1003,6 @@ public class TaskManager implements IStreamTaskRpcService {
                 capacitySemaphore.release();
             }
         }
-        nodeMetrics.taskDeployed();
         Future<?> future;
         try {
             future = taskExecutor.submit(runningTask);
@@ -782,12 +1010,27 @@ public class TaskManager implements IStreamTaskRpcService {
             // CC-17 (plan 2435): submit-after-shutdown race — degrade LOUD and
             // through the rejectDeploy→FAILED channel (one-way RPC contract:
             // a bare throw is invisible to the coordinator), not silently.
+            // W-06 (CRA 8.42 R4-02, ruling A.3): before the typed rethrow, the
+            // same three-step cleanup as the build-failure branch — conditional
+            // slot remove (protects an interleaved successor deploy), cancel of
+            // the never-run task, CAS-guarded permit release. The remote path's
+            // next-redeploy displacement self-heal no longer has to mask a
+            // pinned permit + zombie entry.
+            runningTasks.remove(taskKey, runningTask);
+            runningTask.cancel();
+            if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
             throw rejectDeploy(descriptor, descriptor.getFencingEpoch(),
                     new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
                             "Task executor rejected deployment for " + descriptor.getVertexId()
                                     + "/" + descriptor.getSubtaskIndex() + " (executor shutdown race)"));
         }
         runningTask.setFuture(future);
+        // W-06 (ruling A.3): deployed counts only tasks whose submit succeeded —
+        // the build-failure path below still counts (its task WAS accepted by the
+        // executor and fails via the invokableLatch timeout), unchanged semantics.
+        nodeMetrics.taskDeployed();
 
         // Build the invokable locally from the descriptor. SubtaskPlanBuilder
         // rebuilds the subtask using this TaskManager's IMessageService, which

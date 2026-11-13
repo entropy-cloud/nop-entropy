@@ -44,16 +44,28 @@ public class SysCodeRuleGenerator implements ICodeRuleGenerator {
      *   <li>缓存的实体为detach状态，仅读取codePattern/seqName等纯属性，无懒加载访问。</li>
      * </ul>
      */
-    private final Cache<String, NopSysCodeRule> ruleCache = newBoundedRuleCache();
+    private Cache<String, NopSysCodeRule> ruleCache = newBoundedRuleCache();
 
     @Inject
     IDaoProvider daoProvider;
 
     private static Cache<String, NopSysCodeRule> newBoundedRuleCache() {
-        return Caffeine.newBuilder()
+        return newBoundedRuleCache(null);
+    }
+
+    /** 测试缝（C10 时序敏感治理）：注入可控 Ticker 驱动 TTL 判定，测试不再依赖真实时间 sleep。 */
+    static Cache<String, NopSysCodeRule> newBoundedRuleCache(
+            com.github.benmanes.caffeine.cache.Ticker ticker) {
+        Caffeine<Object, Object> builder = Caffeine.newBuilder()
                 .maximumSize(CFG_SYS_CODE_RULE_CACHE_MAX_SIZE.get())
-                .expireAfterWrite(CFG_SYS_CODE_RULE_CACHE_TTL.get())
-                .build();
+                .expireAfterWrite(CFG_SYS_CODE_RULE_CACHE_TTL.get());
+        if (ticker != null)
+            builder.ticker(ticker);
+        return builder.build();
+    }
+
+    void setRuleCache(Cache<String, NopSysCodeRule> cache) {
+        this.ruleCache = cache;
     }
 
     /** 规则配置变更后失效缓存（管理端修改codePattern/seqName即时生效，TTL兜底跨节点）。 */

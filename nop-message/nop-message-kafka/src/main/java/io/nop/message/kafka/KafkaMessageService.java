@@ -92,7 +92,9 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
     private KafkaProducerConfig defaultProducerConfig;
     private KafkaConsumerConfig defaultConsumerConfig;
 
-    KafkaProducer<String, String> producer;
+    // 4.1-MA-06（plan 2558 裁定 D）：volatile — sendAsync 的读者线程（consume/reply 路径）
+    // 必须看到 doStop 写入的 null，避免读到半失效 producer 引用的 TOCTOU 窗口。
+    volatile KafkaProducer<String, String> producer;
     private Queue<KafkaMessageSubscription> subscriptions = new ConcurrentLinkedQueue<>();
     volatile boolean initialized = false;
 
@@ -233,11 +235,14 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
     }
 
     KafkaProducer<String, String> getProducer() {
-        if (!initialized || producer == null) {
+        // 4.1-MA-06（plan 2558 裁定 D）：single local read — 与 doStop 置 null 竞争时，
+        // 局部读保证整个方法基于同一快照判定（initialized/producer 两字段不再撕裂）。
+        KafkaProducer<String, String> current = this.producer;
+        if (!initialized || current == null) {
             throw error(KafkaErrors.ERR_KAFKA_PRODUCER_CREATE_FAILED,
                     "KafkaMessageService is not initialized");
         }
-        return producer;
+        return current;
     }
 
     @Override
@@ -412,26 +417,47 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
             throw error(KafkaErrors.ERR_KAFKA_CONSUMER_CREATE_FAILED,
                     "Failed to create Kafka consumer").cause(e);
         }
-        java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
-        KafkaConsumeTask task = newTask(kConsumer, subConfig);
-        kConsumer.subscribe(topics, task.rebalanceListener());
 
-        long pollTimeout = options != null && options.getBatchReceiveTimeout() > 0
-                ? options.getBatchReceiveTimeout() : 1000L;
+        // 4.1-MA-06（plan 2558 裁定 D）：outer catch over the resource-bearing segment
+        // (mirrors the Pulsar WI8 form) — a task/subscribe/executor failure after the
+        // consumer was constructed must not leak the consumer's network threads. The
+        // typed construction wrap above is NOT shadowed: this catch only covers the
+        // segment below (C6-003 coordination note).
+        ExecutorService executor = null;
+        try {
+            java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
+            KafkaConsumeTask task = newTask(kConsumer, subConfig);
+            kConsumer.subscribe(topics, task.rebalanceListener());
 
-        warnIfAutoCommit();
+            long pollTimeout = options != null && options.getBatchReceiveTimeout() > 0
+                    ? options.getBatchReceiveTimeout() : 1000L;
 
-        // F-24 (WI19): consume threads are daemon and named; NamedThreadFactory's
-        // per-subscription pool suffix makes fan-out members of the same group
-        // distinguishable (the previous inline factory named all of them identically).
-        NamedThreadFactory threadFactory = consumeThreadFactory(groupId);
-        ExecutorService executor = Executors.newSingleThreadExecutor(threadFactory);
-        task.bindExecutor(executor, pollTimeout);
-        task.start();
+            warnIfAutoCommit();
 
-        KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
-        subscriptions.add(subscription);
-        return subscription;
+            // F-24 (WI19): consume threads are daemon and named; NamedThreadFactory's
+            // per-subscription pool suffix makes fan-out members of the same group
+            // distinguishable (the previous inline factory named all of them identically).
+            NamedThreadFactory threadFactory = consumeThreadFactory(groupId);
+            executor = Executors.newSingleThreadExecutor(threadFactory);
+            task.bindExecutor(executor, pollTimeout);
+            task.start();
+
+            KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
+            subscriptions.add(subscription);
+            return subscription;
+        } catch (Exception e) {
+            // The consumer (broker connection + network threads) must not leak when the
+            // post-construction segment fails.
+            try {
+                kConsumer.close();
+            } catch (Exception closeError) {
+                e.addSuppressed(closeError);
+            }
+            if (executor != null) {
+                executor.shutdownNow();
+            }
+            throw NopException.adapt(e);
+        }
     }
 
     /**
@@ -469,7 +495,10 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         long backoffMs = defaultConsumerConfig != null
                 ? defaultConsumerConfig.getConsumeErrorBackoffMs()
                 : KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS;
-        return new KafkaConsumeTask(this, consumer, subConfig, backoffMs);
+        KafkaConsumeTask task = new KafkaConsumeTask(this, consumer, subConfig, backoffMs);
+        // 4.1-MA-01（plan 2558 裁定 A）：wire the bounded consume-await timeout.
+        task.setConsumeAwaitTimeoutMs(consumeAwaitTimeoutMs());
+        return task;
     }
 
     /**
@@ -488,6 +517,30 @@ public class KafkaMessageService extends LifeCycleSupport implements IMessageSer
         return defaultConsumerConfig != null
                 ? defaultConsumerConfig.getConsumeErrorBackoffMaxMs()
                 : KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MAX_MS;
+    }
+
+    /**
+     * 4.1-MA-01（plan 2558 裁定 A）：consume await timeout resolved from
+     * {@code KafkaConsumerConfig.consumeAwaitTimeoutMs} (module default when unconfigured).
+     */
+    long consumeAwaitTimeoutMs() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeAwaitTimeoutMs()
+                : KafkaConsumeTask.DEFAULT_CONSUME_AWAIT_TIMEOUT_MS;
+    }
+
+    /** 4.1-C8-005（plan 2558 裁定 K）：ConsumeLater delay 下限（模块缺省兜底）。 */
+    long consumeLaterMinDelayMs() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeLaterMinDelayMs()
+                : KafkaConsumeTask.DEFAULT_CONSUME_LATER_MIN_DELAY_MS;
+    }
+
+    /** 4.1-C8-005（plan 2558 裁定 K）：连续 defer 预算（0 = 不限，模块缺省兜底）。 */
+    int consumeLaterMaxDefers() {
+        return defaultConsumerConfig != null
+                ? defaultConsumerConfig.getConsumeLaterMaxDefers()
+                : KafkaConsumeTask.DEFAULT_CONSUME_LATER_MAX_DEFERS;
     }
 
     /** Injection seam for tests: lets a test subclass supply a mock/fake consumer. */

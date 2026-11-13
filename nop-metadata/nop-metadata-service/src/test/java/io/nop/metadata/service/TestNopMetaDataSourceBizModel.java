@@ -194,8 +194,11 @@ public class TestNopMetaDataSourceBizModel extends JunitBaseTestCase {
         ExternalTableStructureReader original =
                 (ExternalTableStructureReader) structureReaderField.get(dataSourceBizModel);
         ExternalTableStructureReader failingReader = new ExternalTableStructureReader() {
+            // W-09（plan 2528 裁定⑦）机械适配：消费面已切至流式入口 forEachTable——失败注入随
+            // 分派接缝迁移（保护语义不变：scan 级失败向上传播 + 事件独立提交，断言零修改）
             @Override
-            public List<ExternalTableInfo> read(Connection conn, DatabaseMetaData metaData, String schemaPattern) {
+            public void forEachTable(Connection conn, DatabaseMetaData metaData, String schemaPattern,
+                                     java.util.function.Consumer<ExternalTableInfo> consumer) {
                 throw new NopMetadataException(NopMetadataErrors.ERR_EXTERNAL_TABLE_SCAN_FAILED)
                         .param(NopMetadataErrors.ARG_DATABASE_PRODUCT_NAME, "H2")
                         .param(NopMetadataErrors.ARG_ERROR, "simulated scan failure");

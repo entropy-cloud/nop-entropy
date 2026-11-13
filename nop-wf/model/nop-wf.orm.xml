@@ -470,6 +470,12 @@
                         i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="52"
                         stdDataType="string" stdSqlType="VARCHAR" ui:show="SL" i18n-en:displayName="Remark"/>
+                <column code="SCAN_HOLDER_ID" comment="plan 2514 MA-23 裁定⑥扫描抢占持有者（nodeId:UUID），只经直发条件UPDATE读写，不经实体逐字段落盘"
+                        displayName="扫描持有者ID" name="scanHolderId" precision="64" propId="53" stdDataType="string"
+                        stdSqlType="VARCHAR" ui:show="X" i18n-en:displayName="Scan Holder ID"/>
+                <column code="SCAN_LEASE_TIME" comment="plan 2514 MA-23 裁定⑥扫描抢占租约到期时间，只经直发条件UPDATE读写"
+                        displayName="扫描租约到期时间" name="scanLeaseTime" propId="54" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" ui:show="X" i18n-en:displayName="Scan Lease Time"/>
             </columns>
             <indexes>
                 <index name="IX_WF_STEP_DUE_TIME">

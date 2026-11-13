@@ -3,6 +3,7 @@ package io.nop.record.serialization;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.type.StdDataType;
+import io.nop.record.RecordConstants;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagTextCodec;
@@ -47,7 +48,10 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
 
     @Override
     protected String getRawDataString(ITextDataReader in, int length) throws IOException {
-        return in.peek(length);
+        int maxChars = RecordConstants.MAX_RAW_DATA_DIAG_CHARS;
+        if (length <= maxChars)
+            return in.peek(length);
+        return in.peek(maxChars) + RecordConstants.RAW_DATA_TRUNCATED_MARK;
     }
 
     @Override

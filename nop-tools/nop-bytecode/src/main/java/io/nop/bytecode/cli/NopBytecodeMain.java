@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -44,7 +45,34 @@ public final class NopBytecodeMain {
         System.exit(run(args, System.out, System.err));
     }
 
+    /**
+     * Default jar-opener factory (plan 2564 W-14, adjudication D / R1-B1): NopBytecodeMain is
+     * public final with a full-static pipeline, so a package-private overridable factory method
+     * is not implementable — the seam is instead an injected {@code Function<Path, JarFile>}
+     * taken by the {@link #run(String[], PrintStream, PrintStream, Function)} overload; the
+     * existing {@link #run(String[], PrintStream, PrintStream)} delegates to this default.
+     */
+    private static Function<Path, JarFile> defaultJarOpener() {
+        return path -> {
+            try {
+                return new JarFile(path.toFile());
+            } catch (IOException e) {
+                throw new NopBytecodeException("Failed to open jar " + path + ": " + e.getMessage(), e);
+            }
+        };
+    }
+
     public static int run(String[] args, PrintStream out, PrintStream err) {
+        return run(args, out, err, defaultJarOpener());
+    }
+
+    /**
+     * Run with an injected jar-opener (test seam, plan 2564 W-14): the read-back phase opens
+     * each jar input at most once through {@code jarOpener} (per-input single open, mirroring
+     * {@code ClassArtifactCollector#collectJar}).
+     */
+    public static int run(String[] args, PrintStream out, PrintStream err,
+                          Function<Path, JarFile> jarOpener) {
         List<Path> inputs = new ArrayList<>();
         Path manifestFile = null;
         boolean json = false;
@@ -120,8 +148,12 @@ public final class NopBytecodeMain {
             Set<String> findingKeys = new HashSet<>();
             for (CollectInput input : collectInputs) {
                 Map<String, ClassArtifact> byRelative = artifactsOfInput(input, flat);
-                for (Map.Entry<String, ClassArtifact> e : byRelative.entrySet()) {
-                    byte[] bytes = readBytes(input, Path.of(e.getKey()), e.getValue());
+                // W-14: per-input single open — JAR inputs go through the injected opener once,
+                // DIRECTORY inputs resolve per file (already minimal); closed after the
+                // artifact inner loop via try-with-resources (R1-m5)
+                try (ClassByteSource source = openByteSource(input, jarOpener)) {
+                    for (Map.Entry<String, ClassArtifact> e : byRelative.entrySet()) {
+                        byte[] bytes = readBytes(source, e.getKey(), e.getValue());
                     NullflowAnalyzer nullflow = new NullflowAnalyzer();
                     nullflow.setDeadlineNanos(deadlineNanos);
                     for (io.nop.bytecode.analysis.nullflow.DerefFinding d : nullflow.analyze(bytes)) {
@@ -146,6 +178,7 @@ public final class NopBytecodeMain {
                                 + "|" + f.ref())) {
                             findings.add(f);
                         }
+                    }
                     }
                 }
             }
@@ -232,27 +265,58 @@ public final class NopBytecodeMain {
         }
     }
 
-    private static byte[] readBytes(CollectInput input, Path relative, ClassArtifact artifact) {
-        byte[] bytes;
+    /**
+     * Per-input byte source (plan 2564 W-14): JAR inputs open the underlying JarFile exactly
+     * once via the injected opener; DIRECTORY inputs resolve relative paths on the filesystem
+     * (per-file single open is already minimal — the DIRECTORY branch is a straight port).
+     */
+    private static ClassByteSource openByteSource(CollectInput input, Function<Path, JarFile> jarOpener) {
         if (input.kind() == CollectInput.Kind.DIRECTORY) {
-            try {
-                bytes = Files.readAllBytes(input.path().resolve(relative));
-            } catch (IOException e) {
-                throw new NopBytecodeException("Failed to read back " + relative + ": " + e.getMessage(), e);
-            }
-        } else {
-            try (JarFile jar = new JarFile(input.path().toFile())) {
-                JarEntry entry = jar.getJarEntry(relative.toString());
+            Path root = input.path();
+            return new ClassByteSource() {
+                @Override
+                public byte[] read(String relative) {
+                    try {
+                        return Files.readAllBytes(root.resolve(relative));
+                    } catch (IOException e) {
+                        throw new NopBytecodeException("Failed to read back " + relative + ": " + e.getMessage(), e);
+                    }
+                }
+
+                @Override
+                public void close() {
+                    // no underlying container to release for directory inputs
+                }
+            };
+        }
+        JarFile jar = jarOpener.apply(input.path());
+        return new ClassByteSource() {
+            @Override
+            public byte[] read(String relative) {
+                JarEntry entry = jar.getJarEntry(relative);
                 if (entry == null) {
                     throw new NopBytecodeException("Jar entry disappeared at read-back: " + relative);
                 }
                 try (InputStream in = jar.getInputStream(entry)) {
-                    bytes = in.readAllBytes();
+                    return in.readAllBytes();
+                } catch (IOException e) {
+                    throw new NopBytecodeException("Failed to read back jar entry " + relative + ": " + e.getMessage(), e);
                 }
-            } catch (IOException e) {
-                throw new NopBytecodeException("Failed to read back jar entry " + relative + ": " + e.getMessage(), e);
             }
-        }
+
+            @Override
+            public void close() {
+                try {
+                    jar.close();
+                } catch (IOException e) {
+                    throw new NopBytecodeException("Failed to close jar " + input.path() + ": " + e.getMessage(), e);
+                }
+            }
+        };
+    }
+
+    private static byte[] readBytes(ClassByteSource source, String relative, ClassArtifact artifact) {
+        byte[] bytes = source.read(relative);
         String actual = ClassArtifactCollector.sha256Hex(bytes);
         if (!actual.equals(artifact.sha256())) {
             throw new NopBytecodeException("Content hash changed between collect and read-back (TOCTOU): " + relative);

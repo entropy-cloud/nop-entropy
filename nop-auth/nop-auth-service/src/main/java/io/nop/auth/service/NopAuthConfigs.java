@@ -231,4 +231,25 @@ public interface NopAuthConfigs {
     @Description("每用户可信设备数量上限（仅计未过期行；同 hash 覆盖刷新不受限；满员新增显式提示不阻断登录）")
     IConfigReference<Integer> CFG_AUTH_MFA_TRUSTED_DEVICE_MAX_COUNT = varRef(s_loc, "nop.auth.mfa.trusted-device.max-count",
             Integer.class, 5);
+
+    // ===== 账本保留策略（5.1-MA-01，plan 2502；键名/缺省值唯一事实源 =
+    // ai-dev/design/concurrency/ledger-retention-policy.md §3.2 nop-auth 行，六族共用一套） =====
+
+    @Description("认证账本六族（session/mfa_challenge/sms_code/email_code/rate_limit_counter/login_attempt）"
+            + "保留期（天），超期行由周期清理批量清扫；0=显式禁用周期清理；负值启动期 fail-fast")
+    IConfigReference<Integer> CFG_AUTH_LEDGER_RETENTION_DAYS = varRef(s_loc, "nop.auth.ledger.retention-days",
+            Integer.class, 30);
+
+    @Description("认证账本清理触发周期。下限 60s，低于下限启动期 fail-fast")
+    IConfigReference<Duration> CFG_AUTH_LEDGER_CLEANUP_INTERVAL = varRef(s_loc, "nop.auth.ledger.cleanup-interval",
+            Duration.class, Duration.ofHours(1));
+
+    @Description("认证账本单轮单表删除上限（先有界拾取主键集再按 IN 批删）。必须为正数")
+    IConfigReference<Integer> CFG_AUTH_LEDGER_DELETE_BATCH_SIZE = varRef(s_loc, "nop.auth.ledger.delete-batch-size",
+            Integer.class, 1000);
+
+    /**
+     * 账本清理触发周期下限（保留策略设计 §3.1 第 2 项）：低于该值启动期 fail-fast，防高频清理冲击业务库。
+     */
+    long AUTH_LEDGER_MIN_CLEANUP_INTERVAL_MILLIS = 60_000L;
 }

@@ -194,6 +194,14 @@ public final class DefaultMemberSpawner implements IMemberSpawner {
             LOG.warn("DefaultMemberSpawner: spawned agent timed out after {}ms for taskId={}, agentModel={} "
                             + "— SPAWN_FAILED",
                     request.getMemberExecTimeoutMs(), task.getTaskId(), agentModel);
+            // Plan 2519 (裁定⑤/C7-022): cancel the spawned session so the
+            // hung member does not stay as a zombie holding an engine slot and
+            // LLM quota (RECLAIM double-execution window closure). The cancel
+            // consumes the existing IAgentEngine.cancelSession channel (R1-04
+            // 原语消费 — no parallel cancel mechanism); a cancel failure is
+            // explicitly recorded (WARN + counter, rule 24 — never swallowed).
+            cancelSpawnedSessionQuietly(spawnedSessionId, task,
+                    "spawn timeout after " + request.getMemberExecTimeoutMs() + "ms");
             return SpawnMemberResult.spawnFailed(
                     "spawned agent timed out after " + request.getMemberExecTimeoutMs() + "ms");
         } catch (InterruptedException e) {
@@ -239,6 +247,39 @@ public final class DefaultMemberSpawner implements IMemberSpawner {
                     "spawned agent returned null AgentExecutionResult");
         }
         return SpawnMemberResult.dispatched(result, agentModel, spawnedSessionId);
+    }
+
+    /**
+     * Plan 2519 (裁定⑤): cancel the spawned member session after the bounded
+     * wait timed out (forced). Failures are explicitly recorded (WARN +
+     * {@code nop.ai.agent.member-cancel-failed} counter) — never silently
+     * swallowed (rule 24). A "session not found" / already-terminal outcome is
+     * benign (the session reached a terminal state before the cancel landed)
+     * and is logged at DEBUG only.
+     */
+    private void cancelSpawnedSessionQuietly(String spawnedSessionId, io.nop.ai.agent.team.TeamTask task,
+                                             String reason) {
+        if (spawnedSessionId == null || spawnedSessionId.isEmpty()) {
+            return;
+        }
+        try {
+            agentEngine.cancelSession(spawnedSessionId, reason, true)
+                    .toCompletableFuture().join();
+        } catch (Exception cancelEx) {
+            MEMBER_CANCEL_FAILED_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.member-cancel-failed: failed to cancel spawned session after timeout "
+                            + "(explicit record, never silent): spawnedSessionId={}, taskId={}, reason={}",
+                    spawnedSessionId, task.getTaskId(), cancelEx.toString());
+        }
+    }
+
+    /** Plan 2519 (裁定⑤): counter for failed member-session cancels. */
+    private static final java.util.concurrent.atomic.AtomicLong MEMBER_CANCEL_FAILED_COUNT =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** Plan 2519 (裁定⑤): test/diagnostics probe for member-cancel failures. */
+    public static long memberCancelFailedCount() {
+        return MEMBER_CANCEL_FAILED_COUNT.get();
     }
 
     /**

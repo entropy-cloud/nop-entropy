@@ -44,6 +44,14 @@ public class FileToolBizModel implements IFileToolBiz {
     private File baseDir;
     private int defaultMaxLengthPerFile = 8192;
 
+    /**
+     * plan 2557 C8-008 ⑥ (ruling H): server-side default bound applied when the
+     * caller passes {@code maxLengthPerFile <= 0} — clamped BEFORE the file
+     * content is loaded, not after (the old limit-after-load face read the full
+     * file into memory first). Aligned with the read-file 100K char cap family.
+     */
+    private static final int DEFAULT_READ_MAX_CHARS_PER_FILE = 100_000;
+
     @InjectValue("@cfg:nop.ai.file-tool.base-dir|/nop/projects")
     public void setBaseDir(File baseDir) {
         this.baseDir = baseDir;
@@ -67,6 +75,11 @@ public class FileToolBizModel implements IFileToolBiz {
         IFileOperator fileOperator = getFileOperator(projectName);
         if (maxTotalLength <= 0)
             maxTotalLength = this.defaultMaxLengthPerFile;
+
+        // plan 2557 C8-008 ⑥ (ruling H): <=0 means unbounded per-file load in
+        // the operator — clamp to the default bound BEFORE loading
+        if (maxLengthPerFile <= 0)
+            maxLengthPerFile = DEFAULT_READ_MAX_CHARS_PER_FILE;
 
         FileContents files = fileOperator.readFileContents(filePaths, maxLengthPerFile);
         if (maxTotalLength > 0)

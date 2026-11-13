@@ -135,7 +135,13 @@ public class MqttConnection implements IMqttConnection {
                     handler.onUnsubscribe(msg, this);
                 });
 
-        // 注册完所有 handler 后发送 CONNACK，完成与客户端的连接建立
+    }
+
+    /**
+     * C6-020（plan 2523）：CONNACK 发出点移出构造函数——acceptEndpoint 先注册会话再
+     * accept，消除「CONNACK 已发、会话未注册」的订阅丢失窗口。
+     */
+    void accept() {
         endpoint.accept();
     }
 
@@ -225,9 +231,16 @@ public class MqttConnection implements IMqttConnection {
 
     @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-        // 下行推送：QoS1（AT_LEAST_ONCE），PUBACK 确认后 future 完成
+        // 下行推送：QoS1（AT_LEAST_ONCE）。C3-021 注释勘正（4.3-MA-14 / plan 2560 裁定 H）：
+        // vertx-mqtt 5.1.8 的 MqttEndpoint.publish 在 socket 写出完成即 complete future，
+        // 并不等待对端 PUBACK——future 完成语义是「已写出」而非「已确认」。
+        // MA-15 同步抛统一包络：返回 CompletionStage 的方法不得同步抛——
+        // 断开连接时返回 failed future（RP-1 两处测试先改后修，裁定 N 执行序）。
         if (!endpoint.isConnected()) {
-            throw new NopException(MqttErrors.ERR_MQTT_NOT_CONNECTED).param(MqttErrors.ARG_TOPIC, topic);
+            CompletableFuture<Void> failed = new CompletableFuture<>();
+            failed.completeExceptionally(new NopException(MqttErrors.ERR_MQTT_NOT_CONNECTED)
+                    .param(MqttErrors.ARG_TOPIC, topic));
+            return failed;
         }
         io.vertx.core.buffer.Buffer buffer = toBuffer(message);
         CompletableFuture<Void> ret = new CompletableFuture<>();

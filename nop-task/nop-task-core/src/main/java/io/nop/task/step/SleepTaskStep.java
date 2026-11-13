@@ -15,6 +15,12 @@ import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
+import static io.nop.task.TaskConfigs.CFG_TASK_STEP_MAX_SLEEP_MS;
+import static io.nop.task.TaskErrors.ARG_ATTR_NAME;
+import static io.nop.task.TaskErrors.ARG_ATTR_VALUE;
+import static io.nop.task.TaskErrors.ARG_REASON;
+import static io.nop.task.TaskErrors.ERR_TASK_STEP_CONFIG_INVALID;
+
 public class SleepTaskStep extends AbstractTaskStep {
     private IEvalAction sleepMillisExpr;
 
@@ -32,6 +38,18 @@ public class SleepTaskStep extends AbstractTaskStep {
         Long sleep = ConvertHelper.toLong(sleepMillisExpr.invoke(stepRt));
         if (sleep == null)
             sleep = -1L;
+        // W-09（CRA 8.48 R4-08，MA-16 裁定 B，运行期上限路线 β）：sleep 时长为运行期表达式
+        // （构建期校验不可判定——R2 Major-1 义务），超上限在执行期显式拒绝（消除调用线程长时
+        // 占用面）。负值/零值维持既有 no-op 短路语义不拒绝（校验仅承载超上界单语义）
+        long maxSleepMs = CFG_TASK_STEP_MAX_SLEEP_MS.get();
+        if (sleep > maxSleepMs) {
+            throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_STEP_CONFIG_INVALID)
+                    .param(ARG_ATTR_NAME, "sleepMillis")
+                    .param(ARG_ATTR_VALUE, sleep)
+                    .param(ARG_REASON, "sleep duration is a runtime expression; " + sleep
+                            + "ms exceeds nop.task.step.max-sleep-ms=" + maxSleepMs
+                            + " (use <delay> for long waits)");
+        }
         if (sleep <= 0)
             return TaskStepReturn.CONTINUE;
 

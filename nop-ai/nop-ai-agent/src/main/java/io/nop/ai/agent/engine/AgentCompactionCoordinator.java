@@ -89,7 +89,18 @@ public class AgentCompactionCoordinator {
         // not a failure — design §8.3 Decision F).
         String snapshotId = null;
         if (snapshotArchive != null && !ctx.getMessages().isEmpty()) {
-            snapshotId = snapshotArchive.put(ctx.getMessages());
+            // Plan 2519 (CL-077): the archive put moved INSIDE a fault-tolerant
+            // guard — a put failure is explicitly recorded (WARN with session
+            // context) and degrades to snapshotId=null ("archive not
+            // available", design §8.3 Decision F) instead of throwing through
+            // and aborting the compaction flow after PRE_COMPACT.
+            try {
+                snapshotId = snapshotArchive.put(ctx.getMessages());
+            } catch (RuntimeException putEx) {
+                LOG.warn("nop.ai.agent.snapshot-archive-put-failed: pre-compaction archive put "
+                        + "failed (explicit record, compaction continues with snapshotId=null): "
+                        + "sessionId={}", ctx.getSessionId(), putEx);
+            }
         }
 
         // Decision E: CompactionContext is constructed AFTER the archive so
@@ -186,6 +197,15 @@ public class AgentCompactionCoordinator {
                         ctx.getMessages().size(),
                         ctx.getTokensUsed()));
                 checkpointSeq[0]++;
+
+                // Plan 2519 (裁定⑥ 增量): compaction-completed session eviction —
+                // the pre-compaction fixed entries (byWatermark before the
+                // COMPACTION baseline + flushed snapshot cache) are evicted for
+                // the still-active session (terminal-side cleanup is the
+                // existing remove implementation called by 裁定② wiring).
+                if (checkpointManager instanceof io.nop.ai.agent.reliability.FileBackedCheckpointManager fileBacked) {
+                    fileBacked.evictCompactedSession(ctx.getSessionId());
+                }
 
                 // Design §3.2: publish the COMPACTION event AFTER the
                 // POST_COMPACT hook and AFTER the COMPACTION checkpoint was

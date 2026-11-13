@@ -6,6 +6,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.runtime.lock.AiAgentSessionLockTable;
 import io.nop.ai.agent.session.AiAgentSessionTable;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +30,21 @@ import java.util.concurrent.TimeUnit;
  *
  * <p><b>Scheduling</b>: {@link #start} registers a fixed-delay periodic
  * task on the configured {@link IScheduledExecutor} (default 60s); {@link #stop}
- * cancels it. The {@code IScheduledExecutor} abstraction (nop-commons) is
+ * cancels it. CRA A4 (plan 2498 Phase 4, design matrix A4 row): the
+ * registration binds {@code executeOn(GlobalExecutors.globalWorker())} — the
+ * injected scheduler only triggers rounds; the scan body (a multi-query DB
+ * sweep) executes on the worker pool and never occupies timer threads. The
+ * {@code IScheduledExecutor} abstraction (nop-commons) is
  * used instead of the heavier nop-job {@code IJobScheduler} — for a simple
  * "run scanOnce every 60s" periodic task, {@code IScheduledExecutor} is
  * sufficient and requires no new Maven dependency (already transitively
  * available). nop-job integration (DB-backed job persistence / cluster
  * coordination / cron expression) is an explicit successor. Both
- * {@code start}/{@code stop} are idempotent.
+ * {@code start}/{@code stop} are idempotent. This class has no in-repo
+ * assembly face (no beans.xml registration / no main construction point;
+ * production default is {@code NoOpRecoveryManager}; integrators inject
+ * programmatically via {@code engine.config().setRecoveryManager(...)}) —
+ * integrator wiring is converged by this javadoc contract.
  *
  * <p><b>scanOnce operations</b> (design 裁定 1):
  * <ol>
@@ -196,7 +205,14 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
      * @param scheduledExecutor  the scheduler used to register the periodic
      *                           task; never null. Tests inject a mock
      *                           scheduler; deployments inject a real
-     *                           executor (e.g. {@code GlobalExecutors.globalTimer()})
+     *                           executor (e.g. {@code GlobalExecutors
+     *                           .globalTimer()}). CRA A4 (plan 2498 Phase 4):
+     *                           {@link #start} binds
+     *                           {@code executeOn(GlobalExecutors.globalWorker())}
+     *                           on the injected carrier, so the scan body
+     *                           always executes on the worker pool — the
+     *                           timer thread is never occupied by the DB
+     *                           sweep, whatever carrier is injected here
      */
     public ScheduledRecoveryManager(DataSource dataSource, IScheduledExecutor scheduledExecutor) {
         this(dataSource, scheduledExecutor, DEFAULT_SCAN_INTERVAL_SEC);
@@ -358,8 +374,16 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
             // Idempotent: already running.
             return;
         }
-        scheduleHandle = scheduledExecutor.scheduleWithFixedDelay(
-                this::scanOnceSafe, scanIntervalSec, scanIntervalSec, TimeUnit.SECONDS);
+        // CRA A4 (plan 2498 Phase 4, design matrix A4 row): the recovery scan
+        // is a multi-query DB sweep — the injected scheduler must only trigger
+        // rounds; the scan body is offloaded to the platform global worker
+        // pool so timer threads are never occupied by blocking DB work.
+        // executeOn returns a BindScheduledExecutor: timer trigger + worker
+        // execution, insulation contract retained (guard wraps the body,
+        // failed rounds re-arm with backoff).
+        scheduleHandle = scheduledExecutor
+                .executeOn(GlobalExecutors.globalWorker())
+                .scheduleWithFixedDelay(this::scanOnceSafe, scanIntervalSec, scanIntervalSec, TimeUnit.SECONDS);
         LOG.info("ScheduledRecoveryManager: started periodic recovery scan (intervalSec={})", scanIntervalSec);
     }
 
@@ -390,7 +414,11 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
             } else {
                 LOG.debug("ScheduledRecoveryManager: scan complete (no stale locks / orphans / timeouts / stuck team tasks): {}", result);
             }
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
+            // MA-07/C3-020 (plan 2496 Phase 4): the guard must cover Throwable. An Error
+            // escaping here cancels the JDK periodic round permanently (silent recovery
+            // blindness); catching keeps the chain alive (re-armed next interval) and
+            // keeps the failed scan observable.
             LOG.warn("ScheduledRecoveryManager: periodic scan failed (will retry next interval): {}",
                     e.toString());
         }

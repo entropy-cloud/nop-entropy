@@ -869,6 +869,13 @@ public class SupervisionLoop {
             // No InputGate and no output writer → self-contained.
             newInvokable = new StreamTaskInvokable(newChain);
         }
+        // W-07 (CRA 8.42 R4-02, ruling C.2 / F-1): registry transfer obligation —
+        // the rebuilt invokable joins the SAME execution scope as the one it
+        // replaces (single transfer point covering all rebuild branches: the two
+        // helpers' four constructions and the self-contained one above). Without
+        // this, a region-restarted task's side-output reads would miss the scope
+        // its pipeline was assembled in.
+        newInvokable.setSideOutputRegistry(oldInvokable.getSideOutputRegistry());
 
         // Re-wire the rebuilt task into the checkpoint pipeline. Without
         // this, the rebuilt invokable has no barrier tracker (so its operators'

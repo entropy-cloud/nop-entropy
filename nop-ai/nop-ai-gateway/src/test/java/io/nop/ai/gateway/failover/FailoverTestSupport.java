@@ -4,6 +4,7 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.gateway.routing.IModelClassHealth;
 import io.nop.ai.gateway.routing.ISelectionStrategy;
 import io.nop.ai.core.model.ModelClassCandidate;
@@ -31,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -388,6 +390,148 @@ final class FailoverTestSupport {
         @Override
         public Map<String, String> getHeaders() {
             return new LinkedHashMap<>();
+        }
+    }
+
+    /**
+     * 可控授信型订阅者（plan 2509 R2-06 裁定⑧测试缝，C10-001 缺口本体）：demand 手动驱动
+     * （{@link #request(long)}），onSubscribe 不预授信——既有恒 request(MAX) 的
+     * {@link CollectingSubscriber} 保留不动（既有用例零破坏）。可观测面：元素序、null 元素
+     * 计数、终态信号、投递钩子（慢下游/锁卡位测试用）。
+     */
+    static class ManualDemandSubscriber implements Flow.Subscriber<ChatStreamChunk> {
+        private volatile Flow.Subscription subscription;
+        final List<String> texts = new ArrayList<>();
+        int nullElements;
+        Throwable error;
+        boolean completed;
+        Runnable onNextHook;
+        private final CompletableFuture<Void> terminated = new CompletableFuture<>();
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+            this.subscription = subscription;
+        }
+
+        void request(long n) {
+            Flow.Subscription sub = subscription;
+            if (sub != null) {
+                sub.request(n);
+            }
+        }
+
+        Flow.Subscription subscription() {
+            return subscription;
+        }
+
+        @Override
+        public void onNext(ChatStreamChunk item) {
+            if (item == null) {
+                nullElements++;
+                texts.add(null);
+            } else {
+                texts.add(item.getDelta());
+            }
+            Runnable hook = onNextHook;
+            if (hook != null) {
+                hook.run();
+            }
+        }
+
+        @Override
+        public void onError(Throwable throwable) {
+            this.error = throwable;
+            terminated.complete(null);
+        }
+
+        @Override
+        public void onComplete() {
+            this.completed = true;
+            terminated.complete(null);
+        }
+
+        boolean isTerminated() {
+            return terminated.isDone();
+        }
+
+        void awaitTerminal(long timeoutMs) {
+            try {
+                terminated.get(timeoutMs, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                // 有界观察窗：超时由调用方断言处置（不静默吞——fail 交断言）。
+            }
+        }
+    }
+
+    /**
+     * 计数型指标桩（MA-05/C3-003/C8-001 断言载体）：可注入 onRequestSuccess 抛出异常
+     * （回调体护栏红形态触发器）。
+     */
+    static class CountingFailoverMetrics implements IFailoverMetrics {
+        final AtomicInteger requestFailures = new AtomicInteger();
+        final AtomicInteger requestSuccesses = new AtomicInteger();
+        final AtomicInteger switches = new AtomicInteger();
+        final AtomicInteger resubscribes = new AtomicInteger();
+        final AtomicInteger concurrencyAcquires = new AtomicInteger();
+        final AtomicInteger concurrencyReleases = new AtomicInteger();
+        volatile RuntimeException onSuccessThrow;
+
+        @Override
+        public void onSwitchAttempt(String provider, String model, String accountKey) {
+            switches.incrementAndGet();
+        }
+
+        @Override
+        public void onResubscribe(String provider, String model, String accountKey) {
+            resubscribes.incrementAndGet();
+        }
+
+        @Override
+        public void onCircuitTransition(String provider, String model, CircuitState toState) {
+        }
+
+        @Override
+        public void onCooldown(String provider, String model, CooldownEventType type) {
+        }
+
+        @Override
+        public void onRequestSuccess(String provider, String model, String accountKey, long durationMs) {
+            RuntimeException t = onSuccessThrow;
+            if (t != null) {
+                throw t;
+            }
+            requestSuccesses.incrementAndGet();
+        }
+
+        @Override
+        public void onRequestFailure(String provider, String model, String accountKey, long durationMs) {
+            requestFailures.incrementAndGet();
+        }
+
+        @Override
+        public void onSaturation(String provider, String modelClass) {
+        }
+
+        @Override
+        public void onConcurrencyAcquire(String provider, String accountKey) {
+            concurrencyAcquires.incrementAndGet();
+        }
+
+        @Override
+        public void onConcurrencyRelease(String provider, String accountKey) {
+            concurrencyReleases.incrementAndGet();
+        }
+
+        @Override
+        public void onTakeover(String provider, String model, String accountKey) {
+        }
+
+        @Override
+        public void onDegradedTermination(String provider, String model, String accountKey) {
+        }
+
+        @Override
+        public void onStreamElementConverted(String provider, String model, String accountKey) {
         }
     }
 

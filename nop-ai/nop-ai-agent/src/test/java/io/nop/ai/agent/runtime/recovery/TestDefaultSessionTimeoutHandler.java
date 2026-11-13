@@ -193,6 +193,9 @@ public class TestDefaultSessionTimeoutHandler {
         });
         DefaultSessionTimeoutHandler handler = new DefaultSessionTimeoutHandler(
                 60L, engine, dataSource, instanceId);
+        // 3.1-MA-18 (plan 2555 裁定 G): this test pins the fire-once sync
+        // failure face; the retry budget is covered by TestOrphanRecoveryBudget.
+        handler.setCancelMaxAttempts(1);
 
         insertSession("local-err", "running");
         insertLockRow("local-err", instanceId, System.currentTimeMillis() + 60_000L);

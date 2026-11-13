@@ -54,10 +54,29 @@ public class ConfigShardSelector implements IShardSelector {
     static final String PROP_STRATEGIES = "strategies";
     static final String PROP_DEFAULT_STRATEGY = "default-strategy";
 
-    private Map<String, ShardStrategy> strategies = Collections.emptyMap();
-    private String defaultStrategyName;
-    private Map<String, ShardStrategy> entityBindings = Collections.emptyMap();
-    private boolean hasConfig;
+    /**
+     * 不可变策略表状态（plan 2507 裁定⑤ 2.5-C1-007 安全发布）：全部字段 final，由工厂方法
+     * 解析完整策略表后一次性构造（构造后不再变更，安全发布）；持有者经 volatile 单引用发布。
+     */
+    private static final class ConfigState {
+        static final ConfigState EMPTY = new ConfigState(Collections.emptyMap(), null,
+                Collections.emptyMap(), false);
+
+        final Map<String, ShardStrategy> strategies;
+        final String defaultStrategyName;
+        final Map<String, ShardStrategy> entityBindings;
+        final boolean hasConfig;
+
+        ConfigState(Map<String, ShardStrategy> strategies, String defaultStrategyName,
+                    Map<String, ShardStrategy> entityBindings, boolean hasConfig) {
+            this.strategies = strategies;
+            this.defaultStrategyName = defaultStrategyName;
+            this.entityBindings = entityBindings;
+            this.hasConfig = hasConfig;
+        }
+    }
+
+    private volatile ConfigState state = ConfigState.EMPTY;
 
     /**
      * 解析 {@code nop.orm.shard} 配置并构建实体绑定表。所有配置错误启动即抛，
@@ -73,6 +92,27 @@ public class ConfigShardSelector implements IShardSelector {
             return;
         }
 
+        // 工厂方法构造完整策略表后一次赋值（plan 2507 裁定⑤：init 完成后 final/不可变化承载）
+        this.state = parseState(config);
+        ConfigState s = this.state;
+
+        // plan 2321：启动期 WARN——fanout 策略已声明但全局开关关闭，运行期缺分片值查询退化为 fail。
+        // 保留"一键关闭"应急刹车属性且不产生配置矛盾（执行引擎设计 §3.8）
+        if (!isFanoutEnabled() && s.strategies.values().stream()
+                .anyMatch(strategy -> strategy.getMissingShardPolicy() == MissingShardPolicy.FANOUT)) {
+            LOG.warn("nop.orm.shard.fanout-strategy-declared-but-disabled:存在missing-shard-policy=fanout的策略"
+                    + "，但全局开关nop.orm.shard.fanout-enabled=false，缺分片值查询将在运行期显式失败");
+        }
+
+        LOG.info("nop.orm.shard.init:strategies={},default-strategy={},entities={}", s.strategies.keySet(),
+                s.defaultStrategyName, s.entityBindings.keySet());
+    }
+
+    /**
+     * 解析配置构造完整不可变策略表（strategies/default-strategy/entity-bindings 同代一次性构造；
+     * 两张表均 unmodifiableMap）。
+     */
+    private ConfigState parseState(String config) {
         Map<String, Object> root = parseConfig(config);
         Map<String, ShardStrategy> parsed = parseStrategies(root);
         String defaultStrategyName = parseDefaultStrategy(root, parsed);
@@ -85,21 +125,8 @@ public class ConfigShardSelector implements IShardSelector {
             }
         }
 
-        this.strategies = Collections.unmodifiableMap(parsed);
-        this.defaultStrategyName = defaultStrategyName;
-        this.entityBindings = Collections.unmodifiableMap(bindings);
-        this.hasConfig = true;
-
-        // plan 2321：启动期 WARN——fanout 策略已声明但全局开关关闭，运行期缺分片值查询退化为 fail。
-        // 保留"一键关闭"应急刹车属性且不产生配置矛盾（执行引擎设计 §3.8）
-        if (!isFanoutEnabled() && parsed.values().stream()
-                .anyMatch(s -> s.getMissingShardPolicy() == MissingShardPolicy.FANOUT)) {
-            LOG.warn("nop.orm.shard.fanout-strategy-declared-but-disabled:存在missing-shard-policy=fanout的策略"
-                    + "，但全局开关nop.orm.shard.fanout-enabled=false，缺分片值查询将在运行期显式失败");
-        }
-
-        LOG.info("nop.orm.shard.init:strategies={},default-strategy={},entities={}", parsed.keySet(),
-                defaultStrategyName, bindings.keySet());
+        return new ConfigState(Collections.unmodifiableMap(parsed), defaultStrategyName,
+                Collections.unmodifiableMap(bindings), true);
     }
 
     /**
@@ -162,15 +189,16 @@ public class ConfigShardSelector implements IShardSelector {
     }
 
     ShardStrategy strategyFor(String entityName) {
-        ShardStrategy strategy = entityBindings.get(entityName);
-        if (strategy == null && defaultStrategyName != null)
-            strategy = strategies.get(defaultStrategyName);
+        ConfigState s = this.state;
+        ShardStrategy strategy = s.entityBindings.get(entityName);
+        if (strategy == null && s.defaultStrategyName != null)
+            strategy = s.strategies.get(s.defaultStrategyName);
         return strategy;
     }
 
     @Override
     public ShardSelection selectShard(String entityName, String shardProp, Object shardValue) {
-        if (!hasConfig)
+        if (!this.state.hasConfig)
             return null;
         ShardStrategy strategy = strategyFor(entityName);
         if (strategy == null)
@@ -180,17 +208,17 @@ public class ConfigShardSelector implements IShardSelector {
 
     @Override
     public boolean hasStrategyConfig() {
-        return hasConfig;
+        return this.state.hasConfig;
     }
 
     @Override
     public boolean isEntityBound(String entityName) {
-        return hasConfig && strategyFor(entityName) != null;
+        return this.state.hasConfig && strategyFor(entityName) != null;
     }
 
     @Override
     public MissingShardPolicy getMissingShardPolicy(String entityName) {
-        if (!hasConfig)
+        if (!this.state.hasConfig)
             return MissingShardPolicy.NONE;
         ShardStrategy strategy = strategyFor(entityName);
         return strategy == null ? MissingShardPolicy.NONE : strategy.getMissingShardPolicy();
@@ -198,7 +226,7 @@ public class ConfigShardSelector implements IShardSelector {
 
     @Override
     public ShardSelection selectShardWhenMissing(String entityName, String shardProp) {
-        if (!hasConfig)
+        if (!this.state.hasConfig)
             return null;
         ShardStrategy strategy = strategyFor(entityName);
         return strategy == null ? null : strategy.selectShardWhenMissing(shardProp);
@@ -206,7 +234,7 @@ public class ConfigShardSelector implements IShardSelector {
 
     @Override
     public List<String> getShardNames(String entityName) {
-        if (!hasConfig)
+        if (!this.state.hasConfig)
             return Collections.emptyList();
         ShardStrategy strategy = strategyFor(entityName);
         return strategy == null ? Collections.emptyList() : strategy.shardNames();
@@ -219,7 +247,7 @@ public class ConfigShardSelector implements IShardSelector {
      */
     @Override
     public List<ShardSelection> selectAllShards(String entityName) {
-        if (!hasConfig)
+        if (!this.state.hasConfig)
             return Collections.emptyList();
         ShardStrategy strategy = strategyFor(entityName);
         return strategy == null ? Collections.emptyList() : strategy.shardSelections();
@@ -227,7 +255,7 @@ public class ConfigShardSelector implements IShardSelector {
 
     @Override
     public String getShardTableName(String entityName, String baseTableName, String shardName) {
-        if (!hasConfig)
+        if (!this.state.hasConfig)
             return IShardSelector.super.getShardTableName(entityName, baseTableName, shardName);
         ShardStrategy strategy = strategyFor(entityName);
         if (strategy == null)
@@ -236,6 +264,6 @@ public class ConfigShardSelector implements IShardSelector {
     }
 
     Map<String, ShardStrategy> getStrategies() {
-        return strategies;
+        return this.state.strategies;
     }
 }

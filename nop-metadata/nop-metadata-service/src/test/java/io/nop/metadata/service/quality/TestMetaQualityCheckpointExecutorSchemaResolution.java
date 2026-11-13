@@ -64,6 +64,11 @@ public class TestMetaQualityCheckpointExecutorSchemaResolution {
         when(daoProvider.daoFor(NopMetaEntity.class)).thenReturn(tableDao);
 
         MetaEntityReferenceResolver tableRefResolver = mock(MetaEntityReferenceResolver.class);
+        // W-07（plan 2528 裁定⑤）机械适配：解析上提后 ref 由 resolver mock 返回——本测试验证
+        // ENTITY 路径 schema 解析，stub 返回 ENTITY 形态 ref（保护语义不变，仅适配分派接缝）
+        when(tableRefResolver.resolve(any(), any(), any(), any(), any())).thenReturn(
+                new TableReference(TableReference.Kind.ENTITY, TABLE_ID, "EXT_SCHEMA_TABLE",
+                        null, null, table, "qs-schema-test", null));
         TableReferenceExecutor tableRefExecutor = mock(TableReferenceExecutor.class);
         // 真实调用 action（模拟 TableReferenceExecutor 的分派），使 judge 实参可捕获
         when(tableRefExecutor.execute(any(), any())).thenAnswer(invocation -> {
@@ -74,7 +79,8 @@ public class TestMetaQualityCheckpointExecutorSchemaResolution {
         QualityResultWriter resultWriter = mock(QualityResultWriter.class);
         IOrmTemplate orm = mock(IOrmTemplate.class);
         return new MetaQualityCheckpointExecutor(ruleExecutor, tableRefResolver, tableRefExecutor,
-                resultWriter, daoProvider, orm);
+                resultWriter, daoProvider, orm,
+                mock(io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor.class));
     }
 
     private NopMetaQualityCheckpoint buildCheckpoint() {

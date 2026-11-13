@@ -45,7 +45,29 @@ public final class ExecutionRecorder {
 
     private final AtomicReference<String> firstFailedTaskId = new AtomicReference<>();
 
+    /**
+     * Plan 2519 (裁定⑤): per-flow member-session registry — the data plane
+     * (no cancel semantics of its own) that the orchestrator's overall-deadline
+     * convergence cancel walks. Spawn steps record the spawner-returned
+     * spawnedSessionId here at built/dispatch time so a deadline breach can
+     * cancel every spawned member session (session-level, on top of the
+     * existing AR-3 graph cancel).
+     */
+    private final Set<String> spawnedMemberSessions = ConcurrentHashMap.newKeySet();
+
     public ExecutionRecorder() {
+    }
+
+    /** Plan 2519 (裁定⑤): record a spawned member session for the flow. */
+    public void recordSpawnedSession(String spawnedSessionId) {
+        if (spawnedSessionId != null && !spawnedSessionId.isEmpty()) {
+            spawnedMemberSessions.add(spawnedSessionId);
+        }
+    }
+
+    /** Plan 2519 (裁定⑤): snapshot of the spawned member sessions of this flow. */
+    public java.util.List<String> spawnedMemberSessionsSnapshot() {
+        return new ArrayList<>(spawnedMemberSessions);
     }
 
     public void markStart(String taskId) {

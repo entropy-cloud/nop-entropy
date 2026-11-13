@@ -40,6 +40,13 @@
     <bean id="nopMetaQualityCheckpointScheduler"
           class="io.nop.metadata.service.quality.MetaQualityCheckpointScheduler" ioc:default="true"/>
 
+    <!-- 5.5-W-02（plan 2502）：六张 append-only 时序表保留期周期清理（形态 A——cron/auto-score
+         机器速率写入面）。生命周期接线 = 容器创建单例 bean → LifeCycleSupport @PostConstruct
+         start() → doStart 周期调度（taskName=nop-metadata-ledger-cleanup）；
+         nop.metadata.ledger.retention-days=0 可显式禁用。第七面（C7-101 告警工作流实例，
+         nop-wf 侧存储）按设计裁定④=选③归属 R3-05，不在本组件。同样只放 app-service.beans.xml。 -->
+    <bean id="nopMetaLedgerCleaner" class="io.nop.metadata.service.cleanup.NopMetaLedgerCleaner" ioc:default="true"/>
+
     <!-- 搜索引擎索引构建器（plan 312 Phase 2）：遍历 6 个核心实体 DAO 查询 + ISearchEngine 全量索引写入。 -->
     <bean id="io.nop.metadata.service.search.NopMetaIndexBuilder"
           class="io.nop.metadata.service.search.NopMetaIndexBuilder" ioc:default="true"/>

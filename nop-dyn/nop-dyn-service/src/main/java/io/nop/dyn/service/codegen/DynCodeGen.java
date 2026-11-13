@@ -14,6 +14,7 @@ import io.nop.biz.api.IBizObjectManager;
 import io.nop.biz.api.ITenantBizModelProvider;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
+import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.module.ITenantModuleDiscovery;
@@ -47,7 +48,6 @@ import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
@@ -74,8 +74,41 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
     private boolean useTenant;
 
     private final InMemoryCodeCache codeCache = newInMemoryCodeCache(null);
-    private final ICache<String, AtomicReference<InMemoryCodeCache>> tenantCache = LocalCache.newCache("gen-code-cache",
-            newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()), k -> new AtomicReference<>());
+    private final ICache<String, TenantCodeCacheEntry> tenantCache = LocalCache.newCache("gen-code-cache",
+            // destroyOnRemove（MA-03/C6-002）：Caffeine容量驱逐/TTL过期时经LocalCache的
+            // removalListener回调entry.destroy()执行cache.clear()（含逐模块on-unload）——
+            // 驱逐不再绕过生命周期对称清理。回调线程代价：当前钩子为轻量面（平台钩子空实现
+            // +可选on-unload.xpl），变重时的后台化候选登记Non-Blocking Follow-up
+            newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()).destroyOnRemove(),
+            k -> new TenantCodeCacheEntry());
+
+    /**
+     * 租户缓存条目：实现IDestroyable配合destroyOnRemove（MA-03/C6-002）。
+     */
+    static final class TenantCodeCacheEntry implements IDestroyable {
+        private volatile InMemoryCodeCache cache;
+
+        InMemoryCodeCache getCache() {
+            return cache;
+        }
+
+        void setCache(InMemoryCodeCache cache) {
+            this.cache = cache;
+        }
+
+        InMemoryCodeCache detachCache() {
+            InMemoryCodeCache c = cache;
+            cache = null;
+            return c;
+        }
+
+        @Override
+        public void destroy() {
+            InMemoryCodeCache c = cache;
+            if (c != null)
+                c.clear();
+        }
+    }
 
     @PostConstruct
     @SingleSession
@@ -149,21 +182,31 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
 
     // 包级可见供同包单测验证（并发初始化语义）
     InMemoryCodeCache getTenantCodeCache(String tenantId) {
-        AtomicReference<InMemoryCodeCache> ref = tenantCache.get(tenantId);
-        InMemoryCodeCache cache = ref.get();
-        if (cache != null)
-            return cache;
+        while (true) {
+            TenantCodeCacheEntry entry = tenantCache.get(tenantId);
+            InMemoryCodeCache cache = entry.getCache();
+            if (cache != null)
+                return cache;
 
-        // 同一租户并发首次访问时，initTenantCache包含全模块DB查询与逐模块代码生成，
-        // 必须保证只执行一次：在容器引用上加锁double-check，竞争线程等待初始化完成后直接复用，
-        // 而不是都执行一遍后丢弃多余结果（updateAndGet只保证结果原子性，不保证函数单次执行）
-        synchronized (ref) {
-            cache = ref.get();
-            if (cache == null) {
-                cache = initTenantCache(tenantId);
-                ref.set(cache);
+            // 同一租户并发首次访问时，initTenantCache包含全模块DB查询与逐模块代码生成，
+            // 必须保证只执行一次：在容器条目上加锁double-check，竞争线程等待初始化完成后直接复用，
+            // 而不是都执行一遍后丢弃多余结果（updateAndGet只保证结果原子性，不保证函数单次执行）
+            synchronized (entry) {
+                cache = entry.getCache();
+                if (cache == null) {
+                    cache = initTenantCache(tenantId);
+                    entry.setCache(cache);
+                    // 发布后复验（MA-03/C1-101 destroy孤儿窗）：destroy并发removeTenantCache摘除
+                    // 本条目时，新初始化实例成为孤儿——on-load副作用已发生却无入口可达清理。
+                    // 就地clear自愈（含逐模块on-unload）后按miss重取；destroy为一次性管理操作，
+                    // 不构成活锁
+                    if (tenantCache.getIfPresent(tenantId) != entry) {
+                        cache.clear();
+                        continue;
+                    }
+                }
+                return cache;
             }
-            return cache;
         }
     }
 
@@ -194,6 +237,10 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
         return getCodeCache().getEnabledModules();
     }
 
+    /**
+     * 语义精确化（MA-03/C6-002 随批）：返回「当前缓存驻留租户集」而非活跃租户全集——
+     * 容量驱逐/TTL过期经条目destroy清理后，返回值如实反映驻留面（监控读数不再失真）。
+     */
     @Override
     public Set<String> getUsedTenantIds() {
         return tenantCache.getAllKeys();
@@ -215,11 +262,14 @@ public class DynCodeGen implements ITenantResourceProvider, ITenantBizModelProvi
 
     /**
      * 从租户缓存中移除指定租户，并返回被移除的缓存。返回后不再有任何入口能取到该缓存实例。
+     * MA-03/C1-101：remove原子摘除在前——先摘除后清理配对，摘除即触发条目destroy
+     * （destroyOnRemove→cache.clear()含on-unload），get→remove两步竞态孤儿窗消除；
+     * clear幂等，调用方后续clear()为无害重复。
      */
     private InMemoryCodeCache removeTenantCache(String tenantId) {
-        AtomicReference<InMemoryCodeCache> ref = tenantCache.getIfPresent(tenantId);
+        TenantCodeCacheEntry entry = tenantCache.getIfPresent(tenantId);
         tenantCache.remove(tenantId);
-        return ref == null ? null : ref.get();
+        return entry == null ? null : entry.detachCache();
     }
 
     public synchronized void generateForAllApps() {

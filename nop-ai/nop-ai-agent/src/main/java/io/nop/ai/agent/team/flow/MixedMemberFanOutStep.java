@@ -144,7 +144,7 @@ public class MixedMemberFanOutStep extends AbstractTaskStep {
         CompletableFuture<MemberDispatchOutcome> dispatched = MemberFanOutDispatcher.dispatch(
                 claimed.get(), team, targets, reductionStrategy,
                 agentEngine, memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant,
-                memberExecTimeoutMs);
+                memberExecTimeoutMs, recorder::recordSpawnedSession);
 
         // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed
         // on the STEP's shared recorder (the dispatcher uses a throwaway

@@ -108,6 +108,66 @@ public final class CheckpointJournalReader {
         return Collections.unmodifiableList(all.subList(idx + 1, all.size()));
     }
 
+    /**
+     * Plan 2519 (裁定⑥/C5-008): batched streaming parse — reads the journal
+     * line-by-line, parses and delivers one section at a time. Single-batch
+     * residency = one journal section (the previous full-scan held the whole
+     * file String + substring body + split array + complete Checkpoint list
+     * simultaneously, ~4x materialisation). Corrupted sections keep the
+     * skip-with-WARNING contract of {@link #readAll}. The consumer receives
+     * checkpoints in file order.
+     *
+     * @param journalFile the per-session journal.md path; never null
+     * @param sectionConsumer per-section delivery callback; never null
+     */
+    public void readAllBatched(Path journalFile, java.util.function.Consumer<Checkpoint> sectionConsumer) {
+        if (journalFile == null) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader.readAllBatched: journalFile must not be null");
+        }
+        if (sectionConsumer == null) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalReader.readAllBatched: sectionConsumer must not be null");
+        }
+        if (!Files.exists(journalFile)) {
+            return;
+        }
+        StringBuilder section = new StringBuilder();
+        boolean inSection = false;
+        try (java.io.BufferedReader reader = Files.newBufferedReader(journalFile, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith(SECTION_DELIMITER)) {
+                    if (inSection) {
+                        deliverSection(section.toString(), sectionConsumer);
+                    }
+                    section.setLength(0);
+                    section.append(line).append('\n');
+                    inSection = true;
+                } else if (inSection) {
+                    section.append(line).append('\n');
+                }
+            }
+            if (inSection) {
+                deliverSection(section.toString(), sectionConsumer);
+            }
+        } catch (IOException e) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointJournalReader.readAllBatched: failed to read " + journalFile + ": " + e.getMessage());
+        }
+    }
+
+    private void deliverSection(String sectionText, java.util.function.Consumer<Checkpoint> sectionConsumer) {
+        String header = firstLine(sectionText);
+        try {
+            Checkpoint cp = parseSection(sectionText);
+            if (cp != null) {
+                sectionConsumer.accept(cp);
+            }
+        } catch (Exception e) {
+            LOG.log(Level.WARNING,
+                    "CheckpointJournalReader: skipping corrupted journal section '" + header + "'",
+                    e);
+        }
+    }
+
     private String readTextIfExists(Path journalFile) {
         if (!Files.exists(journalFile)) {
             return null;
