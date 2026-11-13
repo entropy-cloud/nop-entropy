@@ -327,7 +327,7 @@ public class TestSysDaoMessageService extends JunitBaseTestCase {
      * 待 resume 后重投（而非按无消费者丢弃成 PROCESSED）。
      */
     @Test
-    public void testSuspendedDurableSubscriptionHoldsNonBroadcastEvent() {
+    public void testSuspendedDurableSubscriptionHoldsNonBroadcastEvent() throws Exception {
         List<String> processed = new ArrayList<>();
         IMessageSubscription subscription = service.subscribe("order-created", recordingConsumer(processed), null);
         subscription.suspend();
@@ -343,7 +343,13 @@ public class TestSysDaoMessageService extends JunitBaseTestCase {
 
         subscription.resume();
         assertFalse(subscription.isSuspended());
-        service.processNonBroadcastEvent();
+        // processNonBroadcastEvent 契约性吞掉 DB 异常（周期循环存活裁定）——异常轮次的
+        // 投递会丢失，改为重试驱动直至交付（有界，交付语义断言不变）
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (processed.isEmpty() && System.currentTimeMillis() < deadline) {
+            service.processNonBroadcastEvent();
+            Thread.sleep(20);
+        }
         assertEquals(List.of("evt-1"), processed);
     }
 
