@@ -46,6 +46,19 @@ public class TestExecutorHelperCancelContract {
      * 捕获返回的原始 Future 以断言其终态（TPE 载体的 getTask 会吸收中断标志，中断残留
      * 对下一任务不可观测——审计载明该依赖，故以底层 FutureTask 终态为判别面）。
      */
+    /**
+     * 包装 future 在任务体内 complete（{@code ExecutorHelper.submit/schedule} 的包装 Callable 于
+     * {@code task.call()} 内调 {@code future.complete}），早于底层 FutureTask 的 {@code set/finish}
+     * 终态落盘——两者间存在固有窗口（满载套件下 worker 被抢占即放大为秒级）。有界等待 raw 落盘，
+     * 之后 {@code isDone}/{@code isCancelled} 断言才具有判别力。
+     */
+    private static void awaitRawDone(Future<?> raw) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!raw.isDone() && System.currentTimeMillis() < deadline)
+            Thread.sleep(5);
+        assertTrue(raw.isDone(), "raw FutureTask must reach done state after the wrapper completed");
+    }
+
     static class RecordingPool extends ThreadPoolExecutor {
         volatile Future<?> lastRaw;
 
@@ -112,8 +125,10 @@ public class TestExecutorHelperCancelContract {
             assertTrue(f2.get(5, TimeUnit.SECONDS) == null);
 
             // 判别面（审计手法）：修复前成功完结路径必然误取消底层 FutureTask（isCancelled()==true）
+            // 注意：包装 future 在任务体内 complete（早于 FutureTask.set/finish 的终态落盘），
+            // f2 完结与 raw.isDone 之间存在固有窗口（满载套件下被调度放大），须有界等待后再钉终态
             Future<?> raw = pool.lastRaw;
-            assertTrue(raw.isDone());
+            awaitRawDone(raw);
             assertFalse(raw.isCancelled(),
                     "success completion must not leave the underlying FutureTask in cancelled state");
             // 绿态断言：成功路径零中断注入，接续任务无中断残留
@@ -156,8 +171,10 @@ public class TestExecutorHelperCancelContract {
             assertTrue(f2.get(5, TimeUnit.SECONDS) == null);
 
             // 判别面：schedule 载体同构——修复前成功完结误取消底层 ScheduledFuture
+            // 同 testSubmitSuccessDoesNotCancelUnderlyingFutureTask：包装 future 先于 raw 终态落盘，
+            // 有界等待消除固有窗口，再钉 isCancelled 断言
             Future<?> raw = timer.lastRaw;
-            assertTrue(raw.isDone());
+            awaitRawDone(raw);
             assertFalse(raw.isCancelled(),
                     "success completion must not leave the underlying ScheduledFuture in cancelled state");
             // 绿态断言：schedule 载体零中断注入
