@@ -295,7 +295,9 @@ public class TestDebeziumMessageSource {
     }
 
     static void awaitUntil(String message, BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 10000;
+        // 60s：仅防挂死护栏（plan 2513-WI7 事件驱动等待习语）——full-reactor 上下文机器
+        // 繁忙时 10s 会被真实耗时击穿（carrier 启动链 > 10s 非挂死）
+        long deadline = System.currentTimeMillis() + 60000;
         while (System.currentTimeMillis() < deadline) {
             if (condition.getAsBoolean()) {
                 return;
