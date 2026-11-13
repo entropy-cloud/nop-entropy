@@ -398,6 +398,10 @@ class GraphMetricMaterializer {
      * deleteIndex; runs inside the caller's transaction/session when one is active.
      */
     public void invalidate(String indexId) {
+        // 索引失效即回收其失败冷却条目（索引随后可能被删除——否则时间戳条目残留）。
+        // materializeGates 锁条目保留：tryLock 门在物化进行中被移除会让并发方拿到不同
+        // 锁对象破坏 single-flight 互斥；锁 map 与索引集合同基数（有界），登记为 watch-only。
+        failureCooldownUntil.remove(indexId);
         transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                 ormTemplate.runInSession(session -> {
                     deleteByIndex(session, indexId);

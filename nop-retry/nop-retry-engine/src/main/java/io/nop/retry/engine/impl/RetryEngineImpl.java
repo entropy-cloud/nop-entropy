@@ -159,6 +159,17 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         recordGenerations.computeIfAbsent(recordId, k -> new AtomicLong()).incrementAndGet();
     }
 
+    /**
+     * record 到达终态（COMPLETED / 死信）时回收其代际条目——recordId 每条记录唯一，
+     * 若只增不清将随历史记录总数无界增长。回收后旧链代际校验按 currentGeneration=0
+     * 评估：持有非零代际的旧链立即失配被短路（保守方向安全）；零代际旧链由记录状态
+     * 守卫拦截。若该 sid 后续被 OVERWRITE 重建，computeIfAbsent 从 1 重新起算，与
+     * 旧残留值无关联（重建本就意味着全新执行链）。
+     */
+    private void clearGeneration(String recordId) {
+        recordGenerations.remove(recordId);
+    }
+
     /** 裁定④：attempt 超时上界。null = 未显式注入，回退 RetryEngineConfigs 声明的键值。 */
     private long resolveAttemptTimeoutMs() {
         return attemptTimeoutMs != null ? attemptTimeoutMs
@@ -831,6 +842,7 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     private void handleExecutionSuccess(NopRetryRecord record, NopRetryPolicy policy, IRetryTask task) {
         record.setStatus(NopRetryConstants.RETRY_RECORD_STATUS_COMPLETED);
         recordStore.updateRecord(record);
+        clearGeneration(record.getSid());
         LOG.info("nop.retry.task-completed:recordId={}", record.getSid());
 
         if (policy.hasCallbackPolicy() && shouldTriggerCallback(policy, true)) {
@@ -962,11 +974,13 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     private void moveToDeadLetter(NopRetryRecord record, Throwable ex) {
         ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, ex);
         recordStore.moveToDeadLetter(record, errorBean.getErrorCode(), errorBean.getDescription(), errorBean.getErrorStack());
+        clearGeneration(record.getSid());
         LOG.warn("nop.retry.task-moved-to-dead-letter:recordId={}", record.getSid());
     }
 
     private void moveToDeadLetter(NopRetryRecord record, String errorCode, String errorMessage, String errorStack) {
         recordStore.moveToDeadLetter(record, errorCode, errorMessage, errorStack);
+        clearGeneration(record.getSid());
         LOG.warn("nop.retry.task-moved-to-dead-letter:recordId={}", record.getSid());
     }
 

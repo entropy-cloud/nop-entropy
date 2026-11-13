@@ -12,7 +12,6 @@ import io.nop.core.resource.zip.IZipOutput;
 import io.nop.core.resource.zip.IZipTool;
 import io.nop.core.resource.zip.ZipOptions;
 import io.nop.core.unittest.BaseTestCase;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +32,6 @@ public class TestDownloadHelper extends BaseTestCase {
         CoreInitialization.initialize();
     }
 
-    @AfterAll
-    public static void afterAll() {
-        CoreInitialization.destroy();
-    }
 
     @Test
     public void testDownload() throws IOException {
