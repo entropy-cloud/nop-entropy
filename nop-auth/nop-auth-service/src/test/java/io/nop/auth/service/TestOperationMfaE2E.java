@@ -793,7 +793,11 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
     }
 
     private String computeTotpCode(String secret) {
-        return computeTotpAt(secret, System.currentTimeMillis());
+        // 生成「下一窗口」码（合并修订 2026-11-13，TOTP 窗口边界 flake 根治）：
+        // skew=±1 下 next-window 码在当前窗口与下一窗口共 60s 内均可验证（较当前窗口码
+        // 的 30s 有效跨度翻倍），且与任何先前已消费窗口无防重放碰撞（floor=lastVerified+1
+        // 严格递增）。原「当前窗口」码在窗口边界附近生成→验证跨窗时确定性 mfa-fail。
+        return computeTotpAt(secret, System.currentTimeMillis() + TOTPAuthenticator.PERIOD_SECONDS * 1000L);
     }
 
     private static String computeTotpAt(String base32Secret, long timeMillis) {
