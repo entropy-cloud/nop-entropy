@@ -2,13 +2,12 @@ package io.nop.treesitter.biz;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.initialize.CoreInitialization;
-import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.GraphQLEngine;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -53,11 +52,6 @@ class TestShellAnalysisGraphQL {
         engine.init();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
-
     private static ApiRequest<Map<String, Object>> request(Map<String, Object> data) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         request.setData(data);
@@ -71,10 +65,16 @@ class TestShellAnalysisGraphQL {
         return data;
     }
 
+    /**
+     * C3-012 binder semantics: without an ambient open context, newRpcContext
+     * creates a per-request context that is closed at response build, and the
+     * binding-ctx restore inside executeRpcAsync then fails on the closed
+     * context. Run inside an ambient context so the "reuse open context"
+     * branch of the binder applies.
+     */
     private static ApiResponse<?> run(String query, Map<String, Object> data) {
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query, query,
-                request(data));
-        return FutureHelper.syncGet(engine.executeRpcAsync(context));
+        return ContextProvider.runWithContext(ctx -> FutureHelper.syncGet(engine.executeRpcAsync(
+                engine.newRpcContext(GraphQLOperationType.query, query, request(data)))));
     }
 
     @SuppressWarnings("unchecked")

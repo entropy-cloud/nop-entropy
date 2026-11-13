@@ -2,16 +2,15 @@ package io.nop.treesitter.biz;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.initialize.CoreInitialization;
-import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.GraphQLEngine;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -45,11 +44,6 @@ class TestParseTreeSitterGraphQL {
         engine.init();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
-
     private static ApiRequest<Map<String, Object>> rpcRequest(String source, String language) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         Map<String, Object> data = new HashMap<>();
@@ -59,11 +53,21 @@ class TestParseTreeSitterGraphQL {
         return request;
     }
 
+    /**
+     * C3-012 binder semantics: without an ambient open context, newRpcContext
+     * creates a per-request context that is closed at response build, and the
+     * binding-ctx restore inside executeRpcAsync then fails on the closed
+     * context. Run inside an ambient context so the "reuse open context"
+     * branch of the binder applies.
+     */
+    private static ApiResponse<?> run(String operationName, ApiRequest<Map<String, Object>> request) {
+        return ContextProvider.runWithContext(ctx -> FutureHelper.syncGet(engine.executeRpcAsync(
+                engine.newRpcContext(GraphQLOperationType.query, operationName, request))));
+    }
+
     @Test
     void parseTreeSitterQueryParsesThroughTheWiredBean() {
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "TreeSitter__parseTreeSitter", rpcRequest("{\"a\":1}", "json"));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = run("TreeSitter__parseTreeSitter", rpcRequest("{\"a\":1}", "json"));
         assertTrue(response.isOk(), String.valueOf(response));
         assertEquals("(document\n  (object\n    (pair\n      (string\n        (string_content))\n"
                 + "      (number))))", response.get());
@@ -71,9 +75,7 @@ class TestParseTreeSitterGraphQL {
 
     @Test
     void unknownLanguageReturnsStructuredError() {
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "TreeSitter__parseTreeSitter", rpcRequest("[]", "unknown-lang"));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = run("TreeSitter__parseTreeSitter", rpcRequest("[]", "unknown-lang"));
         assertFalse(response.isOk(), "unknown grammar must fail the response");
         assertTrue(String.valueOf(response.getCode()).contains("unknown-language")
                         || String.valueOf(response.getMsg()).contains("unknown-lang"),

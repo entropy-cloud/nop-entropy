@@ -60,7 +60,14 @@
          （AlertThresholdComparator）→ 状态机转换 + rearm 判定 → 通知（NotificationSender.sendAlert）
          → 更新 NopDatavAlertState。PanelDataBinder 非 bean，本评估器注入 IDaoProvider+IJdbcTemplate
          后 new PanelDataBinder(...) 构造（与 NopDatavPanelBizModel:47 同模式）。 -->
-    <bean id="nopDatavAlertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true"/>
+    <!-- 显式 ref 注入（合并修订 2026-11-13）：容器内多个 IResourceLockManager 候选
+         （nopSysDaoResourceLockManager + nopAuthSessionFlushLockManager）时 by-type
+         自动装配歧义 fail-fast，逐消费者显式指名（与 auth-service 同模式）。 -->
+    <bean id="nopDatavAlertEvaluator" class="io.nop.datav.service.alert.AlertEvaluator" ioc:default="true">
+        <property name="resourceLockManager">
+            <ref bean="nopAuthSessionFlushLockManager"/>
+        </property>
+    </bean>
 
     <!-- 告警 cron 调度器（普通 IoC bean 非 BizModel，与 NopDatavReportScheduler 同模式）。
          启动 scanner 全量注册 ENABLED 告警规则的 cron job + 运行时增量（save/enable/disable/delete 调用）。

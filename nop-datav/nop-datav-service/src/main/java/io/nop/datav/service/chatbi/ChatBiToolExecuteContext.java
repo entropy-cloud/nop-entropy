@@ -4,6 +4,7 @@ import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 
 import java.io.File;
 import java.util.Collections;
@@ -106,8 +107,13 @@ public class ChatBiToolExecuteContext implements IToolExecuteContext {
         return null;
     }
 
+    /**
+     * 返回同步执行器（fail-loud 接线校验要求非 null，见 ToolManagerImpl 的 ERR_AI_TOOLKIT_INVALID_STATE）。
+     * ChatBI 工具执行本就是同步派发，{@link SyncThreadPoolExecutor#INSTANCE} 在调用线程内执行，
+     * 与既有语义一致。
+     */
     @Override
     public IThreadPoolExecutor getExecutor() {
-        return null;
+        return SyncThreadPoolExecutor.INSTANCE;
     }
 }

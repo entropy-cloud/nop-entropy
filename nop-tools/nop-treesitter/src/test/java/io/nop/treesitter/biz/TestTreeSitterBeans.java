@@ -44,7 +44,6 @@ class TestTreeSitterBeans {
         if (container != null) {
             container.stop();
         }
-        CoreInitialization.destroy();
     }
 
     @Test
