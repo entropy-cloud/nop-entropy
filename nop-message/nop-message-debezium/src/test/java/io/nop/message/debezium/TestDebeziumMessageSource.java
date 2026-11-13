@@ -280,7 +280,9 @@ public class TestDebeziumMessageSource {
         source.subscribe(e -> {
         });
 
-        assertTrue(source.isStarted(), "engine start must flip the started flag");
+        // started 翻转发生在专用 carrier 线程上——事件驱动等待，不读竞态快照
+        //（合并修订 2026-11-13：模块全量跑下后段测试的 GC/JIT 压力曾使立即断言假红）
+        awaitUntil("engine start must flip the started flag", source::isStarted);
         assertNotNull(source.created, "the wrapper must come from createEngineWrapper");
         assertTrue(source.created.throwingEngine.ran.get(),
                 "the injected engine body must actually have run on the carrier");

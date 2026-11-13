@@ -63,8 +63,8 @@ AssignMutableWorkspaceStep
 要点：
 
 - **up-to-date 是最外层最便宜的闸门**：命中时连 `InputChanges` 都不产生，直接返回上一轮的 `ExecutionOutputState`（`SkipUpToDateStep.java:66-80`）。
-- **history 在执行之前写入**（`StoreExecutionStateStep` 在 `BuildCacheStep`/`ExecuteStep` 之前，源码顺序见流水线），且失败时是否保留由"输出是否变化"决定（`StoreExecutionStateStep.java:80-93`）——这是"编译失败后只重编改动文件"能成立的前提。
-- **只有非增量执行才删旧输出**（`RemovePreviousOutputsStep.java:47-64`）。增量执行由语言层精确删除（见 §4.3）。
+- **history 包在执行之外、结果返回后写入**（`StoreExecutionStateStep` 在外层，调用 delegate 拿到结果后才 `history.store(...)`）；失败时是否保留由"输出是否变化"决定（`StoreExecutionStateStep.java:52-93`）——输出已变化则保留失败状态，这是"编译失败后只重编改动文件"能成立的前提。
+- **只有非增量执行才删旧输出**（`RemovePreviousOutputsStep.java:47-64`）。增量执行由语言层精确删除（见 §4.6）。
 
 ### 2.2 变更检测（任务级）
 
@@ -214,7 +214,7 @@ BFS(改动类 ∪ 注解生成的 "依赖全体" 类型)
 - 常量变化且编译器不支持常量映射 → 全量（第 106-113 行 `supportsConstantsMapping`）；
 - 注解处理上一轮已报 full rebuild cause → 全量（第 101-104 行）；
 - `getTypesToReprocess()`（第 164-183 行）把 aggregating 注解元素、被重编生成类的 origin 补进重处理集合；
-- `package-info`/`module-info` 由编译器无法以"类"形式重处理，改为"每次带源文件重编"（`AbstractRecompilationSpecProvider.java:196-221`）。
+- `package-info`/`module-info` 由编译器无法以"类"形式重处理，改为"每次带源文件重编"（`AbstractRecompilationSpecProvider.java:201-225`）。
 
 ### 4.5 源变化与 classpath 变化
 
@@ -223,7 +223,7 @@ BFS(改动类 ∪ 注解生成的 "依赖全体" 类型)
 1. **classpath 先判**（第 91-100 行）：`CurrentCompilation` 对 `compileClasspath + modulePath` 现场做 ABI-only 分析，与上次快照 `findChangesSince()` 求差，再把差集映射回**本模块输出**的依赖者（`recomp/CurrentCompilation.java:36-58` + `recomp/PreviousCompilation.java:33-46`）。差集若 `dependencyToAll`（如 classpath 无法分析、module-info 变化）→ 全量。
 2. **再判源变化**（第 102-121 行）：每个 `FileChange` 经 `SourceFileClassNameConverter` 反查类名；`SourceFileChangeProcessor`（`recomp/SourceFileChangeProcessor.java:28-42`）加"改动类 + 传递依赖者"。若改了非源文件而注解处理器存在（`isIncrementalOnResourceChanges=false`，`JavaRecompilationSpecProvider.java:51-54`）→ 全量。
 3. **补齐源文件与"独立类"**（第 151-190 行）：一个 `.java` 文件可能含多个类；只重编其中一部分会把同文件其他类的新输出"漏删"，导致 Groovy/Spock 等产生错误类（上游 issue #21644）。因此把文件内其余类也纳入删除/重编，并对它们只追踪注解处理依赖，不再扩传递闭包。
-4. 加 `module-info` 源文件（存在即重编，第 222-233 行）。
+4. 加 `module-info` 源文件（存在即重编，第 215-225 行）。
 
 `SourceFileClassNameConverter` 优先用 `CompilerApiData` 的 source→classes 映射（精确），拿不到时按文件名推导（`FileNameDerivingClassNameConverter`）。
 
@@ -233,7 +233,7 @@ BFS(改动类 ∪ 注解生成的 "依赖全体" 类型)
 
 - `sourceToCompile` PatternSet → `sourceTree.matching(...)` 得到本次真正传给编译器的源文件（不是全量源树）；
 - `classesToDelete`：`a/b/C.class` 与 `a_b_C.h`（JNI 头）；
-- 把 `destinationDir` **插到 compile classpath 最前**（第 249-255 行）——未重编的旧类仍可被解析；
+- 把 `destinationDir` **插到 compile classpath 最前**（第 277-283 行）——未重编的旧类仍可被解析；
 - 资源删除集合按 `GeneratedResource.Location`（CLASS_OUTPUT / SOURCE_OUTPUT / NATIVE_HEADER_OUTPUT）分别构造。
 
 `CompileTransaction.execute()`【源码 `transaction/CompileTransaction.java:101-170`】：
@@ -337,7 +337,7 @@ BFS(改动类 ∪ 注解生成的 "依赖全体" 类型)
 |---|---|---|
 | Gradle daemon | 跨构建复用 JVM、classloader、VFS、编译分析缓存 | `WatchingVirtualFileSystem` 生命周期 |
 | configuration cache | 跳过配置阶段（本文件不展开） | `optimizing-builds/configuration-cache/` |
-| 编译 worker 隔离 | `ProcessIsolatedCompilerWorkerExecutor`，编译器可 fork 到持久 worker 进程 | `DefaultJavaCompilerFactory.java:19,75-90` |
+| 编译 worker 隔离 | 编译器可在进程隔离的 worker 中执行（`ProcessIsolatedCompilerWorkerExecutor`），避免污染 daemon | `DefaultJavaCompilerFactory.java:19,75-90` |
 | 并行执行 | `--parallel` + worker lease；重叠输出检测阻止错误复用 | `CaptureMutableStateBeforeExecutionStep` 的 `OverlappingOutputDetector` |
 | 陈旧输出清理 | `HandleStaleOutputsStep` 每构建一次，而非每任务 | `ExecutionBuildServices.java:190` |
 | 空输入短路 | `SkipEmptyMutableWorkStep` 直接清理输出并跳过 | `ExecutionBuildServices.java:193` |
@@ -425,24 +425,26 @@ Gradle 的立场是"**全量永远正确，增量必须可证**"。放弃增量�
 
 ## 十二、关键源码索引
 
+> 路径中的 `...` 表示省略的中间包路径（按类名定位，不随上游目录微调而失效）。
+
 | 主题 | 入口 |
 |---|---|
-| 任务 action 与增量装配 | `platforms/jvm/language-java/src/main/java/org/gradle/api/tasks/compile/JavaCompile.java` |
-| 选择性编译决策 | `.../compile/incremental/SelectiveCompiler.java` |
-| 重编译规格 | `.../incremental/recomp/AbstractRecompilationSpecProvider.java`、`RecompilationSpec.java` |
-| 依赖分析 | `.../incremental/asm/ClassDependenciesVisitor.java`、`ClassRelevancyFilter.java` |
-| 闭包与差异 | `.../incremental/deps/ClassSetAnalysis.java`、`ClassSetAnalysisData.java`、`ClassDependentsAccumulator.java` |
-| classpath 快照 | `.../incremental/classpath/DefaultClassSetAnalyzer.java` |
-| 结果持久化 | `.../incremental/IncrementalResultStoringCompiler.java`、`recomp/PreviousCompilationData.java` |
-| 输出事务 | `.../incremental/transaction/CompileTransaction.java` |
-| 编译缓存 | `.../incremental/cache/UserHomeScopedCompileCaches.java` |
-| 执行流水线 | `platforms/core-execution/execution/src/main/java/org/gradle/internal/execution/steps/*`；装配见 `subprojects/core/src/main/java/org/gradle/internal/service/scopes/ExecutionBuildServices.java` |
-| 变更检测 | `.../execution/history/changes/DefaultExecutionStateChangeDetector.java` |
-| cache key | `.../execution/caching/impl/DefaultCachingStateFactory.java` |
-| ABI 哈希 | `platforms/core-execution/normalization-java/src/main/java/org/gradle/api/internal/changedetection/state/AbiExtractingClasspathResourceHasher.java` |
-| classpath 指纹 | `platforms/core-execution/normalization-java/src/main/java/org/gradle/internal/fingerprint/classpath/impl/ClasspathFingerprintingStrategy.java` |
-| VFS / 文件访问 | `platforms/core-execution/snapshots/src/main/java/org/gradle/internal/vfs/impl/DefaultFileSystemAccess.java` |
-| 文件监听 | `platforms/core-execution/file-watching/src/main/java/org/gradle/internal/watch/**` |
-| 哈希缓存 | `platforms/core-execution/hashing-services/src/main/java/org/gradle/api/internal/changedetection/state/CachingFileHasher.java` |
+| 任务 action 与增量装配 | `platforms/jvm/language-java/.../api/tasks/compile/JavaCompile.java` |
+| 选择性编译决策 | `platforms/jvm/language-java/.../compile/incremental/SelectiveCompiler.java` |
+| 重编译规格 | `platforms/jvm/language-java/.../incremental/recomp/AbstractRecompilationSpecProvider.java`、`.../recomp/RecompilationSpec.java` |
+| 依赖分析 | `platforms/jvm/language-java/.../incremental/asm/ClassDependenciesVisitor.java`、`.../asm/ClassRelevancyFilter.java` |
+| 闭包与差异 | `platforms/jvm/language-java/.../incremental/deps/ClassSetAnalysis.java`、`.../deps/ClassSetAnalysisData.java`、`.../deps/ClassDependentsAccumulator.java` |
+| classpath 快照 | `platforms/jvm/language-java/.../incremental/classpath/DefaultClassSetAnalyzer.java` |
+| 结果持久化 | `platforms/jvm/language-java/.../incremental/IncrementalResultStoringCompiler.java`、`.../recomp/PreviousCompilationData.java` |
+| 输出事务 | `platforms/jvm/language-java/.../incremental/transaction/CompileTransaction.java` |
+| 编译缓存 | `platforms/jvm/language-java/.../incremental/cache/UserHomeScopedCompileCaches.java` |
+| 执行流水线 | `platforms/core-execution/execution/.../execution/steps/`；装配见 `subprojects/core/.../service/scopes/ExecutionBuildServices.java` |
+| 变更检测 | `platforms/core-execution/execution/.../history/changes/DefaultExecutionStateChangeDetector.java` |
+| cache key | `platforms/core-execution/execution/.../caching/impl/DefaultCachingStateFactory.java` |
+| ABI 哈希 | `platforms/core-execution/normalization-java/.../changedetection/state/AbiExtractingClasspathResourceHasher.java` |
+| classpath 指纹 | `platforms/core-execution/normalization-java/.../fingerprint/classpath/impl/ClasspathFingerprintingStrategy.java` |
+| VFS / 文件访问 | `platforms/core-execution/snapshots/.../vfs/impl/DefaultFileSystemAccess.java` |
+| 文件监听 | `platforms/core-execution/file-watching/.../watch/` |
+| 哈希缓存 | `platforms/core-execution/hashing-services/.../changedetection/state/CachingFileHasher.java` |
 | 行为验证测试 | `platforms/jvm/language-java/src/integTest/groovy/org/gradle/java/compile/incremental/`（如 `JavaSourceIncrementalCompilationIntegrationTest`、`JavaClassChangeIncrementalCompilationIntegrationTest`、`JavaCompileAvoidanceWithIncrementalCompilationIntegrationTest`、`BaseIncrementalCompilationAfterFailureIntegrationTest`、`CrossTaskIncrementalJavaCompilationIntegrationTest`） |
 | 用户契约 | `platforms/documentation/docs/src/docs/userguide/reference/core-plugins/java_plugin.adoc:526-640`、`.../optimizing-builds/build-cache/build_cache_concepts.adoc:113-120`、`.../reference/runtime-configuration/file_system_watching.adoc:15-70` |
