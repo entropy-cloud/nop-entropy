@@ -407,6 +407,7 @@ nop.err.core.query.invalid-order-by-sql: 排序语句格式不正确
 nop.err.core.reflect.aop-init-method-model-fail: AOP代理类[{className}]初始化函数模型失败
 nop.err.core.reflect.bean-class-is-abstract-or-interface: '{className}类是抽象类或者接口，不允许创建实例'
 nop.err.core.reflect.bean-class-no-factory-method: '{className}类没有定义工厂方法，也不是枚举类'
+nop.err.core.reflect.bean-duplicate-sub-type-name: 类[{className}]的子类型名称[{typeName}]重复
 nop.err.core.reflect.bean-no-class-for-type: '{typeValue}没有对应的实现类'
 nop.err.core.reflect.bean-no-default-constructor: 类[{className}]没有缺省构造器
 nop.err.core.reflect.bean-not-collection-for-getter: 获取集合元素失败，{bean}不是集合类型的对象
@@ -608,6 +609,7 @@ nop.err.dao.sql.recoverable-data-access: 数据访问失败，可获取新的连
 nop.err.dao.sql.timeout: 数据库操作超时
 nop.err.dao.sql.transient-connection-fail: 数据库连接暂时失败，可重试
 nop.err.dao.sql.uncategorized-failure: 数据库异常
+nop.err.dao.sql.upsert-conflict-keys-empty: upsert冲突键列集不允许为空:{name}
 nop.err.dao.txn.already-finished: 事务已经结束，不允许此操作
 nop.err.dao.txn.already-started: 事务已经启动，不允许重复启动
 nop.err.dao.txn.commit-fail: 事务提交失败
@@ -960,6 +962,21 @@ nop.err.match.not-equals-var-value: '[{jsonPath}]对应的值[{value}]与变量[
 nop.err.match.null-pattern-prop: 匹配模式[{patternName}]的属性[{name}]为空
 nop.err.match.object-is-null: '[{jsonPath}]对应的值不应为空'
 nop.err.match.unknown-pattern: 未定义的模式匹配：{patternName}
+nop.err.ooxml.docx.gen-block-type-unknown: 'Unknown block type cannot be generated
+  to docx: {blockType}'
+nop.err.ooxml.docx.gen-image-invalid: 'Image or relationship cannot be generated to
+  docx: {reason}, target={targetId}'
+nop.err.ooxml.docx.gen-list-num-id-missing: 'List block has no numId and cannot be
+  generated to docx: {targetId}'
+nop.err.ooxml.docx.gen-run-type-unknown: 'Unknown inline run type cannot be generated
+  to docx: {blockType}'
+nop.err.ooxml.docx.gen-title-level-invalid: 'Title block has no style id and its titleLevel
+  is not within 1..9: {targetId}'
+nop.err.ooxml.docx.parse-package-invalid: docx包损坏或不是有效的zip文件:{partPath}
+nop.err.ooxml.docx.parse-part-missing: docx包缺少必需的部件:{partPath}
+nop.err.ooxml.docx.parse-reserved-style-id: Style id [{styleId}] uses the reserved
+  '__' prefix for inline cell styles
+nop.err.ooxml.docx.parse-xml-invalid: docx部件XML结构损坏，无法解析:{partPath}
 nop.err.ooxml.docx.xpl-begin-end-not-match: 通过超链接标注的xpl标签[{tagName}]的起始部分和结束部分[{endTagName}]不匹配:{label}
 nop.err.ooxml.docx.xpl-begin-no-end: 通过超链接标注的xpl标签[{tagName}]没有结束部分:{label}
 nop.err.ooxml.docx.xpl-end-no-begin: 通过超链接标注的xpl标签[{tagName}]没有起始部分:{label}
@@ -1088,10 +1105,12 @@ nop.err.orm.not-support-multiple-query-space-in-one-sql: 一条SQL语句只允�
 nop.err.orm.null-binder-for-column: 对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口
 nop.err.orm.nulls-order-not-supported: 当前方言无法表达请求的排序空序
 nop.err.orm.prop-id-is-reserved: 对象模型[{entityName}]的属性名不能为id，id为系统保留名称
+nop.err.orm.query-duplicate-field-label: 查询结果中字段名[{label}]重复（主表和子表字段会写入同一个结果map），请为其中一个字段设置alias
 nop.err.orm.query-invalid-join: 不支持的join类型
 nop.err.orm.query-no-dim-fields: 查询对象没有指定dimFields属性
 nop.err.orm.query-not-allow-group-by: 查询列表中包含关联子表字段时不支持group by
 nop.err.orm.query-timeout: 执行查询超时
+nop.err.orm.query-unsupported-field-attr: MDX查询不支持字段属性[{attr}]，该属性会被静默忽略
 nop.err.orm.read-only-session-not-allow-update: 只读的session不支持修改操作
 nop.err.orm.save-entity-not-transient: 当前实体状态为[{status}]，不允许保存。只有处于TRANSIENT状态的实体才允许保存
 nop.err.orm.save-entity-replace-existing-entity: session中已经存在类型为[{entityName}]，主键为[{entityId}]的实体，不允许插入主键相同的实体
@@ -1117,6 +1136,12 @@ nop.err.orm.update-entity-multiple-rows: 更新实体[{entityName}:{entityId}]�
 nop.err.orm.update-entity-not-found: 更新实体[{entityName}:{entityId}]失败，未找到匹配记录，可能是乐观锁更新失败
 nop.err.orm.update-retry-entity-not-allow-dirty: 执行updateWithRetry更新时传入的实体必须为未修改状态，当前实体已经被修改
 nop.err.orm.visit-loop-count-exceed-limit: 实体遍历循环的执行次数超过最大限制
+nop.err.pdf.cjk-requires-font: 文本包含CJK字符且未提供字体文件:failedChar={failedChar},textSample={textSample}。请通过PdfStampOptions.setFontFile提供覆盖该字符的TTF/OTF字体文件
+nop.err.pdf.garbled-text: 第{page}页乱码字符(U+FFFD)数超过阈值:fffdCount={fffdCount}。PDF可能缺少正确的ToUnicode映射
+nop.err.pdf.image-invalid: 无效的图片数据(null/空字节数组或无法解码的图片格式)
+nop.err.pdf.page-out-of-range: 页码越界(有效范围1..{pageCount}):page={page}
+nop.err.pdf.scanned-page: 第{page}页无可抽取文本层(疑似扫描件)。请提供含文本层的PDF或先做OCR处理
+nop.err.pdf.text-not-encodable: 缺省字体无法编码文本中的字符:failedChar={failedChar},textSample={textSample}。请通过PdfStampOptions.setFontFile提供覆盖该字符的字体文件
 nop.err.pom.reference-contains-loop: Maven不允许循环依赖
 nop.err.proto.not-support-data-type: 不支持的类型:{dataType}
 nop.err.record.aggregate-field-no-agg-func: 汇总字段没有设置aggFunc属性:{fieldName}
@@ -1163,8 +1188,21 @@ nop.err.record.unsupported-packet-field-length-field: '不支持的包长度字�
 nop.err.record.value-not-match-string: 值与预想的情况不匹配:pos={pos},expected={expected}
 nop.err.record.zlib-decode-fail: zlib数据解压失败:length={length}
 nop.err.record.zlib-output-too-large: zlib解压输出超过上限:maxLength={maxLength}
+nop.err.report.pdf.doc.image-asset-not-found: Image block references asset [{assetRef}]
+  which is not present in doc assets
+nop.err.report.pdf.doc.invalid-page-geometry: Section page geometry is invalid (non-positive
+  content area) for section [{blockType}]
+nop.err.report.pdf.doc.render-model-required: renderPdf requires a non-null, already
+  expanded OfficeDocModel; template input must be expanded through the docx outlet
+  model stage (WordDocTemplates.expandToModel) first
+nop.err.report.pdf.doc.unknown-block: Unknown OfficeDocModel block type [{blockType}];
+  the PDF renderer cannot dispatch it
+nop.err.report.pdf.doc.unknown-run: Unknown OfficeDocModel inline run type [{blockType}];
+  the PDF renderer cannot dispatch it
 nop.err.report.pdf.fallback-font-not-found: 未找到可用的CJK回退字体，无法渲染包含中文字符的文本[{textSample}]。请在VFS的/fonts/default.ttf、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供CJK字体文件
 nop.err.report.pdf.font-missing-glyph: 字体[{fontName}]无法编码文本[{textSample}]中的字符[{failedChar}]，且没有可用的回退字体。请在VFS的/fonts/目录、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供覆盖该字符的CJK字体文件
+nop.err.report.pdf.invalid-page-number-scope: 无效的页码作用域配置(仅支持global/sheet):scope={scope}
+nop.err.report.pdf.unsupported-print-titles: PDF导出仅支持从首行/首列开始的前缀Print_Titles声明(如1:2或A:B):printTitleRange={printTitleRange}
 nop.err.rpc.cancelled: RPC调用已取消，原因:{reason}
 nop.err.rpc.channel-closed: RPC连接已关闭
 nop.err.rpc.empty-request: 请求对象为空
@@ -1280,6 +1318,18 @@ nop.err.xlang.build-composite-type-fail: 创建复合类型失败:{typeName}
 nop.err.xlang.const-decl-no-initializer: 常量声明没有初始化表达式
 nop.err.xlang.continue-statement-not-in-loop: break语句必须放到循环语句内部
 nop.err.xlang.debugger-already-closed: 调试器已关闭
+nop.err.xlang.debugger.no-session: 调试会话未建立
+nop.err.xlang.debugger.permission-denied: 无调试会话权限（plan 2478 SEC-05：D6 §3.4 权限矩阵 WS
+  行落地）
+nop.err.xlang.debugger.protocol-version-unsupported: 调试协议版本不支持
+nop.err.xlang.debugger.rate-limited: 请求频率超过限制
+nop.err.xlang.debugger.repl-cancelled: REPL执行已取消
+nop.err.xlang.debugger.repl-timeout: REPL执行超时
+nop.err.xlang.debugger.result-too-large: 调试结果超过出站大小上限
+nop.err.xlang.debugger.session-already-open: 调试会话已建立
+nop.err.xlang.debugger.session-bound-elsewhere: 调试会话不存在或属主不符
+nop.err.xlang.debugger.thread-not-suspended: 调试器无挂起线程
+nop.err.xlang.debugger.too-many-bps: 断点数量超过上限
 nop.err.xlang.declare-var-conflicts: 变量定义[{varName}]命名冲突，冲突位置为[{varDecl1}]和[{varDecl2}]
 nop.err.xlang.delete.not-member-expr: delete操作的目标必须是属性访问表达式，如delete obj.x或delete obj["key"]
 nop.err.xlang.delete.not-single-level: delete操作只接受单级属性访问，不支持链式delete，如不支持delete a.b.c
@@ -1595,6 +1645,8 @@ nop.err.xlsx.chart-color-resolve-fail: 解析图表颜色失败:colorName={color
 nop.err.xlsx.chart-parse-fail: 解析图表失败:chartId={chartId},partName={partName}
 nop.err.xlsx.chart-style-parse-fail: 解析图表样式失败:parserName={parserName},elementName={elementName}
 nop.err.xlsx.chart-theme-load-fail: 加载图表主题失败:partName={partName}
+nop.err.xlsx.dup-print-titles: 重复的Print_Titles定义:printTitles={printTitles}
+nop.err.xlsx.invalid-print-titles: 无效的Print_Titles定义:printTitles={printTitles}
 nop.err.xlsx.null-package: ExcelOfficePackage不能为null
 nop.err.xlsx.null-rel-part: 没有关联文件:type={type},relId={relId}
 nop.err.xlsx.unknown-sheet-name: 找不到sheet名称为:{sheetName}
@@ -1607,6 +1659,7 @@ nop.err.xpl.xlib.tag-no-source-defined: 标签库没有定义内嵌的source实�
 nop.err.xpl.xlib.unknown-tag: 在标签库[{libPath}]中没有定义标签[{tagName}]
 nop.err.xpt.cell-expr-ds-name: '单元格展开表达式中必须具有ds定义，格式为^dsName!fieldName: {expr}'
 nop.err.xpt.cell-expr-result-not-one-cell: 表达式[{expr}]返回单元格个数为[{size}]，不是单个单元格
+nop.err.xpt.cond-style-expr-error: 表格[{sheetName}]的单元格[{cellPos}]的条件样式规则表达式执行失败
 nop.err.xpt.excel-read-row-count-exceed-limit: Excel表格[{sheetName}]的数据行数超过上限{maxCount}，可调大ExcelIOConfig.maxCountPerSheet或改用csv/jdbc读取
 nop.err.xpt.invalid-cell-range-expr: 非法的单元格区间表达式
 nop.err.xpt.invalid-ds-name: 非法的数据源名称
@@ -1614,9 +1667,14 @@ nop.err.xpt.invalid-excel-formula: 非法的Excel公式:{source}
 nop.err.xpt.invalid-field-name: 非法的字段名
 nop.err.xpt.invalid-image-data: 图片数据不是字节数组或者IResource对象
 nop.err.xpt.invalid-row-parent: 表格[{sheetName}]的单元格[{cellPos}]的列父格[{colParent}]必须配置为列展开
+nop.err.xpt.max-expand-rows-exceeded: 展开行数超过上限[{maxRows}]，为防止内存溢出已中止渲染。可调整模板 expandMaxCount
+  或配置项 nop.report.max-expand-rows
 nop.err.xpt.missing-var-ds: 未定义单元格变量cell
 nop.err.xpt.not-support-expr-in-formula: Excel公式中不支持表达式:{expr}
 nop.err.xpt.row-parent-contains-loop: 表格[{sheetName}]的单元格[{cellPos}]的行父格[{colParent}]不能包含循环指向，必须构成树状结构
+nop.err.xpt.subreport-depth-exceeded: 子报表嵌套深度超过上限[{maxDepth}]，可能存在循环引用
+nop.err.xpt.subreport-engine-unavailable: 子报表引用需要报表引擎 bean[nopReportEngine]，当前环境未注册
+nop.err.xpt.subreport-params-error: 单元格[{cellPos}]的子报表参数表达式必须返回 Map
 nop.err.xpt.template-no-sheet: 报表模板[{path}]中不包含任何sheet
 nop.err.xpt.undefined-cell-model-prop: 未定义的单元格模型的属性[{propName}]
 nop.err.xpt.undefined-chart-model-prop: 未定义的图表模型的属性[{propName}]

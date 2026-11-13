@@ -528,12 +528,66 @@ class CodeQueryService {
                                  String packageName, int limit) {
         if (daoProvider == null) return Collections.emptyList();
         IEntityDao<NopCodeSymbol> symbolDao = daoProvider.daoFor(NopCodeSymbol.class);
-        QueryBean qb = new QueryBean();
-        qb.addFilter(FilterBeans.eq("indexId", indexId));
-        if (query != null && !query.isEmpty()) {
+        boolean hasQuery = query != null && !query.isEmpty();
+        if (hasQuery && limit > 0) {
+            return findSymbolsRanked(symbolDao, indexId, query, kinds, packageName, limit);
+        }
+
+        TreeBean textFilter = null;
+        if (hasQuery) {
             TreeBean nameFilter = FilterBeans.contains("name", query);
             TreeBean qnFilter = FilterBeans.contains("qualifiedName", query);
-            qb.addFilter(FilterBeans.or(nameFilter, qnFilter));
+            textFilter = FilterBeans.or(nameFilter, qnFilter);
+        }
+        QueryBean qb = newSymbolQuery(indexId, textFilter, kinds, packageName);
+        if (limit > 0) qb.setLimit(limit);
+        return symbolDao.findAllByQuery(qb).stream()
+                .map(CodeSymbolConverter::toCodeSymbol)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Limited fuzzy search, ranked exact-name &gt; name-contains &gt; qualifiedName-only.
+     * <p>
+     * The fuzzy filter is {@code name contains q OR qualifiedName contains q}. Issued as a single
+     * unordered LIMIT query, every member of a type whose qualified name merely contains the query
+     * matches through the qualifiedName leg and, in storage order, can evict the exact-name hit
+     * (nop-xlang: the 50 methods of IXLangCompileScope pushed class XLangCompileScope to row 52 of
+     * a limit-50 search). Each tier is therefore queried separately in rank order and merged by id.
+     * Fetching {@code limit} rows per tier is sufficient: a later tier is only consulted once the
+     * earlier ones are exhausted, so it holds at most {@code ranked.size()} duplicates.
+     */
+    private List<CodeSymbol> findSymbolsRanked(IEntityDao<NopCodeSymbol> symbolDao, String indexId,
+                                               String query, List<CodeSymbolKind> kinds,
+                                               String packageName, int limit) {
+        List<TreeBean> tiers = Arrays.asList(
+                FilterBeans.eq("name", query),
+                FilterBeans.contains("name", query),
+                FilterBeans.contains("qualifiedName", query));
+
+        Map<String, NopCodeSymbol> ranked = new LinkedHashMap<>();
+        for (TreeBean tier : tiers) {
+            if (ranked.size() >= limit) break;
+            QueryBean qb = newSymbolQuery(indexId, tier, kinds, packageName);
+            qb.addOrderField("qualifiedName", false);
+            qb.addOrderField("id", false);
+            qb.setLimit(limit);
+            for (NopCodeSymbol entity : symbolDao.findAllByQuery(qb)) {
+                if (ranked.size() >= limit) break;
+                ranked.putIfAbsent(entity.getId(), entity);
+            }
+        }
+        return ranked.values().stream()
+                .map(CodeSymbolConverter::toCodeSymbol)
+                .collect(Collectors.toList());
+    }
+
+    private QueryBean newSymbolQuery(String indexId, TreeBean textFilter, List<CodeSymbolKind> kinds,
+                                     String packageName) {
+        QueryBean qb = new QueryBean();
+        qb.addFilter(FilterBeans.eq("indexId", indexId));
+        if (textFilter != null) {
+            qb.addFilter(textFilter);
         }
         if (kinds != null && !kinds.isEmpty()) {
             List<String> kindNames = kinds.stream().map(Enum::name).collect(Collectors.toList());
@@ -542,10 +596,7 @@ class CodeQueryService {
         if (packageName != null && !packageName.isEmpty()) {
             qb.addFilter(FilterBeans.startsWith("qualifiedName", packagePrefix(packageName)));
         }
-        if (limit > 0) qb.setLimit(limit);
-        return symbolDao.findAllByQuery(qb).stream()
-                .map(CodeSymbolConverter::toCodeSymbol)
-                .collect(Collectors.toList());
+        return qb;
     }
 
     PageBean<CodeSymbol> findSymbolsPage(String indexId, String query, List<CodeSymbolKind> kinds,
