@@ -125,8 +125,13 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
 
     @Override
     public ThreadPoolStats stats() {
-        // destroy 置空后取类型化终态而非裸 NPE（与 DefaultScheduledExecutor.snapshotExecutor 同型）
-        return ExecutorHelper.getStats(snapshotExecutor());
+        // destroy 后返回 null 终态（观测契约：DbToolTerminationHelper.waitTerminated 以
+        // stats==null 判定已停并结束等待——观测面不得抛 typed，否则等待循环被异常打断）。
+        // 类型化拒绝仅保留在服务路径 execute/submit（snapshotExecutor）。
+        ThreadPoolExecutor pool = this.executor;
+        if (pool == null || this.destroyed)
+            return null;
+        return ExecutorHelper.getStats(pool);
     }
 
     /**
