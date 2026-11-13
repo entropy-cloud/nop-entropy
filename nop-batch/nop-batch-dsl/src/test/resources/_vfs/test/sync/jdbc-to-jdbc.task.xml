@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
+      xmlns:batch="/nop/batch/xlib/batch.xlib">
+
+    <steps>
+        <custom name="sync" customType="batch:Execute" useParentScope="true">
+            <batch:task taskName="test.sync.jdbcToJdbc" batchSize="100" transactionScope="chunk">
+                <loader>
+                    <jdbc-reader fetchSize="100">
+                        <sql>select id, name, amount from sync_src order by id</sql>
+                    </jdbc-reader>
+                </loader>
+
+                <consumer name="all">
+                    <jdbc-writer tableName="sync_jdbc"/>
+                </consumer>
+            </batch:task>
+        </custom>
+    </steps>
+</task>
