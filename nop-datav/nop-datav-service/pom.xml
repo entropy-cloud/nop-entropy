@@ -148,6 +148,15 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
             </plugin>
+            <!-- 640+ 容器化 E2E 用例默认 1G fork 堆收尾 OOM（Java heap space,环境性 fork crash
+                 非断言失败）——固定 2G 堆。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Xmx2g</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
