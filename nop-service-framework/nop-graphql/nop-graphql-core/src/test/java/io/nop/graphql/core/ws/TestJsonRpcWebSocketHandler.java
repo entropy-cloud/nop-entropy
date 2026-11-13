@@ -204,12 +204,11 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onEvent\",\"params\":{},\"id\":\"sub-1\"}");
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"unsubscribe\",\"params\":{\"id\":\"sub-1\"},\"id\":\"cancel-1\"}");
 
-        assertTrue(publisherCancelled.get(), "Publisher should be cancelled after unsubscribe");
-
-        List<String> messages = session.getSentMessages();
-        boolean foundCancelResponse = messages.stream()
-                .anyMatch(m -> m.contains("\"id\":\"cancel-1\"") && m.contains("\"cancelled\":true"));
-        assertTrue(foundCancelResponse, "Should have cancel response");
+        // unsubscribe 的取消响应经异步发送线程落账（C8-001 send-offload）——事件驱动等待，
+        // 不读竞态快照（合并修订 2026-11-13：原直读在 offload 线程未落账时假红）
+        awaitUntil("Publisher should be cancelled after unsubscribe", publisherCancelled::get);
+        awaitUntil("Should have cancel response", () -> session.getSentMessages().stream()
+                .anyMatch(m -> m.contains("\"id\":\"cancel-1\"") && m.contains("\"cancelled\":true")));
     }
 
     @Test
@@ -638,7 +637,8 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
     }
 
     private static class MockWebSocketSession implements IWebSocketSession {
-        private final List<String> sentMessages = new ArrayList<>();
+        // sendMessage 在 handler 的异步发送线程上执行，测试主线程并发轮询——必须并发安全
+        private final List<String> sentMessages = new java.util.concurrent.CopyOnWriteArrayList<>();
         private boolean closed = false;
         private short closeCode = 0;
         private String closeReason = "";
