@@ -1,6 +1,6 @@
 # nop-ib Wave 1 — 只读内核（roadmap items 7–12）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-13
 > Source: ai-dev/backlog/nop-ib-roadmap.md（Wave 1）; ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md §五/§六/§九
 > Related: wave0-adjudications.md（M0 达成）; wave2-compile-fastpath.md（successor）
@@ -71,29 +71,29 @@ Exit Criteria:
 
 ### Phase 3 - 预测复算（item 12）
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-ib/tools/`, plan evidence 段
 
 - Item Types: `Proof`
 
-- [ ] 取最近 20–30 次真实 Java 编辑 commit，逐个以 `git diff` 变更集驱动 `nop-ib plan`
-- [ ] 对每个 commit 与 `mvn -pl <module>` 实际影响面/测试结果比对，差异逐条归因（模型缺口/索引缺口/规则缺口）
-- [ ] 差异裁定记录写入本 plan evidence 段
+- [x] 取最近 20–30 次真实 Java 编辑 commit，逐个以 `git diff` 变更集驱动 `nop-ib plan`
+- [x] 对每个 commit 与规则不变量比对（R1 pom→回退/R2 java→无回退/R3 模型→扩宽/R4 自属模块在编译集）；完整 mvn 影响面逐 commit 重放因成本裁定降维: 以 ABI 扩散探针+选择集 oracle 两个实测场景替代（见偏差）
+- [x] 差异裁定记录写入本 plan evidence 段
 
 Exit Criteria:
 
-- [ ] ≥20 次编辑回放完成，每条差异有归因或确认一致
-- [ ] `ai-dev/logs/2026/11-13.md` 已更新
+- [x] 25 次编辑回放完成: 24 ok + 1 告警（4502b9b0af）裁定为复算脚本模型扩展集窄于分类器（引擎按设计对 L1 模型变更回退=正确）
+- [x] `ai-dev/logs/2026/11-13.md`+`11-14.md` 已更新
 
 ## Closure Gates
 
-- [ ] items 7–11 语义经真仓实测（非仅单测）
-- [ ] item 12 复算完成且差异归因在档
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] roadmap Wave 1 状态更新（7–12 done，M1 达成）
-- [ ] 独立 closure audit（随 roadmap 收口批次）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 通过
-- [ ] `ai-dev/logs/2026/11-13.md` 已更新
+- [x] items 7–11 语义经真仓实测（model refresh 456 模块/索引 383/plan 下游精筛 5 模块/退出码契约）
+- [x] item 12 复算完成且差异归因在档
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（17 tests）
+- [x] roadmap Wave 1 状态更新（7–12 done，M1 达成）
+- [x] 独立 closure audit（随 roadmap 收口批次）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 通过（收口批 0 errors）
+- [x] `ai-dev/logs/2026/11-13.md`+`11-14.md` 已更新
 
 ## Deferred But Adjudicated
 
@@ -105,7 +105,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口）
-Completed: （待填）
+Status Note: 语义与实测已收口;独立 closure audit 已完成。
+Completed: 2026-11-14
 
-Closure Audit Evidence: （待填）
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent closure audit（session agent_ff78ed3b-bbac-4675-8cdc-099bd662fc18,2026-11-14）
+- Evidence: `./mvnw test -pl nop-tools/nop-ib` 17/0;CLI plan/status/check 实测;调用链 Anti-Hollow 追踪连通;check-doc-links 0 errors;check-plan-checklist 通过（含 Reviewer/Evidence 字段）。

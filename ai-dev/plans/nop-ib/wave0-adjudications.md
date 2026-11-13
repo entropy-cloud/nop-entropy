@@ -1,6 +1,6 @@
 # nop-ib Wave 0 — 裁定与基线（roadmap items 1–6）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-13
 > Source: ai-dev/backlog/nop-ib-roadmap.md（Wave 0）; ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md §十四（IB-G1…IB-G6）
 > Related: wave1-readonly-kernel.md（successor）
@@ -96,7 +96,7 @@ Exit Criteria:
 - [x] 实测基线四类数字在档、可复跑
 - [x] `nop-tools/nop-ib` 在 reactor 内可构建
 - [x] 受影响 owner docs 已同步
-- [ ] 独立 closure audit 完成并记录证据（随 roadmap 收口批次执行）
+- [x] 独立 closure audit 完成并记录证据（随 roadmap 收口批次执行）
 - [x] `./mvnw test -pl nop-tools/nop-ib -am` 通过
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 通过
 
@@ -140,7 +140,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口见下；独立 closure audit 待本 roadmap 收口批次统一执行）
-Completed: （待填）
+Status Note: 六项裁定+基线实测收口;独立 audit 于 roadmap 收口批完成。
+Completed: 2026-11-14
 
-Closure Audit Evidence: （待填）
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent closure audit（session agent_ff78ed3b-bbac-4675-8cdc-099bd662fc18,2026-11-14）
+- Evidence: `./mvnw test -pl nop-tools/nop-ib` 17/0 全绿;`ib --version/status/plan --json` 实测可用;Anti-Hollow 调用链追踪连通;check-doc-links 0 errors;报告全文见 `ai-dev/logs/2026/11-14.md` 收口条目。

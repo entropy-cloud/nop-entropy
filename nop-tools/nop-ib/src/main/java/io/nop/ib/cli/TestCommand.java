@@ -10,6 +10,7 @@ import io.nop.ib.model.IbModule;
 import io.nop.ib.scope.PlanResult;
 
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -34,11 +35,34 @@ public final class TestCommand {
 
     public static int test(IbEngine engine, List<String> paths, String plModules,
                            List<String> explicitClasses, boolean allowPartial, boolean json,
-                           boolean includeCompile, String onFallback,
+                           boolean includeCompile, String onFallback, boolean rerunFailed,
                            PrintWriter out, PrintWriter err) {
         IbModel model = engine.model();
         List<String> changed = paths != null && !paths.isEmpty() ? paths
                 : (plModules != null ? List.of() : GitChanges.changedPaths(engine.getRepoRoot()));
+
+        // --rerun-failed: rerun the classes recorded by the previous failed run
+        if (rerunFailed) {
+            Map<String, List<String>> failed = readLastFailed(engine);
+            if (failed.isEmpty()) {
+                out.println(json ? JsonOut.write(Map.of("ok", true, "tests",
+                        Map.of("selected", 0, "note", "no recorded failed tests")))
+                        : "no recorded failed tests");
+                return Commands.EXIT_OK;
+            }
+            int failures = 0;
+            for (Map.Entry<String, List<String>> e : failed.entrySet()) {
+                IbModule module = model.module(e.getKey());
+                if (module == null)
+                    continue;
+                TestRun run = runSurefire(engine, module, e.getValue(), json, out, err);
+                recordLastFailed(engine, module.getArtifactId(), run);
+                report(engine, run, json, out);
+                if (run.exitCode != Commands.EXIT_OK)
+                    failures++;
+            }
+            return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+        }
         if (plModules != null && (paths == null || paths.isEmpty()) && explicitClasses.isEmpty()) {
             // -pl module scope with no explicit classes: run each module's full suite
             for (String artifactId : plModules.split(",")) {
@@ -148,6 +172,7 @@ public final class TestCommand {
                     continue;
                 }
                 TestRun run = runSurefire(engine, module, null, json, out, err);
+                recordLastFailed(engine, moduleId, run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
                     failures++;
@@ -157,6 +182,7 @@ public final class TestCommand {
                 if (module == null)
                     continue;
                 TestRun run = runSurefire(engine, module, e.getValue(), json, out, err);
+                recordLastFailed(engine, e.getKey(), run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
                     failures++;
@@ -216,6 +242,88 @@ public final class TestCommand {
         if (!json && !mout.isEmpty())
             err.println(mout);
         return run;
+    }
+
+    /** After each run: persist failing test classes for --rerun-failed (design 05 §九). */
+    static void recordLastFailed(IbEngine engine, String moduleId, TestRun run) {
+        Path stateFile = engine.getRepoRoot().resolve(".nop-ib").resolve("last-failed.json");
+        java.util.List<int[]> summaries = run.summary;
+        if (run.exitCode == Commands.EXIT_OK) {
+            // success clears the recorded failures for this module
+            try {
+                Map<String, Object> all = readLastFailedMap(stateFile);
+                all.remove(moduleId);
+                writeMap(stateFile, all);
+            } catch (Exception ignored) {
+                // best-effort bookkeeping; never affects the run verdict
+            }
+            return;
+        }
+        if (run.exitCode == Commands.EXIT_LOCK_TIMEOUT || summaries.isEmpty())
+            return;
+        try {
+            java.util.List<String> failedClasses = new ArrayList<>();
+            IbModule module = engine.model().module(moduleId);
+            Path reports = engine.getRepoRoot().resolve(module != null && module.getTestOutputDir() != null
+                    ? module.getTestOutputDir().replace("test-classes", "surefire-reports")
+                    : "target/surefire-reports");
+            if (Files.isDirectory(reports)) {
+                try (var stream = Files.list(reports)) {
+                    for (Path p : stream.toList()) {
+                        String name = p.getFileName().toString();
+                        if (!name.startsWith("TEST-") || !name.endsWith(".txt") && !name.endsWith(".xml"))
+                            continue;
+                        String text = Files.readString(p);
+                        if (text.contains("Failures: 0") && text.contains("Errors: 0"))
+                            continue;
+                        String cls = name.replaceAll("^TEST-|\\.(txt|xml)$", "").replace('-', '.');
+                        failedClasses.add(cls);
+                    }
+                }
+            }
+            if (failedClasses.isEmpty())
+                return;
+            Map<String, Object> all = readLastFailedMap(stateFile);
+            all.put(moduleId, failedClasses);
+            writeMap(stateFile, all);
+        } catch (Exception ignored) {
+            // best-effort bookkeeping; never affects the run verdict
+        }
+    }
+
+    private static Map<String, Object> readLastFailedMap(Path stateFile) throws Exception {
+        if (!Files.isRegularFile(stateFile))
+            return new LinkedHashMap<>();
+        Object parsed = io.nop.ib.json.JsonIn.silentParse(Files.readString(stateFile));
+        return io.nop.ib.json.JsonIn.asMapOrEmpty(parsed);
+    }
+
+    private static void writeMap(Path stateFile, Map<String, Object> all) throws Exception {
+        Files.createDirectories(stateFile.getParent());
+        Files.writeString(stateFile, io.nop.ib.json.JsonOut.write(all));
+    }
+
+    @SuppressWarnings("unchecked")
+    static Map<String, List<String>> readLastFailed(IbEngine engine) {
+        Path stateFile = engine.getRepoRoot().resolve(".nop-ib").resolve("last-failed.json");
+        if (!Files.isRegularFile(stateFile))
+            return Map.of();
+        try {
+            Map<String, Object> all = readLastFailedMap(stateFile);
+            Map<String, List<String>> out = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> e : all.entrySet()) {
+                if (e.getValue() instanceof Iterable<?> iter) {
+                    List<String> classes = new ArrayList<>();
+                    for (Object o : iter)
+                        classes.add(String.valueOf(o));
+                    if (!classes.isEmpty())
+                        out.put(e.getKey(), classes);
+                }
+            }
+            return out;
+        } catch (Exception e) {
+            return Map.of();
+        }
     }
 
     static List<int[]> extractSummaries(String output) {

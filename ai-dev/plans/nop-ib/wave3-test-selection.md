@@ -1,6 +1,6 @@
 # nop-ib Wave 3 — 测试选择（roadmap items 19–24）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-14
 > Source: ai-dev/backlog/nop-ib-roadmap.md（Wave 3）; ai-dev/design/nop-incremental-build/05 §6.4/§7.2; 02-test-execution.md
 > Related: wave1-readonly-kernel.md（选择引擎在 ScopePlanner）; wave2-compile-fastpath.md（补录）
@@ -32,7 +32,7 @@
 
 ### Phase 1 - 委托执行与命令面（items 21–22）
 
-Status: in progress
+Status: completed
 Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/cli/TestCommand.java`
 
 - Item Types: `Feature`
@@ -41,41 +41,41 @@ Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/cli/TestCommand.java`
 - [x] test 命令：--affected（默认 git 变更集）/ --class [module:]Class / -pl 模块全量
 - [x] check 命令：compile 后重判选择集（回退编译后重新判定，设计 01 §13.3）
 - [x] 汇总解析（Tests run/Failures/Errors/Skipped）+ 退出码
-- [ ] 真仓 E2E：body 探针 check 全绿且只跑选择集；耗时对比 mvn test 全量
+- [x] 真仓 E2E：body 探针 check 4.5s（编译+选择集 24 测试绿）；oracle 探针失败退出 1（选择集含失败类）；mvn 全模块 test 4.26s 对照
 
 Exit Criteria:
 
-- [ ] E2E 实测数字在档（选择集规模、端到端耗时）
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] `ai-dev/logs/2026/11-14.md` 已更新
+- [x] E2E 实测数字在档（选择集 1 类/24 测试,4.5s）
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（17 tests）
+- [x] `ai-dev/logs/2026/11-14.md` 已更新
 
 ### Phase 2 - 漏测 oracle 与契约对齐（items 23–24）
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-ib/tools/`, plan evidence
 
 - Item Types: `Proof`
 
-- [ ] oracle 语料：构造/回放真实失败场景（改行为→test 选择集必须含会失败的测试类）
-- [ ] 对照"全量测试失败集"与"选择集失败集"，漏选=0 或逐条裁定
-- [ ] 02-test-execution 契约逐条核对表（cwd=委托形态由 surefire 自身保证；classpath=不合并、由 Maven 解释；快照禁用=不注入录制属性；超时=批次上限+进程看门狗）
-- [ ] 差异即修
+- [x] oracle 语料：formatJavaSource 行为探针（全量失败集 {TestJavaCompileTool}）
+- [x] 对照: 全量失败集 {TestJavaCompileTool} ⊆ 选择集失败集（24 run/2 failed,同类）→ 漏选=0
+- [x] 契约核对表: cwd=模块 basedir（surefire 自身保证,委托形态）; classpath=由 Maven 按 -pl 模块解释,无跨模块合并; 快照禁用=nop-ib 不注入任何录制/禁用属性; 超时=MavenFallback 30-60min 上限+destroyForcibly 看门狗+锁超时 75
+- [x] 差异即修（修复自死锁:外层 BuildLock×mvnq 同锁嵌套）
 
 Exit Criteria:
 
-- [ ] oracle 结果在档：漏选为零（或逐条裁定）
-- [ ] 契约核对表写入本 plan
-- [ ] `ai-dev/logs/2026/11-14.md` 已更新
+- [x] oracle 结果在档：漏选为零
+- [x] 契约核对表写入本 plan
+- [x] `ai-dev/logs/2026/11-14.md` 已更新
 
 ## Closure Gates
 
-- [ ] items 19–22 真仓实测达标
-- [ ] item 23 oracle 在档
-- [ ] item 24 契约核对表在档
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] roadmap Wave 3 状态更新（M3 达成）
-- [ ] 独立 closure audit（随 roadmap 收口批次）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 通过
+- [x] items 19–22 真仓实测达标
+- [x] item 23 oracle 在档
+- [x] item 24 契约核对表在档
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（17 tests）
+- [x] roadmap Wave 3 状态更新（M3 达成）
+- [x] 独立 closure audit（随 roadmap 收口批次）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 通过
 
 ## Deferred But Adjudicated
 
@@ -83,7 +83,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口）
-Completed: （待填）
+Status Note: 语义与实测已收口;独立 closure audit 已完成。
+Completed: 2026-11-14
 
-Closure Audit Evidence: （待填）
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent closure audit（session agent_ff78ed3b-bbac-4675-8cdc-099bd662fc18,2026-11-14）
+- Evidence: `./mvnw test -pl nop-tools/nop-ib` 17/0;CLI plan/status/check 实测;调用链 Anti-Hollow 追踪连通;check-doc-links 0 errors;check-plan-checklist 通过（含 Reviewer/Evidence 字段）。
