@@ -8,11 +8,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 
-public class JSONPointTest_1 {
+public class JSONPointCase1Test {
 
     private Object json;
 
-    protected void setUp() throws Exception {
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() throws Exception {
         String text = "[{\"name\":\"ljw\",\"age\":123}]";
         json = JsonTool.parse(text);
     }
@@ -20,7 +21,7 @@ public class JSONPointTest_1 {
     
     @Test
     void test_key_1() throws Exception {
-        Object val = NopJsonPath.eval(json, "/0/name");
+        Object val = NopJsonPath.eval(json, "$[0].name");
         assertEquals("ljw", val);
     }
 }

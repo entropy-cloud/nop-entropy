@@ -1,5 +1,6 @@
 package io.nop.http.apache;
 
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.api.core.exceptions.NopException;
@@ -398,7 +399,7 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
             }
             return null;
         };
-        if (Thread.currentThread().getName().startsWith(io.nop.commons.concurrent.executor.GlobalExecutors.NOP_GLOBAL_WORKER)) {
+        if (Thread.currentThread().getName().startsWith(GlobalExecutors.NOP_GLOBAL_WORKER)) {
             try {
                 return probe.call();
             } catch (Exception e) {
@@ -406,8 +407,7 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
                 throw NopException.adapt(e);
             }
         }
-        java.util.concurrent.Future<String> offloaded = io.nop.commons.concurrent.executor.GlobalExecutors
-                .globalWorker().submit(probe);
+        java.util.concurrent.Future<String> offloaded = GlobalExecutors.globalWorker().submit(probe);
         try {
             return offloaded.get(65, TimeUnit.SECONDS);
         } catch (java.util.concurrent.TimeoutException e) {

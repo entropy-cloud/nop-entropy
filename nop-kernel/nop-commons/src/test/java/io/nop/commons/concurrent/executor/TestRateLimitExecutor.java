@@ -243,33 +243,26 @@ public class TestRateLimitExecutor {
     }
 
     /**
-     * plan 2547 R4-13（C1-004）pin0104a：同一 key 连续两次 debounce（delay 足够长）→
-     * <b>只执行最后一次</b>（debounce 的核心契约）。
+     * plan 2547 R4-13（C1-004）pin0104a：同一 key 连续两次 debounce → 只执行最后一次
+     * （debounce 的核心契约）。虚拟时间确定化形态（合并修订 2026-11-13：原真实 sleep
+     * 版本与本类 ManualScheduler fixture 不兼容——虚拟时间线不推进则真实 latch 永不倒计）。
      * <p>
-     * <b>closure audit R1 B-1 / M-6 勘误</b>：首版修复把本地新建的 {@code CompletableFuture} 存进
-     * map，而底层调度实际上可被 cancel（{@code ExecutorHelper.schedule:271}
-     * {@code bindCancel(future, f)}）——因此首版使 debounce 退化为「两次都执行」。
-     * 本钉是该回归的**判别性载体**：首版实现下必红。
+     * closure audit R1 B-1/M-6 勘误语义保留：调度可被 cancel（bindCancel），首版实现下
+     * 本钉必红（两次都执行 / 第二次丢失）。
      */
     @Test
     public void pin0104a_debounceExecutesOnlyLastTask() throws Exception {
         AtomicInteger executed = new AtomicInteger();
-        CountDownLatch done = new CountDownLatch(1);
 
-        limiter.debounce("k-debounce", 250, () -> {
-            executed.incrementAndGet();
-            done.countDown();
-        });
-        Thread.sleep(60);   // 确保第一次已提交、尚未触发
-        limiter.debounce("k-debounce", 250, () -> {
-            executed.incrementAndGet();
-            done.countDown();
-        });
+        limiter.debounce("k-debounce", 250, () -> executed.incrementAndGet());
+        assertEquals(1, scheduler.pendingTaskCount(), "first debounce arms one task");
+        limiter.debounce("k-debounce", 250, () -> executed.incrementAndGet());
+        assertEquals(1, scheduler.pendingTaskCount(), "rescheduled debounce keeps exactly one task");
 
-        assertTrue(done.await(5, TimeUnit.SECONDS), "第二次任务必须执行");
-        Thread.sleep(400);  // 等过第一次的原定触发时刻
+        scheduler.advance(250);
         assertEquals(1, executed.get(),
-                "debounce 必须只执行最后一次（缺陷/首版回归态=2），实际=" + executed.get());
+                "debounce must execute only the last task (defect/first-version=2), actual=" + executed.get());
+        assertFalse(getPromiseMap().containsKey("k-debounce"), "entry must be cleaned after fire");
     }
 
     /** pin0104a2：并发 debounce 同一 key 后 map 只保留一个条目（非原子缺陷面）。 */
@@ -304,17 +297,18 @@ public class TestRateLimitExecutor {
     /**
      * plan 2547 R4-13（C1-004）pin0104b：delay=0 时任务结束后 promiseMap 无陈旧条目。
      * 缺陷态：holder[0] 提交后写，delay=0 时定时线程读到 null → CHM.remove(key,null) NPE 被吞，
-     * 条目永久残留。
+     * 条目永久残留。虚拟时间确定化形态（合并修订 2026-11-13，理由同 pin0104a）。
      */
     @Test
     public void pin0104b_noStaleEntryAfterZeroDelayTask() throws Exception {
-        CountDownLatch done = new CountDownLatch(1);
-        limiter.debounce("k0", 0, done::countDown);
-        assertTrue(done.await(5, TimeUnit.SECONDS));
+        limiter.debounce("k0", 0, () -> { });
+        scheduler.advance(0);
 
         // 再触发一次，验证不会被上一次的陈旧条目错误取消
-        CountDownLatch done2 = new CountDownLatch(1);
-        limiter.debounce("k0", 0, done2::countDown);
-        assertTrue(done2.await(5, TimeUnit.SECONDS), "第二次 debounce 必须能正常执行");
+        AtomicInteger second = new AtomicInteger();
+        limiter.debounce("k0", 0, second::incrementAndGet);
+        scheduler.advance(0);
+        assertEquals(1, second.get(), "second debounce must execute normally");
+        assertFalse(getPromiseMap().containsKey("k0"), "no stale entry after zero-delay debounce");
     }
 }

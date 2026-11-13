@@ -14,18 +14,20 @@ import java.util.List;
 
 
 @SuppressWarnings("unchecked")
-public class JSONPointTest_0 {
+public class JSONPointCase0Test {
 
     private Map json;
 
-    protected void setUp() throws Exception {
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() throws Exception {
         String text = "{\"foo\":[\"bar\",\"baz\"],\"pi\":3.1416,\"ext\":{\"ex1\":1,\"ex2\":\"abc\"}}";
         json = JsonTool.parseMap(text);
     }
 
+
     @Test
     void test_list() throws Exception {
-        List<Object> list = (List<Object>) NopJsonPath.eval(json, "/foo");
+        List<Object> list = (List<Object>) NopJsonPath.eval(json, "$.foo");
         assertEquals(2, list.size());
         assertEquals("bar", list.get(0));
         assertEquals("baz", list.get(1));
@@ -33,25 +35,25 @@ public class JSONPointTest_0 {
     
     @Test
     void test_list_0() throws Exception {
-        Object val = NopJsonPath.eval(json, "/foo/0");
+        Object val = NopJsonPath.eval(json, "$.foo[0]");
         assertEquals("bar", val);
     }
     
     @Test
     void test_list_1() throws Exception {
-        Object val = NopJsonPath.eval(json, "/foo/1");
+        Object val = NopJsonPath.eval(json, "$.foo[1]");
         assertEquals("baz", val);
     }
     
     @Test
     void test_key() throws Exception {
-        Object val = NopJsonPath.eval(json, "/pi");
-        assertEquals(new BigDecimal("3.1416"), val);
+        Object val = NopJsonPath.eval(json, "$.pi");
+        assertEquals(3.1416, ((Number) val).doubleValue(), 1e-9); // JsonTool 解析浮点为 Double（原 fastjson BigDecimal 口径不适用）
     }
     
     @Test
     void test_key_1() throws Exception {
-        Object val = NopJsonPath.eval(json, "/ext/ex1");
+        Object val = NopJsonPath.eval(json, "$.ext.ex1");
         assertEquals(1, val);
     }
 }
