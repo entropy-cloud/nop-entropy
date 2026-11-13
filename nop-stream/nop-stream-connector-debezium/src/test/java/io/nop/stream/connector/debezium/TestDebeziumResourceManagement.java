@@ -2,6 +2,8 @@ package io.nop.stream.connector.debezium;
 
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
+import io.nop.message.debezium.DebeziumMessageSource;
+import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
@@ -30,7 +32,19 @@ class TestDebeziumResourceManagement {
         config.setName("test-reentrant");
         config.setConnectorType("mysql");
         config.setDatabaseHost("localhost");
-        DebeziumCdcSourceFunction debeziumSource = new DebeziumCdcSourceFunction(config);
+        // 确定性排序（合并修订 2026-11-13）：放行 latch 挂到 createMessageSource 钩子
+        //（runEntered CAS 之后才被调用）——runner1 必先赢得 CAS，runner2 必然命中
+        // W-04 re-entry 守卫；原 latch 在 run() 调用前放行，压力下 runner2 可能反超
+        // 变成首个 run（engine-start-failed 假红）。
+        CountDownLatch runStarted = new CountDownLatch(1);
+        DebeziumCdcSourceFunction debeziumSource = new DebeziumCdcSourceFunction(config) {
+            @Override
+            protected DebeziumMessageSource createMessageSource(DebeziumConfig cfg,
+                                                                NopStreamOffsetBackingStore offsetStore) {
+                runStarted.countDown();
+                return super.createMessageSource(cfg, offsetStore);
+            }
+        };
 
         SourceFunction.SourceContext<ChangeEvent> ctx =
                 new SourceFunction.SourceContext<>() {
@@ -41,7 +55,6 @@ class TestDebeziumResourceManagement {
             @Override public long getProcessingTime() { return System.currentTimeMillis(); }
         };
 
-        CountDownLatch runStarted = new CountDownLatch(1);
         // C10-015 same-diff rewrite (plan 2537, W-04): the pre-fix catch-all + success
         // flag FOLDED "silent return" (the defect carrier — fake EOS) and "typed throw"
         // into one observation and the old assertion pinned the silent return as the
@@ -52,7 +65,6 @@ class TestDebeziumResourceManagement {
 
         Thread runner1 = new Thread(() -> {
             try {
-                runStarted.countDown();
                 debeziumSource.run(ctx);
             } catch (Exception e) {
                 // expected on cancel
