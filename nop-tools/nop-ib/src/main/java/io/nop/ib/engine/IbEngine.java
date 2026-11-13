@@ -76,4 +76,13 @@ public final class IbEngine {
         return indexCache.computeIfAbsent(moduleArtifactId, id ->
                 unitStore.exists(id) ? unitStore.load(id) : null);
     }
+
+    /**
+     * serve-mode support: unit indexes written by a previous fast-path compile are
+     * visible on disk immediately; drop the in-process cache so the next request
+     * re-reads them.
+     */
+    public void refreshIndexesIfModelChanged() {
+        indexCache.clear();
+    }
 }

@@ -111,10 +111,11 @@ public final class Commands {
         m.put("ok", true);
         m.put("repoRoot", engine.getRepoRoot().toString());
         String stale = hasModel ? engine.stalenessReason() : "model missing";
-        m.put("model", Map.of(
-                "present", hasModel,
-                "stale", stale != null,
-                "staleReason", stale));
+        Map<String, Object> modelInfo = new LinkedHashMap<>();
+        modelInfo.put("present", hasModel);
+        modelInfo.put("stale", stale != null);
+        modelInfo.put("staleReason", stale);
+        m.put("model", modelInfo);
         m.put("changed", GitChanges.changedPaths(engine.getRepoRoot()));
         if (json) {
             out.println(JsonOut.write(m));

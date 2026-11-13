@@ -52,7 +52,13 @@ public final class CompileCommand {
                 if (Files.isDirectory(src)) {
                     try (var stream = Files.walk(src)) {
                         stream.filter(p -> p.toString().endsWith(".java"))
-                                .forEach(p -> changed.add(engine.getRepoRoot().relativize(p).toString()));
+                                .forEach(p -> {
+                                    String rel = engine.getRepoRoot().relativize(p).toString();
+                                    // generated sources (src/main/java/**/_gen) are codegen
+                                    // products: never on the fast path (design 01 §七 L1)
+                                    if (!rel.contains("/_gen/"))
+                                        changed.add(rel);
+                                });
                     } catch (Exception e) {
                         err.println("failed to enumerate sources of " + artifactId);
                         return Commands.EXIT_USAGE;

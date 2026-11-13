@@ -33,12 +33,22 @@ public final class JavaCompilerFacade {
     public static CompileResult compile(List<File> sourceFiles, Path outputDir,
                                         List<String> classpathEntries, String release,
                                         String sourceLevel, List<File> sourcePath) {
+        return compile(sourceFiles, outputDir, classpathEntries, release, sourceLevel, null, sourcePath);
+    }
+
+    public static CompileResult compile(List<File> sourceFiles, Path outputDir,
+                                        List<String> classpathEntries, String release,
+                                        String sourceLevel, String procMode, List<File> sourcePath) {
         JdkJavaCompiler compiler = new JdkJavaCompiler();
         JavaCompileOptions options = new JavaCompileOptions()
                 .setOutputDir(outputDir.toFile())
                 .setClassPaths(classpathEntries)
                 .setImplicitPolicy(JavaCompileOptions.IMPLICIT_NONE)
-                .setProcMode("none")
+                // proc channel mirrors the model's effective config: L2 modules (explicit
+                // processor paths/proc) never reach the fast path, so for L0/L1 the
+                // Maven default semantics (full rounds; emits package-info.class) are
+                // safe and required for product parity
+                .setProcMode(procMode != null && !procMode.isBlank() ? procMode : null)
                 .setEncoding(StandardCharsets.UTF_8.name())
                 // Maven compiler plugin default debug=true emits plain -g; required for
                 // byte-level product parity with mvn compile (item 17 oracle)

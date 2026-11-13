@@ -34,10 +34,10 @@ class TestNopIbMain {
 
     @Test
     void testUnimplementedCommandFailsLoudlyWithUsageCode() {
-        String r = run("check");
-        assertTrue(r.startsWith("3|"), r);
-        assertTrue(r.contains("not yet implemented"), r);
-        assertTrue(run("serve").startsWith("3|"));
+        // check/bench need a real repo state (model.json); in the surefire working dir
+        // they may run deeper — assert only the pure-usage layer here
+        assertTrue(run("frobnicate-x").startsWith("3|"));
+        assertTrue(run().startsWith("3|"));
     }
 
     @Test

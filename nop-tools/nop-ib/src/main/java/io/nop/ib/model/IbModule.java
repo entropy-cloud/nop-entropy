@@ -290,6 +290,15 @@ public class IbModule {
         return null;
     }
 
+    /** Explicit proc config (first found), else null (Maven default semantics). */
+    public String getCompileProc() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.proc != null)
+                return e.proc;
+        }
+        return null;
+    }
+
     public static class DepEdge {
         String ga;
         String scope;

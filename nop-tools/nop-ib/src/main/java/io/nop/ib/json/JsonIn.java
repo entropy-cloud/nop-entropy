@@ -39,6 +39,20 @@ public final class JsonIn {
         return (java.util.Map<String, Object>) parsed;
     }
 
+    /** Parse an object, throwing on malformed input. */
+    public static java.util.Map<String, Object> readAsMap(String text) {
+        return asMapOrEmpty(parse(text));
+    }
+
+    /** Parse or return null on any malformed input (best-effort payload extraction). */
+    public static Object silentParse(String text) {
+        try {
+            return parse(text);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static class NopIbJsonException extends RuntimeException {
         public NopIbJsonException(String message) {
             super(message);

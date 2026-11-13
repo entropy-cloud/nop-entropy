@@ -1,7 +1,9 @@
 package io.nop.ib;
 
+import io.nop.ib.cli.BenchCommand;
 import io.nop.ib.cli.CompileCommand;
 import io.nop.ib.cli.Commands;
+import io.nop.ib.cli.ServeCommand;
 import io.nop.ib.cli.TestCommand;
 import io.nop.ib.engine.IbEngine;
 
@@ -27,7 +29,8 @@ public class NopIbMain {
     };
 
     private static final List<String> IMPLEMENTED =
-            List.of("status", "plan", "explain", "model", "cache", "compile", "test", "check");
+            List.of("status", "plan", "explain", "model", "cache", "compile", "test", "check",
+                    "serve", "bench");
 
     public static void main(String[] args) {
         int code = run(args, System.out, System.err);
@@ -112,6 +115,10 @@ public class NopIbMain {
                     return TestCommand.test(engine, positional, plModules, explicitClasses,
                             allowPartial, json, "check".equals(cmd), onFallback,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
+                case "serve":
+                    return ServeCommand.serve(engine, out, err);
+                case "bench":
+                    return BenchCommand.bench(engine, positional, json, out, err);
                 case "explain":
                     if (positional.isEmpty()) {
                         err.println("usage error: explain <file|module>");
