@@ -9,7 +9,7 @@
 
 1. **裁定①（判据统一与唯一修复位；Phase 3 写入年龄锚修订）**：check-changed 失效判据的比较语义**全仓唯一实现**于载体 = 文件 `io/nop/core/resource/deps/DefaultResourceChangeChecker` + 类 `DefaultResourceChangeChecker`（经 `IResourceChangeChecker` 既有 2-arg 协议对全链生效），判据升级为「mtime 相等比较 + 写入新鲜度宽限」双条件；判据值 = 单值 mtime（`ResourceDependencySet.lastModified`，与基线同形）。**宽限锚 = 文件的写入时刻（mtime 本身，写入年龄锚）**：仅「文件在宽限期 G 内真实发生过写入」时 mtime 相等的重复检查保守判 CHANGED——窗口二（load 后取 mtime 竞态）由 **load 路径从属编辑点**（`ResourceCacheEntry.loadObject` / `ResourceDependsManager.collectDepends`）以「读前读后双 mtime + 载体裁决 + 有界保守重载」机械传递消除；窗口一（同 tick 双写）由载体内写入年龄裁决消除。被修订形态（记录时刻锚：判据值携带记录时刻 recordedAt，记录后 G 内一律保守重检）经 E1 实证否决——任何刚加载的条目在 100ms~G 窗口内的重复加载被虚假重载，返回新模型实例，破坏按实例身份消费模型对象的调用方（XPL 模板编译 scope `XLangBlockScope._addTagCompiler` 按实例身份注册 tag compiler → `nop.err.xlang.import-multiple-lib-conflicts`，E1 在 nop-auth-meta precompile 实际失败；三态证据：修复前 HEAD 探针红 / 基线 `1c00e6431e` 探针绿 / G=0 绿）。写入年龄锚下 recordedAt 与 3-arg 宽限协议不再有裁决语义，整体移除（`IResourceChangeChecker`/`ResourceComponentManager`/`ResourceDependencySet` 回归基线零 diff）；future-mtime（时钟偏差/jar 构建时区）无法解释为写入年龄，退化为纯相等比较（既有语义）。
 2. **裁定②（ResourceTimestampCache 终裁）**：**移除**。死代码 `ResourceTimestampCache.java`（全文注释）与两死配置 `CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_SIZE/TIMEOUT`（CoreConfigs :112-117）、死常量 `CoreConstants.RESOURCE_TIMESTAMP_CACHE_NAME`（:159）一并清理；stat 税性能面完整落点 = 裁定④ entry 级 `isChanged` 结果记忆化。拒绝活化的决定性理由：时间戳缓存会在判据链上重新引入缓存粒度盲区，与窗口一/窗口二修复直接冲突（§3.2）。
-3. **裁定③（TTL 兜底与自愈通道覆盖矩阵）**：`CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT` 默认值 null → **5 分钟**，作为漏检自愈通道的统一配置源；自愈载体按路径分置——门路径 = `ResourceLoadingCache` expireAfterWrite 整条目逐出冷加载（既有机制，:81 唯一消费点），6 直连路径 = 裁定④ entry 级 maxAge 强制重载（交叉引用，无路径缺载体）。expireAfterWrite 的逐出/destroy 语义代价（冷启动式自愈、非廉价重检、惰性清理迟滞）显式入 source-compat 声明；负值 = 显式关闭档（现行 null 语义等价）。
+3. **裁定③（TTL 兜底与自愈通道覆盖矩阵；A2/plan 2573 缺省值修订）**：`CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT` **缺省 null（不启用）**——本设计原裁定「null → 5 分钟」经 2026-11-14 独立评审（plan 2573 A2）修订回 null：5min 缺省使全部组件缓存默认每 5 分钟周期性冷重建（默认性能翻转、升级方无提示），漏检自愈通道改为**部署显式启用**（正值 opt-in）；负值 = 显式关闭档（与 null 等价的显式形态）。自愈载体按路径分置不变——门路径 = `ResourceLoadingCache` expireAfterWrite 整条目逐出冷加载（既有机制，:81 唯一消费点），6 直连路径 = 裁定④ entry 级 maxAge 强制重载（交叉引用，无路径缺载体）；两载体仅在键配置正值时生效。expireAfterWrite 的逐出/destroy 语义代价（冷启动式自愈、非廉价重检、惰性清理迟滞）显式入 source-compat 声明。
 4. **裁定④（直连使用方门语义）**：主选终裁 = **`ResourceCacheEntry` 层内建门**（`isChanged` 结果短 TTL 记忆化 + TRUE 侧同源键重载限速 + maxAge 自愈 + deps-空豁免），6 直连使用方**零改码**获得与门路径同源同口径的节流与统一判据；逐点修分支（含 nop-auth-service 改码触发 ask-first）不选。`CacheEntryManagement` 3-arg timeout 变体的显式超时重建语义维持不变、null 分支维持现状（不静默改绑全局键），nop-auth 零触碰；GraphQLEngine documentCache 反例（deps 恒空零 stat）经 deps-空豁免实现零误修。
 5. **裁定⑤（同链复制面自动受益验证）**：`TenantAwareResourceLoadingCache` / `TenantAwareResourceCacheEntry` / `TenantAwareDependencyManager` / `ResourceCacheEntryWithLoader` 四包装层的自动受益**不得只凭类型存在断言**，必须以非继承委托穿透断言验证（Phase 1 focused tests：租户上下文 + 计数 loader + 可编程 mtime 注入 + 阈值 0/默认双档，逐层断言修复后门语义真实到达内层 entry/判据层）。
 6. **裁定⑥（边界声明）**：R2-01 锁纪律面零重构（本批只改判据与门逻辑，`loadObject` 原子化在既有 synchronized 上下文内完成，零新增锁获取顺序）；R4-32 墙钟面——本批新增时间机制（写入年龄宽限裁决、verdict 记忆化 TTL、entry maxAge）一律复用 `CoreMetrics.currentTimeMillis`，新增敏感点清单随 Phase 3 R4-32 注记登记，既有敏感点零改写、不引入可注入时钟；确定性测试缝 = 全部时间阈值可配置且 **0 = 关闭**（退化为现行语义），必红断言以可编程 mtime 注入驱动、零 sleep；5.5-W-03 联动义务成立（判据统一即判据变更面），Phase 3 以 nop-rule focused 冒烟 + R3-05 注记落地。
@@ -103,7 +103,7 @@ Phase 3 写入年龄锚修订注记：原表 12 行中的 3 行（`IResourceChan
 
 ### 3.3 裁定③：TTL 兜底与自愈通道覆盖矩阵
 
-**终裁**：`CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT`（`nop.core.component.resource-cache.timeout`）默认值 null → **`Duration.ofMinutes(5)`**，作为漏检自愈通道的统一配置源；负值 = 显式关闭档（`createCache`/`refreshConfig` 既有 `!isNegative()` 守卫语义，等价现行 null 行为——关闭通道显式可声明，非静默缺失）。
+**终裁（A2/plan 2573 修订）**：`CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT`（`nop.core.component.resource-cache.timeout`）**缺省 null = 不启用**；正值 = opt-in 启用漏检自愈通道（两路径载体同源生效）；负值 = 显式关闭档（`createCache`/`refreshConfig` 既有 `!isNegative()` 守卫语义，与 null 等价）。原终裁「null → 5min」被修订的原因：5min 缺省下全部 `ResourceLoadingCache` 条目 + 6 直连 entry 默认每 5 分钟强制冷重建，形成周期性重解析/重编译风暴（性能默认翻转），且升级方无提示；漏检自愈价值经判据双窗口修复（裁定①）后仅覆盖残余漏检面，按部署风险画像显式启用优于默认常开。
 
 **自愈通道覆盖矩阵**（义务 (a)：两路径各自载体，无路径缺载体）：
 
@@ -114,7 +114,7 @@ Phase 3 写入年龄锚修订注记：原表 12 行中的 3 行（`IResourceChan
 
 **source-compat 声明**（义务 (b)）：
 
-1. 默认值变更 = 行为变更：全部 `ResourceLoadingCache` 条目默认获得 5 分钟生命周期；逐出即冷加载，首请求延迟上升、loader 副作用重放（loader 幂等性为既有契约）；对「null = 条目永久驻留」的既有依赖方，需关闭时显式配置负值。
+1. （A2/plan 2573 修订后）缺省 null = 条目不因时长被逐出/强制重载（回到基线语义，仅 check-changed 判据驱动失效）；配置正值时：全部 `ResourceLoadingCache` 条目获得该时长生命周期（逐出即冷加载，首请求延迟上升、loader 副作用重放——loader 幂等性为既有契约），6 直连 entry 同源 maxAge 强制重载；需关闭时配置负值或保持缺省 null。
 2. expireAfterWrite 逐出/destroy 语义代价：整条目丢弃 → 下次请求冷加载重建（非廉价重检）；`ResourceLoadingCache` 的 `CacheConfig` 未启用 `destroyOnRemove` → 逐出不触发 `entry.clear()`/destroy 显式销毁，资源释放交 GC——**维持现状生命周期形态，不扩展**（显式销毁形态归 R2-01/C2-002 边界，裁定⑥）；实际释放时点受 C7-009 惰性清理迟滞影响，自愈及时性下界 = TTL + maintenance 迟滞 + 首次访问。
 3. 命名键优先序不变：`nop.core.component.resource-cache.{name}.timeout` 显式配置时优先于全局键（`OverrideConfigReference` 既有语义，live 核实）；本批仅变更全局键默认值。
 4. owner doc 义务：source-anchors 新建模型缓存锚点登记——键默认值变更、负值关闭档、命名键优先序、键移除清单（裁定②）、宽限键（§3.1.2）。
@@ -128,9 +128,9 @@ entry 门契约（`getObject(checkChanged, loader)`，`checkChanged=true` 时）
 
 1. **deps-空豁免**：`deps` 判据集的依赖收集为空（text-parse 类条目，`isChanged` 恒 false 零 stat）→ 门全部旁路，行为逐字节维持现状。
 2. **verdict 记忆化（节流）**：`isChanged()` 裁决结果按 entry 记忆化，TTL = `CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL` 同源（默认 100ms；0 = 关闭档，逐请求 walk，即现行直连行为）；FALSE → 短路返回缓存值（零 walk 零 stat）；TRUE → 进入既有 synchronized 重载路径前同样受同源键限速：仅 `now - lastLoadTime > refreshMinInterval` 才执行重载，否则维持现值返回（复用 maxAge 锚字段，零新增簿记）。若无此 TRUE 侧限速，宽限窗口内逐调用真实裁决得 TRUE → 重载 → 记忆化重置 → 下一调用再 TRUE → 再重载（gateway 每 HTTP 请求、data-auth 每查询），记忆化只限速 walk 未限速重载；补此限速后宽限窗口内重载频度上界与门路径同口径（≈ G/100ms 次/写入，§3.1.2）。记忆化状态在 `loadObject` 完成时重置（新加载后首查必走真实裁决；首查 TRUE 时距 `lastLoadTime` < 100ms，被 TRUE 侧限速吸收，不立即重载），`clear()` 后经未加载态自然旁路。C9-001 stat 税面在此收敛：命中路径 walk 频度 ≤ 1/100ms/条目，重载频度上界亦 ≈ G/100ms 次/条目，与门路径同口径。
-3. **maxAge 强制重载（自愈，裁定③载体）**：`now - lastLoadTime > TTL`（TTL 源 = `CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT`，默认 5 分钟）→ 强制重载，不经判据裁决；仅对 deps 非空 entry 生效（豁免面见 1）；`checkChanged=false` 调用不触发（尊重显式不检查语义）。
+3. **maxAge 强制重载（自愈，裁定③载体；键缺省 null = 关闭）**：`now - lastLoadTime > TTL`（TTL 源 = `CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT`，正值时启用——A2/plan 2573 修订：缺省 null 不启用）→ 强制重载，不经判据裁决；仅对 deps 非空 entry 生效（豁免面见 1）；`checkChanged=false` 调用不触发（尊重显式不检查语义）。
 
-**6 使用方逐一行为声明**（零改码依据）：每站点自动获得「100ms 记忆化节流（walk 与重载双侧，同源键）+ 5min maxAge 自愈 + 载体统一判据」——①gateway `handlerCache.getObject(true, …)`（别名成员 4 同位点）；②auth `modelCache.getObject(true, …, timeout)`；③xpl `cachedCompiledTag(ForNodeMode)`（经 `ResourceCacheEntryWithLoader` 1-arg 纯委托到达 2-arg 门，穿透断言见裁定⑤）；④dyn-orm、⑤orm interceptor、⑥xdef defaultsDsl。
+**6 使用方逐一行为声明**（零改码依据）：每站点自动获得「100ms 记忆化节流（walk 与重载双侧，同源键）+ maxAge 自愈（TTL 键配置正值时启用，缺省 null 关闭——A2/plan 2573）+ 载体统一判据」——①gateway `handlerCache.getObject(true, …)`（别名成员 4 同位点）；②auth `modelCache.getObject(true, …, timeout)`；③xpl `cachedCompiledTag(ForNodeMode)`（经 `ResourceCacheEntryWithLoader` 1-arg 纯委托到达 2-arg 门，穿透断言见裁定⑤）；④dyn-orm、⑤orm interceptor、⑥xdef defaultsDsl。
 
 **`CacheEntryManagement` 3-arg 变体行为显式声明**：`getObject(checkChanged, loader, timeout)` 的「`isRefreshEnabled(timeout)` → `clear()` 重建」显式超时语义**维持不变**；`CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT` 默认 null → 分支恒死**维持现状**（不静默改绑全局键——配置契约显式性；该键行为变更归 nop-auth owner 批次）。DefaultDataAuthChecker 站点的节流与自愈由底层 entry 门承载，nop-auth 产品代码零触碰——ask-first 不触发。
 

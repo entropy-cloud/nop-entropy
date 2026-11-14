@@ -216,7 +216,11 @@ public class GraphQLSubscriptionManager {
     protected void pushToClient(SubscriptionInfo subscription, String topic, Object message) {
         IWebSocketSession session = subscription.getSession();
         if (session == null || session.isClosed()) {
-            sendPumps.remove(session);
+            // A3（plan 2573，2026-11-14 独立评审）：session==null 分支不得进入
+            // sendPumps.remove(null)——ConcurrentHashMap 的 null 键直接 NPE，沿消息分发线程上抛
+            // 中断本 topic 后续推送；null 会话只需注销订阅
+            if (session != null)
+                sendPumps.remove(session);
             unregisterSubscription(subscription.getOperationId());
             return;
         }

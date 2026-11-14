@@ -159,6 +159,50 @@ public class TestAuthLedgerRetention_MA_01 extends JunitAutoTestCase {
     }
 
     /**
+     * A5（plan 2573，2026-11-14 独立评审）：session 族删除腿携带过期谓词——pick（limit 拾取）
+     * 与 delete 之间窗口内被访问刷新（lastAccessTime → now）的会话不被删除。
+     *
+     * <p>缺陷形态（修复前红）：delete 仅按 {@code sessionId IN (...)},不带谓词复验——pick 时点
+     * 过期、delete 时点已被复活的会话仍被删（30 天不活跃会话恰在清理瞬间被访问 → 强制终结）。
+     * 确定性驱动：直驱包内删除腿 {@code deleteSessionRows}（模拟 pick 结果），其中一行在
+     * 「pick 之后」被刷新为 fresh——修复前该行被删（红），修复后谓词复验存活（绿）。
+     */
+    @Test
+    void testMA_01_sessionDeleteRevalidatesPredicateAfterPick_A5() {
+        long now = System.currentTimeMillis();
+        long cutoff = now - 30 * DAY_MS;
+
+        // pick 时点过期的行：删除腿必须删除
+        NopAuthSession expired = newSession("sess-a5-expired");
+        expired.setLastAccessTime(new Timestamp(now - 31 * DAY_MS).toLocalDateTime());
+        sessionDao().saveEntity(expired);
+
+        // pick 时点过期、delete 时点已被访问刷新（模拟 TOCTOU 窗口内复活）的行：必须存活
+        NopAuthSession refreshed = newSession("sess-a5-refreshed");
+        refreshed.setLastAccessTime(new Timestamp(now).toLocalDateTime());
+        sessionDao().saveEntity(refreshed);
+
+        ormTemplate.flushSession();
+        ormTemplate.clearSession();
+
+        NopAuthLedgerCleaner cleaner = newCleaner();
+        // 直驱删除腿：模拟「pick 结果 = 两行」之后、delete 之前 refreshed 行被访问刷新
+        long deleted = cleaner.deleteSessionRows(List.of("sess-a5-expired", "sess-a5-refreshed"), cutoff);
+        assertEquals(1, deleted, "only the still-expired row may be deleted (predicate revalidation)");
+
+        ormTemplate.flushSession();
+        ormTemplate.clearSession();
+
+        assertNull(sessionDao().getEntityById("sess-a5-expired"),
+                "row expired at both pick and delete time must be deleted");
+        NopAuthSession survivor = sessionDao().getEntityById("sess-a5-refreshed");
+        assertNotNull(survivor,
+                "A5: a session refreshed between pick and delete must survive (no forced termination)");
+        assertEquals(new Timestamp(now).toLocalDateTime(), survivor.getLastAccessTime(),
+                "the survivor must be the refreshed row with its fresh lastAccessTime intact");
+    }
+
+    /**
      * C10-005：countUnexpired 口径不变钉（仅计未过期行）。trusted-device 产品面本批零改动；
      * 清扫后过期 trusted-device 行保留——第七面（trusted-device 过期行清扫）摘除的
      * 产品级在测证据（清理入口对 NopAuthMfaTrustedDevice 零触碰）。

@@ -101,6 +101,12 @@ options.setMode(UploadMode.BASE64_FORM);
 
 四条契约：①leader 选举租约配置绑定使用 IoC 认知的 `@cfg:` 前缀（`@cfg;` 笔误会使装配即启动失败）；②LeastActive 负载均衡窗口回绕取模（`(startIndex+currentCursor)%n`，多实例回绕场景不再越界）；③SentinelFlowControlRunner.runAsync 的 `ContextUtil.enter/exit` 无条件配对（成功路径不再泄漏发起线程 context 栈；entry 的 exit 在 whenComplete/失败分支独立配对）；④Nacos 服务发现 serviceName 无组名（不含 `@@`）时原样保留、groupName 为 null（对齐 getNormalizedServiceName 守卫）。
 
+**升级行为变更登记（plan 2573 B 类，2026-11-14 独立评审补录）**：
+
+- **LB/分区权重下限语义（R25-1）**：`WeightedRandomLoadBalance` / `WeightedPartitionAssigner` 对 `weight<=0` 一律按 `max(1, weight)=1` 下限参与分配并 WARN 留痕原值——**weight=0 不再表示「摘流/不接流量」**，摘流须改用 `enabled=false`/健康检查摘除等手段。`WeightedPartitionAssigner` 的 `defaultWeight` 属性（getter/setter）已移除（仓内零调用方；原「≤0 改写 defaultWeight=100」的假保护即缺陷根因）。
+- **Sentinel 异步包络兜底超时（4.2-MA-05/C3-007）**：`SentinelFlowControlRunner.runAsync` 对永不完成的底层 task stage 以 `nop.cluster.sentinel.task-timeout-ms`（缺省 60000，`<=0`=关闭）兜底——超时后 entry exit + 返回 future 以 TimeoutException 完结。**合法慢调用超过 60s 的部署必须上调该键或显式关闭**，否则原本无限等待的调用现在会超时失败。
+- **MasterServerChooser 无实例类型化报错（4.2-MA-09）**：`chooseFromCandidates` 无 leader/无实例时抛 `nop.err.cluster.core.no-available-server-instance`（原返回 null 由下游 NPE 表现）。
+
 ## nop-search 引擎语义（P1-4.4-S-02..06，plan 2394）
 
 LuceneSearchEngine（先修批后）五条契约：①空 query（`SearchRequest.query` 省略）= match all，可与 tags/filter 组合浏览；②filter `not` 组合条件为补集语义（NOT 补 MatchAllDocs 锚点）；③写入失败回滚时自动清理 writer/SearcherManager 缓存——单条坏文档不再永久打死 topic（下次访问重建）；④`ISearchEngine.getDoc(topic, docId)`（**API 签名变更**：原 `getDoc(docId)` 全量遍历取首命中=跨 topic 串读）——限定单 topic 查找；⑤`SearchEngine__indexDir` fail-closed：需要 admin 角色（`nop.err.search.no-permission`），直解析路径受 `nop.search.index-dir-roots` 白名单约束（未配置=仅工作目录相对路径；resourceLocator 解析豁免）。pattern 正则回溯限制为 admin 自伤面，随拆分计划处理。

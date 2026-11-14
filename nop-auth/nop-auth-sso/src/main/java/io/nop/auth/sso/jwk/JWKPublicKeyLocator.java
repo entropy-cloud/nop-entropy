@@ -45,7 +45,11 @@ import java.util.concurrent.TimeUnit;
  *       拉取（锁内只查/置在飞 future，拉取在锁外执行，monitor 不跨 IdP RTT）。</li>
  *   <li><b>显式超时</b>：{@code nop.auth.jwks.fetch-timeout}（缺省 5s；≤0=客户端缺省）。</li>
  *   <li><b>失败 grace</b>：拉取失败保留既有 currentKeys（有旧钥返回旧钥；无旧钥才 fail），
- *       且失败不推进 lastRequestTime（不占速率窗，下次调用立即可重试）。</li>
+ *       且失败不占满 lastRequestTime 的速率窗。</li>
+ *   <li><b>失败退避</b>（A1，plan 2573，2026-11-14 独立评审）：失败不占满 60s 速率窗，
+ *       但进入短退避窗（minTimeBetweenRequests/10，下限 1s）——修复前「失败后下次调用立即可
+ *       重试」在 JWKS 端点故障期间退化为逐请求拉取（攻击者可用随机 kid JWT 低成本制造对 IdP
+ *       的请求放大 + commonPool 线程churn）。成功后清零退避、恢复 60s 速率窗语义。</li>
  * </ol>
  */
 public class JWKPublicKeyLocator implements IPublicKeyLocator {
@@ -57,6 +61,12 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
     private volatile ConcurrentHashMap<String, PublicKey> currentKeys = new ConcurrentHashMap<>(); //NOSONAR
 
     private volatile long lastRequestTime = 0;
+
+    /**
+     * A1（plan 2573）：最近一次拉取失败的时刻（0=无失败在身）。失败后进入短退避窗
+     * {@link #failureBackoffMillis(int)}，封住 JWKS 故障期间的逐请求拉取放大；成功后清零。
+     */
+    private volatile long lastFailureTime = 0;
 
     /** 2.3-C4-008：在飞拉取共享句柄（单飞）——并发未命中共享同一次 IdP 拉取 */
     private volatile CompletableFuture<Map<String, PublicKey>> inFlightFetch;
@@ -90,18 +100,27 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
         CompletableFuture<Map<String, PublicKey>> fetch;
         synchronized (this) {
             currentTime = CoreMetrics.currentTimeMillis();
-            boolean allowed = currentTime > lastRequestTime + minTimeBetweenRequests * 1000L;
-            if (!allowed) {
+            // A1（plan 2573）：成功速率窗（minTimeBetweenRequests）+ 失败短退避窗双门——
+            // 失败不占满速率窗（保留快速恢复），但退避窗内不再发起逐请求拉取（封住放大面）
+            boolean allowed = currentTime > lastRequestTime + minTimeBetweenRequests * 1000L
+                    && currentTime > lastFailureTime + failureBackoffMillis(minTimeBetweenRequests);
+            if (inFlightFetch != null && !inFlightFetch.isDone()) {
+                // 已有在飞拉取：并发未命中共享（singleflight）——无论速率窗状态都只加入在飞
+                //（在飞拉取发起时已过速率门，加入者不放大请求面）
+                fetch = inFlightFetch;
+            } else if (!allowed) {
+                // X-1（plan 2573 收口审计）：速率/退避窗内且无在飞拉取——不消费**已完成的旧
+                // future**。修复前此处仍把 fetch 指向上次已完成的成功拉取，等待段会以其成功
+                // 结果把 lastRequestTime 刷新到本次请求时刻——未知 kid 请求到达间隔 < 速率窗时
+                // 窗口被无限滑动，JWKS 永不重拉（IdP 密钥轮换后新 kid 持续到达 = 认证自锁死）。
+                // 窗内无在飞 = 本调用不参与任何拉取，落 stale-grace 返回
                 log.debug("Won't send request to realm jwks url. Last request time was {}. Current time is {}.",
                         lastRequestTime, currentTime);
-            } else if (inFlightFetch != null && !inFlightFetch.isDone()) {
-                // 已有在飞拉取：并发未命中共享（singleflight）
+                fetch = null;
             } else {
-                // 失败不占速率窗：lastRequestTime 仅在拉取成功后推进（见 fetch 终态段）——
-                // 失败后下次调用立即可重试（裁定 F④）
                 inFlightFetch = CompletableFuture.supplyAsync(this::sendRequest);
+                fetch = inFlightFetch;
             }
-            fetch = inFlightFetch;
         }
 
         if (fetch != null) {
@@ -111,16 +130,18 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
                         ? fetch.get(timeout, TimeUnit.MILLISECONDS)
                         : fetch.get();
                 if (keys != null) {
-                    // 成功：推进速率窗基准（TTL 内查缓存）；失败分支不推进（可立即重试）
+                    // 成功：推进速率窗基准（TTL 内查缓存）+ 清零失败退避（A1）
                     lastRequestTime = CoreMetrics.currentTimeMillis();
+                    lastFailureTime = 0L;
                     PublicKey key = keys.get(kid);
                     if (key != null) {
                         return key;
                     }
                 }
             } catch (Exception e) {
-                // 失败 grace：保留既有 currentKeys（lastRequestTime 未推进——速率窗不占用，
-                // 下次调用立即可重试）；有旧钥返回旧钥，无旧钥才 fail（拆分 kid 缺失 vs TTL 过期）。
+                // 失败 grace：保留既有 currentKeys（不占满速率窗）；有旧钥返回旧钥，无旧钥才 fail
+                // （拆分 kid 缺失 vs TTL 过期）。A1：异常等待路径不在此记失败——拉取本体可能稍后
+                // 成功，失败记账由 sendRequest 的 catch 承载（与实际拉取结果一一对应）
                 log.warn("nop.warn.auth.jwks-fetch-fail:clientId={}", config.getClientId(), e);
             }
         }
@@ -139,6 +160,15 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
             return config.getJwksFetchTimeoutMillis();
         }
         return DEFAULT_FETCH_TIMEOUT_MILLIS;
+    }
+
+    /**
+     * A1（plan 2573）：失败退避窗 = minTimeBetweenRequests/10（缺省 60s → 6s），下限 1s。
+     * 缺省 60s 速率窗语义保留给成功路径；失败后的重试节奏由本窗承载（不占满速率窗、
+     * 也不退化为逐请求无节流）。
+     */
+    static long failureBackoffMillis(int minTimeBetweenRequests) {
+        return Math.max(1_000L, minTimeBetweenRequests * 1000L / 10);
     }
 
 
@@ -185,7 +215,10 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
             this.currentKeys = new ConcurrentHashMap<>(publicKeys);
             return publicKeys;
         } catch (Exception e) {
-            // 2.3-C4-008：失败 WARN（原 log.error 后静默返回旧值且占速率窗）——grace 语义见调用方
+            // 2.3-C4-008：失败 WARN（原 log.error 后静默返回旧值且占速率窗）——grace 语义见调用方。
+            // A1（plan 2573）：失败记账锚点在拉取本体的 catch（与实际结果一一对应）——
+            // 等待方的 fetch.get 超时不在此记账（拉取可能稍后成功，成功路径会清零本锚点）
+            lastFailureTime = CoreMetrics.currentTimeMillis();
             log.error("Error when sending request to retrieve realm keys", e);
             return null;
         }

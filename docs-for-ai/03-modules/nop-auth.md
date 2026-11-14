@@ -202,6 +202,7 @@ nop-auth 提供完整的两阶段登录（第一因子 → challenge → 第二�
 - 发码限流组件 `ISendCodeRateLimiter`：scope=login（`sendSmsCode`/`sendMfaCode` 共用）与 scope=bind（`bindSms`/`bindEmail`/channel-proof 共用）组内共享、组间隔离；三层语义 = 同目标间隔 + 同目标日配额 + 同 IP 日配额；错误 param 统一脱敏（email 维度经 `channel` 键）。Redis 实现单键原子（INCRBY/SETNX+PX），跨键复合存在有界竞态漂移（已裁定可接受）。
 - 登录失败计数 `ILoginAttemptStore.incrementLoginFailCount` 为接口级原子递增（Local 临界区 / Redis INCRBY），集群下锁号阈值不再被节点数稀释。
 - 本地只读缓存（集群可接受，无需配置）：`SiteMapProviderImpl`（DB 读穿透）、`JWKPublicKeyLocator`（IdP 公钥 TTL 刷新）——跨节点仅存在陈旧窗口，数据源仍为 DB/IdP。
+- `JWKPublicKeyLocator` 拉取节流双门（A1，plan 2573）：成功后按 `minTimeBetweenJwksRequests`（缺省 60s）速率窗节流；**拉取失败后进入短退避窗**（`minTimeBetweenJwksRequests/10`，缺省 6s，下限 1s）——失败不占满速率窗（IdP 恢复后无需等满 60s 即可重试），但退避窗内不再对未知 `kid` 逐请求发起拉取（封住 JWKS 故障期间攻击者用随机 kid JWT 制造的 IdP 请求放大）；失败期间有旧钥 grace 返回旧钥、无旧钥返回 null。
 
 ### 用户自助 / 管理员 MFA API
 

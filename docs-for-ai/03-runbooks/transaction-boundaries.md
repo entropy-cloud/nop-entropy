@@ -68,8 +68,23 @@ txn().afterCommit(null, () -> {
 2. 在普通 BizModel 中复制 store 层的 `REQUIRES_NEW` 模式
 3. 把 after-commit 副作用直接塞进事务体主体里处理
 
+## 事务对象状态机语义（2.3-C2-016，plan 2553 裁定 D）
+
+直接持有 `ITransaction`（非 BizModel 场景 / 自管事务模板）时，以下语义为当前契约：
+
+- **markRollbackOnly 后（同步）`commit()` = 自动回滚 + WARN**（`nop.warn.dao.txn-commit-on-rollback-only`），不再抛 `ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT`——调用方若依赖旧异常信号分支，需改为检查事务终态。终态为 ROLLED_BACK。（限定：`commitAsync()` 与公开 `beforeCommit()` 仍抛该错误码——自动回滚语义仅同步 commit 主路径。）
+- **二次 commit = no-op + WARN**（`nop.warn.dao.txn-commit-after-committed`）——不再重复触发 afterCommit/afterCompletion 监听器（原形态的监听器重复通知缺陷已消除）。
+- **commit 的 doCommit 抛错**：监听器仍收 `afterCompletion(UNKNOWN)`，事务尽力置 ROLLED_BACK 后抛 `ERR_TXN_COMMIT_FAIL`（原始异常在 cause）。
+- **提交快照开始后 addSubTransaction 显式拒绝**（`nop.err.dao.txn.late-sub-transaction`）——提交期迟到的子事务注册不再静默丢写。
+- **`FutureHelper.bindCancel(promise, future)` 收紧**：仅当 promise 以 `CancellationException` 终结时才 cancel 关联 future；正常/异常完结不再连带取消（原「任意完结即取消」的误取消面已修复——依赖旧行为清理排队任务的调用方需自行取消）。
+
+## 锁租约/超时对象的时间语义（R4-32，plan 2566）
+
+`IResourceLockState.getExpireTime()` / `TimeOut.getExpireTime()` 在本地实现（LocalResourceLockManager 等）下返回**单调时钟相对值（纳秒）**——仅可与同进程 `CoreMetrics.nanoTime()` 比较或相减求剩余，不得持久化、不得与 `currentTimeMillis`/epoch 比较、不得跨进程传输。其他实现（如 DB 锁）语义以实现方为准。
+
 ## 相关文档
 
 - `../02-core-guides/service-layer.md`
 - `../02-core-guides/error-handling.md`
+- `../02-core-guides/ioc-and-config.md`（阻塞等待有界化：throttle 60s / rateLimit 5min 缺省上界）
 - `../04-reference/source-anchors.md`

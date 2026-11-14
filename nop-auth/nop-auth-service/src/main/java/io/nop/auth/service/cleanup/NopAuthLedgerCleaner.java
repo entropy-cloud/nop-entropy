@@ -1,6 +1,7 @@
 package io.nop.auth.service.cleanup;
 
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.dao.entity.NopAuthEmailCode;
@@ -248,9 +249,7 @@ public class NopAuthLedgerCleaner extends LifeCycleSupport {
         QueryBean pick = new QueryBean();
         pick.setLimit(batchSize);
         // 主锚 lastAccessTime（LocalDateTime 列）+ logoutTime 判别（Timestamp 列；null 行谓词为假自然排除）
-        pick.addFilter(FilterBeans.or(
-                FilterBeans.lt(_NopAuthSession.PROP_NAME_lastAccessTime, new Timestamp(cutoffMillis).toLocalDateTime()),
-                FilterBeans.lt(_NopAuthSession.PROP_NAME_logoutTime, new Timestamp(cutoffMillis))));
+        pick.addFilter(expiredSessionPredicate(cutoffMillis));
         List<NopAuthSession> expired = dao.findAllByQuery(pick);
         if (expired.isEmpty())
             return 0L;
@@ -258,9 +257,31 @@ public class NopAuthLedgerCleaner extends LifeCycleSupport {
         for (NopAuthSession session : expired) {
             sessionIds.add(session.getSessionId());
         }
+        return deleteSessionRows(sessionIds, cutoffMillis);
+    }
+
+    /**
+     * A5（plan 2573，2026-11-14 独立评审）：session 族删除腿（包内可见供确定性回归直驱）。
+     * 删除复用 pick 同谓词——pick（limit 拾取）与 delete 之间的窗口内被用户访问的会话
+     * （flush 已把 lastAccessTime 刷新为 now）不再被删，封住 30 天不活跃会话恰在清理
+     * 瞬间复活的 TOCTOU 强制终结面。
+     */
+    long deleteSessionRows(List<String> sessionIds, long cutoffMillis) {
+        IEntityDao<NopAuthSession> dao = sessionDao();
         QueryBean delete = new QueryBean();
         delete.addFilter(FilterBeans.in(_NopAuthSession.PROP_NAME_sessionId, sessionIds));
+        delete.addFilter(expiredSessionPredicate(cutoffMillis));
         return dao.deleteByQuery(delete);
+    }
+
+    /**
+     * A5：session 族的过期谓词（pick 与 delete 共用同一判据，无二源）。
+     * 主锚 lastAccessTime（LocalDateTime 列）+ logoutTime 判别（Timestamp 列；null 行谓词为假自然排除）。
+     */
+    private static TreeBean expiredSessionPredicate(long cutoffMillis) {
+        return FilterBeans.or(
+                FilterBeans.lt(_NopAuthSession.PROP_NAME_lastAccessTime, new Timestamp(cutoffMillis).toLocalDateTime()),
+                FilterBeans.lt(_NopAuthSession.PROP_NAME_logoutTime, new Timestamp(cutoffMillis)));
     }
 
     private <T extends io.nop.dao.api.IDaoEntity> long purgeExpiredByExpireAt(Class<T> entityClass, String pkProp, Function<T, Object> pkGetter,

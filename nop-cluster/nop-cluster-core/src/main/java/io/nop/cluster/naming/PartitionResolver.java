@@ -128,7 +128,12 @@ public class PartitionResolver {
         }
         if (servers == null || servers.isEmpty()) {
             // 空列表/未命中 → 负缓存短 TTL；静态路径（assignedPartitions 非空/enableCluster off）不缓存
+            // A4（plan 2573，2026-11-14 独立评审）：负缓存必须同时清空正缓存——lastResolveTime 为
+            // 正/负缓存共享，若保留旧 cachedPartitions，负 TTL 过期后会命中
+            // 「cachedPartitions != null && (now - lastResolveTime) < CACHE_TTL_MS」回吐负解析之前的
+            // 陈旧分区集（negativeTtlMs < CACHE_TTL_MS 时窗口 = CACHE_TTL_MS - negativeTtlMs）
             negativeCached = true;
+            cachedPartitions = null;
             lastResolveTime = now;
             return null;
         }
@@ -140,8 +145,9 @@ public class PartitionResolver {
         IntRangeBean myRange = PartitionAssignHelper.getMyRange(sorted, myInstanceId);
         if (myRange.isEmpty()) {
             LOG.warn("nop.cluster.partition.my-instance-not-found:instanceId={}", myInstanceId);
-            // 未命中同走负缓存（裁定 H）
+            // 未命中同走负缓存（裁定 H）；A4：同上清空正缓存
             negativeCached = true;
+            cachedPartitions = null;
             lastResolveTime = now;
             return null;
         }

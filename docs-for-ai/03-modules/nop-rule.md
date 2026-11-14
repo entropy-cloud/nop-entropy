@@ -305,7 +305,7 @@ nop-rule 不是 Drools 等 Rete 推理引擎的替代品，而是 Nop 平台 DSL
 与平台失效判据的关系（判据载体 = `DefaultResourceChangeChecker` 平台单点，规则模块零自建判据）：
 
 - **判据**：mtime 相等比较 + 写入新鲜度宽限双条件（宽限锚 = 文件/实体写入时刻），配合装载前后双窗口比对与 TTL 兜底强制重载；平台事务型资源（dao 实体行）经 `DaoEntityResource` 同判据接入。
-- **配置键**（平台侧，非本模块）：`nop.core.component.resource-cache.change-grace-period`（缺省 2s，0=关闭档）、`nop.orm.dao-resource-check-interval`（缺省 5000ms，检查周期）、`nop.core.component.resource-cache.timeout`（缺省 5min TTL 兜底）、`nop.core.component.resource-cache.refresh-min-interval`（缺省 100ms）。
+- **配置键**（平台侧，非本模块）：`nop.core.component.resource-cache.change-grace-period`（缺省 2s，0=关闭档）、`nop.orm.dao-resource-check-interval`（缺省 5000ms，检查周期）、`nop.core.component.resource-cache.timeout`（缺省 null=不启用，正值 opt-in 启用 TTL 兜底自愈——A2/plan 2573 修订原 5min 缺省）、`nop.core.component.resource-cache.refresh-min-interval`（缺省 100ms）。
 - **开销界定**：每条规则模型的失效检查成本 = 节点数 × 每 5s 至多 1 次主键点查（判据自节流），典型规则数十节点属廉价查询；调优旋钮 = 既有 `dao-resource-check-interval`，零新参数。
 - 定义级保存的正常失效路径不受影响（同一判据，粒度更细）。
 

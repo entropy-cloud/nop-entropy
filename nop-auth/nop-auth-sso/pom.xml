@@ -41,6 +41,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- 共享确定性时间测试工具（io.nop.commons.test.time.ManualClock，A1/plan 2573
+             JWK 失败退避钉需要推进 CoreMetrics 时钟）经 nop-commons test-jar 导出（plan 2508 先例）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-commons</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

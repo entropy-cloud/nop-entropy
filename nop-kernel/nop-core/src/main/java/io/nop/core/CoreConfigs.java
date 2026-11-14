@@ -93,9 +93,12 @@ public interface CoreConfigs {
     IConfigReference<Boolean> CFG_COMPONENT_RESOURCE_CACHE_NULL = varRef(s_loc, "nop.core.component.resource-cache.cache-null",
             Boolean.class, false);
 
-    @Description("组件编译缓存的保留时间。超时后整条目逐出并在下次访问时冷加载重建（漏检自愈通道），负值表示显式关闭该通道")
+    @Description("组件编译缓存的保留时间（漏检自愈通道，opt-in）。缺省 null=不启用（条目不因时长被逐出/强制重载，"
+            + "仅由 check-changed 判据驱动失效）；正值=超过该时长后 entry 层强制重载且缓存层整条目逐出（下次访问冷加载重建）；"
+            + "负值=显式关闭档（与 null 等价的显式形态）。A2（plan 2573，2026-11-14 独立评审）缺省由 5min 恢复为 null："
+            + "5min 缺省使全部组件缓存默认每 5 分钟周期性冷重建（默认性能翻转），自愈通道按部署显式启用")
     IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT = varRef(s_loc,
-            "nop.core.component.resource-cache.timeout", Duration.class, Duration.ofMinutes(5));
+            "nop.core.component.resource-cache.timeout", Duration.class, null);
 
     IConfigReference<Boolean> CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE = varRef(s_loc,
             "nop.core.component.resource-cache.support-serialize", Boolean.class, true);
