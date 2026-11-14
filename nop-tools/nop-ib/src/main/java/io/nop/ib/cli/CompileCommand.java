@@ -34,6 +34,23 @@ public final class CompileCommand {
     public static int compile(IbEngine engine, List<String> paths, String plModules,
                               String onFallback, boolean allowPartial, boolean json,
                               PrintWriter out, PrintWriter err) {
+        RunLog log = RunLog.start(engine.getRepoRoot(), "compile");
+        try {
+            int code = runCompile(engine, paths, plModules, onFallback, allowPartial, json,
+                    out, err, log);
+            log.exitCode(code);
+            return code;
+        } finally {
+            log.close();
+            RunLog.announce(out, log);
+        }
+    }
+
+    /** shared body; when invoked from {@code check} the caller's run log receives
+     *  the compile section (one durable record per CLI invocation). */
+    static int runCompile(IbEngine engine, List<String> paths, String plModules,
+                          String onFallback, boolean allowPartial, boolean json,
+                          PrintWriter out, PrintWriter err, RunLog log) {
         IbModel model = engine.model();
         List<String> changed;
         if (paths != null && !paths.isEmpty())
@@ -81,8 +98,10 @@ public final class CompileCommand {
             if ("fail".equals(onFallback)) {
                 feedback.put("ok", false);
                 feedback.put("fallback", Map.of("required", true, "reason", plan.getFallbackReason()));
-                out.println(json ? JsonOut.write(feedback)
-                        : "fallback required but --on-fallback=fail: " + plan.getFallbackReason());
+                String line = json ? JsonOut.write(feedback)
+                        : "fallback required but --on-fallback=fail: " + plan.getFallbackReason();
+                out.println(line);
+                log.line(line);
                 return Commands.EXIT_FALLBACK_REJECTED;
             }
             MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
@@ -94,15 +113,21 @@ public final class CompileCommand {
             feedback.put("fallback", Map.of("required", true,
                     "reason", plan.getFallbackReason(), "delegated", true, "exit", code));
             feedback.put("timings", Map.of("totalMs", 0));
-            out.println(json ? JsonOut.write(feedback)
-                    : "delegated to Maven (mvnq): exit " + code + "\n" + mout);
+            String line = json ? JsonOut.write(feedback)
+                    : "delegated to Maven (mvnq): exit " + code + "\n" + mout;
+            out.println(line);
+            log.line(line);
+            if (!merr.isEmpty())
+                log.line("[mvn stderr] " + merr);
             if (code == MavenFallback.EXIT_LOCK_TIMEOUT)
                 return Commands.EXIT_LOCK_TIMEOUT;
             return code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
 
         if (plan.getCompileFiles().isEmpty() && plan.getDownstreamCandidates().isEmpty()) {
-            out.println(json ? JsonOut.write(feedback) : "nothing to compile");
+            String line = json ? JsonOut.write(feedback) : "nothing to compile";
+            out.println(line);
+            log.line(line);
             return Commands.EXIT_OK;
         }
 
@@ -123,17 +148,22 @@ public final class CompileCommand {
             Map<String, Object> diags = new LinkedHashMap<>();
             executor.getDiagnostics().forEach(diags::put);
             feedback.put("diagnostics", diags);
-            if (json)
-                out.println(JsonOut.write(feedback));
-            else {
-                out.println("compiled: " + outcome.getCompiledModules());
-                if (!outcome.getDeletedFiles().isEmpty())
-                    out.println("deleted stale products: " + outcome.getDeletedFiles().size());
-                executor.getDiagnostics().forEach((m, d) -> {
-                    if (!d.isEmpty())
-                        err.println("--- " + m + " ---\n" + String.join("\n", d));
-                });
-            }
+            String human = json ? JsonOut.write(feedback)
+                    : "compiled: " + outcome.getCompiledModules();
+            out.println(human);
+            if (!json && !outcome.getDeletedFiles().isEmpty())
+                out.println("deleted stale products: " + outcome.getDeletedFiles().size());
+            // javac diagnostics + the run summary go to the run log in BOTH modes:
+            // a compile failure must be fully readable after the process is gone
+            log.line(human);
+            executor.getDiagnostics().forEach((m, d) -> {
+                if (!d.isEmpty()) {
+                    String block = "--- " + m + " ---\n" + String.join("\n", d);
+                    if (!json)
+                        err.println(block);
+                    log.line(block);
+                }
+            });
             return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
     }

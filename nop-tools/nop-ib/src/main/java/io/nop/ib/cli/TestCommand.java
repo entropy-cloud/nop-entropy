@@ -102,6 +102,23 @@ public final class TestCommand {
                            boolean includeCompile, String onFallback, boolean rerunFailed,
                            String runner,
                            PrintWriter out, PrintWriter err) {
+        RunLog log = RunLog.start(engine.getRepoRoot(), includeCompile ? "check" : "test");
+        try {
+            int code = runTest(engine, paths, plModules, explicitClasses, allowPartial, json,
+                    includeCompile, onFallback, rerunFailed, runner, out, err, log);
+            log.exitCode(code);
+            return code;
+        } finally {
+            log.close();
+            RunLog.announce(out, log);
+        }
+    }
+
+    static int runTest(IbEngine engine, List<String> paths, String plModules,
+                       List<String> explicitClasses, boolean allowPartial, boolean json,
+                       boolean includeCompile, String onFallback, boolean rerunFailed,
+                       String runner,
+                       PrintWriter out, PrintWriter err, RunLog log) {
         IbModel model = engine.model();
         List<String> changed = paths != null && !paths.isEmpty() ? paths
                 : (plModules != null ? List.of() : GitChanges.changedPaths(engine.getRepoRoot()));
@@ -122,7 +139,7 @@ public final class TestCommand {
                     continue;
                 TestRun run = runSurefire(engine, module, e.getValue(), json, out, err);
                 recordLastFailed(engine, module.getArtifactId(), run);
-                report(engine, run, json, out);
+                report(engine, run, json, out, log);
                 if (run.exitCode != Commands.EXIT_OK)
                     failures++;
             }
@@ -164,7 +181,7 @@ public final class TestCommand {
                                 out, err, want);
                         run.durationMs = System.currentTimeMillis() - t0;
                         runByModule.put(moduleId, run);
-                        report(engine, run, json, out);
+                        report(engine, run, json, out, log);
                     } finally {
                         workerPermits.release(want);
                     }
@@ -212,7 +229,7 @@ public final class TestCommand {
                 }
                 TestRun run = runModuleTests(engine, module, List.of(className), runner, json, out, err, 2);
                 recordLastFailed(engine, module.getArtifactId(), run);
-                report(engine, run, json, out);
+                report(engine, run, json, out, log);
                 if (run.exitCode != Commands.EXIT_OK)
                     failures++;
             }
@@ -223,8 +240,8 @@ public final class TestCommand {
         PlanResult plan = engine.planner().plan(changed, engine.stalenessReason(), allowPartial);
 
         if (includeCompile) {
-            int compileExit = CompileCommand.compile(engine, changed, null, onFallback,
-                    allowPartial, json, out, err);
+            int compileExit = CompileCommand.runCompile(engine, changed, null, onFallback,
+                    allowPartial, json, out, err, log);
             if (compileExit != Commands.EXIT_OK)
                 return compileExit;
             // re-judge the selection after compilation (unit indexes refreshed)
@@ -246,7 +263,7 @@ public final class TestCommand {
                     : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
             run.summary = extractSummaries(mout.toString());
             run.output = mout.toString();
-            report(engine, run, json, out);
+            report(engine, run, json, out, log);
             return run.exitCode;
         }
 
@@ -308,7 +325,7 @@ public final class TestCommand {
             }
         }
         for (TestRun run : runs)
-            report(engine, run, json, out);
+            report(engine, run, json, out, log);
         return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
     }
 
@@ -775,7 +792,7 @@ public final class TestCommand {
         return out;
     }
 
-    private static void report(IbEngine engine, TestRun run, boolean json, PrintWriter out) {
+    private static void report(IbEngine engine, TestRun run, boolean json, PrintWriter out, RunLog log) {
         int total = 0, failed = 0, errors = 0, skipped = 0;
         for (int[] s : run.summary) {
             total += s[0];
@@ -802,11 +819,14 @@ public final class TestCommand {
             m.put("failedDetail", run.output.trim());
         if (run.exitCode == Commands.EXIT_LOCK_TIMEOUT)
             m.put("lockTimeout", true);
-        out.println(json ? JsonOut.write(m)
-                : String.format("[nop-ib] %s (%s) tests: run=%d failed=%d errors=%d skipped=%d%s%s",
+        String human = json ? JsonOut.write(m)
+                : (String.format("[nop-ib] %s (%s) tests: run=%d failed=%d errors=%d skipped=%d%s%s",
                         run.module, run.kind, total, failed, errors, skipped,
                         run.selectedClasses != null ? " (selected=" + run.selectedClasses.size() + ")" : " (full)",
                         run.warnings.isEmpty() ? "" : " warn=" + run.warnings));
+        out.println(human);
+        // durable record: the same line + structured entry into the run log
+        log.module(m, human);
     }
 
     static final class TestRun {

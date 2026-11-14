@@ -32,6 +32,15 @@ AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，�
 
 退出码: `0` 成功; `1` 编译/测试失败; `2` 回退被 `--on-fallback=fail` 拒绝; `3` 用法错误; `6` partial; `75` 锁超时。
 
+## 运行记录（mvn 输出等价物）
+
+每次 `ib compile/test/check` 自动生成两个持久记录（进程退出后仍可读，AI 会话与事后审计的证据面）:
+
+- **`.nop-ib/logs/<cmd>-<时间戳>.log`** — 人类可读运行日志: 每模块结果行 + 缩进的失败明细（类/方法/异常类型/消息，等价 surefire 报告内容）+ javac 编译诊断块 + Maven 回退输出。
+- **`.nop-ib/last-run.json`** — 机器可读: cmd/exitCode/modules[]（ok/kind/run/failed/failedDetail/durationMs/warnings/diagnostics）。
+
+编译报错与测试报错的完整信息（含 javac file:line:col 诊断、断言消息、worker stderr 尾部、污染事件）都在这两个文件里; console 只保留汇总行。历史日志按时间戳累积在 `.nop-ib/logs/`。
+
 ## 正确性语义（调用方须知）
 
 - **零假绿**: 回退、`partial`、`wideImpact` 全部显式出现在人类输出与 JSON；未执行的测试不会计为通过。
