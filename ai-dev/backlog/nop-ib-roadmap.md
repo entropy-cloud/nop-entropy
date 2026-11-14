@@ -144,7 +144,11 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 | 28 动态覆盖收窄 | done-as-adjudicated（IB-G4 v1 不做） | 触发条件未满足 | 触发条件见 Wave0 IB-G4 |
 | 30 CI 周期对拍 report-only | deferred（out-of-scope improvement） | 仓内无 CI workflow 基础设施 | CI 立项后 |
 
-## 实测效果汇总（2026-11-14,目标机器 zulu-26/macOS arm64）
+## 实测效果汇总（更新 2026-11-14 二批）
+
+- **JUnit 执行取代 mvn test**: 自研 fork 启动器（每类隔离 fork+4 并行,对齐 surefire forkCount=4/parallel=classes）默认启用;第三方 junit-platform-launcher 版本自 classpath 推导并自动匹配注入;cwd=模块 basedir/argLine 对齐/快照开关显式禁用/批超时看门狗;nop-javac 全模块 2.4s（vs mvn test 4.3s,无 Maven 骨架）;失败探针退出 1。
+- **仓库分层**: 第三方=公共仓只读,项目依赖=reactor 目录,fast path 零仓库写入。
+## 实测效果汇总旧（2026-11-14,目标机器 zulu-26/macOS arm64）
 
 - **编译**: 单文件方法体变更 0.7–1.5s（vs `mvnw compile` 骨架 3.4s）;ABI 变更扩散 5 下游模块 11 源文件 1.37s。
 - **对拍**: nop-javac 单文件+整模块、nop-core（L1,842 类）整模块 byte 级与 `mvn compile` 零差异（1 个已声明 package-info 轮次偏差,ABI 集合等价,对拍 harness 如实报告）。

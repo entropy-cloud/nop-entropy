@@ -68,6 +68,7 @@ public class NopIbMain {
         String onFallback = "maven";
         String plModules = null;
         boolean rerunFailed = false;
+        String runner = "junit";
         List<String> explicitClasses = new ArrayList<>();
         List<String> positional = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
@@ -88,6 +89,8 @@ public class NopIbMain {
                 // default selection mode; explicit for readability
             } else if ("--rerun-failed".equals(arg)) {
                 rerunFailed = true;
+            } else if ("--runner".equals(arg) && i + 1 < args.length) {
+                runner = args[++i];
             } else if ("--paths".equals(arg)) {
                 // --paths <comma-separated> or remaining positional args
                 if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
@@ -116,7 +119,7 @@ public class NopIbMain {
                 case "test":
                 case "check":
                     return TestCommand.test(engine, positional, plModules, explicitClasses,
-                            allowPartial, json, "check".equals(cmd), onFallback, rerunFailed,
+                            allowPartial, json, "check".equals(cmd), onFallback, rerunFailed, runner,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "serve":
                     return ServeCommand.serve(engine, out, err);

@@ -1,6 +1,8 @@
 package io.nop.ib.cli;
 
+import io.nop.ib.compile.ClasspathMaterializer;
 import io.nop.ib.compile.MavenFallback;
+import io.nop.ib.junit.JUnitForkExecutor;
 import io.nop.ib.engine.GitChanges;
 import io.nop.ib.engine.IbEngine;
 import io.nop.ib.json.JsonOut;
@@ -36,6 +38,7 @@ public final class TestCommand {
     public static int test(IbEngine engine, List<String> paths, String plModules,
                            List<String> explicitClasses, boolean allowPartial, boolean json,
                            boolean includeCompile, String onFallback, boolean rerunFailed,
+                           String runner,
                            PrintWriter out, PrintWriter err) {
         IbModel model = engine.model();
         List<String> changed = paths != null && !paths.isEmpty() ? paths
@@ -71,12 +74,42 @@ public final class TestCommand {
                     err.println("usage error: -pl module not in reactor: " + artifactId);
                     return Commands.EXIT_USAGE;
                 }
-                TestRun run = runSurefire(engine, module, null, json, out, err);
+                TestRun run = runModuleTests(engine, module, null, runner, json, out, err);
                 report(engine, run, json, out);
                 if (run.exitCode != Commands.EXIT_OK)
                     return run.exitCode;
             }
             return Commands.EXIT_OK;
+        }
+
+        // --class mode is an explicit execution request: independent of the working
+        // tree change set and of plan/fallback state (roadmap item 22)
+        if (!explicitClasses.isEmpty()) {
+            int failures = 0;
+            for (String spec : explicitClasses) {
+                String moduleId;
+                String className;
+                int colon = spec.indexOf(':');
+                if (colon > 0) {
+                    moduleId = spec.substring(0, colon);
+                    className = spec.substring(colon + 1);
+                } else {
+                    moduleId = null;
+                    className = spec;
+                }
+                IbModule module = moduleId != null ? model.module(moduleId)
+                        : findModuleForClass(engine, className);
+                if (module == null) {
+                    err.println("cannot resolve module for test class: " + spec);
+                    return Commands.EXIT_USAGE;
+                }
+                TestRun run = runModuleTests(engine, module, List.of(className), runner, json, out, err);
+                recordLastFailed(engine, module.getArtifactId(), run);
+                report(engine, run, json, out);
+                if (run.exitCode != Commands.EXIT_OK)
+                    failures++;
+            }
+            return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
 
         // plan scope: compile (optional) + affected tests
@@ -121,29 +154,7 @@ public final class TestCommand {
         int failures = 0;
         List<TestRun> runs = new ArrayList<>();
         if (!explicitClasses.isEmpty()) {
-            // --class mode: classes may be module-qualified (module:Class) or bare
-            for (String spec : explicitClasses) {
-                String moduleId;
-                String className;
-                int colon = spec.indexOf(':');
-                if (colon > 0) {
-                    moduleId = spec.substring(0, colon);
-                    className = spec.substring(colon + 1);
-                } else {
-                    moduleId = null;
-                    className = spec;
-                }
-                IbModule module = moduleId != null ? model.module(moduleId)
-                        : findModuleForClass(engine, className);
-                if (module == null) {
-                    err.println("cannot resolve module for test class: " + spec);
-                    return Commands.EXIT_USAGE;
-                }
-                TestRun run = runSurefire(engine, module, List.of(className), json, out, err);
-                runs.add(run);
-                if (run.exitCode != Commands.EXIT_OK)
-                    failures++;
-            }
+            return Commands.EXIT_OK; // handled above
         } else {
             // full-test modules first (widening), then selected classes per module
             for (String moduleId : plan.getFullTestModules()) {
@@ -171,7 +182,7 @@ public final class TestCommand {
                         failures++;
                     continue;
                 }
-                TestRun run = runSurefire(engine, module, null, json, out, err);
+                TestRun run = runModuleTests(engine, module, null, runner, json, out, err);
                 recordLastFailed(engine, moduleId, run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -181,7 +192,7 @@ public final class TestCommand {
                 IbModule module = model.module(e.getKey());
                 if (module == null)
                     continue;
-                TestRun run = runSurefire(engine, module, e.getValue(), json, out, err);
+                TestRun run = runModuleTests(engine, module, e.getValue(), runner, json, out, err);
                 recordLastFailed(engine, e.getKey(), run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -200,6 +211,174 @@ public final class TestCommand {
                 return module;
         }
         return null;
+    }
+
+    /**
+     * Fast-path execution: forked JUnit JVM (design 02 contract). Falls back to
+     * surefire ONLY when the junit setup cannot be satisfied (no platform artifacts
+     * on the classpath / launcher jar unavailable) — the fallback reason is
+     * explicit in the run kind. Missing test classes trigger one test-compile
+     * retry via Maven (adaptive expansion, design 01 §十).
+     */
+    static TestRun runModuleTests(IbEngine engine, IbModule module, List<String> classes,
+                                  String runner, boolean json, PrintWriter out, PrintWriter err) {
+        if (!"junit".equals(runner))
+            return runSurefire(engine, module, classes, json, out, err);
+        if (classes == null) {
+            // full-module fork: enumerate test classes from the unit index
+            var index = engine.index(module.getArtifactId());
+            if (index == null) {
+                TestRun run = runSurefire(engine, module, null, json, out, err);
+                run.kind = "surefire(index-missing)";
+                return run;
+            }
+            classes = new ArrayList<>();
+            for (var info : index.testClasses())
+                classes.add(info.getClassName());
+            if (classes.isEmpty()) {
+                TestRun run = TestRun.skipped(module.getArtifactId(), "no test classes in unit index");
+                return run;
+            }
+        }
+        ClasspathMaterializer materializer = new ClasspathMaterializer(engine.model());
+        ClasspathMaterializer.Materialized cp = materializer.testClasspath(module);
+        cp.assertNoIntraProjectJars(engine.model());
+        if (!cp.complete()) {
+            TestRun run = runSurefire(engine, module, classes, json, out, err);
+            run.kind = "surefire(classpath-incomplete)";
+            return run;
+        }
+        JUnitForkExecutor executor = new JUnitForkExecutor(engine.model());
+        List<String> forkWarnings = new ArrayList<>();
+        JUnitForkExecutor.ForkResult fork =
+                executeForks(executor, module, cp, classes, forkWarnings);
+        if (fork.exitCode() == -3) {
+            // junit setup unsatisfiable -> explicit fallback
+            TestRun run = runSurefire(engine, module, classes, json, out, err);
+            run.kind = "surefire(" + String.join("; ", fork.warnings()) + ")";
+            return run;
+        }
+        TestRun run = new TestRun(module.getArtifactId(), classes);
+        run.kind = "junit-fork";
+        run.warnings.addAll(fork.warnings());
+        Map<String, Object> summary = fork.summary();
+        int tests = numOf(summary.get("tests"));
+        int failed = numOf(summary.get("failures"));
+        int skipped = numOf(summary.get("skipped"));
+        run.summary.add(new int[]{tests, failed, 0, skipped});
+        Object failedList = summary.get("failed");
+        if (failedList instanceof Iterable<?> iter) {
+            StringBuilder sb = new StringBuilder();
+            for (Object o : iter)
+                sb.append(o).append('\n');
+            run.output = sb.toString();
+        }
+        if (fork.exitCode() == 2 && !summary.isEmpty()) {
+            // missing classes: one test-compile retry via Maven
+            io.nop.ib.compile.MavenFallback fallback =
+                    new io.nop.ib.compile.MavenFallback(engine.getRepoRoot());
+            StringBuilder mout = new StringBuilder();
+            int code = fallback.delegate("-pl :" + module.getArtifactId() + " test-compile -q",
+                    mout, new StringBuilder());
+            if (code == 0) {
+                fork = executor.execute(module, cp, classes == null ? List.of() : classes);
+                run.summary.clear();
+                int t2 = numOf(fork.summary().get("tests"));
+                int f2 = numOf(fork.summary().get("failures"));
+                int s2 = numOf(fork.summary().get("skipped"));
+                run.summary.add(new int[]{t2, f2, 0, s2});
+                run.exitCode = f2 > 0 ? Commands.EXIT_FAILED : Commands.EXIT_OK;
+                return run;
+            }
+        }
+        run.exitCode = fork.exitCode() == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+        return run;
+    }
+
+    private static int numOf(Object v) {
+        return v instanceof Number n ? n.intValue() : 0;
+    }
+
+    /**
+     * Per-class forks with bounded parallelism (mirrors surefire forkCount=4 /
+     * parallel=classes): isolation across classes avoids cross-class pollution in
+     * a single shared JVM, and the batch watchdog applies per fork.
+     */
+    private static final int FORK_PARALLELISM = 4;
+
+    private static JUnitForkExecutor.ForkResult executeForks(JUnitForkExecutor executor,
+                                                             IbModule module,
+                                                             ClasspathMaterializer.Materialized cp,
+                                                             List<String> classes,
+                                                             List<String> warnings) {
+        List<String> list = classes == null ? List.of() : classes;
+        if (list.size() <= 1)
+            return executor.execute(module, cp, list);
+        java.util.concurrent.ExecutorService pool =
+                java.util.concurrent.Executors.newFixedThreadPool(FORK_PARALLELISM);
+        java.util.List<java.util.concurrent.Future<JUnitForkExecutor.ForkResult>> futures = new ArrayList<>();
+        for (String cls : list) {
+            futures.add(pool.submit(() -> executor.execute(module, cp, List.of(cls))));
+        }
+        pool.shutdown();
+        int failures = 0;
+        int tests = 0;
+        int skipped = 0;
+        boolean setupFailed = false;
+        boolean timedOut = false;
+        List<Map<String, String>> failedDetails = new ArrayList<>();
+        List<String> missingClasses = new ArrayList<>();
+        try {
+            for (var f : futures) {
+                JUnitForkExecutor.ForkResult r = f.get();
+                for (String w : r.warnings())
+                    if (!warnings.contains(w))
+                        warnings.add(w);
+                if (r.exitCode() == -3)
+                    setupFailed = true;
+                Object t = r.summary().get("tests");
+                Object fl = r.summary().get("failures");
+                Object sk = r.summary().get("skipped");
+                if (t instanceof Number n)
+                    tests += n.intValue();
+                if (sk instanceof Number n)
+                    skipped += n.intValue();
+                if (fl instanceof Number n)
+                    failures += n.intValue();
+                if (r.summary().get("timedOut") != null)
+                    timedOut = true;
+                if (r.summary().get("missingClasses") instanceof Iterable<?> iter) {
+                    for (Object o : iter)
+                        missingClasses.add(String.valueOf(o));
+                }
+                if (r.summary().get("failed") instanceof Iterable<?> iter) {
+                    for (Object o : iter) {
+                        if (o instanceof Map<?, ?> m) {
+                            Map<String, String> d = new java.util.LinkedHashMap<>();
+                            d.put("class", String.valueOf(m.get("class")));
+                            d.put("method", String.valueOf(m.get("method")));
+                            d.put("type", String.valueOf(m.get("type")));
+                            d.put("message", String.valueOf(m.get("message")));
+                            failedDetails.add(d);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            warnings.add("fork aggregation error: " + e);
+            failures++;
+        }
+        Map<String, Object> summary = new java.util.LinkedHashMap<>();
+        summary.put("tests", tests);
+        summary.put("failures", failures);
+        summary.put("skipped", skipped);
+        summary.put("failed", failedDetails);
+        if (!missingClasses.isEmpty())
+            summary.put("missingClasses", missingClasses);
+        if (timedOut)
+            summary.put("timedOut", true);
+        int exit = setupFailed ? -3 : (failures > 0 ? 1 : 0);
+        return new JUnitForkExecutor.ForkResult(exit, summary, warnings);
     }
 
     /** Module-scoped Maven build+test for widened modules lacking test products. */
@@ -349,6 +528,8 @@ public final class TestCommand {
         m.put("module", run.module);
         m.put("kind", run.kind);
         m.put("selected", run.selectedClasses);
+        if (!run.warnings.isEmpty())
+            m.put("warnings", run.warnings);
         m.put("run", total);
         m.put("failed", failed);
         m.put("errors", errors);
@@ -356,9 +537,10 @@ public final class TestCommand {
         if (run.exitCode == Commands.EXIT_LOCK_TIMEOUT)
             m.put("lockTimeout", true);
         out.println(json ? JsonOut.write(m)
-                : String.format("[nop-ib] %s tests: run=%d failed=%d errors=%d skipped=%d%s",
-                        run.module, total, failed, errors, skipped,
-                        run.selectedClasses != null ? " (selected=" + run.selectedClasses.size() + ")" : " (full)"));
+                : String.format("[nop-ib] %s (%s) tests: run=%d failed=%d errors=%d skipped=%d%s%s",
+                        run.module, run.kind, total, failed, errors, skipped,
+                        run.selectedClasses != null ? " (selected=" + run.selectedClasses.size() + ")" : " (full)",
+                        run.warnings.isEmpty() ? "" : " warn=" + run.warnings));
     }
 
     static final class TestRun {
@@ -367,6 +549,7 @@ public final class TestCommand {
         String kind = "surefire";
         int exitCode = Commands.EXIT_OK;
         List<int[]> summary = new ArrayList<>();
+        final List<String> warnings = new ArrayList<>();
         String output = "";
 
         TestRun(String module, List<String> selectedClasses) {

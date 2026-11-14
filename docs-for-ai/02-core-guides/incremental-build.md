@@ -23,7 +23,7 @@ AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，�
 | `ib status [--json]` | 模型/索引健康、当前变更集 |
 | `ib plan --paths <files...> [--json]` | 只算不做: 编译集/测试集/回退原因/下游候选 |
 | `ib compile --paths <file...>` / `ib compile -pl <module>` | 选择性编译（写产物取 `.mvn/build.lock`,锁超时退出 75） |
-| `ib test --affected` / `ib test -pl <module>` / `ib test --class [mod:]Class` | 选择集委托 surefire 执行 |
+| `ib test --affected` / `ib test -pl <module>` / `ib test --class [mod:]Class` / `--rerun-failed` | 自研 JUnit Platform fork 启动器执行（每类隔离 fork+4 并行;launcher 版本自模块 classpath 推导;快照录制显式禁用;批超时看门狗）。`--runner surefire` 可退出到 Maven Surefire 委托（setup 不满足时也自动显式回退） |
 | `ib check --paths <file...>` | **AI 日常主入口**: 编译 + 受影响测试 |
 | `ib explain <file\|module>` | 解释归属/能力分级/依赖者 |
 | `ib model refresh\|show\|index` | 模型与索引维护 |
