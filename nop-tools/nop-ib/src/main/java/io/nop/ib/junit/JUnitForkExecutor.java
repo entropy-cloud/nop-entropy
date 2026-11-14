@@ -112,8 +112,12 @@ public final class JUnitForkExecutor {
             Path p = Path.of(entry);
             cp.add(p.isAbsolute() ? entry : repoRoot.resolve(entry).toString());
         }
-        // surefire normally supplies the jupiter engine at runtime; the fork needs
-        // it explicitly, version-matched to junit-jupiter on the module classpath
+        // surefire normally supplies the platform runtime set at runtime; the fork
+        // needs it explicitly, version-matched to the module classpath. Three
+        // pieces: junit-jupiter-engine (test API implementation), and — when the
+        // module only declares the API split (e.g. jupiter-api without the
+        // jupiter aggregate, as OpenPDF does) — junit-platform-engine, which the
+        // engine requires and which OutputDirectoryCreator et al. live in.
         if (cp.stream().noneMatch(e -> e.contains("junit-jupiter-engine"))) {
             String jupiterVersion = detectArtifactVersion(cp, "junit-jupiter-");
             if (jupiterVersion != null) {
@@ -127,6 +131,21 @@ public final class JUnitForkExecutor {
             } else {
                 warnings.add("junit-jupiter version not detectable on classpath");
             }
+        }
+        if (cp.stream().noneMatch(e -> e.contains("junit-platform-engine"))) {
+            Path platformEngine = locateArtifactJar("org.junit.platform", "junit-platform-engine",
+                    platformVersion, null);
+            if (platformEngine != null)
+                cp.add(platformEngine.toString());
+            else
+                warnings.add("junit-platform-engine " + platformVersion
+                        + " not found in local repos - tests cannot run");
+        }
+        // guard: a launcher without any TestEngine fails at boot — fall back to
+        // surefire instead of a doomed fork (JUnit4-only or exotic stacks)
+        if (cp.stream().noneMatch(e -> e.contains("junit-platform-engine"))) {
+            warnings.add("no JUnit Platform engine assemblable from module classpath");
+            return new ForkResult(-3, Map.of(), warnings);
         }
         cp.add(launcherJar.toString());
         cp.add(nopIbClasses.toString());
@@ -226,12 +245,22 @@ public final class JUnitForkExecutor {
         return detectArtifactVersion(entries, "junit-platform-commons-");
     }
 
-    /** first artifact with the given filename prefix on the classpath → its version. */
+    /** first artifact with the given filename prefix on the classpath → its version.
+     *  The artifact id itself may extend the prefix (junit-jupiter-API-6.1.0.jar):
+     *  the version is the trailing token starting at the first digit. */
     static String detectArtifactVersion(List<String> entries, String prefix) {
         for (String entry : entries) {
             String name = entry.substring(entry.lastIndexOf('/') + 1);
             if (name.startsWith(prefix) && name.endsWith(".jar")) {
-                return name.substring(prefix.length(), name.length() - ".jar".length());
+                String rest = name.substring(prefix.length(), name.length() - ".jar".length());
+                int firstDigit = -1;
+                for (int i = 0; i < rest.length(); i++) {
+                    if (Character.isDigit(rest.charAt(i))) {
+                        firstDigit = i;
+                        break;
+                    }
+                }
+                return firstDigit >= 0 ? rest.substring(firstDigit) : rest;
             }
         }
         return null;

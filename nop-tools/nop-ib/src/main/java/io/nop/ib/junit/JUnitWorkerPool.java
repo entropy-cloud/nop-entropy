@@ -88,7 +88,11 @@ public final class JUnitWorkerPool {
             try {
                 j.get();
             } catch (Exception e) {
-                warnings.add("worker pre-spawn failed: " + e);
+                // full stack into the warning: a message-only record loses the
+                // failure point (OpenPDF-html spawn NPE was undiagnosable)
+                java.io.StringWriter sw = new java.io.StringWriter();
+                e.printStackTrace(new java.io.PrintWriter(sw));
+                warnings.add("worker pre-spawn failed: " + sw);
             }
         }
         spawner.shutdown();
@@ -364,14 +368,20 @@ public final class JUnitWorkerPool {
 
         void kill() {
             dead = true;
+            // stdin may be null when the constructor failed mid-way (setup guard
+            // threw after the created-registry initializer ran)
+            if (stdin != null) {
+                try {
+                    stdin.close();
+                } catch (IOException ignored) {
+                    // already dead
+                }
+            }
+            if (process == null)
+                return;
             // async teardown: closing stdin makes the worker loop exit; force-kill
             // races are fine. NEVER wait here — sequential waitFor(5s) per worker
             // turned teardown into a 75s stall for a 15-worker pool.
-            try {
-                stdin.close();
-            } catch (IOException ignored) {
-                // already dead
-            }
             Thread reaper = new Thread(process::destroyForcibly, "nop-ib-worker-reaper");
             reaper.setDaemon(true);
             reaper.start();
@@ -381,7 +391,8 @@ public final class JUnitWorkerPool {
     private List<String> cmdPrefix() {
         if (cmdPrefix != null)
             return cmdPrefix;
-        Path launcherJar = locateLauncherJar(detectPlatformVersion(classpath.entries()));
+        String platformVersion = detectPlatformVersion(classpath.entries());
+        Path launcherJar = locateLauncherJar(platformVersion);
         if (launcherJar == null)
             throw new NopIbException("junit-platform-launcher jar unavailable");
         Path runnerClasses = locateRunnerClasses();
@@ -393,6 +404,9 @@ public final class JUnitWorkerPool {
             Path p = Path.of(entry);
             cp.add(p.isAbsolute() ? entry : repoRoot.resolve(entry).toString());
         }
+        // platform runtime set parity with the fork executor (JUnitForkExecutor):
+        // jupiter-engine +, when the module declares only the API split,
+        // junit-platform-engine — surefire supplies both implicitly at runtime
         if (cp.stream().noneMatch(e -> e.contains("junit-jupiter-engine"))) {
             String jupiterVersion = detectArtifactVersion(classpath.entries(), "junit-jupiter-");
             if (jupiterVersion != null) {
@@ -401,6 +415,18 @@ public final class JUnitWorkerPool {
                 if (engineJar != null)
                     cp.add(engineJar.toString());
             }
+        }
+        if (cp.stream().noneMatch(e -> e.contains("junit-platform-engine"))) {
+            Path platformEngine = locateArtifactJar("org.junit.platform", "junit-platform-engine",
+                    platformVersion, null);
+            if (platformEngine != null)
+                cp.add(platformEngine.toString());
+        }
+        // guard: a launcher without any TestEngine fails at boot — callers fall
+        // back to surefire on this exception (JUnit4-only or exotic stacks)
+        if (cp.stream().noneMatch(e -> e.contains("junit-platform-engine"))) {
+            throw new NopIbException("no JUnit Platform engine assemblable from the module "
+                    + "test classpath (module: " + module.getArtifactId() + ")");
         }
         cp.add(launcherJar.toString());
         cp.add(runnerClasses.toString());
@@ -506,11 +532,21 @@ public final class JUnitWorkerPool {
         return detectArtifactVersion(entries, "junit-platform-commons-");
     }
 
+    /** see JUnitForkExecutor.detectArtifactVersion: version = trailing token from
+     *  the first digit (artifact ids may extend the prefix, junit-jupiter-API). */
     static String detectArtifactVersion(List<String> entries, String prefix) {
         for (String entry : entries) {
             String name = entry.substring(entry.lastIndexOf('/') + 1);
             if (name.startsWith(prefix) && name.endsWith(".jar")) {
-                return name.substring(prefix.length(), name.length() - ".jar".length());
+                String rest = name.substring(prefix.length(), name.length() - ".jar".length());
+                int firstDigit = -1;
+                for (int i = 0; i < rest.length(); i++) {
+                    if (Character.isDigit(rest.charAt(i))) {
+                        firstDigit = i;
+                        break;
+                    }
+                }
+                return firstDigit >= 0 ? rest.substring(firstDigit) : rest;
             }
         }
         return null;

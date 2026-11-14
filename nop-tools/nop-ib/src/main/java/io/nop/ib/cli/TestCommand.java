@@ -2,6 +2,7 @@ package io.nop.ib.cli;
 
 import io.nop.ib.compile.ClasspathMaterializer;
 import io.nop.ib.compile.MavenFallback;
+import io.nop.ib.NopIbException;
 import io.nop.ib.junit.JUnitForkExecutor;
 import io.nop.ib.engine.GitChanges;
 import io.nop.ib.engine.IbEngine;
@@ -377,11 +378,23 @@ public final class TestCommand {
         JUnitForkExecutor executor = new JUnitForkExecutor(engine.model());
         List<String> forkWarnings = new ArrayList<>();
         List<String> resetters = configuredResetters(engine);
-        io.nop.ib.junit.JUnitWorkerPool pool = new io.nop.ib.junit.JUnitWorkerPool(
-                engine.model(), module, cp, resetters, workerCount,
-                workerMaxClasses(engine));
-        JUnitForkExecutor.ForkResult fork =
-                pool.run(classes);
+        io.nop.ib.junit.JUnitWorkerPool pool;
+        JUnitForkExecutor.ForkResult fork;
+        try {
+            pool = new io.nop.ib.junit.JUnitWorkerPool(
+                    engine.model(), module, cp, resetters, workerCount,
+                    workerMaxClasses(engine));
+            fork = pool.run(classes);
+        } catch (NopIbException e) {
+            // worker setup unsatisfiable (e.g. no JUnit engine on the classpath —
+            // JUnit4-only module): explicit surefire fallback, not a doomed fork
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            String head = sw.toString().lines().skip(1).findFirst().map(String::trim).orElse("");
+            TestRun fb = runSurefire(engine, module, classes, json, out, err);
+            fb.kind = "surefire(worker-setup: " + e + " @ " + head + ")";
+            return fb;
+        }
         forkWarnings.addAll(fork.warnings());
         // differential rerun (design 06 WR-D4): every failed class gets ONE fresh
         // per-class fork; fresh passes => pollution (worker result discarded)
@@ -814,9 +827,12 @@ public final class TestCommand {
         if (run.durationMs > 0)
             m.put("durationMs", run.durationMs);
         // failure detail (class/method/type/message) — parity analysis needs the
-        // exact failing set, not just counts
-        if (!run.output.isBlank())
+        // exact failing set, not just counts; skipped-run reason lives in output
+        // too but must NOT surface as failedDetail (it is not a failure)
+        if (!run.output.isBlank() && !"skipped".equals(run.kind))
             m.put("failedDetail", run.output.trim());
+        else if (!run.output.isBlank())
+            m.put("skipReason", run.output.trim());
         if (run.exitCode == Commands.EXIT_LOCK_TIMEOUT)
             m.put("lockTimeout", true);
         String human = json ? JsonOut.write(m)

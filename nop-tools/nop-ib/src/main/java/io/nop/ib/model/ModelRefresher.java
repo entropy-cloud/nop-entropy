@@ -11,7 +11,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,6 +89,18 @@ public final class ModelRefresher {
         EffectivePomParser parser = new EffectivePomParser(repoRoot.toString());
         List<IbModule> modules = parser.parse(dump.toFile());
 
+        // 4b. coverage self-check: Maven 3.9's reactor dependency:list buffers the
+        // per-module resolved blocks and can print them OUT OF ORDER relative to
+        // their anchors (observed on OpenPDF), so index-paired attribution can be
+        // wrong. Verify each module's EA contains at least one of its own pom
+        // direct deps; on mismatch, re-resolve per module (-pl :artifactId —
+        // single-module output is unambiguous). Maven 4 output passes the check
+        // and keeps the fast single-invocation path.
+        Set<String> suspect = coverageSuspects(modules, artifactsByModule);
+        if (!suspect.isEmpty()) {
+            artifactsByModule = resolvePerModule(suspect, artifactsByModule);
+        }
+
         IbModel model = new IbModel();
         model.setRepoRoot(repoRoot.toString());
         model.setMavenVersion(mavenVersion);
@@ -107,6 +121,45 @@ public final class ModelRefresher {
         }
         model.getPomHashes().putAll(collectPomHashes(model));
         return model;
+    }
+
+    /** modules whose reactor-attributed EA misses any of their pom direct deps.
+     *  A shared parent dep (e.g. the reactor artifact itself) appearing in a
+     *  misattributed block is NOT enough — every direct dep must be present. */
+    private Set<String> coverageSuspects(List<IbModule> modules,
+                                         Map<String, List<String>> artifactsByModule) {
+        Set<String> suspects = new LinkedHashSet<>();
+        for (IbModule mod : modules) {
+            List<String> ext = artifactsByModule.get(mod.getArtifactId());
+            Set<String> direct = new LinkedHashSet<>();
+            for (IbModule.DepEdge d : mod.getDependencies())
+                direct.add(d.ga);
+            if (direct.isEmpty() || ext == null)
+                continue; // nothing to contradict (empty EA is legal for dep-free modules)
+            Set<String> eas = new LinkedHashSet<>();
+            for (String ea : ext) {
+                int secondColon = ea.indexOf(':', ea.indexOf(':') + 1);
+                eas.add(ea.substring(0, secondColon));
+            }
+            if (!eas.containsAll(direct))
+                suspects.add(mod.getArtifactId());
+        }
+        return suspects;
+    }
+
+    /** re-resolve suspect modules one -pl invocation each (unambiguous output). */
+    private Map<String, List<String>> resolvePerModule(Set<String> suspects,
+                                                       Map<String, List<String>> artifactsByModule) {
+        Map<String, List<String>> fixed = new LinkedHashMap<>(artifactsByModule);
+        for (String artifactId : suspects) {
+            String out = runMaven("dependency:list", "-DincludeScope=test",
+                    "-Dsort=false", "-pl", ":" + artifactId);
+            Map<String, List<String>> one = parseDependencyList(out);
+            // single-module invocation: one anchor, one block — take it verbatim
+            List<String> ea = one.getOrDefault(artifactId, new ArrayList<>());
+            fixed.put(artifactId, ea);
+        }
+        return fixed;
     }
 
     private Map<String, String> collectPomHashes(IbModel model) {
@@ -131,16 +184,28 @@ public final class ModelRefresher {
         return text.replace("[INFO] [stdout] ", "");
     }
 
-    Map<String, List<String>> parseDependencyList(String output) {        Map<String, List<String>> byModule = new LinkedHashMap<>();
-        String current = null;
+    Map<String, List<String>> parseDependencyList(String output) {
+        Map<String, List<String>> byModule = new LinkedHashMap<>();
+        List<String> anchors = new ArrayList<>();
+        List<List<String>> blocks = new ArrayList<>();
+        List<String> currentBlock = null;
         for (String line : output.split("\n")) {
             Matcher anchor = MODULE_ANCHOR.matcher(line);
             if (anchor.find() && line.contains(":list (default-cli)")) {
-                current = anchor.group(1);
-                byModule.computeIfAbsent(current, k -> new ArrayList<>());
+                anchors.add(anchor.group(1));
                 continue;
             }
-            if (current == null)
+            if (line.contains("The following files have been resolved")) {
+                // each execution emits exactly one resolved block; blocks and
+                // anchors both appear in reactor order — Maven 3.9 buffers the
+                // list output so it can lag its own anchor header (observed on
+                // OpenPDF: anchor html followed by toolbox's block), so blocks
+                // are paired with anchors BY INDEX, not adjacency
+                currentBlock = new ArrayList<>();
+                blocks.add(currentBlock);
+                continue;
+            }
+            if (currentBlock == null)
                 continue;
             Matcher artifact = ARTIFACT_LINE.matcher(line);
             if (artifact.matches()) {
@@ -163,9 +228,24 @@ public final class ModelRefresher {
                 // only a .pom reference for them
                 if ("pom".equals(type))
                     continue;
-                byModule.get(current).add(group + ":" + name + ":" + type
+                currentBlock.add(group + ":" + name + ":" + type
                         + (classifier != null ? ":" + classifier : "")
                         + ":" + version + ":" + scope);
+            }
+        }
+        if (anchors.size() == blocks.size()) {
+            for (int i = 0; i < anchors.size(); i++)
+                byModule.put(anchors.get(i), blocks.get(i));
+        } else {
+            // anchor/block counts diverge (aggregator with no deps, plugin
+            // failure): fall back to adjacency, empty lists for the rest
+            for (String a : anchors)
+                byModule.put(a, new ArrayList<>());
+            int idx = 0;
+            for (List<String> block : blocks) {
+                if (idx < anchors.size())
+                    byModule.put(anchors.get(idx), block);
+                idx++;
             }
         }
         return byModule;
