@@ -89,7 +89,8 @@ public final class JUnitForkExecutor {
 
         List<String> cmd = new ArrayList<>();
         cmd.add(javaHomeBin("java"));
-        // module argLine from the model; unresolvable Maven placeholders dropped
+        // module argLine from the model; unresolvable ${...} tokens are dropped
+        // with a per-token warning (they belong to Maven profile machinery)
         String argLine = module.getSurefireArgLine();
         if (argLine != null && !argLine.isBlank()) {
             for (String token : argLine.trim().split("\\s+")) {

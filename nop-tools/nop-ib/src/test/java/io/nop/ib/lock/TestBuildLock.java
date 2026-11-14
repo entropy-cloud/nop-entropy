@@ -67,8 +67,16 @@ class TestBuildLock {
         Process holder = new ProcessBuilder("java", lockHelper(), lockFile.toString(), "60000",
                 "sleep", "3")
                 .redirectErrorStream(true).start();
-        // wait until holder owns the lock
-        Thread.sleep(1500);
+        // wait until the holder actually owns the lock: a probe acquisition must
+        // FAIL (null). A blind sleep raced the holder JVM's source-launch startup
+        // under load and flipped this assertion (sweep-load flake, 2026-11-14)
+        long deadline = System.currentTimeMillis() + 20_000;
+        while (System.currentTimeMillis() < deadline) {
+            try (BuildLock probe = BuildLock.acquire(tmp, Duration.ofMillis(200))) {
+                if (probe == null)
+                    break; // holder owns it now
+            }
+        }
         try (BuildLock l = BuildLock.acquire(tmp, Duration.ofMillis(500))) {
             assertNull(l, "nop-ib must not acquire while mvnq holds");
         }

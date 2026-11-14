@@ -1,7 +1,7 @@
 # nop-ib 实施 Roadmap — 用 javac 增量引擎替代 AI 开发期的 Maven 全量调用
 
 > Created: 2026-11-13
-> Last updated: 2026-11-14（Wave 0–5 实现与实测收口,M0–M5 达成;items 26/27/28/30 scoped defer 见 Deferred 段）
+> Last updated: 2026-11-14（Wave 0–6 收口:M0–M6 达成;items 26/27/28/30 scoped defer 见 Deferred 段）
 > 设计权威: [ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md](../design/nop-incremental-build/05-nop-ib-engine-design.md)（Architecture Baseline，规范性）
 > 上游设计: [00-vision.md](../design/nop-incremental-build/00-vision.md) / [01-architecture-baseline.md](../design/nop-incremental-build/01-architecture-baseline.md) / [02-test-execution.md](../design/nop-incremental-build/02-test-execution.md) / [03-alternatives-and-roi.md](../design/nop-incremental-build/03-alternatives-and-roi.md)
 > 参考实现分析: [04-gradle-incremental-compilation-analysis.md](../design/nop-incremental-build/04-gradle-incremental-compilation-analysis.md)
@@ -88,7 +88,7 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 
 ### Wave 4.5 — JUnit worker 复用（设计 06）
 
-- 34. **[Feature]** 测试 worker JVM 复用与执行模型通用化：持久 worker + 反射契约 resetter（通用层 properties 快照/Nop 层 `reinitialize()` 钩子）+ 差分重跑兜底 + 模块间并行（设计 06）: `planned`（Phase 1/2/4 done 实测:G-B 切片 1671 tests 10.3s 反超 mvn 11.9s+失败集 parity+非 Nop 项目 E2E 跑通;Phase 3 G-C 全仓 sweep 尾段 L3 大模块兼容性卡点未解,plan wave6-worker-reuse in progress,不虚报） — deps: 25
+- 34. **[Feature]** 测试 worker JVM 复用与执行模型通用化：持久 worker + 反射契约 resetter（通用层 properties 快照/Nop 层 `reinitialize()` 钩子）+ 差分重跑兜底 + 模块间并行（设计 06）: `done`（2026-11-14 收口:G-B 切片 9.2s<11.9s;G-C 共同语料 149 模块 302s<mvn 345s+全语料 267 模块一次确定性跑完（mvn 本机四次尝试均级联 skip 无法完成）;G-A 逐类 parity 零未解释差异;G-D 4.5s 持平;同批修复 G-C 尾段六缺陷——嵌套 helper 误派发/worker 无逐类隔离/死 worker 不唤醒/optional+classifier 依赖解析丢弃/差分重跑假超时/拓扑公平份额,详见 wave6 plan Evidence;closure audit 见 plan Closure 段） — deps: 25
 
 ### Wave 5 — L1/L3 扩张（触发式，非默认路线）
 

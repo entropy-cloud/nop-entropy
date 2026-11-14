@@ -204,7 +204,7 @@ public final class JUnitWorkerPool {
         }
         if (degrade[0])
             warnings.add("reuse not profitable: reset cost exceeds fork startup ("
-                    + startupMs + "ms) -> degrade to per-class forks");
+                    + startupMs + "ms) — differential rerun remains the pollution guard");
         if (!pollution.isEmpty())
             warnings.add("pollution guard triggered for: " + String.join(",", pollution));
 

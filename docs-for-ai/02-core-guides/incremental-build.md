@@ -45,3 +45,5 @@ AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，�
 
 - `noop`（status+plan）0.8–1.2s;单文件方法体编译 0.7–1.5s（Maven 骨架 3.4s）;ABI 变更扩散 5 下游 11 文件 1.37s;`check` 端到端 4.5s。
 - 刷新模型 52s（457 reactor project）;全量索引 4s（383 模块）。
+- **`test` 对 `mvn test`（2026-11-14）**: 4 模块切片中位数 **9.2s vs `mvn test -T 1C` 11.9s**;单模块对照（orm-geo/spring-core-starter/stream-connector-jdbc 14/15/71 tests）与 surefire 逐类 parity 零差异、4.2s vs 13.2s;**共同语料 sweep（149 模块交集）302s/14001 tests vs mvn 345s**;全语料（267 派发模块）nop-ib 一次确定性跑完——mvn 在本机四次尝试全部因时序敏感类失败级联 skip 147-220 模块且存在无看门狗挂死（单跑无法完成全语料）。失败集逐类 parity 零未解释差异（时序/顺序敏感类裁定表见 wave6 plan Evidence）。
+- 测试执行拓扑: 总 worker 预算 `4×cores`（`nop.ib.workerBudget` 覆盖）+ 模块槽位 `budget/4`,模块公平份额 = min(类数, budget/并发模块数)——全仓每模块 ≈4 worker（对齐 surefire `forkCount=4`）。派发面 = 索引判定的可执行测试类（自有 JUnit 测试注解/@Nested/索引内超类链;嵌套 helper 与 codegen 入口类不派发）。

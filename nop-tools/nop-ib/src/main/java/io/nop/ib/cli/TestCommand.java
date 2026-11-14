@@ -34,9 +34,32 @@ import java.util.regex.Pattern;
  * compile invalidates the pre-fallback selection).
  */
 public final class TestCommand {
+    /**
+     * Total worker budget across concurrently running modules. The reference
+     * baseline is {@code mvn test -T 1C} with surefire {@code forkCount=4}:
+     * ~cores concurrent modules x 4 forks each — module-serial 1-worker sweeps
+     * (the old cores-1 total) left ~4x parallelism on the table and lost the
+     * full-repo wall clock. Tests are far from pure-CPU (H2 init, resource
+     * loading, parser warmup), so matching mvn's oversubscription profile is
+     * the empirically safe setting; override with nop.ib.workerBudget.
+     */
+    static final int WORKER_BUDGET = Math.max(4, Integer.getInteger("nop.ib.workerBudget",
+            4 * Runtime.getRuntime().availableProcessors()));
+
+    /**
+     * Module slots mirror mvn -T 1C: ~cores modules under test at once. Worker
+     * permits are divided into fair shares: each module takes
+     * min(classCount, budget / slots) workers, so a full sweep gives every
+     * module ~4 (surefire forkCount parity — a slow small module running 4.5s
+     * tests on a single worker used to own the tail), and a small -pl slice
+     * gives each module budget/slots (the G-B behavior that beat mvn 9.6s vs
+     * 11.9s). Greedy grab-everything starved sibling modules (22s slice).
+     */
+    static final int MODULE_SLOTS = Math.max(4, WORKER_BUDGET / 4);
+
     private static final java.util.concurrent.ExecutorService moduleTestPool =
             java.util.concurrent.Executors.newFixedThreadPool(
-                    Math.max(2, Runtime.getRuntime().availableProcessors() - 1),
+                    MODULE_SLOTS,
                     r -> {
                         Thread t = new Thread(r, "nop-ib-module-test");
                         t.setDaemon(true);
@@ -117,42 +140,34 @@ public final class TestCommand {
                 moduleIds.add(artifactId.trim());
             }
             int cores = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
-            int budget = cores - 1;
-            // proportional worker allocation: workers follow the class-count share of
-            // each module (static even split starves the big module -> serial long tail)
+            // fair worker shares (see MODULE_SLOTS): full sweep -> ~4/module like
+            // surefire forkCount; small slice -> budget/slots per module
+            java.util.concurrent.Semaphore workerPermits = new java.util.concurrent.Semaphore(WORKER_BUDGET);
+            int fairShare = Math.max(1, WORKER_BUDGET / Math.min(Math.max(moduleIds.size(), 1), MODULE_SLOTS));
             Map<String, Integer> classCounts = new LinkedHashMap<>();
-            int totalClasses = 0;
             for (String moduleId : moduleIds) {
                 var index = engine.index(moduleId);
                 int n = index == null ? 1 : index.testClasses().size();
                 classCounts.put(moduleId, Math.max(1, n));
-                totalClasses += Math.max(1, n);
-            }
-            Map<String, Integer> workerAllocation = new LinkedHashMap<>();
-            int allocated = 0;
-            for (int i = 0; i < moduleIds.size(); i++) {
-                String moduleId = moduleIds.get(i);
-                int share;
-                if (i == moduleIds.size() - 1) {
-                    share = Math.max(1, budget - allocated);
-                } else {
-                    share = Math.max(1, (int) Math.round(
-                            (double) budget * classCounts.get(moduleId) / totalClasses));
-                    share = Math.min(share, Math.max(1, budget - (moduleIds.size() - i - 1)));
-                    allocated += share;
-                }
-                workerAllocation.put(moduleId, share);
             }
             Map<String, TestRun> runByModule = new java.util.concurrent.ConcurrentHashMap<>();
             java.util.List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (String moduleId : moduleIds) {
                 IbModule module = model.module(moduleId);
-                int wc = workerAllocation.get(moduleId);
+                int classCount = classCounts.get(moduleId);
+                int want = Math.min(classCount, fairShare);
                 futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
-                    TestRun run = runModuleTests(engine, module, null, runner, json,
-                            out, err, wc);
-                    runByModule.put(moduleId, run);
-                    report(engine, run, json, out);
+                    workerPermits.acquireUninterruptibly(want);
+                    try {
+                        long t0 = System.currentTimeMillis();
+                        TestRun run = runModuleTests(engine, module, null, runner, json,
+                                out, err, want);
+                        run.durationMs = System.currentTimeMillis() - t0;
+                        runByModule.put(moduleId, run);
+                        report(engine, run, json, out);
+                    } finally {
+                        workerPermits.release(want);
+                    }
                 }, moduleTestPool));
             }
             int failures = 0;
@@ -468,9 +483,13 @@ public final class TestCommand {
 
     /**
      * Differential-retry timeout from the worker-measured class time: 4x with a
-     * 60s floor and the 300s batch cap. No measurement (worker hang/abort before
-     * the class produced a result) means the fresh fork gets a short 120s budget —
-     * a genuine hang must fail fast instead of burning a second watchdog period.
+     * 120s floor and the 300s batch cap. The floor must exceed a fresh fork's
+     * full cost — JVM boot plus first-class platform bootstrap (the worker's
+     * timeMs is a warm measurement and excludes both), multiplied by sweep-load
+     * contention: a 60s floor killed legitimate retries and recorded pollution
+     * victims as stillFailed. No measurement (worker hang/abort) also gets the
+     * short budget — a genuine hang must fail fast instead of burning a second
+     * watchdog period.
      */
     static java.time.Duration retryTimeout(String workerTimeMs) {
         long timeMs = -1;
@@ -483,7 +502,7 @@ public final class TestCommand {
         }
         if (timeMs < 0)
             return java.time.Duration.ofSeconds(120);
-        return java.time.Duration.ofMillis(Math.max(60_000, Math.min(4 * timeMs, 300_000)));
+        return java.time.Duration.ofMillis(Math.max(120_000, Math.min(4 * timeMs, 300_000)));
     }
 
     private static int workerMaxClasses(IbEngine engine) {
@@ -775,6 +794,8 @@ public final class TestCommand {
         m.put("failed", failed);
         m.put("errors", errors);
         m.put("skipped", skipped);
+        if (run.durationMs > 0)
+            m.put("durationMs", run.durationMs);
         // failure detail (class/method/type/message) — parity analysis needs the
         // exact failing set, not just counts
         if (!run.output.isBlank())
@@ -796,6 +817,7 @@ public final class TestCommand {
         List<int[]> summary = new ArrayList<>();
         final List<String> warnings = new ArrayList<>();
         String output = "";
+        long durationMs;
 
         TestRun(String module, List<String> selectedClasses) {
             this.module = module;

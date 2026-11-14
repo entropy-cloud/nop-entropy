@@ -23,10 +23,10 @@ class TestRetryTimeout {
     }
 
     @Test
-    void fastClassesGetThe60sFloor() {
-        assertEquals(Duration.ofSeconds(60), TestCommand.retryTimeout("0"));
-        assertEquals(Duration.ofSeconds(60), TestCommand.retryTimeout("1200"));
-        assertEquals(Duration.ofSeconds(60), TestCommand.retryTimeout("15000"));
+    void fastClassesGetThe120sFloor() {
+        assertEquals(Duration.ofSeconds(120), TestCommand.retryTimeout("0"));
+        assertEquals(Duration.ofSeconds(120), TestCommand.retryTimeout("1200"));
+        assertEquals(Duration.ofSeconds(120), TestCommand.retryTimeout("15000"));
     }
 
     @Test
