@@ -7,6 +7,7 @@
  */
 package io.nop.commons.concurrent.executor;
 
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -273,18 +274,47 @@ public class TestPeriodicTaskInsulation {
             assertTrue(await(() -> failingListener.successes.get() >= 2, 5000),
                     "periodic chain keeps re-arming after recovery (sanity)");
 
-            // 拒绝钩子：健康链在 timer 销毁时收到 onChainRejected 且 future 有终态（不悬挂）
+            // 拒绝钩子：健康链在 timer 销毁时收到 onChainRejected 且 future 有终态（不悬挂）。
+            // 修订（2026-11-14）：latch 门控在飞轮次（确定性轮次驱动，形态对齐
+            // testCancelStopsChainAfterInFlightRoundFinishes）——先 destroy 并 await 链终态，
+            // 再放行在飞轮次静默化，最后精确断言。销毁与续排的时序竞态下，在飞轮次可能在
+            // destroy 置空 executor 后尝试续排并触发第二次 onChainRejected（精确计数瞬变
+            // 「expected 1 but was 2」）；终态后放行使续排判定确定走 isStopped 短路，
+            // 恰好一次拒绝的契约断言强度不减。
             RecordingListener healthyListener = new RecordingListener();
+            CountDownLatch healthyStarted = new CountDownLatch(1);
+            CountDownLatch healthyRelease = new CountDownLatch(1);
             Future<?> healthyChain = timer.scheduleWithFixedDelay(() -> {
+                healthyStarted.countDown();
+                awaitUninterruptiblyInFlight(healthyRelease);
             }, 0, 30, TimeUnit.MILLISECONDS, "task-6b", healthyListener);
 
+            assertTrue(healthyStarted.await(2, TimeUnit.SECONDS), "healthy chain round must start");
             timer.destroy();
             assertTrue(await(healthyChain::isDone, 2000),
                     "timer destroy must give the healthy chain a terminal state");
             assertTrue(asCompletable(healthyChain).isCompletedExceptionally());
+            healthyRelease.countDown(); // 终态已定，放行在飞轮次自然结束（静默化）
+            Thread.sleep(50); // 计数稳定窗：在飞轮次完全排空
             assertEquals(1, healthyListener.rejections.size());
         } finally {
             timer.destroy();
+        }
+    }
+
+    /**
+     * 不可中断地在飞等待：destroy 的 shutdownNow 会中断 timer 线程，若在飞轮次被中断提前放行，
+     * 它会在链到达终态前尝试续排（对已关闭设施提交 → rejectChain）并竞态出第二次拒绝回调，
+     * 破坏「恰好一次拒绝」的确定性断言。仅当测试在链终态后显式放行时轮次才结束。
+     */
+    private static void awaitUninterruptiblyInFlight(CountDownLatch release) {
+        boolean released = false;
+        while (!released) {
+            try {
+                released = release.await(50, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                // destroy 的 shutdownNow 中断：忽略，继续等待测试在链终态后放行
+            }
         }
     }
 
@@ -328,15 +358,25 @@ public class TestPeriodicTaskInsulation {
     public void testTimerDestroyGivesTerminalStateWithoutResurrection() throws Exception {
         DefaultScheduledExecutor timer = newTimer("t-insulation-8");
         try {
+            // 修订（2026-11-14）：第二轮起 latch 门控（不可中断在飞等待）——destroy 后先 await 链
+            // 终态，再放行在飞轮次并排空，然后在排空后的计数上断言「不复活」。原实时周期形态下
+            // destroy 时刻的在飞轮次可能在 atDestroy 快照之后才完成计数（瞬变为恰多一轮的假失败）；
+            // 排空后取基线使「不复活」断言确定性成立且强度不减（任何 destroy 后新轮次仍即失败）。
             AtomicInteger runs = new AtomicInteger();
-            Future<?> chain = timer.scheduleWithFixedDelay(runs::incrementAndGet, 0, 30, TimeUnit.MILLISECONDS,
-                    "task-8", null);
+            CountDownLatch release = new CountDownLatch(1);
+            Future<?> chain = timer.scheduleWithFixedDelay(() -> {
+                runs.incrementAndGet();
+                if (runs.get() >= 2)
+                    awaitUninterruptiblyInFlight(release);
+            }, 0, 30, TimeUnit.MILLISECONDS, "task-8", null);
 
-            assertTrue(await(() -> runs.get() >= 1, 2000));
+            assertTrue(await(() -> runs.get() >= 2, 2000));
             timer.destroy();
 
             assertTrue(await(chain::isDone, 2000), "destroy must terminate the chain future (no hang)");
             assertTrue(asCompletable(chain).isCompletedExceptionally());
+            release.countDown(); // 终态已定，放行在飞轮次自然结束（静默化）
+            Thread.sleep(50); // 计数稳定窗：在飞轮次完全排空
             int atDestroy = runs.get();
             Thread.sleep(120);
             assertTrue(runs.get() <= atDestroy, "chain must not resurrect after destroy: " + runs.get());
@@ -370,6 +410,114 @@ public class TestPeriodicTaskInsulation {
             assertTrue(asCompletable(chain).isCompletedExceptionally());
         } finally {
             chain.cancel(false);
+        }
+    }
+
+    /**
+     * plan 2570 C-1（fixedDelay）：任务体首次失败的 completeExceptionally 是失败信号而非链死亡，
+     * guard 必须保持登记——destroy() 的统一拒绝路径仍覆盖这条失败后存活的链：
+     * onChainRejected 必达（cause 为 service-not-active）且链 isStopped 置位。
+     * 修复前：guard 在失败信号完结时被裸 whenComplete 摘除，destroy 不触达该链，两断言均 fail。
+     */
+    @Test
+    public void testDestroyCoversChainAfterFailureSignalCompletion_FixedDelay() throws Exception {
+        DefaultScheduledExecutor timer = newTimer("t-insulation-2570a");
+        try {
+            AtomicInteger runs = new AtomicInteger();
+            CountDownLatch release = new CountDownLatch(1);
+            RecordingListener listener = new RecordingListener();
+            // 修订（2026-11-14）：第二轮起 latch 门控（不可中断在飞等待）——destroy 后先 await 链
+            // 终态再放行在飞轮次静默化，最后精确断言。原实时周期形态下，在飞轮次可在 destroy
+            // 置空 executor 后尝试续排并对已关闭设施提交，触发第二次 onChainRejected（精确计数
+            // 瞬变「expected 1 but was 2」）。终态后放行使续排判定确定走 isStopped 短路，
+            // 「destroy 必达拒绝 + 恰好一次」的契约强度不减。
+            Future<?> chain = timer.scheduleWithFixedDelay(() -> {
+                if (runs.incrementAndGet() == 1)
+                    throw new IllegalStateException("boom-first-round");
+                awaitUninterruptiblyInFlight(release);
+            }, 0, 20, TimeUnit.MILLISECONDS, "task-2570a", listener);
+
+            assertTrue(await(() -> runs.get() >= 2, 5000), "chain must re-arm after failure");
+            assertFalse(asChain(chain).isStopped(), "failure signal must not stop the chain");
+
+            timer.destroy();
+            assertTrue(await(asChain(chain)::isStopped, 2000), "destroy must terminate the chain");
+            release.countDown(); // 终态已定，放行在飞轮次自然结束（静默化）
+            Thread.sleep(50); // 计数稳定窗：在飞轮次完全排空
+            assertEquals(1, listener.rejections.size(), "destroy must reject the still-registered failed chain");
+            assertInstanceOf(NopException.class, listener.rejections.get(0));
+            assertTrue(asChain(chain).isStopped(), "destroy must terminate the chain");
+        } finally {
+            timer.destroy();
+        }
+    }
+
+    /**
+     * plan 2570 C-2（fixedRate）：fixedRate native handle 是 JDK ScheduledFuture（非 CompletionStage），
+     * watchNativeHandle 对其 no-op——失败过的链在 destroy 后的链终止只能经 destroy 的 guard 遍历
+     * rejectChain 达成：onChainRejected 必达、链 isStopped 置位、native handle 被 cancel。
+     */
+    @Test
+    public void testDestroyCoversChainAfterFailureSignalCompletion_FixedRate() throws Exception {
+        DefaultScheduledExecutor timer = newTimer("t-insulation-2570b");
+        try {
+            AtomicInteger runs = new AtomicInteger();
+            CountDownLatch release = new CountDownLatch(1);
+            RecordingListener listener = new RecordingListener();
+            // 修订（2026-11-14）：第二轮起 latch 门控（不可中断在飞等待，形态对齐
+            // testCancelStopsChainAfterInFlightRoundFinishes）——destroy 后先 await 链终态再放行
+            // 在飞轮次静默化，最后精确断言。原实时周期形态下 destroy 与续排/摘除的时序竞态
+            // 会让拒绝计数瞬变（观察到「expected 1 but was 0」）；终态后放行使轮次确定不再
+            // 触发任何路径上的重复拒绝，「destroy 必达拒绝 + 恰好一次」的契约强度不减。
+            Future<?> chain = timer.scheduleAtFixedRate(() -> {
+                if (runs.incrementAndGet() == 1)
+                    throw new IllegalStateException("boom-first-round");
+                awaitUninterruptiblyInFlight(release);
+            }, 0, 20, TimeUnit.MILLISECONDS, "task-2570b", listener);
+
+            assertTrue(await(() -> runs.get() >= 2, 5000), "fixedRate chain must keep running");
+            assertTrue(await(() -> !listener.failures.isEmpty(), 5000),
+                    "first-round failure must be observed");
+            // 等第二轮而非第一轮：failures 入列早于 completeExceptionally 的摘除回调，
+            // 第二轮 +20ms 保证「完结→whenComplete 回调→（修复前）摘除」时序确定收敛
+            assertFalse(asChain(chain).isStopped(), "failure signal must not stop the chain");
+
+            timer.destroy();
+            assertTrue(await(asChain(chain)::isStopped, 2000), "destroy must terminate the chain");
+            release.countDown(); // 终态已定，放行在飞轮次自然结束（静默化）
+            Thread.sleep(50); // 计数稳定窗：在飞轮次完全排空
+            assertEquals(1, listener.rejections.size(), "destroy must reject the failed fixedRate chain");
+            assertInstanceOf(NopException.class, listener.rejections.get(0));
+            assertTrue(asChain(chain).isStopped(), "destroy must terminate the chain");
+            Future<?> handle = asChain(chain).nativeHandle();
+            assertTrue(handle != null && handle.isDone(), "native fixedRate handle must be cancelled on destroy");
+        } finally {
+            timer.destroy();
+        }
+    }
+
+    /**
+     * plan 2570 摘除路径不回退：**失败前** cancel 的链（whenComplete 在取消完结时触发且 isStopped 为
+     * true）guard 被正常摘除——destroy 不再对其重复拒绝（rejections 保持为空）。
+     */
+    @Test
+    public void testCancelBeforeFailureRemovesGuardSoDestroySkipsChain() throws Exception {
+        DefaultScheduledExecutor timer = newTimer("t-insulation-2570c");
+        try {
+            RecordingListener listener = new RecordingListener();
+            AtomicInteger runs = new AtomicInteger();
+            Future<?> chain = timer.scheduleWithFixedDelay(runs::incrementAndGet, 0, 20,
+                    TimeUnit.MILLISECONDS, "task-2570c", listener);
+
+            assertTrue(await(() -> runs.get() >= 1, 5000), "chain must run");
+            chain.cancel(false);
+            assertTrue(asChain(chain).isStopped(), "cancel must stop a healthy chain");
+
+            timer.destroy();
+            assertEquals(0, listener.rejections.size(),
+                    "cancelled-and-removed guard must not receive a destroy rejection");
+        } finally {
+            timer.destroy();
         }
     }
 }

@@ -167,14 +167,22 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
     }
 
     /**
-     * 登记一条绝缘周期链的守卫，链结算时自动移除。供绝缘核心（本类周期方法与 PeriodicTaskHelper）在
+     * 登记一条绝缘周期链的守卫，链真正终止时自动移除。供绝缘核心（本类周期方法与 PeriodicTaskHelper）在
      * timer 为本实现时登记，使 destroy() 能够以统一拒绝路径覆盖「销毁时刻仍在等待触发的轮次」。
+     *
+     * <p>摘除只认链终止（{@link InsulatedPeriodicChain#isStopped()}：cancel / 设施拒绝）。任务体首次
+     * 失败的 completeExceptionally 是失败信号而非链死亡——失败后链仍继续重臂，必须保持登记，
+     * 否则 destroy() 的统一拒绝路径不再覆盖这条活链（plan 2570 C-1/C-2）。
      */
     void trackPeriodicTask(InsulatedPeriodicTask guard) {
         periodicTasks.add(guard);
         InsulatedPeriodicChain chain = guard.chain();
-        if (chain != null)
-            chain.whenComplete((result, e) -> periodicTasks.remove(guard));
+        if (chain != null) {
+            chain.whenComplete((result, e) -> {
+                if (chain.isStopped())
+                    periodicTasks.remove(guard);
+            });
+        }
     }
 
     @Override
