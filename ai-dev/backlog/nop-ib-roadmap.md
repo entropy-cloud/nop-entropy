@@ -165,4 +165,5 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 - 替代 CI/发布构建、远程构建缓存、跨语言构建；
 - 复刻 Maven 的全部插件语义（只消费 `model.json` 中与编译/测试相关的事实）；
 - 重新实现 `nop-lint` 的实时诊断；
-- 修改既有 Maven 插件、codegen 或 AOP 生成链（扩张只在 Wave 5 以"路由/回退裁定"形式出现）。
+- 修改既有 Maven 插件、codegen 或 AOP 生成链（扩张只在 Wave 5 以"路由/回退裁定"形式出现）；
+- **JUnit4/vintage 测试执行**（owner 裁定 2026-11-14：只承接 JUnit5/JUnit6 项目）：单元索引只把带 JUnit Platform 测试标记的类纳入派发面，JUnit4-only 类不派发、不回退、不做 vintage 引擎——JUnit4 项目的测试反馈回路继续走 `mvnw`。

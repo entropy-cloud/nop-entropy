@@ -18,7 +18,8 @@
 | WR-D4 | **零假绿兜底三件套**：差分重跑（worker 内失败 → 新鲜 per-class fork 重跑一次，fresh 结果为准并登记污染告警；重跑预算按 worker 实测时间 4 倍、120s 下限、300s 上限派生——下限必须覆盖 fresh fork 的 JVM+平台首启成本）、worker 轮换（每 ≤K 类退役）、重置钩子抛异常即退役 worker | 复用的唯一风险是跨类污染；用检测+兜底替代穷举重置（静态缓存不可枚举） |
 | WR-D5 | **复用盈亏判据内建**：重置钩子耗时超过 fork 启动成本时在 JSON 记录 `reuse not profitable` 告警；差分重跑仍为污染权威兜底（自动 per-class 降级被实测否决：重置成本 ≈ 秒级时 per-class 启动成本同量级，且慢模块的长尾反而被放大） | 重置贵于启动时复用是负收益；判定登记而非切换，兜底交给 WR-D4 |
 | WR-D6 | **模块间并行执行**：`-pl`/affected 的模块列表由模块槽位并行处理（测试互不读写彼此产物），worker 令牌在槽位间公平分配（§四），对齐 `mvn -T 1C × forkCount=4` 的超订轮廓 | 整仓 sweep 场景对齐 mvn 的双层并行 |
-| WR-D7 | **派发面 = 可执行测试类**：单元索引只把"自有 JUnit 测试注解方法 / @Nested 容器 / 索引内超类链承继测试"的 src/test 类纳入派发；@Nested 成员在派发外层容器时去重。嵌套 helper、lambda、生成器入口类不派发。外部 test-jar 继承的类不在此层覆盖（模块粒度放宽兜底） | 嵌套 helper 曾进入 worker 触发 optional 依赖 CNFE 杀死 worker、拖垮 sweep 尾段；派发面与 JUnit 平台的可发现性对齐 |
+| WR-D7 | **派发面 = 可执行测试类**：单元索引只把"自有 JUnit 测试注解方法 / @Nested 容器 / 索引内超类链承继测试"的 src/test 类纳入派发；@Nested 成员在派发外层容器时去重。嵌套 helper、lambda、生成器入口类不派发。外部 test-jar 继承的类不在此层覆盖（模块粒度放宽兜底）。**JUnit4/vintage 类不在派发面**（owner 裁定 2026-11-14：只承接 JUnit5/6 项目，JUnit4 反馈回路走 mvnw） | 嵌套 helper 曾进入 worker 触发 optional 依赖 CNFE 杀死 worker、拖垮 sweep 尾段；派发面与 JUnit 平台的可发现性对齐 |
+| WR-D8 | **平台运行时集显式注入**：fork/worker 的 classpath 除模块自带的 jupiter API 外，按 commons 版本对齐注入 junit-jupiter-engine 与 junit-platform-engine（surefire 运行时隐式提供而 fork 需要显式）；classpath 上拼不出任何 TestEngine 的模块显式回退 surefire，不产生注定失败的 fork | OpenPDF（JUnit6,只声明 jupiter-api）实测：缺 platform-engine → OutputDirectoryCreator NCDFE；JUnit4-only → launcher 无引擎必败 |
 
 ## 二、worker 协议
 
