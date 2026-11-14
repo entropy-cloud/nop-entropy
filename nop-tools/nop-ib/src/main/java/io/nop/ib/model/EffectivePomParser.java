@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 /**
@@ -166,11 +167,50 @@ public final class EffectivePomParser {
         exec.id = id;
         exec.release = firstNonEmpty(text(first(cfg, "release")), text(first(defaults, "release")));
         exec.proc = firstNonEmpty(text(first(cfg, "proc")), text(first(defaults, "proc")));
-        exec.annotationProcessorPaths = first(cfg, "annotationProcessorPaths") != null
-                || (defaults != null && first(defaults, "annotationProcessorPaths") != null);
+        Element app = first(cfg, "annotationProcessorPaths");
+        if (app == null && defaults != null)
+            app = first(defaults, "annotationProcessorPaths");
+        exec.annotationProcessorPaths = app != null;
+        // check-only processors (error-prone, NullAway, SpotBugs) validate but
+        // generate nothing: the fast path compiles with -proc:none, whose output
+        // is byte-equivalent for them — they must not force an L2 fallback
+        exec.checkOnlyProcessors = app != null && allPathsCheckOnly(app);
+        exec.parameters = parametersRequested(cfg) || (defaults != null && parametersRequested(defaults));
         exec.source = firstNonEmpty(text(first(cfg, "source")), text(first(defaults, "source")));
         exec.target = firstNonEmpty(text(first(cfg, "target")), text(first(defaults, "target")));
         return exec;
+    }
+
+    private static final Set<String> CHECK_ONLY_PROCESSOR_GROUPS = Set.of(
+            "com.google.errorprone", "com.uber.nullaway", "com.github.spotbugs");
+
+    private boolean allPathsCheckOnly(Element app) {
+        for (Element path : children(app, "path")) {
+            Element g = first(path, "groupId");
+            if (g == null || !CHECK_ONLY_PROCESSOR_GROUPS.contains(text(g)))
+                return false;
+        }
+        return true;
+    }
+
+    /** -parameters debug metadata: the standard <parameters>true</parameters>
+     *  config element, or a free-form compilerArg entry "-parameters" (spring-batch
+     *  style). Affects bytecode (MethodParameters attributes) — must be mirrored. */
+    private boolean parametersRequested(Element cfg) {
+        if (cfg == null)
+            return false;
+        Element p = first(cfg, "parameters");
+        if (p != null && "true".equalsIgnoreCase(text(p)))
+            return true;
+        Element args = first(cfg, "compilerArgs");
+        if (args != null) {
+            for (Element arg : children(args, "compilerArg")) {
+                String t = text(arg);
+                if (t != null && "-parameters".equals(t.trim()))
+                    return true;
+            }
+        }
+        return false;
     }
 
     private String firstNonEmpty(String a, String b) {

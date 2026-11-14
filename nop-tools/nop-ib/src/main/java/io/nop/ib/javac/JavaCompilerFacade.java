@@ -39,7 +39,23 @@ public final class JavaCompilerFacade {
     public static CompileResult compile(List<File> sourceFiles, Path outputDir,
                                         List<String> classpathEntries, String release,
                                         String sourceLevel, String procMode, List<File> sourcePath) {
+        return compile(sourceFiles, outputDir, classpathEntries, release, sourceLevel, procMode,
+                sourcePath, false);
+    }
+
+    public static CompileResult compile(List<File> sourceFiles, Path outputDir,
+                                        List<String> classpathEntries, String release,
+                                        String sourceLevel, String procMode, List<File> sourcePath,
+                                        boolean parameters) {
         JdkJavaCompiler compiler = new JdkJavaCompiler();
+        List<String> extra = new ArrayList<>();
+        // Maven compiler plugin default debug=true emits plain -g; required for
+        // byte-level product parity with mvn compile (item 17 oracle)
+        extra.add("-g");
+        // -parameters affects bytecode (MethodParameters attributes) — projects
+        // requesting it (config element or compilerArg) must be mirrored exactly
+        if (parameters)
+            extra.add("-parameters");
         JavaCompileOptions options = new JavaCompileOptions()
                 .setOutputDir(outputDir.toFile())
                 .setClassPaths(classpathEntries)
@@ -50,9 +66,7 @@ public final class JavaCompilerFacade {
                 // safe and required for product parity
                 .setProcMode(procMode != null && !procMode.isBlank() ? procMode : null)
                 .setEncoding(StandardCharsets.UTF_8.name())
-                // Maven compiler plugin default debug=true emits plain -g; required for
-                // byte-level product parity with mvn compile (item 17 oracle)
-                .setExtraOptions(List.of("-g"));
+                .setExtraOptions(extra);
         // effective channel: explicit release, else the source level (Maven 4 maps
         // equal source/target to --release, verified against mvn -X option dumps)
         if (release != null && !release.isBlank())

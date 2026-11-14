@@ -178,7 +178,7 @@ public final class IncrementalCompileExecutor {
         JavaCompilerFacade.CompileResult result = JavaCompilerFacade.compile(
                 files, model.resolve(module.getOutputDir()).toPath(),
                 cp.entries(), module.getCompileRelease(), module.getCompileSource(),
-                module.getCompileProc(), sourcePath);
+                module.getCompileProc(), sourcePath, module.getCompileParameters());
 
         diagnostics.put(module.getArtifactId(), result.diagnostics());
         if (!result.success()) {

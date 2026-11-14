@@ -263,10 +263,24 @@ public class IbModule {
         return "L0";
     }
 
-    /** Effective compiler execution configures annotationProcessorPaths or explicit proc. */
+    /** Effective compiler execution configures code-generating annotationProcessorPaths
+     *  or explicit proc. Check-only processors (error-prone et al.) do NOT count by
+     *  themselves: the -proc:none fast path output is identical for them (design 01 §六)
+     *  — EXCEPT for annotated package-info sources (see hasAnnotatedPackageInfoRisk). */
     public boolean isProcessorModule() {
         for (CompilerExec e : compilerExecs) {
-            if (e.annotationProcessorPaths || e.proc != null)
+            if (e.proc != null)
+                return true;
+            if (e.annotationProcessorPaths && !e.checkOnlyProcessors)
+                return true;
+        }
+        return false;
+    }
+
+    /** module runs check-only processors via annotationProcessorPaths. */
+    public boolean hasCheckOnlyProcessors() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.annotationProcessorPaths && e.checkOnlyProcessors)
                 return true;
         }
         return false;
@@ -297,6 +311,15 @@ public class IbModule {
                 return e.proc;
         }
         return null;
+    }
+
+    /** -parameters debug metadata requested by any compile execution. */
+    public boolean getCompileParameters() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.parameters)
+                return true;
+        }
+        return false;
     }
 
     public static class DepEdge {
@@ -349,6 +372,12 @@ public class IbModule {
         String release;
         String proc;
         boolean annotationProcessorPaths;
+        /** every annotationProcessorPath is a known check-only processor group
+         *  (error-prone/NullAway/SpotBugs): generates nothing, so the -proc:none
+         *  fast path output is identical and L2 fallback is not needed */
+        boolean checkOnlyProcessors;
+        /** -parameters debug metadata requested (config element or compilerArg) */
+        boolean parameters;
         String source;
         String target;
 
@@ -358,6 +387,10 @@ public class IbModule {
             m.put("release", release);
             m.put("proc", proc);
             m.put("annotationProcessorPaths", annotationProcessorPaths);
+            if (checkOnlyProcessors)
+                m.put("checkOnlyProcessors", 1);
+            if (parameters)
+                m.put("parameters", 1);
             m.put("source", source);
             m.put("target", target);
             return m;
@@ -370,6 +403,14 @@ public class IbModule {
             e.proc = (String) m.get("proc");
             Object app = m.get("annotationProcessorPaths");
             e.annotationProcessorPaths = Boolean.TRUE.equals(app) || "true".equals(app);
+            Object cop = m.get("checkOnlyProcessors");
+            e.checkOnlyProcessors = Boolean.TRUE.equals(cop)
+                    || (cop instanceof Number n && n.intValue() != 0)
+                    || "1".equals(cop) || "true".equals(cop);
+            Object prm = m.get("parameters");
+            e.parameters = Boolean.TRUE.equals(prm)
+                    || (prm instanceof Number n && n.intValue() != 0)
+                    || "1".equals(prm) || "true".equals(prm);
             e.source = (String) m.get("source");
             e.target = (String) m.get("target");
             return e;
