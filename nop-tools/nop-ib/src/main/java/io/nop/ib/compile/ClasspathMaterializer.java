@@ -47,9 +47,10 @@ public final class ClasspathMaterializer {
 
         for (String artifact : module.getExternalArtifacts()) {
             String[] parts = artifact.split(":");
-            if (parts.length < 3)
+            if (parts.length < 4)
                 continue;
             String ga = parts[0] + ":" + parts[1];
+            String type = parts[2];
             String version = parts[parts.length - 2];
             String scope = parts[parts.length - 1];
             boolean intra = model.module(parts[1]) != null
@@ -66,6 +67,10 @@ public final class ClasspathMaterializer {
                     || ("runtime".equals(scope) && test)
                     || (test && !"provided".equals(scope) && !"system".equals(scope));
             if (!compileScope)
+                continue;
+            // g:a:type[:classifier]:version:scope — non-jar packaging (pom, bundle
+            // manifests handled at refresh) never yields a classpath file
+            if (!"jar".equals(type))
                 continue;
             Path jar = externalJar(parts[0], parts[1], version,
                     parts.length == 6 ? parts[3] : null);

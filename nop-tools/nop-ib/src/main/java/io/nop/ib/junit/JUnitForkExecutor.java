@@ -52,6 +52,16 @@ public final class JUnitForkExecutor {
 
     public ForkResult execute(IbModule module, ClasspathMaterializer.Materialized classpath,
                               List<String> testClasses) {
+        return execute(module, classpath, testClasses, timeout);
+    }
+
+    /**
+     * Per-call timeout: the differential rerun derives it from the worker-measured
+     * class time (design 06 WR-D4) — this executor instance is shared across
+     * concurrent retries, so a mutable field would race.
+     */
+    public ForkResult execute(IbModule module, ClasspathMaterializer.Materialized classpath,
+                              List<String> testClasses, Duration batchTimeout) {
         List<String> warnings = new ArrayList<>();
         String platformVersion = detectPlatformVersion(classpath.entries());
         if (platformVersion == null) {
@@ -144,11 +154,34 @@ public final class JUnitForkExecutor {
             }, "nop-ib-junit-err");
             errT.setDaemon(true);
             errT.start();
+            // stdout MUST be drained continuously: a chatty test class fills the
+            // 64KB pipe and the fork deadlocks on System.out.write until the batch
+            // watchdog kills it — this path feeds the differential rerun, so the
+            // deadlock used to turn every noisy failed class into a 300s stall.
+            // The runner's result document travels via the temp file, not stdout.
+            java.util.concurrent.atomic.AtomicReference<String> outTail =
+                    new java.util.concurrent.atomic.AtomicReference<>("");
+            Thread outT = new Thread(() -> {
+                try (var r = process.inputReader(StandardCharsets.UTF_8)) {
+                    String line;
+                    while ((line = r.readLine()) != null) {
+                        outTail.accumulateAndGet(line, (cur, l) -> {
+                            String next = cur + l + "\n";
+                            return next.length() > 4096
+                                    ? next.substring(next.length() - 4096) : next;
+                        });
+                    }
+                } catch (IOException ignored) {
+                    // stream closed at process teardown
+                }
+            }, "nop-ib-junit-out");
+            outT.setDaemon(true);
+            outT.start();
 
-            boolean finished = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            boolean finished = process.waitFor(batchTimeout.toMillis(), TimeUnit.MILLISECONDS);
             if (!finished) {
                 process.destroyForcibly();
-                warnings.add("fork killed by batch watchdog after " + timeout.toSeconds() + "s");
+                warnings.add("fork killed by batch watchdog after " + batchTimeout.toSeconds() + "s");
                 Map<String, Object> summary = new LinkedHashMap<>();
                 summary.put("tests", 0);
                 summary.put("failures", 1);
@@ -167,6 +200,11 @@ public final class JUnitForkExecutor {
                 if (forkErr.length() > 0) {
                     String errText = forkErr.toString();
                     summary.put("forkError", errText.length() > 2000 ? errText.substring(0, 2000) : errText);
+                }
+                if (!outTail.get().isEmpty()) {
+                    String outText = outTail.get();
+                    summary.put("forkStdoutTail", outText.length() > 2000
+                            ? outText.substring(outText.length() - 2000) : outText);
                 }
                 warnings.add("fork produced no result document (exit " + process.exitValue() + ")");
             }

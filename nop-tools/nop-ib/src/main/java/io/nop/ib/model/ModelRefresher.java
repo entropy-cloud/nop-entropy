@@ -26,9 +26,14 @@ public final class ModelRefresher {
     /** [INFO] --- maven-dependency-plugin:...:list ... @ <artifactId> --- */
     private static final Pattern MODULE_ANCHOR =
             Pattern.compile("@\\s+(\\S+)\\s*---");
-    /** g:a:type:version:scope or g:a:type:classifier:version:scope (Maven 4 appends " -- module ..." notes) */
+    /**
+     * g:a:type:version:scope or g:a:type:classifier:version:scope; Maven appends
+     * " (optional)" before the " -- module ..." note — optional is a transitive
+     * cutoff, not a classpath exclusion (surefire still sees such deps), so the
+     * line must parse and the artifact must stay on the fast-path classpath.
+     */
     private static final Pattern ARTIFACT_LINE =
-            Pattern.compile("^\\[INFO\\]\\s+([^:\\s]+):([^:\\s]+):([^:\\s]+):([^:\\s]+)(?::([^:\\s]+))?(?::([^:\\s]+))?(?:\\s+--.*)?$");
+            Pattern.compile("^\\[INFO\\]\\s+([^:\\s]+):([^:\\s]+):([^:\\s]+):([^:\\s]+)(?::([^:\\s]+))?(?::([^:\\s]+))?(?:\\s+\\(optional\\))?(?:\\s+--.*)?$");
 
     private final Path repoRoot;
     private final Duration timeout;
@@ -139,17 +144,28 @@ public final class ModelRefresher {
                 continue;
             Matcher artifact = ARTIFACT_LINE.matcher(line);
             if (artifact.matches()) {
-                String ga = artifact.group(1) + ":" + artifact.group(2);
-                String scope;
+                String group = artifact.group(1);
+                String name = artifact.group(2);
+                String type = artifact.group(3);
+                String classifier = null;
                 String version;
+                String scope;
                 if (artifact.group(6) != null) {
+                    classifier = artifact.group(4);
                     version = artifact.group(5);
                     scope = artifact.group(6);
                 } else {
                     version = artifact.group(4);
                     scope = artifact.group(5);
                 }
-                byModule.get(current).add(ga + ":" + version + ":" + scope);
+                // pom-packaged aggregators (e.g. org.graalvm.js:js) are dependency
+                // descriptors, not classpath entries — Maven's own classpath carries
+                // only a .pom reference for them
+                if ("pom".equals(type))
+                    continue;
+                byModule.get(current).add(group + ":" + name + ":" + type
+                        + (classifier != null ? ":" + classifier : "")
+                        + ":" + version + ":" + scope);
             }
         }
         return byModule;

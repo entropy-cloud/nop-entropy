@@ -137,6 +137,89 @@ class TestUnitIndexer {
         assertEquals(abiAfter, abiBodyOnly, "body-only change must be binary-compatible");
     }
 
+    // ---- G-C tail defect regression: dispatchable test-class filtering ----
+
+    private static final String SRC_TEST_MIXED = """
+            package test;
+
+            public class TestMixed {
+                static class ExposedHelper extends Object {
+                    void util() { }
+                }
+
+                @org.junit.jupiter.api.Nested
+                class InnerSuite {
+                    @org.junit.jupiter.api.Test
+                    void innerTest() { }
+                }
+
+                @org.junit.jupiter.api.Test
+                void ownTest() { }
+            }
+            """;
+    private static final String SRC_TEST_SUB = """
+            package test;
+
+            public class TestSub extends TestMixedBase {
+            }
+            """;
+    private static final String SRC_TEST_BASE = """
+            package test;
+
+            public abstract class TestMixedBase {
+                @org.junit.jupiter.api.Test
+                void inheritedTest() { }
+            }
+            """;
+
+    private static List<String> junitClasspath() {
+        List<String> cp = new java.util.ArrayList<>();
+        for (String entry : System.getProperty("java.class.path").split(":")) {
+            if (entry.contains("junit-jupiter") || entry.contains("junit-platform")
+                    || entry.contains("opentest4j") || entry.contains("apiguardian"))
+                cp.add(entry);
+        }
+        return cp;
+    }
+
+    @Test
+    void testClassesFiltersHelpersAndDedupesNested(@org.junit.jupiter.api.io.TempDir Path tmp)
+            throws Exception {
+        Path src = tmp.resolve("src");
+        Files.createDirectories(src);
+        Files.writeString(src.resolve("TestMixed.java"), SRC_TEST_MIXED);
+        Files.writeString(src.resolve("TestSub.java"), SRC_TEST_SUB);
+        Files.writeString(src.resolve("TestMixedBase.java"), SRC_TEST_BASE);
+        Path out = tmp.resolve("test-classes");
+        Files.createDirectories(out);
+        JavaFileCompileResult result = new JdkJavaCompiler().compileFiles(
+                List.of(src.resolve("TestMixed.java").toFile(), src.resolve("TestSub.java").toFile(),
+                        src.resolve("TestMixedBase.java").toFile()),
+                new JavaCompileOptions().setOutputDir(out.toFile()).setClassPaths(junitClasspath()));
+        assertTrue(result.isSuccess(), String.valueOf(result.getDiagnostics()));
+
+        UnitIndex index = new UnitIndexer().scan("fixture", List.of(out), tmp);
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (ClassInfo info : index.testClasses())
+            names.add(info.getClassName());
+
+        // helper without test methods is NOT dispatchable (G-C tail defect:
+        // it used to be dispatched and crashed the worker on CNFE during discovery)
+        assertTrue(!names.contains("test.TestMixed$ExposedHelper"), String.valueOf(names));
+        // @Nested member of a dispatchable outer is deduped (outer discovers it)
+        assertTrue(!names.contains("test.TestMixed$InnerSuite"), String.valueOf(names));
+        // outer with own tests IS dispatchable
+        assertTrue(names.contains("test.TestMixed"), String.valueOf(names));
+        // concrete subclass with only inherited tests stays dispatchable via super chain
+        assertTrue(names.contains("test.TestSub"), String.valueOf(names));
+        // abstract base with @Test methods stays a (harmless) dispatch candidate
+        assertTrue(names.contains("test.TestMixedBase"), String.valueOf(names));
+        // marker facts recorded for ABI-independent reasoning
+        assertTrue(index.classInfo("test.TestMixed").hasTestMethods());
+        assertTrue(index.classInfo("test.TestMixed$InnerSuite").isNested());
+        assertEquals("java.lang.Object", index.classInfo("test.TestMixed$ExposedHelper").getSuperName());
+    }
+
     @Test
     void testRoundTrip(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
         Path out = compileFixture(tmp);

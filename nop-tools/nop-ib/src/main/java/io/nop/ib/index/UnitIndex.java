@@ -20,7 +20,8 @@ import java.util.TreeMap;
  * the encoding, is the compatibility contract.
  */
 public class UnitIndex {
-    public static final String FORMAT_VERSION = "1";
+    /** v2: ClassInfo gains super/tst/nstd facts; old payloads must reindex */
+    public static final String FORMAT_VERSION = "2";
 
     private String moduleArtifactId;
     private String formatVersion = FORMAT_VERSION;
@@ -122,14 +123,67 @@ public class UnitIndex {
         return out;
     }
 
-    /** test-source classes and their references (test selection seed surface). */
+    /**
+     * Dispatchable test classes (G-C tail defect fix): a src/test class qualifies
+     * when it is itself executable by the JUnit platform — own test-method
+     * annotations, or @Nested container, or tests inherited from a superclass in
+     * this index. Nested helpers (ExposedXxxHandler-style) and lambdas used to be
+     * dispatched too: they run zero tests, cost a worker round-trip each, and any
+     * crash in them stalled the sweep tail for a full watchdog period.
+     *
+     * <p>A @Nested member of a dispatchable outer class is skipped: dispatching
+     * the outer already discovers (and counts) it — dispatching both would count
+     * its tests twice. Non-@Nested nested test classes are kept: JUnit runs them
+     * independently of the outer container.
+     *
+     * <p>Declared boundary: a test class inheriting ALL tests from a base class
+     * outside this module's index (external test-jar) has no marker here and is
+     * not dispatched — test-jar edges widen at module granularity instead
+     * (design 05 §6.3).
+     */
     public Collection<ClassInfo> testClasses() {
+        Map<String, Boolean> marker = new HashMap<>();
         List<ClassInfo> out = new ArrayList<>();
         for (ClassInfo info : classes.values()) {
-            if (info.getSourceFile() != null && info.getSourceFile().startsWith("src/test/"))
-                out.add(info);
+            if (info.getSourceFile() == null || !info.getSourceFile().startsWith("src/test/"))
+                continue;
+            if (!isDispatchableTest(info.getClassName(), marker))
+                continue;
+            if (info.isNested() && coveredByOuterContainer(info.getClassName()))
+                continue;
+            out.add(info);
         }
         return out;
+    }
+
+    /** own markers or a marker-bearing superclass chain within this index. */
+    private boolean isDispatchableTest(String className, Map<String, Boolean> memo) {
+        Boolean cached = memo.get(className);
+        if (cached != null)
+            return cached;
+        ClassInfo info = classes.get(className);
+        if (info == null)
+            return false;
+        // cycle guard: mark as in-progress (false) so superclass cycles terminate
+        memo.put(className, false);
+        boolean result = info.hasTestMethods() || info.isNested()
+                || (info.getSuperName() != null
+                        && isDispatchableTest(info.getSuperName(), memo));
+        memo.put(className, result);
+        return result;
+    }
+
+    /** a $-prefix ancestor in this index is itself dispatchable (it discovers me). */
+    private boolean coveredByOuterContainer(String className) {
+        int idx = className.indexOf('$');
+        while (idx > 0) {
+            String outer = className.substring(0, idx);
+            ClassInfo outerInfo = classes.get(outer);
+            if (outerInfo != null && outerInfo.hasTestMethods())
+                return true;
+            idx = className.indexOf('$', idx + 1);
+        }
+        return false;
     }
 
     public void put(ClassInfo info) {

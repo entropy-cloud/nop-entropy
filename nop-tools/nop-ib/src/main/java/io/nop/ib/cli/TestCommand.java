@@ -46,6 +46,10 @@ public final class TestCommand {
     private static final Pattern SUREFIRE_SUMMARY =
             Pattern.compile("Tests run: (\\d+), Failures: (\\d+), Errors: (\\d+), Skipped: (\\d+)");
 
+    /** junit-fork failure detail line: {class=..., method=..., type=..., ...} */
+    private static final Pattern FAILED_CLASS_LINE =
+            Pattern.compile("\\{class=([^,}]+),");
+
     /** repo-root nop-ib.config.json -> test.resetters (reflection-contract class names). */
     static List<String> configuredResetters(IbEngine engine) {
         Path cfg = engine.getRepoRoot().resolve("nop-ib.config.json");
@@ -351,8 +355,9 @@ public final class TestCommand {
         // per-class fork; fresh passes => pollution (worker result discarded)
         if (fork.exitCode() == 1 && fork.summary().get("failed") instanceof Iterable<?> failedList) {
             // differential reruns in PARALLEL fresh forks (each retry is independent);
-            // retry timeout = 120s: a class that hangs in a fresh fork is a genuine
-            // hang, not pollution — waiting 10min per class serialised the tail
+            // retry timeout adapts to the worker-measured class time (4x, floored at
+            // 60s) — a class that hangs in a fresh fork is a genuine hang, not
+            // pollution, and must not burn another full watchdog period
             List<Map<String, String>> stillFailed =
                     java.util.Collections.synchronizedList(new ArrayList<>());
             List<String> pollution = java.util.Collections.synchronizedList(new ArrayList<>());
@@ -363,11 +368,13 @@ public final class TestCommand {
                     continue;
                 String cls = String.valueOf(m.get("class"));
                 failedClasses.add(cls);
-                failedMeta.put(cls, Map.of(
-                        "class", cls,
-                        "method", String.valueOf(m.get("method")),
-                        "type", String.valueOf(m.get("type")),
-                        "message", String.valueOf(m.get("message"))));
+                Map<String, String> meta = new LinkedHashMap<>();
+                meta.put("class", cls);
+                meta.put("method", String.valueOf(m.get("method")));
+                meta.put("type", String.valueOf(m.get("type")));
+                meta.put("message", String.valueOf(m.get("message")));
+                meta.put("timeMs", String.valueOf(m.get("timeMs")));
+                failedMeta.put(cls, meta);
             }
             java.util.concurrent.ExecutorService retryPool =
                     java.util.concurrent.Executors.newFixedThreadPool(
@@ -380,7 +387,8 @@ public final class TestCommand {
             for (String cls : failedClasses) {
                 retries.add(retryPool.submit(() -> {
                     JUnitForkExecutor.ForkResult fresh =
-                            executor.execute(module, cp, List.of(cls));
+                            executor.execute(module, cp, List.of(cls),
+                                    retryTimeout(failedMeta.get(cls).get("timeMs")));
                     if (fresh.exitCode() == 0) {
                         pollution.add(cls + " (passes in fresh fork) -> fresh result authoritative");
                     } else {
@@ -456,6 +464,26 @@ public final class TestCommand {
         m.put("failed", stillFailed);
         m.put("failures", stillFailed.size());
         return m;
+    }
+
+    /**
+     * Differential-retry timeout from the worker-measured class time: 4x with a
+     * 60s floor and the 300s batch cap. No measurement (worker hang/abort before
+     * the class produced a result) means the fresh fork gets a short 120s budget —
+     * a genuine hang must fail fast instead of burning a second watchdog period.
+     */
+    static java.time.Duration retryTimeout(String workerTimeMs) {
+        long timeMs = -1;
+        if (workerTimeMs != null) {
+            try {
+                timeMs = Long.parseLong(workerTimeMs);
+            } catch (NumberFormatException ignored) {
+                // "null" or unparseable: no measurement
+            }
+        }
+        if (timeMs < 0)
+            return java.time.Duration.ofSeconds(120);
+        return java.time.Duration.ofMillis(Math.max(60_000, Math.min(4 * timeMs, 300_000)));
     }
 
     private static int workerMaxClasses(IbEngine engine) {
@@ -644,21 +672,32 @@ public final class TestCommand {
             return;
         try {
             java.util.List<String> failedClasses = new ArrayList<>();
-            IbModule module = engine.model().module(moduleId);
-            Path reports = engine.getRepoRoot().resolve(module != null && module.getTestOutputDir() != null
-                    ? module.getTestOutputDir().replace("test-classes", "surefire-reports")
-                    : "target/surefire-reports");
-            if (Files.isDirectory(reports)) {
-                try (var stream = Files.list(reports)) {
-                    for (Path p : stream.toList()) {
-                        String name = p.getFileName().toString();
-                        if (!name.startsWith("TEST-") || !name.endsWith(".txt") && !name.endsWith(".xml"))
-                            continue;
-                        String text = Files.readString(p);
-                        if (text.contains("Failures: 0") && text.contains("Errors: 0"))
-                            continue;
-                        String cls = name.replaceAll("^TEST-|\\.(txt|xml)$", "").replace('-', '.');
-                        failedClasses.add(cls);
+            if ("junit-fork".equals(run.kind)) {
+                // junit-fork runs write no surefire reports: use the run's own
+                // failure detail (reading the surefire dir would pick up stale
+                // reports from an older mvn run of the module)
+                for (String line : run.output.split("\n")) {
+                    Matcher fm = FAILED_CLASS_LINE.matcher(line);
+                    if (fm.find())
+                        failedClasses.add(fm.group(1));
+                }
+            } else {
+                IbModule module = engine.model().module(moduleId);
+                Path reports = engine.getRepoRoot().resolve(module != null && module.getTestOutputDir() != null
+                        ? module.getTestOutputDir().replace("test-classes", "surefire-reports")
+                        : "target/surefire-reports");
+                if (Files.isDirectory(reports)) {
+                    try (var stream = Files.list(reports)) {
+                        for (Path p : stream.toList()) {
+                            String name = p.getFileName().toString();
+                            if (!name.startsWith("TEST-") || !name.endsWith(".txt") && !name.endsWith(".xml"))
+                                continue;
+                            String text = Files.readString(p);
+                            if (text.contains("Failures: 0") && text.contains("Errors: 0"))
+                                continue;
+                            String cls = name.replaceAll("^TEST-|\\.(txt|xml)$", "").replace('-', '.');
+                            failedClasses.add(cls);
+                        }
                     }
                 }
             }
@@ -736,6 +775,10 @@ public final class TestCommand {
         m.put("failed", failed);
         m.put("errors", errors);
         m.put("skipped", skipped);
+        // failure detail (class/method/type/message) — parity analysis needs the
+        // exact failing set, not just counts
+        if (!run.output.isBlank())
+            m.put("failedDetail", run.output.trim());
         if (run.exitCode == Commands.EXIT_LOCK_TIMEOUT)
             m.put("lockTimeout", true);
         out.println(json ? JsonOut.write(m)

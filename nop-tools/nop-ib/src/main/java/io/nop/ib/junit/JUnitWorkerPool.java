@@ -58,6 +58,10 @@ public final class JUnitWorkerPool {
         List<String> pollution = new ArrayList<>();
         if (classes.isEmpty())
             return new JUnitForkExecutor.ForkResult(0, summary, warnings);
+        // G-C tail defect: nested helper classes with no test methods used to be
+        // dispatched here (index-level testClasses() over-inclusion) and could
+        // crash workers, stalling the sweep for a full watchdog period each.
+        // Filtering now happens in the unit index (test marker + superclass chain).
 
         java.util.concurrent.BlockingQueue<Worker> idle = new LinkedBlockingQueue<>();
         // pre-spawn the pool in parallel: tasks submit faster than workers spawn,
@@ -94,7 +98,6 @@ public final class JUnitWorkerPool {
         int resetSamples = 0;
         boolean[] degrade = new boolean[]{false};
 
-                new LinkedBlockingQueue<>();
         Map<String, Map<String, Object>> results = new LinkedHashMap<>();
         java.util.concurrent.ExecutorService pool =
                 java.util.concurrent.Executors.newFixedThreadPool(workers, r -> {
@@ -192,12 +195,12 @@ public final class JUnitWorkerPool {
                         d.put("method", String.valueOf(m.get("method")));
                         d.put("type", String.valueOf(m.get("type")));
                         d.put("message", String.valueOf(m.get("message")));
+                        d.put("timeMs", String.valueOf(r.get("timeMs")));
                         failed.add(d);
                     }
                 }
             }
             slowAll.add(new Object[]{timeOf(r), slowNames.size() - 1});
-            slowNames.add(e.getKey());
         }
         if (degrade[0])
             warnings.add("reuse not profitable: reset cost exceeds fork startup ("
@@ -225,7 +228,7 @@ public final class JUnitWorkerPool {
     private final class Worker {
         final Process process;
         final java.io.BufferedWriter stdin;
-        { 
+        {
             // registry for leak-proof teardown: every spawned worker is killed at
             // run() end whether idle, running, or crashed-quietly
             synchronized (JUnitWorkerPool.this) {
@@ -235,8 +238,23 @@ public final class JUnitWorkerPool {
         /** protocol lines pushed by the stdout pump; never blocks the worker side */
         final java.util.concurrent.BlockingQueue<String> protocol =
                 new LinkedBlockingQueue<>();
+        /** last bytes of worker stderr: a crashed worker must explain itself */
+        private final java.util.concurrent.atomic.AtomicReference<String> stderrTail =
+                new java.util.concurrent.atomic.AtomicReference<>("");
         volatile boolean dead;
         int classesRun;
+
+        String stderrTail() {
+            return stderrTail.get();
+        }
+
+        /** keeps only the trailing ~4KB of stderr for failure diagnostics */
+        private void appendStderr(String line) {
+            stderrTail.accumulateAndGet(line, (cur, l) -> {
+                String next = cur + l + "\n";
+                return next.length() > 4096 ? next.substring(next.length() - 4096) : next;
+            });
+        }
 
         Worker() {
             try {
@@ -267,17 +285,44 @@ public final class JUnitWorkerPool {
                 pump.start();
                 Thread t = new Thread(() -> {
                     try (var r = process.errorReader(StandardCharsets.UTF_8)) {
-                        while (r.readLine() != null) {
-                            // drain
-                        }
+                        String line;
+                        while ((line = r.readLine()) != null)
+                            appendStderr(line);
                     } catch (IOException ignored) {
                         // teardown
                     }
                 }, "nop-ib-worker-err");
                 t.setDaemon(true);
                 t.start();
+                // startup handshake: wait for the runner's hello before the worker
+                // enters the idle pool — a JVM that dies at boot (classpath breakage,
+                // crash in static init) fails spawn immediately with its stderr
+                // instead of poisoning dispatch with a dead worker
+                String hello;
+                try {
+                    hello = protocol.poll(WORKER_HELLO_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    dead = true;
+                    kill();
+                    throw new NopIbException("interrupted while waiting for worker hello", e);
+                }
+                if (hello == null) {
+                    dead = true;
+                    kill();
+                    throw new NopIbException("test worker died at startup (exit "
+                            + exitCodeUnchecked() + ") stderr tail:\n" + stderrTail());
+                }
             } catch (IOException e) {
                 throw new NopIbException("cannot spawn test worker", e);
+            }
+        }
+
+        private int exitCodeUnchecked() {
+            try {
+                return process.exitValue();
+            } catch (IllegalThreadStateException e) {
+                return -1; // still alive but silent: hello timeout
             }
         }
 
@@ -292,10 +337,24 @@ public final class JUnitWorkerPool {
                         kill();
                     }, forkTimeoutMs, TimeUnit.MILLISECONDS);
             try {
-                String line = protocol.poll(forkTimeoutMs + 30_000, TimeUnit.MILLISECONDS);
+                long deadline = System.currentTimeMillis() + forkTimeoutMs + 30_000;
+                // poll in slices: a dead worker (EOF seen by the pump) must fail
+                // FAST — waiting the full window on a corpse stalled the sweep tail
+                String line = null;
+                while (line == null) {
+                    long left = deadline - System.currentTimeMillis();
+                    if (left <= 0)
+                        break;
+                    line = protocol.poll(Math.min(500, left), TimeUnit.MILLISECONDS);
+                    if (line == null && dead) {
+                        throw new IOException("worker died while running " + cls
+                                + " stderr tail:\n" + stderrTail());
+                    }
+                }
                 if (line == null) {
                     dead = true;
-                    throw new IOException("worker timeout/EOF (crashed) on " + cls);
+                    throw new IOException("worker timeout/EOF (crashed) on " + cls
+                            + " stderr tail:\n" + stderrTail());
                 }
                 return JsonIn.asMapOrEmpty(JsonIn.silentParse(line));
             } finally {
@@ -374,6 +433,10 @@ public final class JUnitWorkerPool {
 
     private static long forkTimeoutMs =
             Long.getLong("nop.ib.forkTimeoutSeconds", 300) * 1000;
+
+    /** worker must say hello within this window or spawn fails (crash at boot) */
+    private static final long WORKER_HELLO_TIMEOUT_MS =
+            Long.getLong("nop.ib.workerHelloTimeoutMs", 60_000);
 
     /**
      * Pool-level watchdog executor: creating one per runClass leaked a thread per

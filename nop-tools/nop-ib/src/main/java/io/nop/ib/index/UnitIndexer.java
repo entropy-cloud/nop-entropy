@@ -34,6 +34,16 @@ public final class UnitIndexer {
     /** class access flag test: private members are excluded from the ABI surface */
     private static final int ACC_PRIVATE = 0x0002;
 
+    /** method annotations that make a method executable by the JUnit platform */
+    private static final Set<String> TEST_METHOD_ANNOTATIONS = Set.of(
+            "Lorg/junit/jupiter/api/Test;",
+            "Lorg/junit/jupiter/params/ParameterizedTest;",
+            "Lorg/junit/jupiter/api/TestFactory;",
+            "Lorg/junit/jupiter/api/TestTemplate;",
+            "Lorg/junit/jupiter/api/RepeatedTest;",
+            "Lorg/junit/Test;");
+    private static final String NESTED_ANNOTATION = "Lorg/junit/jupiter/api/Nested;";
+
     public UnitIndex scan(String moduleArtifactId, List<Path> outputDirs, Path moduleBasedir) {
         UnitIndex index = UnitIndex.empty(moduleArtifactId);
         List<Path> files = new ArrayList<>();
@@ -121,6 +131,7 @@ public final class UnitIndexer {
             this.className = name.replace('/', '.');
             info.setClassName(this.className);
             info.setAccess(access);
+            info.setSuperName(superName == null ? null : superName.replace('/', '.'));
             abiLines.add("C:" + Integer.toHexString(access) + ":" + name + ":" + superName
                     + ":" + String.join(",", interfaces != null ? interfaces : new String[0]));
             if (superName != null)
@@ -140,6 +151,8 @@ public final class UnitIndexer {
         public org.objectweb.asm.AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
             abiLines.add("A:" + descriptor);
             refs.add(Type.getType(descriptor).getClassName());
+            if (NESTED_ANNOTATION.equals(descriptor))
+                info.setNested(true);
             return null;
         }
 
@@ -170,7 +183,8 @@ public final class UnitIndexer {
             for (Type arg : Type.getArgumentTypes(descriptor))
                 refs.add(arg.getClassName());
             refs.add(Type.getReturnType(descriptor).getClassName());
-            return new RefMethodVisitor(refs, abiLines, (access & ACC_PRIVATE) == 0, name);
+            return new RefMethodVisitor(refs, abiLines, (access & ACC_PRIVATE) == 0, name,
+                    info::setTestMethods);
         }
 
         @Override
@@ -204,13 +218,16 @@ public final class UnitIndexer {
         private final TreeSet<String> abiLines;
         private final boolean inAbi;
         private final String methodName;
+        private final java.util.function.Consumer<Boolean> testMethodFlag;
 
-        RefMethodVisitor(Set<String> refs, TreeSet<String> abiLines, boolean inAbi, String methodName) {
+        RefMethodVisitor(Set<String> refs, TreeSet<String> abiLines, boolean inAbi, String methodName,
+                         java.util.function.Consumer<Boolean> testMethodFlag) {
             super(Opcodes.ASM9);
             this.refs = refs;
             this.abiLines = abiLines;
             this.inAbi = inAbi;
             this.methodName = methodName;
+            this.testMethodFlag = testMethodFlag;
         }
 
         private void ref(String internal) {
@@ -231,6 +248,8 @@ public final class UnitIndexer {
         public org.objectweb.asm.AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
             if (inAbi)
                 abiLines.add("m@" + methodName + ":" + descriptor);
+            if (TEST_METHOD_ANNOTATIONS.contains(descriptor))
+                testMethodFlag.accept(true);
             ref(Type.getType(descriptor).getClassName());
             return null;
         }

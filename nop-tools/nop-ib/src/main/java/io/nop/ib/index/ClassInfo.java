@@ -22,6 +22,12 @@ public class ClassInfo {
     private List<String> refs = new ArrayList<>();
     /** static final primitive/String constants: name -> canonical value string */
     private Map<String, String> inlineConstants = new LinkedHashMap<>();
+    /** superclass binary name (dots), null for java.lang.Object-only roots */
+    private String superName;
+    /** own methods carry JUnit test annotations (@Test/@ParameterizedTest/...) */
+    private boolean testMethods;
+    /** class annotated @Nested (JUnit nested container) */
+    private boolean nested;
 
     public Map<String, Object> toMap() {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -31,6 +37,12 @@ public class ClassInfo {
         m.put("source", sourceFile);
         m.put("access", access);
         m.put("refs", refs);
+        if (superName != null && !"java.lang.Object".equals(superName))
+            m.put("super", superName);
+        if (testMethods)
+            m.put("tst", 1);
+        if (nested)
+            m.put("nstd", 1);
         if (!inlineConstants.isEmpty())
             m.put("consts", inlineConstants);
         return m;
@@ -50,6 +62,9 @@ public class ClassInfo {
             for (Object o : iter)
                 info.refs.add(String.valueOf(o));
         }
+        info.superName = (String) m.get("super");
+        info.testMethods = m.get("tst") instanceof Number n && n.intValue() != 0;
+        info.nested = m.get("nstd") instanceof Number n && n.intValue() != 0;
         Object consts = m.get("consts");
         if (consts instanceof Map<?, ?> cm) {
             for (Map.Entry<?, ?> e : cm.entrySet())
@@ -108,5 +123,29 @@ public class ClassInfo {
 
     public Map<String, String> getInlineConstants() {
         return inlineConstants;
+    }
+
+    public String getSuperName() {
+        return superName;
+    }
+
+    public void setSuperName(String superName) {
+        this.superName = superName;
+    }
+
+    public boolean hasTestMethods() {
+        return testMethods;
+    }
+
+    public void setTestMethods(boolean testMethods) {
+        this.testMethods = testMethods;
+    }
+
+    public boolean isNested() {
+        return nested;
+    }
+
+    public void setNested(boolean nested) {
+        this.nested = nested;
     }
 }

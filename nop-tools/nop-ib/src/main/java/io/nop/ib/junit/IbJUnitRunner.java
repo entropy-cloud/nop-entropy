@@ -75,56 +75,81 @@ public class IbJUnitRunner {
         for (String cls : classes)
             builder.selectors(DiscoverySelectors.selectClass(cls));
 
-        Launcher launcher = LauncherFactory.create();
-        TestPlan plan = launcher.discover(builder.build());
+        // containment mirrors the worker loop: a discovery/execution error must
+        // surface as this class's failure in the result document, not as a fork
+        // crash without a document
+        try {
+            Launcher launcher = LauncherFactory.create();
+            TestPlan plan = launcher.discover(builder.build());
 
-        List<String> discovered = new ArrayList<>();
-        plan.getRoots().forEach(root -> collectClasses(plan, root, discovered));
-        List<String> missing = new ArrayList<>();
-        for (String cls : classes) {
-            boolean found = discovered.stream()
-                    .anyMatch(d -> d.equals(cls) || d.startsWith(cls + "$") || cls.startsWith(d + "$"));
-            if (!found)
-                missing.add(cls);
-        }
+            List<String> discovered = new ArrayList<>();
+            plan.getRoots().forEach(root -> collectClasses(plan, root, discovered));
+            List<String> missing = new ArrayList<>();
+            for (String cls : classes) {
+                boolean found = discovered.stream()
+                        .anyMatch(d -> d.equals(cls) || d.startsWith(cls + "$") || cls.startsWith(d + "$"));
+                if (!found)
+                    missing.add(cls);
+            }
 
-        long[] counts = new long[3]; // tests, failures, skipped
-        List<Map<String, String>> failures = new ArrayList<>();
-        long start = System.currentTimeMillis();
-        launcher.execute(builder.build(), new TestExecutionListener() {
-            @Override
-            public void executionFinished(TestIdentifier id, TestExecutionResult r) {
-                if (!id.isTest())
-                    return;
-                synchronized (counts) {
-                    counts[0]++;
-                    if (r.getStatus() == TestExecutionResult.Status.FAILED) {
-                        counts[1]++;
-                        Throwable t = r.getThrowable().orElse(null);
-                        Map<String, String> f = new LinkedHashMap<>();
-                        f.put("class", parentClassOf(id));
-                        f.put("method", id.getDisplayName());
-                        f.put("type", t == null ? "java.lang.AssertionError" : t.getClass().getName());
-                        f.put("message", t == null ? "" : String.valueOf(t.getMessage()));
-                        failures.add(f);
-                    } else if (r.getStatus() == TestExecutionResult.Status.ABORTED) {
-                        counts[2]++;
+            long[] counts = new long[3]; // tests, failures, skipped
+            List<Map<String, String>> failures = new ArrayList<>();
+            long start = System.currentTimeMillis();
+            launcher.execute(builder.build(), new TestExecutionListener() {
+                @Override
+                public void executionFinished(TestIdentifier id, TestExecutionResult r) {
+                    if (!id.isTest())
+                        return;
+                    synchronized (counts) {
+                        counts[0]++;
+                        if (r.getStatus() == TestExecutionResult.Status.FAILED) {
+                            counts[1]++;
+                            Throwable t = r.getThrowable().orElse(null);
+                            Map<String, String> f = new LinkedHashMap<>();
+                            f.put("class", parentClassOf(id));
+                            f.put("method", id.getDisplayName());
+                            f.put("type", t == null ? "java.lang.AssertionError" : t.getClass().getName());
+                            f.put("message", t == null ? "" : String.valueOf(t.getMessage()));
+                            failures.add(f);
+                        } else if (r.getStatus() == TestExecutionResult.Status.ABORTED) {
+                            counts[2]++;
+                        }
                     }
                 }
-            }
-        });
-        long elapsed = System.currentTimeMillis() - start;
+            });
+            long elapsed = System.currentTimeMillis() - start;
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("tests", counts[0]);
-        result.put("failures", counts[1]);
-        result.put("skipped", counts[2]);
-        result.put("timeMs", elapsed);
-        result.put("failed", failures);
-        result.put("missingClasses", missing);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("tests", counts[0]);
+            result.put("failures", counts[1]);
+            result.put("skipped", counts[2]);
+            result.put("timeMs", elapsed);
+            result.put("failed", failures);
+            result.put("missingClasses", missing);
 
-        Files.writeString(resultFile, toJson(result), StandardCharsets.UTF_8);
-        System.exit(!missing.isEmpty() ? 2 : (counts[1] > 0 ? 1 : 0));
+            Files.writeString(resultFile, toJson(result), StandardCharsets.UTF_8);
+            System.exit(!missing.isEmpty() ? 2 : (counts[1] > 0 ? 1 : 0));
+        } catch (Throwable t) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("tests", 0);
+            result.put("failures", 1);
+            result.put("skipped", 0);
+            result.put("timeMs", 0);
+            List<Map<String, String>> failures = new ArrayList<>();
+            Map<String, String> f = new LinkedHashMap<>();
+            f.put("class", classes.isEmpty() ? "" : classes.get(0));
+            f.put("method", "");
+            f.put("type", t.getClass().getName());
+            String msg = String.valueOf(t);
+            Throwable cause = t.getCause();
+            if (cause != null)
+                msg = msg + " / caused by " + cause;
+            f.put("message", msg.length() > 2000 ? msg.substring(0, 2000) : msg);
+            failures.add(f);
+            result.put("failed", failures);
+            Files.writeString(resultFile, toJson(result), StandardCharsets.UTF_8);
+            System.exit(1);
+        }
     }
 
     /**
@@ -138,6 +163,11 @@ public class IbJUnitRunner {
         List<Class<?>> resetters = loadResetters(resetterCsv);
         java.io.BufferedReader in = new java.io.BufferedReader(
                 new java.io.InputStreamReader(System.in, StandardCharsets.UTF_8));
+        // startup handshake: the parent only enqueues a worker after hello, so a
+        // boot-time crash (classpath breakage, static-init failure) is attributed
+        // to spawn — never mistaken for a hung class
+        System.out.println(PROTOCOL_PREFIX + toJson(Map.of("cmd", "hello")));
+        System.out.flush();
         String line;
         while ((line = in.readLine()) != null) {
             line = line.trim();
@@ -157,7 +187,34 @@ public class IbJUnitRunner {
                 continue;
             }
             String cls = String.valueOf(req.get("class"));
-            Map<String, Object> out = runOne(cls, resetters);
+            Map<String, Object> out;
+            try {
+                out = runOne(cls, resetters);
+            } catch (Throwable t) {
+                // per-class containment: a discovery/execution error (e.g.
+                // NoClassDefFoundError for an optional driver touched by a nested
+                // helper's type signatures) must fail THIS class, not kill the
+                // worker — a dead worker used to stall the parent for a full
+                // watchdog period
+                out = new LinkedHashMap<>();
+                out.put("class", cls);
+                out.put("tests", 0);
+                out.put("failures", 1);
+                out.put("skipped", 0);
+                out.put("timeMs", 0);
+                java.util.List<Map<String, String>> fl = new ArrayList<>();
+                Map<String, String> f = new LinkedHashMap<>();
+                f.put("class", cls);
+                f.put("method", "");
+                f.put("type", t.getClass().getName());
+                String msg = String.valueOf(t);
+                Throwable cause = t.getCause();
+                if (cause != null)
+                    msg = msg + " / caused by " + cause;
+                f.put("message", msg.length() > 2000 ? msg.substring(0, 2000) : msg);
+                fl.add(f);
+                out.put("failed", fl);
+            }
             // stdout also carries test-code logging; protocol lines MUST be prefixed
             System.out.println(PROTOCOL_PREFIX + toJson(out));
             System.out.flush();
