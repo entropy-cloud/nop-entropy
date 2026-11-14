@@ -86,6 +86,10 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 
 - ✅ **Milestone M4：AI 默认走 `nop-ib`；基线在档、可回滚**（unlocks when 25–30 done）
 
+### Wave 4.5 — JUnit worker 复用（设计 06）
+
+- 34. **[Feature]** 测试 worker JVM 复用与执行模型通用化：持久 worker + `TestEnvironmentResetter` SPI（通用层 properties 快照/Nop 层 `reinitialize()` 钩子）+ 差分重跑兜底 + 复用盈亏判据 + 模块间并行（设计 06）;per-class fork 降级为污染兜底: `planned` — deps: 25
+
 ### Wave 5 — L1/L3 扩张（触发式，非默认路线）
 
 - 31. **[Feature]** L1 代码生成模块的"手写源码"快路径：生成基线指纹 + 变更落点判定（生成产物/模型 → 回退；手写源码 → 快路径）: `done`（L1 路由实测:nop-auth-meta xgen→Maven 回退,手写→快路径;_gen 过滤已入 -pl 编译） — deps: 10, 17
