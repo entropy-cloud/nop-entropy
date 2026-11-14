@@ -47,6 +47,10 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
 
     private volatile long lastCleanUpTime;
 
+    // plan 2571：manager 级墙钟锚点对（init 时相邻捕获），服务 lastCleanUpTime 的诊断投影
+    private long managerAnchorNano;
+    private long managerAnchorWall;
+
     private IScheduledExecutor timer;
 
     Future<?> schedulePromise;
@@ -99,9 +103,11 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
         lock.setLockerId(lockerId);
 
         // R4-32（C7-004）：锁表内部时间戳统一使用单调时钟（nanoTime 纳秒），仅作类内相对比较与诊断展示
+        // plan 2571：同点相邻捕获墙钟锚点对，使 toString/日志可投影「对应墙钟哪个时刻」（仅诊断，判定域不变）
         long now = CoreMetrics.nanoTime();
         lock.setCreateTime(now);
         lock.setLockTime(now);
+        lock.setWallAnchor(now, System.currentTimeMillis());
         return lock;
     }
 
@@ -110,6 +116,9 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
         Guard.checkArgument(schedulePromise == null, "nop.lock.lock-manager-already-inited");
         if (timer == null)
             timer = GlobalExecutors.globalTimer();
+        // plan 2571：manager 级墙钟锚点对，lastCleanUpTime 诊断日志据此投影
+        managerAnchorNano = CoreMetrics.nanoTime();
+        managerAnchorWall = System.currentTimeMillis();
         schedulePromise = timer.scheduleWithFixedDelay(this::checkTimeout, expireInterval, expireInterval,
                 TimeUnit.MILLISECONDS);
     }
@@ -123,10 +132,14 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
     }
 
     public void checkTimeout() {
-        // R4-32（C7-004）：过期判定与锁表时间同源（单调时钟）；lastCleanUpTime 亦为单调值，
-        // 日志直接输出原始值（不再包装 Timestamp——单调值非 epoch 语义[R1-m4/R2-m2]）
+        // R4-32（C7-004）：过期判定与锁表时间同源（单调时钟）；lastCleanUpTime 亦为单调值。
+        // plan 2571：诊断日志补投影墙钟（原始纳秒保留），判定域不变
         long now = CoreMetrics.nanoTime();
-        LOG.debug("nop.lock.check-lease-expire:lastCleanupTime={}", lastCleanUpTime);
+        if (managerAnchorNano != 0) {
+            LOG.debug("nop.lock.check-lease-expire:lastCleanupTime={} (~{} UTC)", lastCleanUpTime,
+                    java.time.Instant.ofEpochMilli(
+                            managerAnchorWall + (lastCleanUpTime - managerAnchorNano) / 1_000_000L));
+        }
         lastCleanUpTime = now;
         for (LocalResourceLockState lock : locks.values()) {
             // 与tryResetLease/isHoldingLock使用同一把锁，避免续租过程中读到旧的expireTime而误删锁
