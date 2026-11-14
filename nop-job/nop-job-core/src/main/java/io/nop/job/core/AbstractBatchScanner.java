@@ -9,6 +9,7 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IPeriodicTaskListener;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.core.partition.JobPartitionResolver;
 import jakarta.inject.Inject;
@@ -18,8 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.TimeUnit;
@@ -95,24 +94,26 @@ public abstract class AbstractBatchScanner {
         // 平台绝缘入口（带业务标识）：任务体 Throwable 由设施捕获观测并重臂，链存活至显式
         // stopScanning 或设施级拒绝（设计契约 ai-dev/design/concurrency/periodic-task-insulation.md）
         scanFuture = getExecutor().scheduleWithFixedDelay(
-                this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS, scannerName, null);
+                this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS, scannerName,
+                new IPeriodicTaskListener() {
+                    @Override
+                    public void onChainRejected(Throwable cause) {
+                        // plan 2570 C-3：设施级拒绝的唯一权威信号源是 listener.onChainRejected
+                        //（绝缘契约：链 future 异常完结是失败信号而非链死亡——单轮任务体失败后链仍
+                        // 重臂，running 必须保持 true。原 whenComplete 非 Cancellation 判定无法区分
+                        // 失败信号与拒绝，曾把单轮失败误读为链拒绝导致扫描静默停摆 + 僵尸链）。
+                        // 与绝缘层自带 nop.err.periodic-task.chain-rejected 形成双条日志，预期内。
+                        scanChainRejectedCount.incrementAndGet();
+                        running = false;
+                        LOG.error("nop.job.scan-chain-rejected:scanner={}", scannerName, cause);
+                    }
+                });
         // CRA 8.47 R4-07 W-07: stall watchdog registration (same executor — C-type
         // carrier, millisecond memory check per 2497 §七 discipline). observe-only.
         if (stallWatchdogMs > 0) {
             this.stallWatchdogFuture = getExecutor().scheduleWithFixedDelay(
                     () -> checkStall(), stallWatchdogMs, stallWatchdogMs,
                     java.util.concurrent.TimeUnit.MILLISECONDS);
-        }
-        // C4-003：返回 future 不再丢弃（默认 whenComplete 挂接，不改对外 API）。绝缘契约下异常终态是
-        // 失败/取消/拒绝信号而非链死亡指标；仅设施级拒绝（链真死且不复活）时把 running 状态真实化为 false
-        if (scanFuture instanceof CompletableFuture<?>) {
-            ((CompletableFuture<?>) scanFuture).whenComplete((result, error) -> {
-                if (error != null && !(error instanceof CancellationException)) {
-                    scanChainRejectedCount.incrementAndGet();
-                    running = false;
-                    LOG.error("nop.job.scan-chain-rejected:scanner={}", scannerName, error);
-                }
-            });
         }
     }
 

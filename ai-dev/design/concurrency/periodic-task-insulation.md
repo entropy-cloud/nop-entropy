@@ -58,6 +58,8 @@ runBody():
 - 任何拒绝路径执行四个动作：`LOG.error("nop.err.periodic-task.chain-rejected", taskName, e)` + `listener.onChainRejected(e)` + 返回 future `completeExceptionally(e)` + **取消 pending native 触发器**（主路径 `rejectChain` 内先 reject 后取消，cancel/提交竞态由 `setNativeHandle` 补取消——实现锚 `InsulatedPeriodicTask`/`InsulatedPeriodicChain`）；**链终止且不复活**。不复活是对「关闭竞态」的裁定：timer 已销毁/池已关闭时继续重臂等于对死亡设施无限重试（REE 风暴 + 日志洪泛）。
 - 想在 worker 池拒绝时自愈的调用方（如 cluster C4-004 的断链监督）在模块层挂 `whenComplete` 监听拒绝终态后自行带退避重排——设施保证终态可见，重排策略归调用方。
 
+**守卫登记摘除时机（plan 2570 C-1/C-2 契约句）**：timer 载体（`DefaultScheduledExecutor`）对绝缘链守卫的登记摘除**只认链终止**（`InsulatedPeriodicChain.isStopped()`：cancel / 设施拒绝）。任务体首次失败的 `completeExceptionally` 是失败信号而非链死亡——失败后链继续重臂，守卫必须保持登记，否则 `destroy()` 的统一拒绝路径不再覆盖这条活链（fixedDelay 链仅剩 pending 轮次部分兜底，fixedRate 链因 native handle 非 CompletionStage 而完全失去补终态通道）。失败信号完结的链驻留登记表至 destroy（条目数 ≤ 每 executor 周期任务数，无泄漏面）；已失败链后续 cancel 不再触发摘除属预期（rejectChain 对 stopped 链安全）。消费方存活判定同理：只认 `listener.onChainRejected`（设施级拒绝的权威信号源），禁止用「返回 future 异常完结 + 非 Cancellation 判定」推断链死亡——future 异常完结不可区分失败信号与拒绝（plan 2570 C-3，nop-job `AbstractBatchScanner` 消费方实例）。
+
 **失败治理参数（数值与语义为设计契约；对应包私有常量名以实现锚 `InsulatedPeriodicTask` 为准，不入本文档）：**
 
 | 参数 | 默认值 | 语义 |
