@@ -17,12 +17,13 @@ import java.util.Map;
 /**
  * Durable run record (mvn-output equivalence for an AI-driven workflow): every
  * {@code ib compile/test/check} mirrors its human output into
- * {@code .nop-ib/logs/<cmd>-<timestamp>.log} and writes the machine-readable
- * {@code .nop-ib/last-run.json} on close. mvn's consumers are a terminal and
- * surefire-reports; nop-ib's consumers are AI sessions and post-hoc audits,
- * which must be able to read the full evidence (failure details, stderr tails,
- * slow classes, pollution events, compiler diagnostics) after the process is
- * gone.
+ * {@code _tmp/nop-ib/<cmd>-<timestamp>.log} (the repo's unified temp directory,
+ * per AGENTS.md) and writes the machine-readable {@code .nop-ib/last-run.json}
+ * on close (state, not temp — it lives with the other .nop-ib state files).
+ * mvn's consumers are a terminal and surefire-reports; nop-ib's consumers are
+ * AI sessions and post-hoc audits, which must be able to read the full
+ * evidence (failure details, stderr tails, slow classes, pollution events,
+ * compiler diagnostics) after the process is gone.
  *
  * <p>Thread-safe: module reports arrive concurrently from the -pl pool.
  */
@@ -43,8 +44,10 @@ public final class RunLog implements AutoCloseable {
     private RunLog(Path repoRoot, String cmd, boolean disabled) {
         this.cmd = cmd;
         this.disabled = disabled;
-        this.logFile = repoRoot.resolve(".nop-ib").resolve("logs")
+        // run logs are temp evidence: the repo's unified _tmp/ directory (AGENTS.md)
+        this.logFile = repoRoot.resolve("_tmp").resolve("nop-ib")
                 .resolve(cmd + "-" + startedAt.format(TS) + ".log");
+        // last-run.json is STATE (like .nop-ib/last-failed.json), not temp
         this.stateFile = repoRoot.resolve(".nop-ib").resolve("last-run.json");
     }
 
