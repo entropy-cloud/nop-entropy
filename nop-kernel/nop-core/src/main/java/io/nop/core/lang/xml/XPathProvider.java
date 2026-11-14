@@ -15,7 +15,10 @@ import static io.nop.core.CoreConfigs.CFG_XPATH_CACHE_SIZE;
 import static io.nop.core.CoreErrors.ERR_XML_NO_XPATH_PROVIDER;
 
 public abstract class XPathProvider {
-    static XPathProvider _instance;
+    // plan 2572 Phase 1：volatile 发布安全——启动线程（XLangCoreInitializer.registerInstance）写、
+    // 工作线程（XNodeSplitter/xdef 编译链）读，非 volatile 是 unsafe publication（半构造暴露）。
+    // 2515 W-11 SymbolTable volatile 同族先例。
+    static volatile XPathProvider _instance;
 
     private LocalCache<String, IXSelector<XNode>> cache;
 

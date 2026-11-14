@@ -7,6 +7,7 @@
  */
 package io.nop.dao.jdbc.txn;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.IoHelper;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.impl.JdbcHelper;
@@ -72,9 +73,9 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         synchronized (this) {
             if (connection == null) {
                 LOG.trace("nop.dao.txn.fetch-connection:conn={}", this);
-                long beginNano = System.nanoTime();
+                long beginNano = CoreMetrics.nanoTime(); // plan 2572 P4：时钟口径统一
                 connection = dataSource.get();
-                long elapsedMs = (System.nanoTime() - beginNano) / 1_000_000L;
+                long elapsedMs = (CoreMetrics.nanoTime() - beginNano) / 1_000_000L;
                 if (elapsedMs > 1000L) {
                     LOG.warn("nop.warn.dao.txn-connection-fetch-slow:txn={},elapsedMs={}", this, elapsedMs);
                 }

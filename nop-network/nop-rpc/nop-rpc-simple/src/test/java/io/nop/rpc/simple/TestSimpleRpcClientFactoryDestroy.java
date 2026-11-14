@@ -1,6 +1,7 @@
 package io.nop.rpc.simple;
 
 import io.nop.socket.BinaryCommand;
+import io.nop.rpc.api.IRpcProxy;
 import io.nop.socket.ClientConfig;
 import io.nop.socket.ICommandClient;
 import org.junit.jupiter.api.Test;
@@ -171,5 +172,28 @@ public class TestSimpleRpcClientFactoryDestroy {
 
         assertDoesNotThrow(factory::destroy, "单个 client 关闭失败不得中断 destroy");
         assertEquals(List.of(3, 2, 1), factory.closeOrder, "失败项之后的 client 仍按逆序被关闭");
+    }
+    /**
+     * plan 2572 Phase 2 钉：close 摘除登记——长寿 factory 反复 newInstance 时登记表不因
+     * 正常关闭累积；漏关 client 仍由 destroy 兜底（C6-010 语义不回退）。
+     * 变异红形态：去掉 setOnCloseCallback 注入 → registrySize 保持 2 → 红。
+     */
+    @Test
+    public void pin2572_closeDeregistersFromFactoryRegistry() throws Exception {
+        RecordingFactory factory = new RecordingFactory();
+        EchoService p1 = factory.newInstance();
+        EchoService p2 = factory.newInstance();
+        assertEquals(2, registrySize(factory));
+
+        ((IRpcProxy) p1).proxy_destroy();
+        assertEquals(1, registrySize(factory), "close must deregister the closed client");
+
+        ((IRpcProxy) p2).proxy_destroy();
+        assertEquals(0, registrySize(factory), "both clients closed: registry must be empty");
+
+        // destroy 兜底：已空表 close 不再触发额外 RecordingClient.close（每 client 已记 1 次）
+        factory.destroy();
+        assertEquals(0, registrySize(factory), "destroy after manual close: registry stays empty");
+        // closeOrder 含 2 次 RecordingClient.close（用户侧），destroy 未追加（无重复关闭）
     }
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.dao.jdbc.datasource;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 
 import javax.sql.DataSource;
@@ -125,7 +126,7 @@ public class ReadWriteRoutingDataSource implements DataSource {
     }
 
     private Connection getReplicaConnection0(String username, String password) throws SQLException {
-        long now = currentTimeMillis();
+        long now = monoNanos();
         List<ReplicaChannel> available = new ArrayList<>();
         for (ReplicaChannel replica : replicas) {
             if (!replica.isCooling(now))
@@ -147,22 +148,24 @@ public class ReadWriteRoutingDataSource implements DataSource {
                 // 立即换下一台（按负载均衡顺序），不吞异常：失败被记录到通道状态并在
                 // 全部不可用时进入错误摘要（完整异常经initCause保留）
                 replica.setLastErrorMessage(String.valueOf(e));
-                replica.recordFailure(replicaFailThreshold, replicaCooldownMillis, currentTimeMillis());
+                replica.recordFailure(replicaFailThreshold, replicaCooldownMillis, monoNanos());
                 lastError = e;
             }
         }
 
-        NopException error = noReplicaAvailable(currentTimeMillis());
+        NopException error = noReplicaAvailable(monoNanos());
         if (lastError != null)
             error.initCause(lastError);
         throw error;
     }
 
     /**
-     * 时钟seam：测试通过覆写控制故障冷却/半开状态机的时间推进
+     * 时钟seam：测试通过覆写控制故障冷却/半开状态机的时间推进。
+     * plan 2572 P4：单调时钟（纳秒）——冷却状态机单调性敏感（墙钟前跳会跳过冷却期=故障从库
+     * 提前放行；回拨则冷却延长）。阈值毫秒口径在调用侧换算纳秒。
      */
-    protected long currentTimeMillis() {
-        return System.currentTimeMillis();
+    protected long monoNanos() {
+        return CoreMetrics.nanoTime();
     }
 
     private NopException noReplicaAvailable(long now) {

@@ -216,6 +216,13 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
         // 4.3-C6-010（plan 2561 裁定 K）：登记点 = newInstance()，登记物 = SimpleRpcClient
         synchronized (clients) {
             clients.add(rpcService);
+            // plan 2572 Phase 2：close 时摘除登记（幂等）——兜底表不因正常关闭累积；
+            // remove(Object) 按身份移除，destroy 快照已清空后调用为 no-op
+            rpcService.setOnCloseCallback(() -> {
+                synchronized (clients) {
+                    clients.remove(rpcService);
+                }
+            });
         }
         T obj = (T) Proxy.newProxyInstance(rpcInterface.getClassLoader(), new Class[]{rpcInterface, IRpcProxy.class},
                 new RpcInvocationHandler(serviceName, rpcService, interceptors, transformer));

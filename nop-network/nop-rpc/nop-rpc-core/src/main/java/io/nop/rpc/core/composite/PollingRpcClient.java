@@ -7,6 +7,7 @@
  */
 package io.nop.rpc.core.composite;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.task.TaskStatusBean;
@@ -112,7 +113,7 @@ public class PollingRpcClient implements IRpcService {
             if (pollTimeout > 0) {
                 // 4.2-C4-003：deadline watchdog——链整体终止不依赖轮次续排路径，
                 // 在飞轮次挂死（底层 callAsync 永不完成）时同样在 deadline 处强制终止
-                this.deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(pollTimeout);
+                this.deadlineNanos = CoreMetrics.nanoTime() + TimeUnit.MILLISECONDS.toNanos(pollTimeout); // plan 2572 P4：时钟口径统一
                 this.deadlineFuture = timer.schedule(() -> {
                     onDeadline();
                     return null;
@@ -157,7 +158,7 @@ public class PollingRpcClient implements IRpcService {
             // 结果 future 已完成（正常结束或被取消）时不再发起下一轮轮询
             if (!future.isDone()) {
                 // 4.2-C4-003：续排前 belt 检查——已过 deadline 时终止链（正常路径由 watchdog 承担终态）
-                if (deadlineNanos != 0 && System.nanoTime() >= deadlineNanos) {
+                if (deadlineNanos != 0 && CoreMetrics.nanoTime() >= deadlineNanos) {
                     onDeadline();
                     return;
                 }

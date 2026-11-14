@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -197,6 +198,31 @@ public class ContextProvider {
         });
 
         return promise;
+    }
+
+    /**
+     * plan 2572 Phase 5：whenComplete→context.execute 桥接的统一包络（原 GraphQLExecutor ×2 /
+     * TransformFetcher / EvalActionTransformFetcher 四站手写四件套收敛）。
+     * 窗口语义与 {@link #thenOnContext0} 的差异：windowBody 经 context.execute 在请求 context
+     * 的执行窗口内运行（上游已完成时内联 flush 窗口问题见 GraphQLExecutor.thenFetchNext 注释——
+     * 本 Helper 不改窗口载体，只统一包络）。windowBody 抛出或 context 已关闭（execute 拒绝）
+     * 均经 onFail 异常终态而非静默挂起（rule 24）。
+     */
+    public static <T> void whenCompleteInContextWindow(CompletionStage<T> future, IContext context,
+            BiConsumer<T, Throwable> windowBody, Consumer<Throwable> onFail) {
+        future.whenComplete((v, err) -> {
+            try {
+                context.execute(() -> {
+                    try {
+                        windowBody.accept(v, err);
+                    } catch (Throwable e) {
+                        onFail.accept(e);
+                    }
+                });
+            } catch (Throwable e) {
+                onFail.accept(e);
+            }
+        });
     }
 
     /**

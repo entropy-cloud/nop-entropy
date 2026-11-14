@@ -141,37 +141,26 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         // 组合）承载的窗口安全性论证见 thenFetchNext 处注释。
         IContext context = env.getContext();
         CompletableFuture<Object> promise = new CompletableFuture<>();
-        future.whenComplete((opResult, err) -> {
-            try {
-                context.execute(() -> {
-                    try {
-                        if (err != null) {
-                            promise.completeExceptionally(err);
-                            return;
-                        }
-                        if (opResult.isUseTry()) {
-                            FutureHelper.bindResult(
-                                    FutureHelper.toCompletionStage(opResult.getValue()), promise);
-                            return;
-                        }
-                        env.setRoot(opResult.getValue());
-                        CompletionStage<Object> ret = FutureHelper
-                                .toCompletionStage(fetchNext(opResult.getValue(), env));
-                        // P1-2.6-004：游走回合出口统一调度。fetchNext回合内注册的批量loader，其load
-                        // future的完成被本回合返回的future所依赖（回合future完成 ⇔ load完成），任何
-                        // 「完成后再dispatch」的形态都晚于挂死点。回合出口（游走完毕、上游等待之前）
-                        // 是executor能统一承接注册的唯一确定性缝隙，错过则load永无调度来源
-                        dispatchAll(env.getGraphQLExecutionContext());
-                        FutureHelper.bindResult(ret, promise);
-                    } catch (Throwable e) {
-                        promise.completeExceptionally(e);
-                    }
-                });
-            } catch (Throwable e) {
-                // context 已关闭等窗口不可进入场景：异常终态而非静默挂起（rule 24）
-                promise.completeExceptionally(e);
+        // plan 2572 Phase 5：包络收敛到 ContextProvider.whenCompleteInContextWindow（窗口载体与
+        // dispatchAll 缝隙语义不变，窗口安全性论证见 thenFetchNext 注释）
+        ContextProvider.whenCompleteInContextWindow(future, context, (opResult, err) -> {
+            if (err != null) {
+                promise.completeExceptionally(err);
+                return;
             }
-        });
+            if (opResult.isUseTry()) {
+                FutureHelper.bindResult(FutureHelper.toCompletionStage(opResult.getValue()), promise);
+                return;
+            }
+            env.setRoot(opResult.getValue());
+            CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(opResult.getValue(), env));
+            // P1-2.6-004：游走回合出口统一调度。fetchNext回合内注册的批量loader，其load
+            // future的完成被本回合返回的future所依赖（回合future完成 ⇔ load完成），任何
+            // 「完成后再dispatch」的形态都晚于挂死点。回合出口（游走完毕、上游等待之前）
+            // 是executor能统一承接注册的唯一确定性缝隙，错过则load永无调度来源
+            dispatchAll(env.getGraphQLExecutionContext());
+            FutureHelper.bindResult(ret, promise);
+        }, promise::completeExceptionally);
         return promise;
     }
 
@@ -184,28 +173,18 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         // （与 thenOnContext 同族的窗口原语，见 invokeOperation 出口泵同注释）。
         IContext context = env.getContext();
         CompletableFuture<Object> promise = new CompletableFuture<>();
-        future.whenComplete((v, err) -> {
-            try {
-                context.execute(() -> {
-                    try {
-                        if (err != null) {
-                            promise.completeExceptionally(err);
-                            return;
-                        }
-                        CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(v, env));
-                        // P1-2.6-004：游走回合出口统一调度（同invokeOperation处说明）——嵌套异步字段
-                        // 与批量loader下游的注册发生在本接缝的游走回合内
-                        dispatchAll(env.getGraphQLExecutionContext());
-                        FutureHelper.bindResult(ret, promise);
-                    } catch (Throwable e) {
-                        promise.completeExceptionally(e);
-                    }
-                });
-            } catch (Throwable e) {
-                // context 已关闭等窗口不可进入场景：异常终态而非静默挂起（rule 24）
-                promise.completeExceptionally(e);
+        // plan 2572 Phase 5：包络收敛（同 invokeOperation 处说明）；窗口载体与 dispatchAll 缝隙不变
+        ContextProvider.whenCompleteInContextWindow(future, context, (v, err) -> {
+            if (err != null) {
+                promise.completeExceptionally(err);
+                return;
             }
-        });
+            CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(v, env));
+            // P1-2.6-004：游走回合出口统一调度（同invokeOperation处说明）——嵌套异步字段
+            // 与批量loader下游的注册发生在本接缝的游走回合内
+            dispatchAll(env.getGraphQLExecutionContext());
+            FutureHelper.bindResult(ret, promise);
+        }, promise::completeExceptionally);
         return promise;
     }
 

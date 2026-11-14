@@ -59,16 +59,20 @@ public class ReplicaChannel {
     /**
      * 记录一次获取连接失败。连续失败达到threshold进入冷却；半开探测失败立即重新冷却（不再累积计数）
      */
+    /**
+     * plan 2572 P4：now 与 cooldownUntil 为单调纳秒域；cooldownMillis 毫秒口径入参换算。
+     */
     public synchronized void recordFailure(int threshold, long cooldownMillis, long now) {
+        long cooldownNanos = java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(cooldownMillis);
         if (cooldownUntil > 0 && now >= cooldownUntil) {
             // 半开探测失败：重新进入冷却
-            cooldownUntil = now + cooldownMillis;
+            cooldownUntil = now + cooldownNanos;
             consecutiveFailures = 0;
             return;
         }
         consecutiveFailures++;
         if (threshold > 0 && consecutiveFailures >= threshold) {
-            cooldownUntil = now + cooldownMillis;
+            cooldownUntil = now + cooldownNanos;
             consecutiveFailures = 0;
         }
     }
@@ -83,7 +87,8 @@ public class ReplicaChannel {
     public String describe(long now) {
         StringBuilder sb = new StringBuilder(name);
         if (isCooling(now)) {
-            sb.append(":cooling(retryAfterMs=").append(cooldownUntil - now).append(')');
+            sb.append(":cooling(retryAfterMs=")
+                    .append(java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(cooldownUntil - now)).append(')');
         } else if (isHalfOpen(now)) {
             sb.append(":half-open");
         } else {

@@ -46,6 +46,10 @@ public class SimpleRpcClient implements IRpcService, AutoCloseable {
     private volatile Runnable onChannelOpen;
     private volatile Runnable onChannelClose;
 
+    // plan 2572 Phase 2：close 时回调 factory 摘除登记——长寿 factory 反复 newInstance 时
+    // 登记表不因正常关闭累积（兜底表自身变泄漏源的半边缺口）。volatile 保证 close 与 destroy 竞态可见。
+    private volatile Runnable onCloseCallback;
+
     public SimpleRpcClient(String serviceName, ICommandClient client,
                            Consumer<ApiResponse<?>> noticeReceiver, IScheduledExecutor timer) {
         this.serviceName = serviceName;
@@ -120,7 +124,18 @@ public class SimpleRpcClient implements IRpcService, AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        client.close();
+        try {
+            client.close();
+        } finally {
+            Runnable cb = onCloseCallback;
+            if (cb != null)
+                cb.run();
+        }
+    }
+
+    /** plan 2572 Phase 2：factory 注入的登记摘除回调（close 时调用，须幂等）。 */
+    public void setOnCloseCallback(Runnable onCloseCallback) {
+        this.onCloseCallback = onCloseCallback;
     }
 
     @Override

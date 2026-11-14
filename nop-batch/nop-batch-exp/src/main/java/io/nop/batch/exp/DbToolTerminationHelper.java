@@ -7,8 +7,10 @@
  */
 package io.nop.batch.exp;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.ThreadPoolStats;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +39,9 @@ public final class DbToolTerminationHelper {
      * @return true 表示观察到已停（或池无 stats / 被中断），false 表示超时后仍有未停任务
      */
     public static boolean waitTerminated(IThreadPoolExecutor executor, String timeoutLogKey, long timeoutMillis) {
-        long deadline = System.currentTimeMillis() + timeoutMillis;
-        while (System.currentTimeMillis() < deadline) {
+        // plan 2572 P4：单调时钟 deadline——墙钟回拨会延长等待、前跳提前超时
+        long deadline = CoreMetrics.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+        while (CoreMetrics.nanoTime() < deadline) {
             ThreadPoolStats stats = executor.stats();
             if (stats == null || (stats.getActiveCount() <= 0 && stats.getQueueSize() <= 0))
                 return true;

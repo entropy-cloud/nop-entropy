@@ -268,6 +268,8 @@ public class ShardFanoutEngine {
                               List<Object> params, LongRangeBean range, Function<? super IDataSet, T> callback) {
         int maxRows = ConfigShardSelector.getFanoutMaxRows();
         List<ShardSelection> shards = plan.getShards();
+        // plan 2572 P4 豁免登记：仅诊断日志耗时（logSummary/trace cost），无判定语义；
+        // 豁免先例 JobWorkerScannerImpl:377（JVM 墙钟诊断用途）
         long startMillis = System.currentTimeMillis();
 
         List<List<IDataRow>> shardRows = new ArrayList<>(shards.size());
@@ -301,7 +303,7 @@ public class ShardFanoutEngine {
             shardRows.add(rows);
         }
 
-        long mergeStart = System.currentTimeMillis();
+        long mergeStart = System.currentTimeMillis(); // 豁免同上（诊断耗时）
         IDataSet merged = merge(compiled, shardRows, range);
         long cost = System.currentTimeMillis() - startMillis;
         if (LOG.isTraceEnabled())

@@ -1,6 +1,7 @@
 package io.nop.rpc.core.flowcontrol;
 
 import io.nop.api.core.exceptions.NopException;
+import java.lang.reflect.Field;
 import io.nop.rpc.api.flowcontrol.FlowControlEntry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -74,5 +75,27 @@ public class TestDefaultFlowControlRunner {
         String ret = runner.runAsync(entry(), () -> java.util.concurrent.CompletableFuture.completedStage("ok"))
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
         assertEquals("ok", ret);
+    }
+    /**
+     * plan 2572 Phase 3 钉：桶缓存有界——maximumSize=1000 + expireAfterAccess(1h)，
+     * 外部输入驱动的 resource 键空间不撑大内存（对齐 gateway 先例有界形态）。
+     * 结构钉：字段类型必须是 LocalCache（Caffeine 载体），不允许退回裸 ConcurrentHashMap。
+     */
+    @Test
+    public void pin2572_bucketsMustBeBoundedLocalCache() throws Exception {
+        Field f = DefaultFlowControlRunner.class.getDeclaredField("buckets");
+        assertTrue(io.nop.commons.cache.LocalCache.class.isAssignableFrom(f.getType()),
+                "buckets must be LocalCache (bounded), got: " + f.getType());
+
+        // 行为钉：大量不同 resource 键消耗后桶缓存仍正常限流（驱逐重建语义无损）
+        DefaultFlowControlRunner runner = new DefaultFlowControlRunner(1000);
+        for (int i = 0; i < 20; i++) {
+            FlowControlEntry e = new FlowControlEntry();
+            e.setResourceType("test");
+            e.setResource("res-" + i);
+            assertEquals("ok", runner.run(e, () -> "ok"));
+        }
+        assertEquals("ok", runner.run(entry(), () -> "ok"),
+                "bounded cache must not break rate limiting behavior");
     }
 }

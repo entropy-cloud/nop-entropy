@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestReadWriteRoutingDataSource {
 
     // 可控时钟（测试覆写currentTimeMillis读取）
-    final ThreadLocal<Long> fakeNow = ThreadLocal.withInitial(() -> 0L);
+    final ThreadLocal<Long> fakeNow = ThreadLocal.withInitial(() -> 0L); // ns 域（plan 2572 P4）
 
     /**
      * 可编程失败桩：前failuresBeforeSuccess次getConnection抛SQLException，之后成功（返回null连接，
@@ -124,7 +124,7 @@ public class TestReadWriteRoutingDataSource {
     private ReadWriteRoutingDataSource newFakeClockRouting(StubDataSource write, StubDataSource... reads) {
         ReadWriteRoutingDataSource ds = new ReadWriteRoutingDataSource() {
             @Override
-            protected long currentTimeMillis() {
+            protected long monoNanos() {
                 return fakeNow.get();
             }
         };
@@ -303,7 +303,7 @@ public class TestReadWriteRoutingDataSource {
         ReadWriteRoutingDataSource routing = newFakeClockRouting(write, r1, r2);
         routing.setReplicaFailThreshold(2);
         routing.setReplicaCooldownSeconds(30);
-        fakeNow.set(1_000_000L);
+        fakeNow.set(1000000000000L);
 
         for (int i = 0; i < 3; i++) {
             ReadWriteHint.runWithReplica(() -> {
@@ -332,7 +332,7 @@ public class TestReadWriteRoutingDataSource {
         ReadWriteRoutingDataSource routing = newFakeClockRouting(write, r1, r2);
         routing.setReplicaFailThreshold(2);
         routing.setReplicaCooldownSeconds(30);
-        fakeNow.set(2_000_000L);
+        fakeNow.set(2000000000000L);
 
         // 前两次调用：每台各累积1次失败，fail-over到最后一台仍失败，显式报错（不回退主库）
         for (int i = 0; i < 2; i++) {
@@ -377,7 +377,7 @@ public class TestReadWriteRoutingDataSource {
         routing.setReplicaCooldownSeconds(30);
         // 固定尝试顺序为注册顺序（r1优先），使半开探测行为可确定性断言
         routing.setLoadBalancer(candidates -> candidates);
-        fakeNow.set(3_000_000L);
+        fakeNow.set(3000000000000L);
 
         // 第一次：r1失败立即冷却，fail-over到r2成功
         ReadWriteHint.runWithReplica(() -> {
@@ -394,11 +394,11 @@ public class TestReadWriteRoutingDataSource {
         // 冷却期内r1不可选
         ReplicaChannel ch1 = routing.getReplicas().get(0);
         assertEquals("r1", ch1.getName());
-        assertTrue(ch1.isCooling(3_000_100L));
+        assertTrue(ch1.isCooling(3_000_100_000_000L));
 
         // 冷却期满：半开。探测失败（r1仍在失败态）→ 重新冷却
-        fakeNow.set(3_030_001L);
-        assertTrue(ch1.isHalfOpen(3_030_001L));
+        fakeNow.set(3030001000000L);
+        assertTrue(ch1.isHalfOpen(3_030_001_000_000L));
         ReadWriteHint.runWithReplica(() -> {
             try {
                 routing.getConnection();
@@ -408,12 +408,12 @@ public class TestReadWriteRoutingDataSource {
             return null;
         });
         assertEquals(2, r1.calls);
-        assertTrue(ch1.isCooling(3_030_002L), "failed half-open probe must re-cool");
+        assertTrue(ch1.isCooling(3_030_002_000_000L), "failed half-open probe must re-cool");
 
         // 冷却期满：半开。探测成功 → 恢复
         r1.failuresBeforeSuccess = 0;
-        fakeNow.set(3_060_002L);
-        assertFalse(ch1.isCooling(3_060_002L));
+        fakeNow.set(3060002000000L);
+        assertFalse(ch1.isCooling(3_060_002_000_000L));
         ReadWriteHint.runWithReplica(() -> {
             try {
                 routing.getConnection();
@@ -423,15 +423,16 @@ public class TestReadWriteRoutingDataSource {
             return null;
         });
         assertEquals(3, r1.calls);
-        assertFalse(ch1.isCooling(3_060_003L));
-        assertFalse(ch1.isHalfOpen(3_060_003L), "successful probe must fully recover the replica");
+        assertFalse(ch1.isCooling(3_060_003_000_000L));
+        assertFalse(ch1.isHalfOpen(3_060_003_000_000L), "successful probe must fully recover the replica");
     }
 
     @Test
     public void testReplicaChannelStateMachine() {
         StubDataSource stub = new StubDataSource("ch");
         ReplicaChannel ch = new ReplicaChannel("ch", stub);
-        long t0 = 10_000L;
+        // plan 2572 P4：ns 域（ms*1e6）
+        long t0 = 10_000_000_000L;
 
         assertFalse(ch.isCooling(t0));
         assertFalse(ch.isHalfOpen(t0));
@@ -448,13 +449,13 @@ public class TestReadWriteRoutingDataSource {
         assertTrue(ch.describe(t0).contains("cooling"));
 
         // 冷却期满半开
-        assertTrue(ch.isHalfOpen(t0 + 5_000L));
+        assertTrue(ch.isHalfOpen(t0 + 5_000_000_000L));
 
         // 半开探测失败 → 重新冷却，不再累积计数
-        ch.recordFailure(3, 5_000L, t0 + 5_000L);
+        ch.recordFailure(3, 5_000L, t0 + 5_000_000_000L);
         assertTrue(ch.isCooling(t0 + 5_000L));
-        assertTrue(ch.isCooling(t0 + 9_999L));
-        assertFalse(ch.isCooling(t0 + 10_000L));
+        assertTrue(ch.isCooling(t0 + 9_999_000_000L));
+        assertFalse(ch.isCooling(t0 + 10_000_000_000L));
 
         // 半开探测成功 → 完全恢复
         ch.recordSuccess();

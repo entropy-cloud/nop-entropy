@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.fetcher;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.graphql.core.IDataFetcher;
@@ -38,25 +39,16 @@ public class TransformFetcher implements IDataFetcher {
             // 上游已完成时同样不逃逸到注册线程的空/残留 context
             IContext context = env.getContext();
             CompletableFuture<Object> promise = new CompletableFuture<>();
-            ((CompletionStage<?>) value).whenComplete((v, err) -> {
-                try {
-                    context.execute(() -> {
-                        try {
-                            if (err != null) {
-                                promise.completeExceptionally(err);
-                                return;
-                            }
-                            FutureHelper.bindResult(FutureHelper.success(transformer.apply(v, env)),
-                                    promise);
-                        } catch (Throwable e) {
-                            promise.completeExceptionally(e);
+            // plan 2572 Phase 5：包络收敛到 ContextProvider.whenCompleteInContextWindow（窗口载体不变）
+            ContextProvider.whenCompleteInContextWindow((CompletionStage<?>) value, context,
+                    (v, err) -> {
+                        if (err != null) {
+                            promise.completeExceptionally(err);
+                            return;
                         }
-                    });
-                } catch (Throwable e) {
-                    // context 已关闭等窗口不可进入场景：异常终态而非静默挂起（rule 24）
-                    promise.completeExceptionally(e);
-                }
-            });
+                        FutureHelper.bindResult(FutureHelper.success(transformer.apply(v, env)),
+                                promise);
+                    }, promise::completeExceptionally);
             return promise;
         } else {
             return transformer.apply(value, env);

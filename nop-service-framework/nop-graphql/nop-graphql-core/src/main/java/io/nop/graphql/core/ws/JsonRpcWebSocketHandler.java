@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.ws;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ErrorBean;
@@ -96,8 +97,9 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * 2.3-C8-009（plan 2551 裁定 J）：会话活性记账——lastPongAt（pong 记账，原
      * METHOD_PONG 空分支）+ 连续发送失败计数（连续 3 次即断连，不再仅 WARN）。
      * volatile：keepAlive 扫描线程与消息线程跨线程读写。
+     * plan 2572 P4：单调域（域内仅做差值 idle 判定；墙钟回拨会误触发/漏触发 idle 断连）。
      */
-    volatile long lastPongAt = System.currentTimeMillis();
+    volatile long lastPongAt = CoreMetrics.nanoTime();
     volatile int consecutiveSendFailures;
     volatile long lastKeepAliveAt;
 
@@ -292,7 +294,7 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                     break;
                 case METHOD_PONG:
                     // 2.3-C8-009（plan 2551 裁定 J②）：pong 记账——原空分支使 idle 超时判定无依据
-                    lastPongAt = System.currentTimeMillis();
+                    lastPongAt = CoreMetrics.nanoTime();
                     break;
                 case METHOD_UNSUBSCRIBE:
                     handleUnsubscribe(request);
@@ -574,14 +576,14 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * site-level Throwable guard (R1-01 insulation) is preserved over the enqueue path.
      */
     protected void sendKeepAlive() {
-        lastKeepAliveAt = System.currentTimeMillis();
+        lastKeepAliveAt = CoreMetrics.nanoTime();
         // 2.3-C8-009（plan 2551 裁定 J③）：idle 超时判定——超过阈值（键
         // nop.graphql.ws.idle-timeout，缺省 120s；≤0=关档）未见 pong 即主动断开
         // （复用 onClose 清理路径：订阅取消+注册表清扫）。共享扫描线程只做判定，不阻塞。
         Integer idleTimeoutSec = GraphQLConfigs.CFG_GRAPHQL_WS_IDLE_TIMEOUT_SECONDS.get();
         if (idleTimeoutSec != null && idleTimeoutSec > 0
                 && lastPongAt > 0
-                && lastKeepAliveAt - lastPongAt > idleTimeoutSec * 1000L) {
+                && lastKeepAliveAt - lastPongAt > TimeUnit.SECONDS.toNanos(idleTimeoutSec)) {
             LOG.warn("nop.websocket.idle-timeout:session={},idleMs={}", session,
                     lastKeepAliveAt - lastPongAt);
             closeSession();

@@ -7,6 +7,7 @@
  */
 package io.nop.config.impl;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.config.IConfigChangeListener;
 import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.util.Guard;
@@ -80,7 +81,7 @@ public class ChangeSubscriptions {
         // 先有可观测信号（>1s WARN）。串行内联保持（executor 单线程契约 + 通知顺序）；
         // 跨订阅通知顺序 = 注册收集序（LinkedHashSet，合并修订 2026-11-13：pin3 注册序契约钉确立，原 HashSet hash 序为不确定性形态）。
         for (IConfigChangeListener listener : triggered) {
-            long begin = System.nanoTime();
+            long begin = CoreMetrics.nanoTime(); // plan 2572 P4：时钟口径统一
             try {
                 listener.onConfigChange(provider, oldValues);
             } catch (Exception e) {
@@ -89,7 +90,7 @@ public class ChangeSubscriptions {
                 LOG.error("nop.config.trigger-change-listener-fail:listener={}",
                         listener.getClass().getName(), e);
             } finally {
-                long costMs = (System.nanoTime() - begin) / 1_000_000L;
+                long costMs = (CoreMetrics.nanoTime() - begin) / 1_000_000L;
                 if (costMs > 1000) {
                     LOG.warn("nop.warn.config.listener-slow:listener={},costMs={}",
                             listener.getClass().getName(), costMs);

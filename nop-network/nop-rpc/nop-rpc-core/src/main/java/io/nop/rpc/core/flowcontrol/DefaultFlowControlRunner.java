@@ -2,15 +2,15 @@ package io.nop.rpc.core.flowcontrol;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.cache.CacheConfig;
+import io.nop.commons.cache.LocalCache;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.rpc.api.flowcontrol.FlowControlEntry;
 import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import static io.nop.rpc.core.RpcErrors.ERR_RPC_FLOW_CONTROL_REJECT;
@@ -28,8 +28,16 @@ public class DefaultFlowControlRunner implements IFlowControlRunner {
 
     private int maxWaitMillis = 0;
 
-    /** 2.3-C8-008：resource 维度分桶（resourceType:resource → IRateLimiter），懒创建 */
-    private final Map<String, IRateLimiter> buckets = new ConcurrentHashMap<>();
+    /**
+     * 2.3-C8-008：resource 维度分桶（resourceType:resource → IRateLimiter），懒创建。
+     * plan 2572 Phase 3：{@link LocalCache}（Caffeine）maximumSize 上限 + expireAfterAccess 淘汰
+     * （对齐 gateway 先例 AiRateLimitGatewayInterceptor.buckets 的有界形态——原 ConcurrentHashMap
+     * 懒创建无淘汰，键空间为外部输入驱动的 resource 组合，长期运行可无界增长）。
+     * TTL 取 1 小时（远大于限流语义的桶静置窗口：空闲桶令牌已回满，驱逐后重建语义无损）。
+     */
+    private final LocalCache<String, IRateLimiter> buckets = LocalCache.newCache(
+            "rpc-flow-control-buckets",
+            CacheConfig.newConfig(1000).expireAfterAccess(java.time.Duration.ofHours(1)));
 
     public DefaultFlowControlRunner() {
     }

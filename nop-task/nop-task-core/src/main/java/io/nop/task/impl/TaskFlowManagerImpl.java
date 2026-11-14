@@ -1,5 +1,7 @@
 package io.nop.task.impl;
 
+import io.nop.api.core.time.CoreMetrics;
+import java.util.concurrent.TimeUnit;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.nop.api.core.exceptions.NopException;
@@ -90,7 +92,7 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
         GlobalGate(T gate) {
             this.gate = gate;
-            this.lastAccess = System.currentTimeMillis();
+            this.lastAccess = CoreMetrics.nanoTime(); // plan 2572 P4：lastAccess 单调域（墙钟前跳会提前逐出在用限流器=配额重置绕过）
         }
     }
 
@@ -256,13 +258,13 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
             // plan 2514 MA-08（裁定⑤）：逐出执行位 = 同 key compute 内联（CHM bin 锁串行，
             // 无 check-then-act 窗），引用一致复核（以 existing 引用判定后整体替换），无独立清扫位
             IRateLimiter limiter = globalRateLimiters.compute(cacheKey, (k, existing) -> {
-                long now = System.currentTimeMillis();
+                long now = CoreMetrics.nanoTime();
                 if (existing != null) {
-                    long idleMs = now - existing.lastAccess;
-                    if (idleMs >= CFG_TASK_GLOBAL_GATE_IDLE_EVICT_MS.get()) {
+                    long idleNs = now - existing.lastAccess;
+                    if (idleNs >= TimeUnit.MILLISECONDS.toNanos(CFG_TASK_GLOBAL_GATE_IDLE_EVICT_MS.get())) {
                         // rate limiter 无在途持有者语义（acquire 即时），空闲超阈即可逐出
                         LOG.info("nop.task.global-gate-evicted:registry=rate-limiter,cacheKey={},idleMs={}",
-                                k, idleMs);
+                                k, TimeUnit.NANOSECONDS.toMillis(idleNs));
                         return new GlobalGate<>(new DefaultRateLimiter(requestPerSecond));
                     }
                     existing.lastAccess = now;
@@ -290,16 +292,16 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     public ISemaphore getSemaphore(ITaskRuntime taskRt, String key, int maxPermits, boolean global) {
         if (global) {
             GlobalGate<ISemaphore> gate = globalSemaphores.compute(taskRt.getTaskName() + ":" + key, (k, existing) -> {
-                long now = System.currentTimeMillis();
+                long now = CoreMetrics.nanoTime();
                 if (existing != null) {
-                    long idleMs = now - existing.lastAccess;
+                    long idleNs = now - existing.lastAccess;
                     ISemaphore sem = existing.gate;
                     // plan 2514 MA-08 逐出判据（permit 池完整性约束）：空闲超阈 且 permits 满额
                     // （无在途持有者，availablePermits==maxPermits）——在用 entry 零逐出
                     boolean permitsFull = sem.availablePermits() >= sem.maxPermits();
-                    if (idleMs >= CFG_TASK_GLOBAL_GATE_IDLE_EVICT_MS.get() && permitsFull) {
+                    if (idleNs >= TimeUnit.MILLISECONDS.toNanos(CFG_TASK_GLOBAL_GATE_IDLE_EVICT_MS.get()) && permitsFull) {
                         LOG.info("nop.task.global-gate-evicted:registry=semaphore,cacheKey={},idleMs={}",
-                                k, idleMs);
+                                k, TimeUnit.NANOSECONDS.toMillis(idleNs));
                         return new GlobalGate<>(new DefaultSemaphore(maxPermits));
                     }
                     existing.lastAccess = now;
@@ -330,9 +332,9 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
      * 与 2514 键空间治理同构矛盾。
      */
     private void warnConfigFrozen(AtomicLong lastWarnAt, String registry, String cacheKey, String detail) {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.nanoTime();
         long last = lastWarnAt.get();
-        if (now - last >= CAP_WARN_INTERVAL_MS && lastWarnAt.compareAndSet(last, now)) {
+        if (now - last >= TimeUnit.MILLISECONDS.toNanos(CAP_WARN_INTERVAL_MS) && lastWarnAt.compareAndSet(last, now)) {
             LOG.warn("nop.task.global-gate-config-frozen:registry={},cacheKey={},{}; "
                             + "config frozen (global gate params require restart to take effect) "
                             + "-- WARN throttled to once per {}ms (plan 2541 W-03 MA-10)",
@@ -347,9 +349,9 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
      */
     private void warnIfOverCap(AtomicLong lastWarnAt, int cap, int currentSize, String registryName) {
         if (cap > 0 && currentSize >= cap) {
-            long now = System.currentTimeMillis();
+            long now = CoreMetrics.nanoTime();
             long last = lastWarnAt.get();
-            if (now - last >= CAP_WARN_INTERVAL_MS && lastWarnAt.compareAndSet(last, now)) {
+            if (now - last >= TimeUnit.MILLISECONDS.toNanos(CAP_WARN_INTERVAL_MS) && lastWarnAt.compareAndSet(last, now)) {
                 LOG.warn("nop.task.global-gate-registry-over-cap:registry={},size={},configuredCap={}; "
                         + "idle eviction converges on revisit only (plan 2514 MA-08) — monitor key cardinality",
                         registryName, currentSize, cap);
