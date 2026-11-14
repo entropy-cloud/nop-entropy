@@ -284,8 +284,10 @@ public class TestDebeziumMessageSource {
         //（合并修订 2026-11-13：模块全量跑下后段测试的 GC/JIT 压力曾使立即断言假红）
         awaitUntil("engine start must flip the started flag", source::isStarted);
         assertNotNull(source.created, "the wrapper must come from createEngineWrapper");
-        assertTrue(source.created.throwingEngine.ran.get(),
-                "the injected engine body must actually have run on the carrier");
+        // 载体线程异步执行注入引擎体——事件驱动等待（合并修订 2026-11-14：started 翻转
+        // 先于载体 run 落账,立即断言为竞态假红）
+        awaitUntil("the injected engine body must actually have run on the carrier",
+                () -> source.created.throwingEngine.ran.get());
 
         awaitUntil("a terminal engine death must flip source.isStarted() (MA-02 ③: no lying)",
                 () -> !source.isStarted());
