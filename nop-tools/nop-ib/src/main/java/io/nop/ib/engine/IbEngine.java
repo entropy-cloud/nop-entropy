@@ -30,15 +30,26 @@ public final class IbEngine {
         this.unitStore = new UnitIndexStore(repoRoot);
     }
 
+    /**
+     * Repo root discovery is Maven-generic (design 06 generalization): any project
+     * with a pom.xml. The mvnw/.mvn markers take precedence when present (they
+     * pin the nop-entropy worktree layout and mvnq integration).
+     */
     static Path discoverRepoRoot(Path start) {
         Path current = start.toAbsolutePath().normalize();
+        Path firstPom = null;
         while (current != null) {
             if (Files.isRegularFile(current.resolve("mvnw"))
                     && Files.isDirectory(current.resolve(".mvn")))
                 return current;
+            if (firstPom == null && Files.isRegularFile(current.resolve("pom.xml")))
+                firstPom = current;
             current = current.getParent();
         }
-        throw new IllegalArgumentException("not inside a nop-entropy worktree (no mvnw/.mvn): " + start);
+        if (firstPom != null)
+            return firstPom;
+        throw new IllegalArgumentException(
+                "not inside a Maven project (no mvnw/.mvn or pom.xml): " + start);
     }
 
     public Path getRepoRoot() {

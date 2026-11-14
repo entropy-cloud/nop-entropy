@@ -35,6 +35,8 @@ public final class JUnitWorkerPool {
     private final int maxClassesPerWorker;
     private final List<String> warnings = new ArrayList<>();
     private List<String> cmdPrefix;
+    private final java.util.Set<Worker> created =
+            java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<>());
 
     public JUnitWorkerPool(IbModel model, IbModule module,
                            ClasspathMaterializer.Materialized classpath,
@@ -155,7 +157,8 @@ public final class JUnitWorkerPool {
             }
         }
         pool.shutdown();
-        for (Worker w : idle)
+        // leak-proof: kill EVERY spawned worker (idle + in-flight + crash-quiet)
+        for (Worker w : created)
             w.kill();
 
         if (firstError.get() != null) {
@@ -222,7 +225,16 @@ public final class JUnitWorkerPool {
     private final class Worker {
         final Process process;
         final java.io.BufferedWriter stdin;
-        final java.io.BufferedReader stdout;
+        { 
+            // registry for leak-proof teardown: every spawned worker is killed at
+            // run() end whether idle, running, or crashed-quietly
+            synchronized (JUnitWorkerPool.this) {
+                created.add(this);
+            }
+        }
+        /** protocol lines pushed by the stdout pump; never blocks the worker side */
+        final java.util.concurrent.BlockingQueue<String> protocol =
+                new LinkedBlockingQueue<>();
         volatile boolean dead;
         int classesRun;
 
@@ -234,8 +246,25 @@ public final class JUnitWorkerPool {
                 process = pb.start();
                 stdin = new java.io.BufferedWriter(new java.io.OutputStreamWriter(
                         process.getOutputStream(), StandardCharsets.UTF_8));
-                stdout = new java.io.BufferedReader(new java.io.InputStreamReader(
+                java.io.BufferedReader stdout = new java.io.BufferedReader(new java.io.InputStreamReader(
                         process.getInputStream(), StandardCharsets.UTF_8));
+                // stdout pump: test-code logging MUST be consumed continuously or the
+                // 64KB pipe fills and the worker blocks forever on System.out.write
+                Thread pump = new Thread(() -> {
+                    try {
+                        String line;
+                        while ((line = stdout.readLine()) != null) {
+                            if (line.startsWith(IbJUnitRunner.PROTOCOL_PREFIX))
+                                protocol.offer(line.substring(
+                                        IbJUnitRunner.PROTOCOL_PREFIX.length()).trim());
+                        }
+                        dead = true;
+                    } catch (IOException e) {
+                        dead = true;
+                    }
+                }, "nop-ib-worker-out");
+                pump.setDaemon(true);
+                pump.start();
                 Thread t = new Thread(() -> {
                     try (var r = process.errorReader(StandardCharsets.UTF_8)) {
                         while (r.readLine() != null) {
@@ -256,28 +285,19 @@ public final class JUnitWorkerPool {
             stdin.write("{\"cmd\":\"run\",\"class\":" + JsonOut.write(cls) + "}");
             stdin.newLine();
             stdin.flush();
-            // watchdog: a hung class gets its worker killed -> EOF -> differential
-            // rerun path; it can never block the module
-            java.util.concurrent.ScheduledFuture<?> watchdog =
-                    java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
-                        Thread t = new Thread(r, "nop-ib-worker-watchdog");
-                        t.setDaemon(true);
-                        return t;
-                    }).schedule(() -> {
+            // watchdog: a hung class gets its worker killed -> protocol EOF ->
+            // differential rerun path; it can never block the module
+            java.util.concurrent.ScheduledFuture<?> watchdog = WATCHDOG.schedule(() -> {
                         System.err.println("nop-ib worker watchdog: killing hung class " + cls);
                         kill();
                     }, forkTimeoutMs, TimeUnit.MILLISECONDS);
             try {
-                String line;
-                while ((line = stdout.readLine()) != null) {
-                    if (line.startsWith(IbJUnitRunner.PROTOCOL_PREFIX)) {
-                        String payload = line.substring(IbJUnitRunner.PROTOCOL_PREFIX.length()).trim();
-                        return JsonIn.asMapOrEmpty(JsonIn.silentParse(payload));
-                    }
-                    // non-protocol stdout: test-code logging, ignore
+                String line = protocol.poll(forkTimeoutMs + 30_000, TimeUnit.MILLISECONDS);
+                if (line == null) {
+                    dead = true;
+                    throw new IOException("worker timeout/EOF (crashed) on " + cls);
                 }
-                dead = true;
-                throw new IOException("worker EOF (crashed) on " + cls);
+                return JsonIn.asMapOrEmpty(JsonIn.silentParse(line));
             } finally {
                 watchdog.cancel(false);
             }
@@ -354,6 +374,17 @@ public final class JUnitWorkerPool {
 
     private static long forkTimeoutMs =
             Long.getLong("nop.ib.forkTimeoutSeconds", 300) * 1000;
+
+    /**
+     * Pool-level watchdog executor: creating one per runClass leaked a thread per
+     * class (43k classes = 43k parked threads) and froze the parent.
+     */
+    private static final java.util.concurrent.ScheduledExecutorService WATCHDOG =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "nop-ib-worker-watchdog");
+                t.setDaemon(true);
+                return t;
+            });
 
 
     static long timeOf(Map<String, Object> r) {

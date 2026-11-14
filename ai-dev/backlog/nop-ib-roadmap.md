@@ -88,7 +88,7 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 
 ### Wave 4.5 — JUnit worker 复用（设计 06）
 
-- 34. **[Feature]** 测试 worker JVM 复用与执行模型通用化：持久 worker + `TestEnvironmentResetter` SPI（通用层 properties 快照/Nop 层 `reinitialize()` 钩子）+ 差分重跑兜底 + 复用盈亏判据 + 模块间并行（设计 06）;per-class fork 降级为污染兜底: `planned` — deps: 25
+- 34. **[Feature]** 测试 worker JVM 复用与执行模型通用化：持久 worker + 反射契约 resetter（通用层 properties 快照/Nop 层 `reinitialize()` 钩子）+ 差分重跑兜底 + 模块间并行（设计 06）: `planned`（Phase 1/2/4 done 实测:G-B 切片 1671 tests 10.3s 反超 mvn 11.9s+失败集 parity+非 Nop 项目 E2E 跑通;Phase 3 G-C 全仓 sweep 尾段 L3 大模块兼容性卡点未解,plan wave6-worker-reuse in progress,不虚报） — deps: 25
 
 ### Wave 5 — L1/L3 扩张（触发式，非默认路线）
 

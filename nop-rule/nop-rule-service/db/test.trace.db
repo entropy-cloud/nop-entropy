@@ -1,0 +1,60 @@
+2026-11-14 13:43:12.490998+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:19.010891+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:26.054913+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:33.628601+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:41.337756+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:11.379019+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:17.617287+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:24.015265+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:31.404736+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:38.267148+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:17.012663+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:23.175582+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:29.675093+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:36.989813+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:43.573311+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:20.487979+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:26.994126+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:34.213449+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:42.039020+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:49.257958+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]

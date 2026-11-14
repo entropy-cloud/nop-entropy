@@ -155,6 +155,16 @@ public final class ModelRefresher {
         return byModule;
     }
 
+    /** bare mvn on PATH: the last fallback for plain Maven projects. */
+    static String mvnOnPath() {
+        for (String dir : System.getenv("PATH").split(":")) {
+            Path mvn = Path.of(dir, "mvn");
+            if (Files.isRegularFile(mvn))
+                return mvn.toString();
+        }
+        return null;
+    }
+
     private String runMaven(String... args) {
         Path mvnq = repoRoot.resolve("ai-dev/tools/mvnq");
         Path mvnw = repoRoot.resolve("mvnw");
@@ -164,8 +174,10 @@ public final class ModelRefresher {
             cmd.add(mvnq.toAbsolutePath().toString());
         } else if (Files.isRegularFile(mvnw)) {
             cmd.add(mvnw.toAbsolutePath().toString());
+        } else if (mvnOnPath() != null) {
+            cmd.add(mvnOnPath());
         } else {
-            throw new NopIbException("no mvnq or mvnw found under " + repoRoot);
+            throw new NopIbException("no mvnq/mvnw/mvn available under " + repoRoot);
         }
         for (String arg : args)
             cmd.add(arg);

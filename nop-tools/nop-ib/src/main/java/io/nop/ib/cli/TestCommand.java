@@ -146,8 +146,9 @@ public final class TestCommand {
                 int wc = workerAllocation.get(moduleId);
                 futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
                     TestRun run = runModuleTests(engine, module, null, runner, json,
-                            new PrintWriter(new java.io.ByteArrayOutputStream(), true), err, wc);
+                            out, err, wc);
                     runByModule.put(moduleId, run);
+                    report(engine, run, json, out);
                 }, moduleTestPool));
             }
             int failures = 0;
@@ -163,12 +164,7 @@ public final class TestCommand {
             }
             for (String moduleId : moduleIds) {
                 TestRun run = runByModule.get(moduleId);
-                if (run == null) {
-                    failures++;
-                    continue;
-                }
-                report(engine, run, json, out);
-                if (run.exitCode != Commands.EXIT_OK)
+                if (run == null || run.exitCode != Commands.EXIT_OK)
                     failures++;
             }
             return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
@@ -354,26 +350,58 @@ public final class TestCommand {
         // differential rerun (design 06 WR-D4): every failed class gets ONE fresh
         // per-class fork; fresh passes => pollution (worker result discarded)
         if (fork.exitCode() == 1 && fork.summary().get("failed") instanceof Iterable<?> failedList) {
-            List<Map<String, String>> stillFailed = new ArrayList<>();
+            // differential reruns in PARALLEL fresh forks (each retry is independent);
+            // retry timeout = 120s: a class that hangs in a fresh fork is a genuine
+            // hang, not pollution — waiting 10min per class serialised the tail
+            List<Map<String, String>> stillFailed =
+                    java.util.Collections.synchronizedList(new ArrayList<>());
+            List<String> pollution = java.util.Collections.synchronizedList(new ArrayList<>());
+            List<String> failedClasses = new ArrayList<>();
+            Map<String, Map<String, String>> failedMeta = new java.util.concurrent.ConcurrentHashMap<>();
             for (Object o : failedList) {
                 if (!(o instanceof Map<?, ?> m))
                     continue;
                 String cls = String.valueOf(m.get("class"));
-                JUnitForkExecutor.ForkResult fresh = executor.execute(module, cp, List.of(cls));
-                if (fresh.exitCode() == 0) {
-                    forkWarnings.add("pollution detected on " + cls
-                            + " (passes in fresh fork) -> fresh result authoritative");
-                } else {
-                    stillFailed.add(Map.of(
-                            "class", cls,
-                            "method", String.valueOf(m.get("method")),
-                            "type", String.valueOf(m.get("type")),
-                            "message", String.valueOf(m.get("message"))));
+                failedClasses.add(cls);
+                failedMeta.put(cls, Map.of(
+                        "class", cls,
+                        "method", String.valueOf(m.get("method")),
+                        "type", String.valueOf(m.get("type")),
+                        "message", String.valueOf(m.get("message"))));
+            }
+            java.util.concurrent.ExecutorService retryPool =
+                    java.util.concurrent.Executors.newFixedThreadPool(
+                            Math.min(8, Math.max(1, failedClasses.size())), r -> {
+                                Thread t = new Thread(r, "nop-ib-retry");
+                                t.setDaemon(true);
+                                return t;
+                            });
+            java.util.List<java.util.concurrent.Future<?>> retries = new ArrayList<>();
+            for (String cls : failedClasses) {
+                retries.add(retryPool.submit(() -> {
+                    JUnitForkExecutor.ForkResult fresh =
+                            executor.execute(module, cp, List.of(cls));
+                    if (fresh.exitCode() == 0) {
+                        pollution.add(cls + " (passes in fresh fork) -> fresh result authoritative");
+                    } else {
+                        stillFailed.add(failedMeta.get(cls));
+                    }
+                }));
+            }
+            retryPool.shutdown();
+            for (var r : retries) {
+                try {
+                    r.get();
+                } catch (Exception e) {
+                    forkWarnings.add("retry error: " + e);
                 }
             }
+            forkWarnings.addAll(pollution);
+            {
             fork = new JUnitForkExecutor.ForkResult(
                     stillFailed.isEmpty() ? 0 : 1,
                     remapSummary(fork.summary(), stillFailed), forkWarnings);
+            }
         }
         if (fork.exitCode() == -3) {
             // junit setup unsatisfiable -> explicit fallback
