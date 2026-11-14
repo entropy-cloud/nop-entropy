@@ -289,46 +289,13 @@ public final class ScopePlanner {
         boolean ownsTemplates = module.getBasedir() != null
                 && Files.isDirectory(model.resolve(module.getBasedir()).toPath())
                 && hasXgenTemplates(model.resolve(module.getBasedir()).toPath());
-        String level = module.capabilityLevel(hasAopArtifacts, ownsTemplates);
-        // check-only processors (error-prone et al.) do not generate code, but their
-        // annotation-processing ROUNDS have a product side effect: javac writes
-        // package-info.class for ANNOTATED package-info sources only during a
-        // processing round (spring-batch + JSpecify @NullMarked observation). When
-        // the fast path skips rounds, those class files diverge from Maven.
-        if ("L0".equals(level) && module.hasCheckOnlyProcessors()
-                && hasAnnotatedPackageInfo(model.resolve(module.getBasedir()).toPath()))
-            return "L2";
-        return level;
-    }
-
-    /** any src/main/java package-info.java declaring annotations before its
-     *  package clause. Text-level check; a false positive only costs a Maven
-     *  fallback (conservative direction). */
-    private boolean hasAnnotatedPackageInfo(Path basedir) {
-        Path src = basedir.resolve("src/main/java");
-        if (!Files.isDirectory(src))
-            return false;
-        try (var stream = Files.walk(src)) {
-            return stream.filter(p -> p.getFileName().toString().equals("package-info.java"))
-                    .anyMatch(p -> isAnnotatedPackageInfo(p));
-        } catch (Exception e) {
-            return false; // unreadable tree: not a fallback signal
-        }
-    }
-
-    private boolean isAnnotatedPackageInfo(Path file) {
-        try {
-            for (String line : Files.readAllLines(file)) {
-                String t = line.trim();
-                if (t.startsWith("package "))
-                    return false; // annotations must precede the package clause
-                if (t.startsWith("@"))
-                    return true;
-            }
-        } catch (Exception ignored) {
-            // unreadable source: treat as unannotated
-        }
-        return false;
+        // check-only processors (error-prone et al.) do NOT escalate to L2 anymore:
+        // their annotation-processing ROUNDS have a product side effect (javac
+        // writes package-info.class for annotated package-info sources only during
+        // rounds — spring-batch/@NullMarked), but the fast path now handles that
+        // itself via the RoundTriggerProcessor (IncrementalCompileExecutor), no
+        // Maven fallback needed
+        return module.capabilityLevel(hasAopArtifacts, ownsTemplates);
     }
 
     private boolean hasAopProducts(Path outputDir) {

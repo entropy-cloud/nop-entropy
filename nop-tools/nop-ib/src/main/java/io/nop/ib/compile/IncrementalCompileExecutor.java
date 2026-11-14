@@ -186,6 +186,14 @@ public final class IncrementalCompileExecutor {
             return;
         }
 
+        // javac writes package-info.class only for ANNOTATED package-info sources;
+        // Maven (error-prone rounds) also writes the unannotated ones — emit the
+        // missing synthetic form ourselves so fast-path products match Maven's
+        // set exactly (spring-batch parity observation)
+        int release = parseRelease(module.getCompileRelease());
+        PackageInfoEmitter.emitMissing(basedir.resolve("src/main/java"),
+                model.resolve(module.getOutputDir()).toPath(), release);
+
         // rescan products, diff ABI, persist the refreshed unit index
         List<Path> outputs = new ArrayList<>();
         outputs.add(model.resolve(module.getOutputDir()).toPath());
@@ -205,6 +213,17 @@ public final class IncrementalCompileExecutor {
         outcome.addCompiledModule(module.getArtifactId(), files.size(), abiChanged.size());
         unitStore.save(newIndex);
         loadedIndexes.put(module.getArtifactId(), newIndex);
+    }
+
+    private static int parseRelease(String release) {
+        if (release != null && !release.isBlank()) {
+            try {
+                return Integer.parseInt(release.trim());
+            } catch (NumberFormatException ignored) {
+                // non-numeric release (e.g. a version range): fall through
+            }
+        }
+        return Runtime.version().feature();
     }
 
     /** Top-level name + prefix sweep: nested Foo$* classes and synthesized products (I4). */
