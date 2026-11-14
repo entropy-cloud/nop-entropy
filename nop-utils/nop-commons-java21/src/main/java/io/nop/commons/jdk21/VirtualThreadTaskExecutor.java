@@ -42,7 +42,7 @@ public class VirtualThreadTaskExecutor implements IThreadPoolExecutor {
      */
     @Override
     public ThreadPoolStats stats() {
-        return ThreadPoolStats.ZERO;
+        return ThreadPoolStats.zero();
     }
 
     @Override

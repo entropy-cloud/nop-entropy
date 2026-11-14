@@ -126,6 +126,14 @@
 - **C 类**登记 watch-only。
 - 修复执行：`ai-dev/plans/2573-unpushed-review-confirmed-defects-fix.md`（draft，等待批准执行）。
 
+## Addendum 2：nop-kernel gap 补齐复查（2026-11-14 晚，用户质询触发）
+
+对第一轮通读未覆盖的 4 个 nop-kernel 区段（~800 行）补齐复查：
+
+- **新发现缺陷（已修复）**：`ThreadPoolStats.ZERO` 为带 public setter 的 @DataBean 共享可变静态常量，`VirtualThreadTaskExecutor.stats()` 直接返回——任何调用方 setter 即污染全局。修复 = 改 `zero()` 工厂每次新实例 + 回归钉（`TestVirtualThreadStatsFreshInstance`，变异探针先红后绿）。
+- **其余全部通过**：ThreadPoolConfig 死旋钮删除（grep 验证全仓零非测试消费方）；LocalCache（meter 句柄 destroy 注销对称 / destroy 先 invalidateAll 触发 destroyOnRemove / getAllAsync javadoc 按实况登记实现分叉）；nop-core 小文件块（ErrorMessageManager this-escape 静态块修复 / DefaultTaskExecutionQueue bindCancel 实参反接修复 + 计数分流 + waitForAllTasks 单调时钟 / VirtualFileSystem registerInstance 先发布后销毁 / 其余 volatile 发布）；nop-xlang（XLangSemantics CLASS_MODELS 占位-完成模式与 ResourceComponentManager 同构、STATIC_METHODS 新缓存）；XplLibTagCompiler 编译单飞重构（状态机推演通过）；batch.xdef/office xdef 属性扩展与模型代码一致。
+- **watch-only 观察项（本轮新增）**：①`XplLibTagCompiler.compile` 的 `awaitCompiledByOther` 分支结构性不可达（compiled=true 与 compiling=true 同临界区连续置位，compiled 先检命中即 return——防御性保留无害）；②该处 deadline 用 `currentTimeMillis` 墙钟而 ResourceCacheEntry 同族等待点用 nanoTime（口径不统一，60s 兜底场景影响极小）；③`XLangSemantics.STATIC_METHODS` 与既有 `CLASS_MODELS` 同样无热加载失效（非新增类别）；④`LocalCache.registerMetrics` 同名 meter 去重存在极窄并发窗（同名缓存并发构造场景罕见）。
+
 ## Addendum：收口审计追加发现（X-1，2026-11-14 晚）
 
 - **X-1【Major·2573 收口审计新发现】JWK 成功速率窗被旧 future 无限滑动（密钥轮换自锁死）**：`JWKPublicKeyLocator.getPublicKey` 的 `!allowed` 分支（plan 2551 单飞改写引入）仍把 fetch 指向上次**已完成**的成功拉取；等待段以其成功结果把 `lastRequestTime` 刷新到本次请求时刻——未知 kid 请求到达间隔 < 60s 时窗口无限滑动，JWKS 永不重拉（IdP 密钥轮换后新 kid 持续到达 = 认证持续失败的自维持锁死；`lookupCachedKey` TTL 同源滑动，旧钥永不过期）。origin/master 无此行为（lastRequestTime 仅在真正 sendRequest 时推进）= 未推送批次回归。本评审 A1 检查覆盖了失败路径限流但未覆盖成功路径滑动窗——由 plan 2573 独立收口审计（jshell + ManualClock 实测）发现并已随 plan 2573 修复（三分支重排：窗内无在飞 → 不消费旧 future；钉 = pin_e，变异探针先红后绿）。
