@@ -19,7 +19,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -162,13 +164,33 @@ public final class TestCommand {
             // surefire forkCount; small slice -> budget/slots per module
             java.util.concurrent.Semaphore workerPermits = new java.util.concurrent.Semaphore(WORKER_BUDGET);
             int fairShare = Math.max(1, WORKER_BUDGET / Math.min(Math.max(moduleIds.size(), 1), MODULE_SLOTS));
+            Map<String, TestRun> runByModule = new java.util.concurrent.ConcurrentHashMap<>();
             Map<String, Integer> classCounts = new LinkedHashMap<>();
+            Set<String> modelSkipped = new LinkedHashSet<>();
             for (String moduleId : moduleIds) {
+                IbModule m = model.module(moduleId);
+                // model facts gate dispatch (same as the plan-scope branch):
+                // skipTests=true (e.g. liteflow disables its script testcases in
+                // pom) and modules without a test source tree run nothing
+                if ("true".equals(m.getSurefireSkipTests())) {
+                    modelSkipped.add(moduleId);
+                    continue;
+                }
+                if (m.getTestSourceDir() == null
+                        || !Files.isDirectory(engine.getRepoRoot().resolve(m.getTestSourceDir()))) {
+                    modelSkipped.add(moduleId);
+                    continue;
+                }
                 var index = engine.index(moduleId);
                 int n = index == null ? 1 : index.testClasses().size();
                 classCounts.put(moduleId, Math.max(1, n));
             }
-            Map<String, TestRun> runByModule = new java.util.concurrent.ConcurrentHashMap<>();
+            for (String skippedId : modelSkipped) {
+                TestRun run = TestRun.skipped(skippedId, "skipTests=true or no test source (model fact)");
+                report(engine, run, json, out, log);
+                runByModule.put(skippedId, run);
+            }
+            moduleIds.removeAll(modelSkipped);
             java.util.List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (String moduleId : moduleIds) {
                 IbModule module = model.module(moduleId);
