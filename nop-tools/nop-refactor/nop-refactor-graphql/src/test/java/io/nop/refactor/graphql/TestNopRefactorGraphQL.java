@@ -3,16 +3,15 @@ package io.nop.refactor.graphql;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.ast.GraphQLOperationType;
-import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.GraphQLEngine;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -52,10 +51,9 @@ class TestNopRefactorGraphQL {
         engine.init();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
+    // 测试卫生（合并修订 2026-11-14，与 nop-lint-graphql 修同型）：不在 @AfterAll 里
+    // CoreInitialization.destroy()——全局上下文销毁后顺序套件中其他测试的重初始化
+    // 存在已关闭对象残留（context-already-closed）。全局上下文由平台测试基建统一管理。
 
     private static ApiRequest<Map<String, Object>> request(Map<String, Object> data) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
@@ -72,10 +70,14 @@ class TestNopRefactorGraphQL {
         return data;
     }
 
+    // 测试卫生（合并修订 2026-11-14，与 nop-lint-graphql 修同型）：经 ContextProvider.runWithContext
+    // 提供开放环境上下文再执行 RPC——否则 invokeWithBindingCtx 的 per-request 上下文在响应构建
+    // 时闭合，restoreCtx 撞已关闭对象（context-already-closed）。
     private ApiResponse<?> rpc(String action, Map<String, Object> data) {
-        IGraphQLExecutionContext context = engine.newRpcContext(
-                GraphQLOperationType.mutation, action, request(data));
-        return FutureHelper.syncGet(engine.executeRpcAsync(context));
+        // newRpcContext 也须在开放环境上下文内创建（绑定上下文复用开放分支）
+        return ContextProvider.runWithContext(ctx -> FutureHelper.syncGet(
+                engine.executeRpcAsync(engine.newRpcContext(
+                        GraphQLOperationType.mutation, action, request(data)))));
     }
 
     private Path writeTarget(String relPath, String content) throws Exception {

@@ -6,7 +6,6 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.refactor.core.NonApply;
 import io.nop.refactor.core.NopRefactorException;
 import io.nop.refactor.core.RefactorResult;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -41,10 +40,9 @@ public class TestNopRefactorBizModel {
         CoreInitialization.initializeTo(CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
     }
 
-    @AfterAll
-    static void destroy() {
-        CoreInitialization.destroy();
-    }
+    // 测试卫生（合并修订 2026-11-14，与 nop-lint-graphql 修同型）：不在 @AfterAll 里
+    // CoreInitialization.destroy()——全局上下文销毁后顺序套件中其他测试的重初始化
+    // 存在已关闭对象残留（context-already-closed）。全局上下文由平台测试基建统一管理。
 
     private RewriteInput input(String mode, String... paths) {
         RewriteInput input = new RewriteInput();
