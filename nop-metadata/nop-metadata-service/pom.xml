@@ -171,6 +171,16 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
             </plugin>
+            <!-- W_02 全量索引/保留期清扫用例默认 1G fork 堆 OOM（Java heap space,环境性
+                 fork crash 非断言失败）——固定 2G 堆。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.2</version>
+                <configuration>
+                    <argLine>${jacocoArgLine} -Xmx3g</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
