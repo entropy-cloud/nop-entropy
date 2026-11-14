@@ -5,6 +5,7 @@ import io.nop.ib.compile.MavenFallback;
 import io.nop.ib.junit.JUnitForkExecutor;
 import io.nop.ib.engine.GitChanges;
 import io.nop.ib.engine.IbEngine;
+import io.nop.ib.json.JsonIn;
 import io.nop.ib.json.JsonOut;
 import io.nop.ib.lock.BuildLock;
 import io.nop.ib.model.IbModel;
@@ -13,6 +14,7 @@ import io.nop.ib.scope.PlanResult;
 
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,8 +34,41 @@ import java.util.regex.Pattern;
  * compile invalidates the pre-fallback selection).
  */
 public final class TestCommand {
+    private static final java.util.concurrent.ExecutorService moduleTestPool =
+            java.util.concurrent.Executors.newFixedThreadPool(
+                    Math.max(2, Runtime.getRuntime().availableProcessors() - 1),
+                    r -> {
+                        Thread t = new Thread(r, "nop-ib-module-test");
+                        t.setDaemon(true);
+                        return t;
+                    });
+
     private static final Pattern SUREFIRE_SUMMARY =
             Pattern.compile("Tests run: (\\d+), Failures: (\\d+), Errors: (\\d+), Skipped: (\\d+)");
+
+    /** repo-root nop-ib.config.json -> test.resetters (reflection-contract class names). */
+    static List<String> configuredResetters(IbEngine engine) {
+        Path cfg = engine.getRepoRoot().resolve("nop-ib.config.json");
+        if (!Files.isRegularFile(cfg))
+            return List.of();
+        try {
+            Map<String, Object> root = JsonIn.asMapOrEmpty(
+                    JsonIn.silentParse(Files.readString(cfg, StandardCharsets.UTF_8)));
+            Object test = root.get("test");
+            if (test instanceof Map<?, ?> tm) {
+                Object rs = tm.get("resetters");
+                if (rs instanceof Iterable<?> iter) {
+                    List<String> out = new ArrayList<>();
+                    for (Object o : iter)
+                        out.add(String.valueOf(o));
+                    return out;
+                }
+            }
+            return List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
 
     public static int test(IbEngine engine, List<String> paths, String plModules,
                            List<String> explicitClasses, boolean allowPartial, boolean json,
@@ -67,19 +102,76 @@ public final class TestCommand {
             return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
         if (plModules != null && (paths == null || paths.isEmpty()) && explicitClasses.isEmpty()) {
-            // -pl module scope with no explicit classes: run each module's full suite
+            // -pl module scope, no explicit classes: full suite per module, modules
+            // in parallel (design 06 WR-D6 — closes the parallelism gap vs mvn -T 1C)
+            List<String> moduleIds = new ArrayList<>();
             for (String artifactId : plModules.split(",")) {
-                IbModule module = model.module(artifactId.trim());
-                if (module == null) {
+                if (model.module(artifactId.trim()) == null) {
                     err.println("usage error: -pl module not in reactor: " + artifactId);
                     return Commands.EXIT_USAGE;
                 }
-                TestRun run = runModuleTests(engine, module, null, runner, json, out, err);
+                moduleIds.add(artifactId.trim());
+            }
+            int cores = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
+            int budget = cores - 1;
+            // proportional worker allocation: workers follow the class-count share of
+            // each module (static even split starves the big module -> serial long tail)
+            Map<String, Integer> classCounts = new LinkedHashMap<>();
+            int totalClasses = 0;
+            for (String moduleId : moduleIds) {
+                var index = engine.index(moduleId);
+                int n = index == null ? 1 : index.testClasses().size();
+                classCounts.put(moduleId, Math.max(1, n));
+                totalClasses += Math.max(1, n);
+            }
+            Map<String, Integer> workerAllocation = new LinkedHashMap<>();
+            int allocated = 0;
+            for (int i = 0; i < moduleIds.size(); i++) {
+                String moduleId = moduleIds.get(i);
+                int share;
+                if (i == moduleIds.size() - 1) {
+                    share = Math.max(1, budget - allocated);
+                } else {
+                    share = Math.max(1, (int) Math.round(
+                            (double) budget * classCounts.get(moduleId) / totalClasses));
+                    share = Math.min(share, Math.max(1, budget - (moduleIds.size() - i - 1)));
+                    allocated += share;
+                }
+                workerAllocation.put(moduleId, share);
+            }
+            Map<String, TestRun> runByModule = new java.util.concurrent.ConcurrentHashMap<>();
+            java.util.List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+            for (String moduleId : moduleIds) {
+                IbModule module = model.module(moduleId);
+                int wc = workerAllocation.get(moduleId);
+                futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    TestRun run = runModuleTests(engine, module, null, runner, json,
+                            new PrintWriter(new java.io.ByteArrayOutputStream(), true), err, wc);
+                    runByModule.put(moduleId, run);
+                }, moduleTestPool));
+            }
+            int failures = 0;
+            for (var f : futures) {
+                try {
+                    f.get();
+                } catch (Exception e) {
+                    err.println("module test failed: " + e);
+                    if (e.getCause() != null)
+                        e.getCause().printStackTrace(err);
+                    failures++;
+                }
+            }
+            for (String moduleId : moduleIds) {
+                TestRun run = runByModule.get(moduleId);
+                if (run == null) {
+                    failures++;
+                    continue;
+                }
                 report(engine, run, json, out);
                 if (run.exitCode != Commands.EXIT_OK)
-                    return run.exitCode;
+                    failures++;
             }
-            return Commands.EXIT_OK;
+            return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
 
         // --class mode is an explicit execution request: independent of the working
@@ -103,7 +195,7 @@ public final class TestCommand {
                     err.println("cannot resolve module for test class: " + spec);
                     return Commands.EXIT_USAGE;
                 }
-                TestRun run = runModuleTests(engine, module, List.of(className), runner, json, out, err);
+                TestRun run = runModuleTests(engine, module, List.of(className), runner, json, out, err, 2);
                 recordLastFailed(engine, module.getArtifactId(), run);
                 report(engine, run, json, out);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -182,7 +274,7 @@ public final class TestCommand {
                         failures++;
                     continue;
                 }
-                TestRun run = runModuleTests(engine, module, null, runner, json, out, err);
+                TestRun run = runModuleTests(engine, module, null, runner, json, out, err, Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
                 recordLastFailed(engine, moduleId, run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -192,7 +284,8 @@ public final class TestCommand {
                 IbModule module = model.module(e.getKey());
                 if (module == null)
                     continue;
-                TestRun run = runModuleTests(engine, module, e.getValue(), runner, json, out, err);
+                TestRun run = runModuleTests(engine, module, e.getValue(), runner, json, out, err,
+                        Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
                 recordLastFailed(engine, e.getKey(), run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -221,7 +314,8 @@ public final class TestCommand {
      * retry via Maven (adaptive expansion, design 01 §十).
      */
     static TestRun runModuleTests(IbEngine engine, IbModule module, List<String> classes,
-                                  String runner, boolean json, PrintWriter out, PrintWriter err) {
+                                  String runner, boolean json, PrintWriter out, PrintWriter err,
+                                  int workerCount) {
         if (!"junit".equals(runner))
             return runSurefire(engine, module, classes, json, out, err);
         if (classes == null) {
@@ -250,8 +344,37 @@ public final class TestCommand {
         }
         JUnitForkExecutor executor = new JUnitForkExecutor(engine.model());
         List<String> forkWarnings = new ArrayList<>();
+        List<String> resetters = configuredResetters(engine);
+        io.nop.ib.junit.JUnitWorkerPool pool = new io.nop.ib.junit.JUnitWorkerPool(
+                engine.model(), module, cp, resetters, workerCount,
+                workerMaxClasses(engine));
         JUnitForkExecutor.ForkResult fork =
-                executeForks(executor, module, cp, classes, forkWarnings);
+                pool.run(classes);
+        forkWarnings.addAll(fork.warnings());
+        // differential rerun (design 06 WR-D4): every failed class gets ONE fresh
+        // per-class fork; fresh passes => pollution (worker result discarded)
+        if (fork.exitCode() == 1 && fork.summary().get("failed") instanceof Iterable<?> failedList) {
+            List<Map<String, String>> stillFailed = new ArrayList<>();
+            for (Object o : failedList) {
+                if (!(o instanceof Map<?, ?> m))
+                    continue;
+                String cls = String.valueOf(m.get("class"));
+                JUnitForkExecutor.ForkResult fresh = executor.execute(module, cp, List.of(cls));
+                if (fresh.exitCode() == 0) {
+                    forkWarnings.add("pollution detected on " + cls
+                            + " (passes in fresh fork) -> fresh result authoritative");
+                } else {
+                    stillFailed.add(Map.of(
+                            "class", cls,
+                            "method", String.valueOf(m.get("method")),
+                            "type", String.valueOf(m.get("type")),
+                            "message", String.valueOf(m.get("message"))));
+                }
+            }
+            fork = new JUnitForkExecutor.ForkResult(
+                    stillFailed.isEmpty() ? 0 : 1,
+                    remapSummary(fork.summary(), stillFailed), forkWarnings);
+        }
         if (fork.exitCode() == -3) {
             // junit setup unsatisfiable -> explicit fallback
             TestRun run = runSurefire(engine, module, classes, json, out, err);
@@ -266,6 +389,10 @@ public final class TestCommand {
         int failed = numOf(summary.get("failures"));
         int skipped = numOf(summary.get("skipped"));
         run.summary.add(new int[]{tests, failed, 0, skipped});
+        if (summary.get("slowest") instanceof Iterable<?> iter) {
+            for (Object o : iter)
+                run.warnings.add("slow: " + o);
+        }
         Object failedList = summary.get("failed");
         if (failedList instanceof Iterable<?> iter) {
             StringBuilder sb = new StringBuilder();
@@ -293,6 +420,30 @@ public final class TestCommand {
         }
         run.exitCode = fork.exitCode() == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         return run;
+    }
+
+    private static Map<String, Object> remapSummary(Map<String, Object> old,
+                                                    List<Map<String, String>> stillFailed) {
+        Map<String, Object> m = new LinkedHashMap<>(old);
+        m.put("failed", stillFailed);
+        m.put("failures", stillFailed.size());
+        return m;
+    }
+
+    private static int workerMaxClasses(IbEngine engine) {
+        Path cfg = engine.getRepoRoot().resolve("nop-ib.config.json");
+        if (Files.isRegularFile(cfg)) {
+            try {
+                Map<String, Object> root = JsonIn.asMapOrEmpty(
+                        JsonIn.silentParse(Files.readString(cfg, StandardCharsets.UTF_8)));
+                Object test = root.get("test");
+                if (test instanceof Map<?, ?> tm && tm.get("workerMaxClasses") instanceof Number n)
+                    return n.intValue();
+            } catch (Exception ignored) {
+                // fall through to default
+            }
+        }
+        return 20;
     }
 
     private static int numOf(Object v) {

@@ -1,0 +1,6 @@
+{
+  "test": {
+    "resetters": ["io.nop.autotest.core.NopIbTestEnvResetter"],
+    "workerMaxClasses": 20
+  }
+}

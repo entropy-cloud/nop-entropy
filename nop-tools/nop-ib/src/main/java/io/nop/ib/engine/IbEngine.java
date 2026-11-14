@@ -9,7 +9,7 @@ import io.nop.ib.scope.ScopePlanner;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
 /**
@@ -22,7 +22,7 @@ public final class IbEngine {
     private final ModelStore modelStore;
     private final UnitIndexStore unitStore;
     private IbModel model;
-    private final Map<String, UnitIndex> indexCache = new HashMap<>();
+    private final Map<String, UnitIndex> indexCache = new ConcurrentHashMap<>();
 
     public IbEngine(Path startDir) {
         this.repoRoot = discoverRepoRoot(startDir);

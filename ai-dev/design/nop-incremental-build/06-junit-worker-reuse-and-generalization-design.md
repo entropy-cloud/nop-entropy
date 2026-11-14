@@ -35,17 +35,20 @@ worker → parent: {"class":"io.x.Y","tests":n,"failures":f,...,"resetMs":r,"run
 
 ## 三、重置 SPI 与通用化
 
+**零编译依赖的反射契约**：resetter 是被测项目提供的普通类，约定两个可选静态方法（反射调用，不引入任何对 nop-ib 的编译依赖）：
+
 ```
-TestEnvironmentResetter（fork classpath 上的接口，由被测项目实现）
-  ├─ int priority()
-  ├─ void resetBefore(String testClass)   // 类执行前：恢复/重初始化
-  └─ void resetAfter(String testClass)    // 类执行后：销毁/清理
+public static void resetBefore(String testClass)   // 类执行前：恢复/重初始化（可缺省）
+public static void resetAfter(String testClass)    // 类执行后：销毁/清理（可缺省）
 ```
 
-- 发现顺序：`.nop-ib/config.json` 的 `test.resetters` 类名列表 → ServiceLoader → 都没有则仅通用层；
+- 发现顺序：仓库根 `nop-ib.config.json` 的 `test.resetters` 类名列表 → ServiceLoader（`io.nop.ib.junit.TestEnvironmentResetter` 接口，可选路径）→ 都没有则仅通用层；
+- 方法缺失/类缺失/抛异常：跳过并记入该类执行结果的 reset 告警（异常 ⇒ worker 退役）；
+
+
 - 通用层固定执行顺序：快照 System.properties（before）→ 执行 → 恢复（after）→ 强制 `nop.autotest.force-save-output=false`、`nop.autotest.disable-snapshot=false`；
 - Nop 平台的实现（`reinitialize()` 钩子）由 Nop 测试支撑模块提供，nop-ib 不硬编码任何 `io.nop.*` 类名——**nop-ib 核心对 Nop 平台零依赖**，这是推广到非 Nop 项目的边界；
-- 配置面（`.nop-ib/config.json` / CLI）：`test.resetters`、`test.parallelism`、`test.forkTimeoutSeconds`、`test.workerMaxClasses`、`test.runner(junit|surefire)`。所有配置对任意 Maven 项目同义——model.json 本就来自 Maven 自身导出，非 Nop 项目只需能被 effective-pom/dependency:list 描述即可接入。
+- 配置面（仓库根 `nop-ib.config.json`，版本化 / CLI 覆盖）：`test.resetters`、`test.parallelism`、`test.forkTimeoutSeconds`、`test.workerMaxClasses`、`test.runner(junit|surefire)`。所有配置对任意 Maven 项目同义——model.json 本就来自 Maven 自身导出，非 Nop 项目只需能被 effective-pom/dependency:list 描述即可接入。
 
 ## 四、执行拓扑（并行最大化）
 
@@ -78,7 +81,20 @@ flowchart TB
 3. cwd / classpath 定序 / 禁跨模块合并 / 快照开关强制 / 看门狗等 02 契约逐条保持；
 4. 与 surefire 的对照门（IB-G3 同语料双跑）在复用模型上**逐模块**重跑通过后才作为默认；对照差异即降级该模块并登记。
 
-## 七、与已有设计的关系
+## 七、性能验收门（规范性）
+
+复用模型作为默认执行器的**前提**是通过以下对照门；未通过则该范围自动降级 per-class fork / surefire 并显式登记：
+
+| 门 | 度量 | 基线（mvn） | 验收 |
+|---|---|---|---|
+| G-A 模块级对照 | 每个测试模块 fork vs surefire 双跑 | 各模块 surefire 失败集 | 失败集逐一相等；差异 ⇒ 该模块降级登记 |
+| G-B 切片墙钟 | 固定 4 模块切片（treesitter/jq/javac/stream-cep） | `mvn test -T 1C` = 12.0s（2026-11-14 实测） | nop-ib 严格 < 基线 |
+| G-C 全仓 sweep | 全部测试模块 | `mvn test -T 1C` 全仓墙钟（验收时实测基线） | nop-ib 严格 < 基线，且失败集 parity |
+| G-D AI 循环 | 单模块 `check` | 现状 4.5s | 复用后 ≤ 现状 |
+
+墙钟对照须在同一机器、空闲态、连续三次取中位数；数字写进执行 plan 与 `docs-for-ai`。
+
+## 八、与已有设计的关系
 
 - [02-test-execution.md](02-test-execution.md)：底座契约（cwd/classpath/快照/超时），本文是其上的复用层；
 - [05-nop-ib-engine-design.md](05-nop-ib-engine-design.md)：IB-D8 两阶段路线——本文是"阶段二自研启动器"的完成形态；
