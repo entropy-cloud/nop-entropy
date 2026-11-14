@@ -94,7 +94,10 @@ public final class JUnitForkExecutor {
         String argLine = module.getSurefireArgLine();
         if (argLine != null && !argLine.isBlank()) {
             for (String token : argLine.trim().split("\\s+")) {
-                if (token.contains("${")) {
+                // unresolvable placeholders: ${...} (Maven property) and @{...}
+                // (surefire late-binding, used by Apache pdfbox) — both belong to
+                // Maven machinery and are dropped with a per-token warning
+                if (token.contains("${") || token.contains("@{")) {
                     warnings.add("argLine token dropped (unresolvable placeholder): " + token);
                     continue;
                 }

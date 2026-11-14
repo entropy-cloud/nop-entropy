@@ -436,7 +436,8 @@ public final class JUnitWorkerPool {
         String argLine = module.getSurefireArgLine();
         if (argLine != null && !argLine.isBlank()) {
             for (String token : argLine.trim().split("\\s+")) {
-                if (token.contains("${"))
+                // drop Maven ${...} and surefire @{...} late-binding placeholders
+                if (token.contains("${") || token.contains("@{"))
                     continue;
                 cmd.add(token);
             }
