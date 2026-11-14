@@ -38,10 +38,9 @@ public class TestNopLintBizModel {
         service = new NopLintBizModel();
     }
 
-    @AfterAll
-    static void destroy() {
-        CoreInitialization.destroy();
-    }
+    // 测试卫生（合并修订 2026-11-14）：不在 @AfterAll 里 CoreInitialization.destroy()——
+    // 全局上下文销毁后同类内其他测试的重初始化存在已关闭对象残留
+    //（context-already-closed）。全局上下文由平台测试基建统一管理。
 
     private static final String VIOLATING_SOURCE = "package demo;\n\nclass Bad {\n"
             + "    void run() {\n        throw new RuntimeException(\"boom\");\n    }\n}\n";

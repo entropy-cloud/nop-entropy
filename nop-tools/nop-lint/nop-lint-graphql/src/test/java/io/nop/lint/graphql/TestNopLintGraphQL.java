@@ -1,6 +1,8 @@
 package io.nop.lint.graphql;
 
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
@@ -46,9 +48,21 @@ class TestNopLintGraphQL {
         engine.init();
     }
 
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
+    // 测试卫生（合并修订 2026-11-14）：不在 @AfterAll 里 CoreInitialization.destroy()——
+    // 全局上下文销毁后同类内其他测试的重初始化存在已关闭对象残留
+    //（context-already-closed）。全局上下文由平台测试基建统一管理。
+
+
+    /**
+     * 测试卫生（合并修订 2026-11-14，与 treesitter B 修同型）：经 ContextProvider.runWithContext
+     * 提供开放环境上下文再执行 RPC——否则 invokeWithBindingCtx 的 per-request 上下文在响应构建
+     * 时闭合，restoreCtx 撞已关闭对象（context-already-closed）。
+     */
+    private ApiResponse<?> execute(String query, Map<String, Object> data) {
+        // newRpcContext 也须在开放环境上下文内创建（绑定上下文复用开放分支）
+        return ContextProvider.runWithContext(ctx -> FutureHelper.syncGet(
+                engine.executeRpcAsync(engine.newRpcContext(
+                        GraphQLOperationType.query, query, request(data)))));
     }
 
     private static ApiRequest<Map<String, Object>> request(Map<String, Object> data) {
@@ -62,9 +76,7 @@ class TestNopLintGraphQL {
         Map<String, Object> data = new HashMap<>();
         data.put("source", "class Bad {\n    void x() {\n        throw new RuntimeException(\"b\");\n    }\n}\n");
         data.put("language", "java");
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "Lint__checkSource", request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = execute("Lint__checkSource", data);
         assertTrue(response.isOk(), String.valueOf(response));
         String body = String.valueOf(response.get());
         assertTrue(body.contains("ruleId") || body.contains("diagnostics"),
@@ -73,9 +85,7 @@ class TestNopLintGraphQL {
 
     @Test
     void listRulesQueryExposesTheLibraryMetadata() {
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "Lint__listRules", request(new HashMap<>()));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = execute("Lint__listRules", new HashMap<>());
         assertTrue(response.isOk(), String.valueOf(response));
         String body = String.valueOf(response.get());
         assertTrue(body.contains("nop/no-raw-exception") || body.contains("no-raw-exception"),
@@ -88,9 +98,7 @@ class TestNopLintGraphQL {
         data.put("source", "class A {\n}");
         data.put("language", "java");
         data.put("rules", List.of("nop/no-such-rule"));
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "Lint__checkSource", request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = execute("Lint__checkSource", data);
         assertFalse(response.isOk(), "unknown rule id must fail the response");
         assertTrue(String.valueOf(response.getCode()).contains("nop/no-such-rule"),
                 "error must name the offending id: " + response);
@@ -103,9 +111,7 @@ class TestNopLintGraphQL {
         Map<String, Object> data = new HashMap<>();
         data.put("source", new String(big));
         data.put("language", "java");
-        IGraphQLExecutionContext context = engine.newRpcContext(GraphQLOperationType.query,
-                "Lint__checkSource", request(data));
-        ApiResponse<?> response = FutureHelper.syncGet(engine.executeRpcAsync(context));
+        ApiResponse<?> response = execute("Lint__checkSource", data);
         assertFalse(response.isOk(), "oversize source must fail the response");
         assertTrue(String.valueOf(response.getCode()).contains("max-source-size"),
                 "error must name the cap: " + response);
