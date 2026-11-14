@@ -31,7 +31,9 @@ import java.util.concurrent.TimeUnit;
  * class directory.
  */
 public final class JUnitForkExecutor {
-    public static final Duration DEFAULT_BATCH_TIMEOUT = Duration.ofMinutes(10);
+    /** per-fork batch timeout (design 02 §七); configurable per run. */
+    public static final Duration DEFAULT_BATCH_TIMEOUT =
+            Duration.ofSeconds(Long.getLong("nop.ib.forkTimeoutSeconds", 300));
 
     private final IbModel model;
     private Duration timeout = DEFAULT_BATCH_TIMEOUT;

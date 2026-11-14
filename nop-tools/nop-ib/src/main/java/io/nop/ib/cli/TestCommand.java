@@ -304,7 +304,23 @@ public final class TestCommand {
      * parallel=classes): isolation across classes avoids cross-class pollution in
      * a single shared JVM, and the batch watchdog applies per fork.
      */
-    private static final int FORK_PARALLELISM = 4;
+    /**
+     * Process-level isolation (one fork per class) means parallelism is bounded by
+     * CPU/memory, not by JUnit statics. Default: cores-1; override via
+     * --fork-parallelism or system property nop.ib.forkParallelism. Heavy
+     * TestContainers-style classes still serialize themselves on external
+     * resources; a hung class is killed by the per-fork watchdog and cannot block
+     * the rest of the module.
+     */
+    private static final int FORK_PARALLELISM =
+            Math.max(1, Integer.getInteger("nop.ib.forkParallelism",
+                    Runtime.getRuntime().availableProcessors() - 1));
+    private static int forkParallelismOverride = Integer.getInteger("nop.ib.forkParallelism", 0);
+
+    public static void setForkParallelism(int n) {
+        if (n > 0)
+            forkParallelismOverride = n;
+    }
 
     private static JUnitForkExecutor.ForkResult executeForks(JUnitForkExecutor executor,
                                                              IbModule module,
@@ -314,8 +330,9 @@ public final class TestCommand {
         List<String> list = classes == null ? List.of() : classes;
         if (list.size() <= 1)
             return executor.execute(module, cp, list);
+        int parallelism = forkParallelismOverride > 0 ? forkParallelismOverride : FORK_PARALLELISM;
         java.util.concurrent.ExecutorService pool =
-                java.util.concurrent.Executors.newFixedThreadPool(FORK_PARALLELISM);
+                java.util.concurrent.Executors.newFixedThreadPool(parallelism);
         java.util.List<java.util.concurrent.Future<JUnitForkExecutor.ForkResult>> futures = new ArrayList<>();
         for (String cls : list) {
             futures.add(pool.submit(() -> executor.execute(module, cp, List.of(cls))));
@@ -326,10 +343,12 @@ public final class TestCommand {
         int skipped = 0;
         boolean setupFailed = false;
         boolean timedOut = false;
+        List<String> timedOutClasses = new ArrayList<>();
         List<Map<String, String>> failedDetails = new ArrayList<>();
         List<String> missingClasses = new ArrayList<>();
         try {
-            for (var f : futures) {
+            for (int fi = 0; fi < futures.size(); fi++) {
+                var f = futures.get(fi);
                 JUnitForkExecutor.ForkResult r = f.get();
                 for (String w : r.warnings())
                     if (!warnings.contains(w))
@@ -345,8 +364,10 @@ public final class TestCommand {
                     skipped += n.intValue();
                 if (fl instanceof Number n)
                     failures += n.intValue();
-                if (r.summary().get("timedOut") != null)
+                if (r.summary().get("timedOut") != null) {
                     timedOut = true;
+                    timedOutClasses.add(fi < list.size() ? list.get(fi) : "?");
+                }
                 if (r.summary().get("missingClasses") instanceof Iterable<?> iter) {
                     for (Object o : iter)
                         missingClasses.add(String.valueOf(o));
@@ -375,8 +396,10 @@ public final class TestCommand {
         summary.put("failed", failedDetails);
         if (!missingClasses.isEmpty())
             summary.put("missingClasses", missingClasses);
-        if (timedOut)
+        if (timedOut) {
             summary.put("timedOut", true);
+            summary.put("timedOutClasses", timedOutClasses);
+        }
         int exit = setupFailed ? -3 : (failures > 0 ? 1 : 0);
         return new JUnitForkExecutor.ForkResult(exit, summary, warnings);
     }

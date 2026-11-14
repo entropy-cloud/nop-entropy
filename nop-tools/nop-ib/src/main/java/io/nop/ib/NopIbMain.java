@@ -91,6 +91,8 @@ public class NopIbMain {
                 rerunFailed = true;
             } else if ("--runner".equals(arg) && i + 1 < args.length) {
                 runner = args[++i];
+            } else if ("--fork-parallelism".equals(arg) && i + 1 < args.length) {
+                io.nop.ib.cli.TestCommand.setForkParallelism(Integer.parseInt(args[++i]));
             } else if ("--paths".equals(arg)) {
                 // --paths <comma-separated> or remaining positional args
                 if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
