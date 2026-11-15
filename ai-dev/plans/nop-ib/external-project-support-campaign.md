@@ -137,6 +137,7 @@ Exit Criteria:
 
 - **长尾无穷**：框架惯例（族 C）可能持续出现新变体。缓解：Phase 4 的对照表 + 每个新惯例一个钉，使增量成本为常数。
 - **环境脆弱**：外部项目 install 依赖网络与本地仓库状态（flink 曾遇 s3 test-jar / dist pom / 空间瞬时不足）。缓解：runbook 记录兜底命令。
+- **`-T1C` 并行 install 触发 artifact 锁超时**（zeebe 实测）：多线程并发解析同一 artifact 时 `Could not acquire shared/exclusive lock ... in 900 SECONDS`，导致多个模块 FAILURE，实为环境竞态非项目问题。缓解：大项目 install 用**串行** + `-Daether.syncContext.named.time=3600`，必要时加 `-Dspotless.check.skip=true -Drevapi.skip=true`。
 - **build-cache 污染基线**：Syncope 已证伪。硬约束：所有 mvn 基线必须 `-Dmaven.build.cache.skipCache=true`。
 - **JDK26 兼容性噪声**：大量外部项目在 JDK26 下预存失败，会稀释信号。缓解：资格门 + 预存速查表。
 
