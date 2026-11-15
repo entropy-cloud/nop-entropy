@@ -4,6 +4,7 @@ import io.nop.ib.compile.ClasspathMaterializer;
 import io.nop.ib.compile.MavenFallback;
 import io.nop.ib.NopIbException;
 import io.nop.ib.junit.JUnitForkExecutor;
+import io.nop.ib.junit.SurefireClassFilter;
 import io.nop.ib.engine.GitChanges;
 import io.nop.ib.engine.IbEngine;
 import io.nop.ib.json.JsonIn;
@@ -384,6 +385,12 @@ public final class TestCommand {
             classes = new ArrayList<>();
             for (var info : index.testClasses())
                 classes.add(info.getClassName());
+            // surefire include-pattern parity (defect 14): the index dispatches
+            // every JUnit-marked class; Maven only executes the ones matching the
+            // module's <includes> (default Test*/*Test/*Tests/*TestCase). Base
+            // classes like *ITCase carry @Test methods but rely on a subclass
+            // @BeforeAll — running them standalone fails and poisons the module.
+            classes = SurefireClassFilter.filter(classes, module);
             if (classes.isEmpty()) {
                 TestRun run = TestRun.skipped(module.getArtifactId(), "no test classes in unit index");
                 return run;
@@ -426,8 +433,9 @@ public final class TestCommand {
         // forks reproduce the failure (missing accumulated state) and per-class
         // pollution checks cannot apply, so the only faithful oracle is the
         // surefire-shaped rerun. Fresh result authoritative either way.
-        System.err.println("nop-ib debug: rerun-gate exit=" + fork.exitCode()
-                + " classes=" + (classes == null ? "null" : classes.size()));
+        System.err.println("nop-ib debug: rerun-gate [" + module.getArtifactId() + "] exit="
+                + fork.exitCode() + " classes=" + (classes == null ? "null" : classes.size())
+                + " failures=" + fork.summary().get("failures"));
         if (fork.exitCode() == 1 && classes != null && !classes.isEmpty()) {
             long rerunCap = Long.getLong("nop.ib.moduleRerunTimeoutSeconds", 1800);
             System.err.println("nop-ib debug: rerun EXECUTING fresh full-module fork, cap=" + rerunCap);

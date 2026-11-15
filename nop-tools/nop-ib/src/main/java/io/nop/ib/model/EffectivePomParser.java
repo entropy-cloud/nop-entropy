@@ -116,6 +116,22 @@ public final class EffectivePomParser {
             }
         }
 
+        // property-driven skipTests fallback: poms like syncope-ext-openfga-client
+        // define <skipTests>true</skipTests> as a PROPERTY consumed by surefire
+        // config; some effective-pom shapes do not inline it into the plugin
+        // configuration, leaving the module fact unset (defect 15: such modules
+        // were dispatched although Maven skips them)
+        if (mod.getSurefireSkipTests() == null) {
+            Element props = first(project, "properties");
+            if (props != null) {
+                String v = text(first(props, "skipTests"));
+                if (v == null)
+                    v = text(first(props, "skip"));
+                if (v != null)
+                    mod.setSurefireSkipTests(v);
+            }
+        }
+
         Element deps = first(project, "dependencies");
         if (deps != null) {
             for (Element dep : children(deps, "dependency")) {
@@ -226,6 +242,14 @@ public final class EffectivePomParser {
         if (skip == null)
             skip = text(first(cfg, "skip"));
         mod.setSurefireSkipTests(skip);
+        Element includes = first(cfg, "includes");
+        if (includes != null) {
+            for (Element inc : children(includes, "include")) {
+                String v = text(inc);
+                if (v != null && !v.isBlank())
+                    mod.getSurefireIncludes().add(v.trim());
+            }
+        }
         Element props = first(cfg, "systemPropertyVariables");
         if (props != null) {
             Map<String, String> map = new LinkedHashMap<>();

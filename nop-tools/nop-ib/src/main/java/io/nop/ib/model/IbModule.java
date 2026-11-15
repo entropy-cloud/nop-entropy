@@ -30,6 +30,8 @@ public class IbModule {
     private List<String> execExecutionIds = new ArrayList<>();
     private String surefireArgLine;
     private String surefireSkipTests;
+    /** explicit surefire <includes> patterns; empty = default naming rules */
+    private List<String> surefireIncludes = new ArrayList<>();
     private Map<String, String> surefireSystemProperties = new LinkedHashMap<>();
     /** resolved external artifacts in dependency order, "ga:version:scope" */
     private List<String> externalArtifacts = new ArrayList<>();
@@ -62,6 +64,8 @@ public class IbModule {
         Map<String, Object> surefire = new LinkedHashMap<>();
         surefire.put("argLine", surefireArgLine);
         surefire.put("skipTests", surefireSkipTests);
+        if (!surefireIncludes.isEmpty())
+            surefire.put("includes", surefireIncludes);
         surefire.put("systemPropertyVariables", surefireSystemProperties);
         m.put("surefire", surefire);
         m.put("externalArtifacts", externalArtifacts);
@@ -92,6 +96,11 @@ public class IbModule {
         if (surefire instanceof Map<?, ?> sf) {
             mod.surefireArgLine = (String) sf.get("argLine");
             mod.surefireSkipTests = (String) sf.get("skipTests");
+            Object inc = sf.get("includes");
+            if (inc instanceof Iterable<?> iter) {
+                for (Object o : iter)
+                    mod.surefireIncludes.add(String.valueOf(o));
+            }
             Object props = sf.get("systemPropertyVariables");
             if (props instanceof Map<?, ?> pm) {
                 for (Map.Entry<?, ?> e : pm.entrySet())
@@ -230,6 +239,10 @@ public class IbModule {
 
     public String getSurefireSkipTests() {
         return surefireSkipTests;
+    }
+
+    public List<String> getSurefireIncludes() {
+        return surefireIncludes;
     }
 
     public Map<String, String> getSurefireSystemProperties() {

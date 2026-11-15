@@ -167,6 +167,18 @@ public final class JUnitWorkerPool {
         // leak-proof: kill EVERY spawned worker (idle + in-flight + crash-quiet)
         for (Worker w : created)
             w.kill();
+        // BOUNDED convergence wait: a module-level differential rerun immediately
+        // follows, in a fresh fork whose in-test embedded servers (Syncope ZK
+        // TestingServer binds 2181) must not race a dying worker still holding
+        // the port. Bounded per process so a wedged worker cannot stall teardown.
+        for (Worker w : created) {
+            try {
+                w.process.waitFor(2, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
 
         if (firstError.get() != null) {
             warnings.add("worker pool aborted: " + firstError.get());

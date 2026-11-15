@@ -206,7 +206,11 @@ public final class ScopePlanner {
                 plan.warn("indexMissing module " + moduleId + " — full module tests (I6)");
                 continue;
             }
-            List<String> selected = selectTests(index, changedClasses);
+            // surefire include-pattern parity (defect 14): the selection seed is
+            // the dispatch surface — classes Maven would not execute must not
+            // enter the selected set (they fail standalone and poison modules)
+            List<String> selected = io.nop.ib.junit.SurefireClassFilter.filter(
+                    selectTests(index, changedClasses), module);
             if (!selected.isEmpty())
                 plan.addSelectedTests(moduleId, selected);
         }
