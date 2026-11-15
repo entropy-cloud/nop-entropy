@@ -64,9 +64,21 @@ public final class ClasspathMaterializer {
                 // foreign test-classes dirs (and their processes/ resources) into
                 // Spring auto-deployment (Activiti Duplicate key observation).
                 boolean testJar = "test-jar".equals(type);
-                if (testJar && test && dep.getTestOutputDir() != null)
-                    seen.add(dep.getTestOutputDir());
-                else if (!"test-jar".equals(type) && dep.getOutputDir() != null)
+                if (testJar && test) {
+                    // Maven semantics (flink observation): an explicit test-jar typed
+                    // dependency resolves to the PACKAGED tests artifact from the local
+                    // repository — not to the sibling's target/test-classes. The dir
+                    // mapping is only a fallback for the not-yet-installed dev case:
+                    // a skipped/never-compiled sibling leaves target/test-classes empty
+                    // (flink -Dmaven.test.skip install) and an empty dir silently drops
+                    // every test-harness class -> NoClassDefFoundError at discovery.
+                    String depGroupId = dep.getGa().split(":")[0];
+                    Path testsJar = externalJar(depGroupId, parts[1], version, "tests");
+                    if (Files.isRegularFile(testsJar))
+                        seen.add(testsJar.toString());
+                    else if (dep.getTestOutputDir() != null)
+                        seen.add(dep.getTestOutputDir());
+                } else if (!testJar && dep.getOutputDir() != null)
                     seen.add(dep.getOutputDir());
                 continue;
             }
