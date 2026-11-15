@@ -144,7 +144,12 @@ Exit Criteria:
 
 ## Deferred But Adjudicated
 
-- 无（当前无 deferred 项；Phase 1 若裁定 (c) 则在此登记）。
+### flink-agents-runtime fast-path fork JVM abort（exit 134）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 崩溃路径**诚实失败**（run=0/failed=1 + 显式 warning，非假绿）；`--runner maven` 回退路径（缺陷 20 修复后）提供忠实 oracle——实测 1209/270e/25s 与 standalone mvn 精确同数。单类 run 正常（CompileUtilsTest 11/0）、per-class batch=1 仍 134、4g 堆无效——根因疑为某测试类触发 fork JVM native abort，需独立重现；不影响其他 12 个模块的 fast-path parity 结论。
+- Successor Required: `yes`
+- Successor Path: 新建独立 plan（fork JVM abort 隔离与 forkError/forkStdoutTail 诊断信息透出到 run warnings）
 
 ## Non-Blocking Follow-ups
 

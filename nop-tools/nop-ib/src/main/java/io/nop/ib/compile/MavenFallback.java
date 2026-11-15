@@ -35,12 +35,22 @@ public final class MavenFallback {
         Path mvnq = repoRoot.resolve("ai-dev/tools/mvnq");
         Path mvnw = repoRoot.resolve("mvnw");
         List<String> cmd = new ArrayList<>();
-        cmd.add("bash");
         if (Files.isRegularFile(mvnq)) {
+            // Nop worktree: the mvnq wrapper applies concurrency governance and
+            // takes the worktree build lock itself
+            cmd.add("bash");
             cmd.add(mvnq.toAbsolutePath().toString());
             cmd.add("--lock-timeout=" + timeout.toSeconds());
-        } else {
+        } else if (Files.isRegularFile(mvnw)) {
+            // external project with its own wrapper
+            cmd.add("bash");
             cmd.add(mvnw.toAbsolutePath().toString());
+        } else {
+            // external project without a wrapper (flink-agents observation,
+            // defect 24): the old code invoked repoRoot/mvnw regardless and the
+            // delegation degraded to a bash "No such file or directory" line with
+            // zero test summaries. Plain mvn from PATH honors the same project pom.
+            cmd.add("mvn");
         }
         for (String arg : mavenArgs.split("\\s+"))
             if (!arg.isBlank())

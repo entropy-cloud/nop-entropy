@@ -111,4 +111,106 @@ class TestClasspathMaterializer {
         assertTrue(!cp.contains("a/target/test-classes"),
                 "empty sibling dir must not shadow the packaged tests jar, got " + cp);
     }
+
+    /**
+     * Regression (flink-agents observation, defect 23): an EXTERNAL test-jar
+     * typed dependency (dep not in the reactor model) must contribute the
+     * packaged tests artifact to the test classpath. The old code fell through
+     * to the jar-only branch and silently DROPPED the entry — junit-vintage
+     * discovery then died with NoClassDefFoundError on the first harness class
+     * (flink-agents-runtime: KeyedOneInputStreamOperatorTestHarness), aborting
+     * the whole module run where Maven had run 784 tests.
+     */
+    @Test
+    void testExternalTestJarTypedDepContributesTestsArtifact(@TempDir Path tmp) throws Exception {
+        Path repo = tmp.resolve("repo");
+        Path root = tmp.resolve("root");
+        Files.createDirectories(repo.resolve("org/apache/flink/flink-streaming-java/2.3.0"));
+
+        IbModule main = new IbModule();
+        main.setGroupId("g");
+        main.setArtifactId("main");
+        main.setOutputDir("main/target/classes");
+        main.setTestOutputDir("main/target/test-classes");
+        main.setExternalArtifacts(List.of(
+                "org.apache.flink:flink-streaming-java:jar:2.3.0:provided",
+                "org.apache.flink:flink-streaming-java:test-jar:tests:2.3.0:test"));
+
+        IbModel model = new IbModel();
+        model.setRepoRoot(root.toString());
+        model.setLocalRepo(repo.toString());
+        model.addModule(main);
+
+        ClasspathMaterializer m = new ClasspathMaterializer(model);
+        // tests jar installed -> contributes a packaged tests artifact (Maven parity).
+        // Resolution may pick the user's real common repo jar or the seeded one —
+        // assert on the entry shape, not the exact path.
+        Path testsJar = repo.resolve(
+                "org/apache/flink/flink-streaming-java/2.3.0/flink-streaming-java-2.3.0-tests.jar");
+        Files.writeString(testsJar, "jar");
+        var cp = m.testClasspath(main).entries();
+        assertTrue(cp.stream().anyMatch(e -> e.endsWith("flink-streaming-java-2.3.0-tests.jar")),
+                "packaged external tests artifact expected, got " + cp);
+
+        // absent tests jar (unique GA so no local repo can satisfy it) -> MISSING,
+        // never a silent drop
+        IbModule absent = new IbModule();
+        absent.setGroupId("g");
+        absent.setArtifactId("absent-main");
+        absent.setOutputDir("absent-main/target/classes");
+        absent.setTestOutputDir("absent-main/target/test-classes");
+        absent.setExternalArtifacts(List.of("g:definitely-absent:test-jar:tests:9.9.9:test"));
+        model.addModule(absent);
+        var materialized = m.testClasspath(absent);
+        assertTrue(materialized.entries().stream()
+                .noneMatch(e -> e.contains("definitely-absent-9.9.9-tests.jar")),
+                "no tests jar installed: entry must be absent, got " + materialized.entries());
+        assertTrue(materialized.missing().stream()
+                .anyMatch(x -> x.contains("definitely-absent-9.9.9-tests.jar")),
+                "absent tests jar must be reported missing (no silent no-op), got "
+                        + materialized.missing());
+    }
+
+    /**
+     * Regression (zeebe observation, defect 25): a local repository using the
+     * branch-scoped-local-repository SEGMENTED layout ({@code cached/} for
+     * downloads, {@code installed/<branch>/} for project artifacts) must resolve
+     * external jars — the plain g/a/v layout does not exist for zeebe deps and
+     * the whole module used to fail with "classpath incomplete".
+     */
+    @Test
+    void resolvesSegmentedLocalRepoLayouts(@TempDir Path tmp) throws Exception {
+        Path repo = tmp.resolve("repo");
+        String rel = "io/camunda/zeebe-zip/1.0/zeebe-zip-1.0.jar";
+
+        IbModel model = new IbModel();
+        model.setLocalRepo(repo.toString());
+        IbModule main = new IbModule();
+        main.setGroupId("g");
+        main.setArtifactId("main");
+        model.addModule(main);
+        ClasspathMaterializer m = new ClasspathMaterializer(model);
+
+        // cached/ layout (third-party downloads)
+        Path cached = repo.resolve("cached").resolve(rel);
+        Files.createDirectories(cached.getParent());
+        Files.writeString(cached, "jar");
+        assertEquals(cached, m.externalJar("io.camunda", "zeebe-zip", "1.0", null));
+
+        // installed/<branch>/ layout (project artifacts) resolves when no cached
+        // copy exists for another GA; for the same GA the cached download wins
+        // (plain -> cached -> installed order)
+        Path branch = repo.resolve("installed/some-branch")
+                .resolve(Path.of("io", "camunda", "zeebe-model", "1.0", "zeebe-model-1.0.jar"));
+        Files.createDirectories(branch.getParent());
+        Files.writeString(branch, "jar");
+        assertEquals(branch, m.externalJar("io.camunda", "zeebe-model", "1.0", null));
+        assertEquals(cached, m.externalJar("io.camunda", "zeebe-zip", "1.0", null));
+
+        // plain layout (standard repo) still takes precedence when present
+        Path plain = repo.resolve(rel);
+        Files.createDirectories(plain.getParent());
+        Files.writeString(plain, "jar");
+        assertEquals(plain, m.externalJar("io.camunda", "zeebe-zip", "1.0", null));
+    }
 }

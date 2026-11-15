@@ -4,6 +4,7 @@ import io.nop.ib.NopIbException;
 import io.nop.ib.model.IbModel;
 import io.nop.ib.model.IbModule;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -87,6 +88,21 @@ public final class ClasspathMaterializer {
                     || (test && !"provided".equals(scope) && !"system".equals(scope));
             if (!compileScope)
                 continue;
+            if ("test-jar".equals(type)) {
+                // external test-jar typed dependency (flink-agents observation,
+                // defect 23): resolve the PACKAGED tests artifact from the local
+                // repository like Maven does. The old code fell through to the
+                // jar-only branch and silently DROPPED the entry — junit discovery
+                // then died on NoClassDefFoundError for the first harness class
+                // (flink-agents-runtime: KeyedOneInputStreamOperatorTestHarness).
+                Path testsJar = externalJar(parts[0], parts[1], version,
+                        parts.length == 6 ? parts[3] : "tests");
+                if (!Files.isRegularFile(testsJar))
+                    missing.add(testsJar.toString());
+                else
+                    seen.add(testsJar.toString());
+                continue;
+            }
             // g:a:type[:classifier]:version:scope — non-jar packaging (pom, bundle
             // manifests handled at refresh) never yields a classpath file
             if (!"jar".equals(type))
@@ -116,11 +132,43 @@ public final class ClasspathMaterializer {
         String rel = relativePath(group, artifact, version, classifier);
         String common = commonRepo();
         if (common != null) {
-            Path jar = Path.of(common, rel);
-            if (Files.isRegularFile(jar))
+            Path jar = segmentedJar(Path.of(common), rel);
+            if (jar != null)
                 return jar;
         }
-        return Path.of(model.getLocalRepo(), rel);
+        Path local = segmentedJar(Path.of(model.getLocalRepo()), rel);
+        return local != null ? local : Path.of(model.getLocalRepo(), rel);
+    }
+
+    /**
+     * Resolve a jar under a local repository that may use a SEGMENTED layout
+     * (zeebe observation, defect 25): the branch-scoped-local-repository Maven
+     * extension installs project artifacts under {@code installed/<branch>/} and
+     * caches downloads under {@code cached/} — the plain {@code g/a/v} layout
+     * does not exist for either. Resolution order: plain layout first, then the
+     * segmented layouts; absent everywhere -> null (caller reports missing).
+     */
+    private Path segmentedJar(Path repo, String rel) {
+        Path plain = repo.resolve(rel);
+        if (Files.isRegularFile(plain))
+            return plain;
+        Path cached = repo.resolve("cached").resolve(rel);
+        if (Files.isRegularFile(cached))
+            return cached;
+        Path installed = repo.resolve("installed");
+        if (Files.isDirectory(installed)) {
+            try (var stream = Files.list(installed)) {
+                var hit = stream.filter(Files::isDirectory)
+                        .map(branch -> branch.resolve(rel))
+                        .filter(Files::isRegularFile)
+                        .findFirst();
+                if (hit.isPresent())
+                    return hit.get();
+            } catch (IOException e) {
+                // unreadable installed dir: fall through to absent
+            }
+        }
+        return null;
     }
 
     private String commonRepo() {
