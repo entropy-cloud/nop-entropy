@@ -1,7 +1,7 @@
 # nop-ib 外部项目支持度持续实测（campaign plan）
 
 > Plan Status: active
-> Last Reviewed: 2026-11-15
+> Last Reviewed: 2026-11-16
 > Source: [ai-dev/analysis/2026-11/2026-11-15-nop-ib-external-project-support.md](../../analysis/2026-11/2026-11-15-nop-ib-external-project-support.md)（缺陷族 A–D 与预存清单）; [ai-dev/backlog/nop-ib-roadmap.md](../../backlog/nop-ib-roadmap.md)（Hard constraints 1–8）; [ai-dev/logs/2026/11-15.md](../../logs/2026/11-15.md)（缺陷 16–22 实测记录）
 > Related: [ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md](../../design/nop-incremental-build/05-nop-ib-engine-design.md)、[06-junit-worker-reuse-and-generalization-design.md](../../design/nop-incremental-build/06-junit-worker-reuse-and-generalization-design.md)
 
@@ -56,22 +56,23 @@
 
 ### Phase 1 — 候选缺陷 20 裁定与回退路径收口
 
-Status: in progress
+Status: completed
 Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/cli/TestCommand.java`（`runSurefire` / `runMavenModuleTest`）、`nop-tools/nop-ib/src/test/java/io/nop/ib/cli/`
 
 - Item Types: `Fix | Decision`
 
-- [ ] 复现：在 flink-fs-tests 上确认 `surefire:test` goal 直调连带执行 integration-tests execution（80 vs mvn `test` 生命周期 40）；记录两类差异（多执行的 execution、phase 绑定差异）。
-- [ ] Decision：选定修复方向——(a) 回退改走 lifecycle `mvn test`（需 flag 透传以跳过外部项目 enforcer 等）；(b) 直调 goal 但显式传 `-Dsurefire.excludes.*`/`skipITs` 类参数抑制非单元 execution；(c) 维持现状并登记 watch-only（必须写清 non-blocking 理由）。
-- [ ] 按裁定实施修复；新增回归钉断言"回退路径只执行单元执行面"。
-- [ ] 若裁定为 (c)：在 `ai-dev/backlog/nop-ib-roadmap.md` 的 Deferred 段登记，附 `Why Not Blocking Closure`。
+- [x] 复现：在 flink-fs-tests 上确认 `surefire:test` goal 直调连带执行 integration-tests execution（80 vs mvn `test` 生命周期 40）；记录两类差异（多执行的 execution、phase 绑定差异）。
+  - 复现修正了机制认定：直调 goal（无 `-Dtest`）与生命周期同数（40/7/1）；真正的分叉是 **`-Dtest=` 显式类清单覆盖模块 surefire `<includes>`**（41/7/2，ITCase 连带派发）；**80/14/2 = extractSummaries 把 per-class 行（`Tests run: N ... -- in org.X`）当模块 summary 重复计数**（40 真实 + 40 重复）。
+- [x] Decision：选定修复方向 **(a) 回退改走 lifecycle `mvn test` + flag 透传**（`-Denforcer.skip=true`（flink 锁 Maven 3.8.6，本机 3.9.12 enforcer 必红）+ `-Dmaven.build.cache.skipCache=true`）——唯一同时尊重 phase 绑定与 default-test execution 级配置（argLine/forkCount/excludedGroups/includes）的方向；(b) 无法恢复 execution 级配置，(c) 已证伪不成立（差异真实存在）。
+- [x] 按裁定实施修复；新增回归钉断言"回退路径只执行单元执行面"——`TestSurefireFallbackArgs`（5 钉：lifecycle 非 goal、flag 透传、`-Dtest` 形态、full 模式无 `-Dtest`、per-class 行不进 summary）。
+- [x] 若裁定为 (c)：不适用（裁定为修复，非 watch-only）。
 
 Exit Criteria:
 
-- [ ] 候选缺陷 20 已落到 `landed` 或 `adjudicated as watch-only` 二选一，无第三种状态。
-- [ ] 若修复：flink-fs-tests 回退造出的 tests 数与 mvn `test` 一致（40/7/1 口径）。
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 候选缺陷 20 已落到 `landed`（修复方向 (a)）。
+- [x] flink-fs-tests 回退造出的 tests 数与 mvn `test` 一致：修复后 `nop-ib test --runner maven -pl flink-fs-tests` 实测 **40/7/1**，与 `mvn -pl :flink-fs-tests test -Denforcer.skip=true` 基线 **40/7/1** 精确同数。
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（45/45，原 40 + 新 5 钉）。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/11-16.md`）。
 
 ### Phase 2 — 资格矩阵全量枚举与登记
 

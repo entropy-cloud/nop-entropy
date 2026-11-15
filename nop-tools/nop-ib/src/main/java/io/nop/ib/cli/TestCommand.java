@@ -30,9 +30,10 @@ import java.util.regex.Pattern;
 
 /**
  * {@code nop-ib test} / {@code nop-ib check}: test selection + Surefire delegation
- * (design 05 §7.2 phase 1 / IB-D8). Delegating to Maven's surefire:test on the
- * module's own pom keeps cwd/argLine/system-property semantics faithful; the
- * selection set is nop-ib's. Run tests take the shared build lock; `mvnq` applies
+ * (design 05 §7.2 phase 1 / IB-D8). The Maven fallback delegates to the {@code test}
+ * lifecycle phase (defect 20) so phase bindings and the default-test execution's
+ * configuration stay faithful; the selection set is nop-ib's. Run tests take the
+ * shared build lock; `mvnq` applies
  * the same lock, so one protocol governs both.
  *
  * <p>Selection re-runs after a Maven fallback compile (design 01 §13.3: a fallback
@@ -753,18 +754,35 @@ public final class TestCommand {
         return run;
     }
 
-    static TestRun runSurefire(IbEngine engine, IbModule module, List<String> testClasses,
-                               boolean json, PrintWriter out, PrintWriter err) {
-        TestRun run = new TestRun(module.getArtifactId(), testClasses);
-        StringBuilder args = new StringBuilder("-pl :" + module.getArtifactId() + " surefire:test");
+    /**
+     * Maven args for the surefire-shaped fallback (defect 20): delegate to the
+     * {@code test} LIFECYCLE phase, not the {@code surefire:test} goal. A direct
+     * goal invocation bypasses phase bindings and the default-test execution's
+     * own configuration (includes/argLine/forkCount/excludedGroups) — on flink
+     * it dispatched the integration set the unit execution excludes
+     * (fs-tests: 41/7/2 vs the lifecycle's 40/7/1). Flag passthrough keeps the
+     * lifecycle reachable on external projects: enforcer version pins (flink
+     * locks Maven 3.8.6; the local toolchain is newer) and the build cache must
+     * not gate a fallback run.
+     */
+    static String surefireFallbackArgs(IbModule module, List<String> testClasses) {
+        StringBuilder args = new StringBuilder("-pl :" + module.getArtifactId() + " test");
         if (testClasses != null && !testClasses.isEmpty()) {
             args.append(" -Dtest=").append(String.join(",", testClasses));
             args.append(" -DfailIfNoSpecifiedTests=false");
         }
+        args.append(" -Denforcer.skip=true -Dmaven.build.cache.skipCache=true");
+        return args.toString();
+    }
+
+    static TestRun runSurefire(IbEngine engine, IbModule module, List<String> testClasses,
+                               boolean json, PrintWriter out, PrintWriter err) {
+        TestRun run = new TestRun(module.getArtifactId(), testClasses);
+        String args = surefireFallbackArgs(module, testClasses);
         // no outer BuildLock: mvnq takes .mvn/build.lock itself (see runMavenModuleTest)
         MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
         StringBuilder mout = new StringBuilder();
-        int code = fallback.delegate(args.toString(), mout, new StringBuilder());
+        int code = fallback.delegate(args, mout, new StringBuilder());
         run.output = mout.toString();
         run.exitCode = code == MavenFallback.EXIT_LOCK_TIMEOUT ? Commands.EXIT_LOCK_TIMEOUT
                 : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
@@ -867,9 +885,23 @@ public final class TestCommand {
         }
     }
 
+    /**
+     * Module-level surefire summaries only (defect 20 co-finding): surefire's
+     * per-class lines ("Tests run: 32, ... -- in org.example.FooTest") match the
+     * same pattern as the final module summary — summing both double-counts
+     * every test (flink-fs-tests: 80/14/2 reported for a real 40/7/1 run).
+     * Per-class lines carry the " -- in <class>" suffix; strip those lines
+     * before matching.
+     */
     static List<int[]> extractSummaries(String output) {
         List<int[]> out = new ArrayList<>();
-        Matcher m = SUREFIRE_SUMMARY.matcher(output);
+        StringBuilder summaries = new StringBuilder();
+        for (String line : output.split("\n")) {
+            if (line.contains(" -- in "))
+                continue;
+            summaries.append(line).append('\n');
+        }
+        Matcher m = SUREFIRE_SUMMARY.matcher(summaries.toString());
         while (m.find()) {
             out.add(new int[]{Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)),
                     Integer.parseInt(m.group(3)), Integer.parseInt(m.group(4))});
