@@ -76,23 +76,23 @@ Exit Criteria:
 
 ### Phase 2 — 资格矩阵全量枚举与登记
 
-Status: planned
+Status: completed
 Targets: `ai-dev/plans/nop-ib/external-project-support-matrix.md`（新建登记面）、`~/sources`
 
 - Item Types: `Proof`
 
-- [ ] 对 `~/sources` 下全部含 `pom.xml` 的项目做机器化资格判定（构建系统、JUnit 主栈、JDK 目标、是否有测试源、是否可 install），产出一张表。
-- [ ] 每行归入 `measured-parity | measured-preexisting | qualified-todo | excluded:<reason> | undecided` 之一。
-- [ ] 对 `undecided` 行逐条裁定（需要 owner 裁定的标 blocked 并写明问题）。
-- [ ] 矩阵标注"派生视图"，权威来源是各项目 daily log 条目。
+- [x] 对 `~/sources` 下全部含 `pom.xml` 的项目做机器化资格判定（构建系统、JUnit 主栈、JDK 目标、是否有测试源、是否可 install），产出一张表（脚本 `_tmp/qualify-sources.mjs`，原始输出 `_tmp/qualify-sources.json`）。
+- [x] 每行归入 `measured-parity | measured-preexisting | qualified-todo | excluded:<reason> | undecided` 之一（7 parity / 2 preexisting / 14 todo / 19 junit4-only / 2 无测试源）。
+- [x] 对 `undecided` 行逐条裁定：最终 0 行 undecided；两项候选疑问（data-platform-open、flyway 无测试源）人工复核后归 `excluded:no-test-sources`，无 owner blocked 项。
+- [x] 矩阵标注"派生视图"，权威来源是各项目 daily log 条目。
 
 Exit Criteria:
 
-- [ ] 矩阵覆盖 `~/sources` 下全部 `pom.xml` 项目，无遗漏（给出总数与统计）。
-- [ ] 每一行有明确分类，无空分类。
-- [ ] 已测项目的结论与 daily log 一致（抽查 3 个）。
-- [ ] 登记面已声明"派生视图，以 daily log 为准"。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 矩阵覆盖 `~/sources` 下全部 `pom.xml` 项目，无遗漏（总数 44，统计见矩阵表头）。
+- [x] 每一行有明确分类，无空分类。
+- [x] 已测项目的结论与 daily log 一致（抽查 3 个：liteflow 808/0、spring-batch 465/465 字节级、liquibase 6494/0，均与 `ai-dev/logs/2026/11-15.md` 阶段总结表一致）。
+- [x] 登记面已声明"派生视图，以 daily log 为准"。
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/11-16.md`）。
 
 ### Phase 3 — 批量实测（≥3 个新项目 + zeebe 收口）
 
