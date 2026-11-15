@@ -363,6 +363,49 @@ public final class TestCommand {
         return null;
     }
 
+    /**
+     * Recovery path for a missing or test-less unit index (flink observation,
+     * defect 19): when the module has test sources that were never compiled
+     * (project installed with -Dmaven.test.skip, baseline stopped earlier in the
+     * reactor, or no prior ib compile), run one Maven test-compile, rescan the
+     * products and persist a fresh unit index, then re-enumerate through the
+     * surefire include filter. Returns null when no test sources exist or the
+     * retry yields nothing — callers keep their existing skip/fallback semantics.
+     */
+    private static List<String> recoverMissingTestClasses(IbEngine engine, IbModule module,
+                                                          List<String> warnings) {
+        if (!hasTestSources(engine, module))
+            return null;
+        io.nop.ib.compile.MavenFallback fallback =
+                new io.nop.ib.compile.MavenFallback(engine.getRepoRoot());
+        StringBuilder mout = new StringBuilder();
+        int code = fallback.delegate("-pl :" + module.getArtifactId()
+                + " test-compile -q", mout, new StringBuilder());
+        if (code != 0)
+            return null;
+        io.nop.ib.index.UnitIndexStore unitStore = engine.getUnitStore();
+        io.nop.ib.index.UnitIndexer indexer = new io.nop.ib.index.UnitIndexer();
+        List<Path> outputs = new ArrayList<>();
+        if (module.getOutputDir() != null)
+            outputs.add(engine.getRepoRoot().resolve(module.getOutputDir()));
+        if (module.getTestOutputDir() != null)
+            outputs.add(engine.getRepoRoot().resolve(module.getTestOutputDir()));
+        unitStore.save(indexer.scan(module.getArtifactId(), outputs,
+                engine.getRepoRoot().resolve(module.getBasedir())));
+        engine.refreshIndexesIfModelChanged();
+        var fresh = engine.index(module.getArtifactId());
+        if (fresh == null)
+            return null;
+        List<String> recovered = new ArrayList<>();
+        for (var info : fresh.testClasses())
+            recovered.add(info.getClassName());
+        recovered = SurefireClassFilter.filter(recovered, module);
+        if (!recovered.isEmpty())
+            warnings.add("unit index missing/empty: test sources compiled via Maven "
+                    + "retry, " + recovered.size() + " classes discovered");
+        return recovered;
+    }
+
     /** true when the module declares a test source dir containing .java sources. */
     private static boolean hasTestSources(IbEngine engine, IbModule module) {
         String dir = module.getTestSourceDir();
@@ -395,57 +438,32 @@ public final class TestCommand {
             // full-module fork: enumerate test classes from the unit index
             var index = engine.index(module.getArtifactId());
             if (index == null) {
-                TestRun run = runSurefire(engine, module, null, json, out, err);
-                run.kind = "surefire(index-missing)";
-                return run;
-            }
-            classes = new ArrayList<>();
-            for (var info : index.testClasses())
-                classes.add(info.getClassName());
-            // surefire include-pattern parity (defect 14): the index dispatches
-            // every JUnit-marked class; Maven only executes the ones matching the
-            // module's <includes> (default Test*/*Test/*Tests/*TestCase). Base
-            // classes like *ITCase carry @Test methods but rely on a subclass
-            // @BeforeAll — running them standalone fails and poisons the module.
-            classes = SurefireClassFilter.filter(classes, module);
-            if (classes.isEmpty() && hasTestSources(engine, module)) {
-                // flink observation (defect 19): empty index ≠ no tests. The module
-                // may have test sources that were never compiled (project installed
-                // with -Dmaven.test.skip, or a Maven baseline stopped earlier in the
-                // reactor) — skipping here reports "nothing to run" while Maven
-                // compiles and runs them (flink-fs-tests: 4 classes missed). One
-                // Maven test-compile retry, then re-index and re-enumerate.
-                io.nop.ib.compile.MavenFallback fallback =
-                        new io.nop.ib.compile.MavenFallback(engine.getRepoRoot());
-                StringBuilder mout = new StringBuilder();
-                int code = fallback.delegate("-pl :" + module.getArtifactId()
-                        + " test-compile -q", mout, new StringBuilder());
-                if (code == 0) {
-                    // Maven compiled the test sources: rescan the products and
-                    // persist a fresh unit index (the on-disk index still holds
-                    // the stale empty scan — refreshIndexes alone cannot see it)
-                    io.nop.ib.index.UnitIndexStore unitStore = engine.getUnitStore();
-                    io.nop.ib.index.UnitIndexer indexer = new io.nop.ib.index.UnitIndexer();
-                    List<Path> outputs = new ArrayList<>();
-                    if (module.getOutputDir() != null)
-                        outputs.add(engine.getRepoRoot().resolve(module.getOutputDir()));
-                    if (module.getTestOutputDir() != null)
-                        outputs.add(engine.getRepoRoot().resolve(module.getTestOutputDir()));
-                    unitStore.save(indexer.scan(module.getArtifactId(), outputs,
-                            engine.getRepoRoot().resolve(module.getBasedir())));
-                    engine.refreshIndexesIfModelChanged();
-                    var fresh = engine.index(module.getArtifactId());
-                    if (fresh != null) {
-                        List<String> reloaded = new ArrayList<>();
-                        for (var info : fresh.testClasses())
-                            reloaded.add(info.getClassName());
-                        reloaded = SurefireClassFilter.filter(reloaded, module);
-                        if (!reloaded.isEmpty()) {
-                            classes = reloaded;
-                            warnings.add("empty unit index: test sources compiled via "
-                                    + "Maven retry, " + classes.size() + " classes discovered");
-                        }
-                    }
+                // flink observation (defect 19, generalization): a missing index
+                // with test sources on disk means the tests were never compiled
+                // through ib — recover via one Maven test-compile + rescan instead
+                // of dropping to the surefire goal fallback (whose direct-goal
+                // invocation ignores phase bindings — candidate defect 20).
+                List<String> recovered = recoverMissingTestClasses(engine, module, warnings);
+                if (recovered == null) {
+                    TestRun run = runSurefire(engine, module, null, json, out, err);
+                    run.kind = "surefire(index-missing)";
+                    return run;
+                }
+                classes = recovered;
+            } else {
+                classes = new ArrayList<>();
+                for (var info : index.testClasses())
+                    classes.add(info.getClassName());
+                // surefire include-pattern parity (defect 14): the index dispatches
+                // every JUnit-marked class; Maven only executes the ones matching the
+                // module's <includes> (default Test*/*Test/*Tests/*TestCase). Base
+                // classes like *ITCase carry @Test methods but rely on a subclass
+                // @BeforeAll — running them standalone fails and poisons the module.
+                classes = SurefireClassFilter.filter(classes, module);
+                if (classes.isEmpty()) {
+                    List<String> recovered = recoverMissingTestClasses(engine, module, warnings);
+                    if (recovered != null)
+                        classes = recovered;
                 }
             }
             if (classes.isEmpty()) {

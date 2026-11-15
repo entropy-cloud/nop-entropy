@@ -288,6 +288,36 @@ class TestUnitIndexer {
     }
 
     @Test
+    void testSpockFeatureAndJunit3SuiteMarkers(@org.junit.jupiter.api.io.TempDir Path tmp)
+            throws Exception {
+        // defect 21 (liquibase): Spock 2.x feature methods carry no JUnit
+        // annotations — only the $spock_feature_<n>_<m> method convention.
+        // defect 22 (liquibase): JUnit3 static suite() returning
+        // junit.framework.Test builds the test tree programmatically.
+        Path src = tmp.resolve("src");
+        Files.createDirectories(src);
+        Files.writeString(src.resolve("SpockStyleTest.java"), """
+                package test;
+
+                public class SpockStyleTest {
+                    public void $spock_feature_0_0() { }
+                    public void $spock_feature_1_2() { }
+                }
+                """);
+        Path out = tmp.resolve("test-classes");
+        Files.createDirectories(out);
+        java.util.List<String> cp = new java.util.ArrayList<>(junitClasspath());
+        JavaFileCompileResult result = new JdkJavaCompiler().compileFiles(
+                List.of(src.resolve("SpockStyleTest.java").toFile()),
+                new JavaCompileOptions().setOutputDir(out.toFile()).setClassPaths(cp));
+        assertTrue(result.isSuccess(), String.valueOf(result.getDiagnostics()));
+
+        UnitIndex index = new UnitIndexer().scan("fixture", List.of(out), tmp);
+        assertTrue(index.classInfo("test.SpockStyleTest").hasTestMethods(),
+                "spock feature methods must mark the class dispatchable");
+    }
+
+    @Test
     void testRoundTrip(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
         Path out = compileFixture(tmp);
         UnitIndex index = new UnitIndexer().scan("fixture", List.of(out), tmp);

@@ -43,6 +43,9 @@ public final class UnitIndexer {
             "Lorg/junit/jupiter/api/RepeatedTest;",
             "Lorg/junit/Test;");
     private static final String NESTED_ANNOTATION = "Lorg/junit/jupiter/api/Nested;";
+    /** Spock 2.x generated feature methods: $spock_feature_0_0 */
+    private static final java.util.regex.Pattern SPock_FEATURE =
+            java.util.regex.Pattern.compile("\\$spock_feature_\\d+_\\d+");
 
     public UnitIndex scan(String moduleArtifactId, List<Path> outputDirs, Path moduleBasedir) {
         UnitIndex index = UnitIndex.empty(moduleArtifactId);
@@ -172,6 +175,12 @@ public final class UnitIndexer {
         @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor,
                                          String signature, String[] exceptions) {
+            // JUnit3 suite() convention (liquibase observation, defect 22): a static
+            // suite() returning junit.framework.Test builds the whole test tree
+            // programmatically — vintage runs it, no annotations anywhere.
+            if ((access & 0x0008) != 0 && "suite".equals(name)
+                    && Type.getReturnType(descriptor).getClassName().startsWith("junit.framework."))
+                info.setTestMethods(true);
             if ((access & ACC_PRIVATE) == 0) {
                 abiLines.add("M:" + Integer.toHexString(access) + ":" + name + ":" + descriptor
                         + ":" + (exceptions != null ? String.join(",", exceptions) : ""));
@@ -228,6 +237,14 @@ public final class UnitIndexer {
             this.inAbi = inAbi;
             this.methodName = methodName;
             this.testMethodFlag = testMethodFlag;
+            // Spock 2.x feature methods (liquibase observation, defect 21): Spock
+            // tests carry NO JUnit annotations — the compiler emits a
+            // $spock_feature_<n>_<m> method per feature block and the spock JUnit
+            // Platform engine discovers them. Without this marker the whole Groovy
+            // test population (liquibase-standard: 48 classes / ~544 tests) is
+            // silently undispatched while Maven runs it.
+            if (SPock_FEATURE.matcher(methodName).matches())
+                testMethodFlag.accept(true);
         }
 
         private void ref(String internal) {
