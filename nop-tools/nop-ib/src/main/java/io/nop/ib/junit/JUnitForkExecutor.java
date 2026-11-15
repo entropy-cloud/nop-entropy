@@ -221,24 +221,8 @@ public final class JUnitForkExecutor {
             }
             errT.join(2000);
 
-            Map<String, Object> summary = new LinkedHashMap<>();
-            if (Files.isRegularFile(resultFile)) {
-                summary = JsonIn.asMapOrEmpty(JsonIn.silentParse(Files.readString(resultFile)));
-            } else {
-                summary.put("tests", 0);
-                summary.put("failures", process.exitValue() == 0 ? 0 : 1);
-                summary.put("crashed", true);
-                if (forkErr.length() > 0) {
-                    String errText = forkErr.toString();
-                    summary.put("forkError", errText.length() > 2000 ? errText.substring(0, 2000) : errText);
-                }
-                if (!outTail.get().isEmpty()) {
-                    String outText = outTail.get();
-                    summary.put("forkStdoutTail", outText.length() > 2000
-                            ? outText.substring(outText.length() - 2000) : outText);
-                }
-                warnings.add("fork produced no result document (exit " + process.exitValue() + ")");
-            }
+            Map<String, Object> summary = readResultSummary(resultFile, process.exitValue(),
+                    forkErr.toString(), outTail.get(), warnings);
             Files.deleteIfExists(resultFile);
             int exit = process.exitValue();
             if (exit != 0 && exit != 1 && exit != 2)
@@ -249,6 +233,39 @@ public final class JUnitForkExecutor {
                 Thread.currentThread().interrupt();
             throw new NopIbException("failed to run junit fork for " + module.getArtifactId(), e);
         }
+    }
+
+    /**
+     * Read the runner's result document into a summary map. The result file is
+     * PRE-CREATED as an empty temp file before the fork starts (flink
+     * observation, defect 17): when the fork JVM cannot even start (e.g. an
+     * argLine option rejected by the JDK, Security Manager removal), the file
+     * still EXISTS but is EMPTY — treating mere existence as success yielded
+     * run=0/failed=0/exit-OK fake green where Maven fails loudly. Only a
+     * non-empty parseable document counts as a result; anything else is a
+     * crashed fork with failures=1 and the captured stderr/stdout tails.
+     */
+    static Map<String, Object> readResultSummary(Path resultFile, int exitValue,
+                                                 String forkErr, String outTail,
+                                                 List<String> warnings) throws IOException {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        boolean hasDocument = Files.isRegularFile(resultFile) && Files.size(resultFile) > 0;
+        if (hasDocument) {
+            return JsonIn.asMapOrEmpty(JsonIn.silentParse(Files.readString(resultFile)));
+        }
+        summary.put("tests", 0);
+        summary.put("failures", exitValue == 0 ? 0 : 1);
+        summary.put("crashed", true);
+        if (forkErr != null && !forkErr.isEmpty()) {
+            summary.put("forkError", forkErr.length() > 2000
+                    ? forkErr.substring(0, 2000) : forkErr);
+        }
+        if (outTail != null && !outTail.isEmpty()) {
+            summary.put("forkStdoutTail", outTail.length() > 2000
+                    ? outTail.substring(outTail.length() - 2000) : outTail);
+        }
+        warnings.add("fork produced no result document (exit " + exitValue + ")");
+        return summary;
     }
 
     /** junit-platform-commons-<version>.jar on the materialized classpath → version. */
