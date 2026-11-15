@@ -136,10 +136,13 @@ public class UnitIndex {
      * its tests twice. Non-@Nested nested test classes are kept: JUnit runs them
      * independently of the outer container.
      *
-     * <p>Declared boundary: a test class inheriting ALL tests from a base class
-     * outside this module's index (external test-jar) has no marker here and is
-     * not dispatched — test-jar edges widen at module granularity instead
-     * (design 05 §6.3).
+     * <p>Boundary (rev. defect 18, flink): a CONCRETE test class whose superclass
+     * lies outside this index (external test-jar base) is dispatched — its
+     * inherited tests are real and Maven runs them; name-pattern filtering at the
+     * call site bounds the set and the engine discovers zero tests for test-less
+     * helpers, same as Maven. The class must also survive the surefire
+     * include-pattern filter, so over-dispatch stays limited to
+     * pattern-matching names (Test*, *Test, *Tests, *TestCase).
      */
     public Collection<ClassInfo> testClasses() {
         Map<String, Boolean> marker = new HashMap<>();
@@ -169,6 +172,20 @@ public class UnitIndex {
         boolean result = info.hasTestMethods() || info.isNested()
                 || (info.getSuperName() != null
                         && isDispatchableTest(info.getSuperName(), memo));
+        if (!result && info.getSuperName() != null
+                && !"java.lang.Object".equals(info.getSuperName())
+                && !classes.containsKey(info.getSuperName())
+                && (info.getAccess() & 0x0400) == 0) {
+            // flink observation (defect 18): a concrete class inheriting ALL tests
+            // from a base outside this index (flink-runtime test-jar base
+            // RestResponseMarshallingTestBase) broke the marker chain and was never
+            // dispatched — Maven runs it (6 missed classes in flink-runtime-web).
+            // Dispatch stays bounded by the surefire include-pattern filter at the
+            // call site; the engine simply discovers zero tests for genuinely
+            // test-less helpers, same as Maven. Abstract classes are never
+            // dispatchable (they cannot be instantiated — Maven skips them too).
+            result = true;
+        }
         memo.put(className, result);
         return result;
     }

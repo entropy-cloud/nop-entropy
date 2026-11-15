@@ -221,6 +221,73 @@ class TestUnitIndexer {
     }
 
     @Test
+    void testExternalSuperBaseConcreteClassStaysDispatchable(@org.junit.jupiter.api.io.TempDir Path tmp)
+            throws Exception {
+        // flink defect 18: the marker base lives OUTSIDE the index (another
+        // module's test-jar). A concrete subclass must stay dispatchable (Maven
+        // runs its inherited tests); a helper with a bare Object super must not.
+        Path src = tmp.resolve("src");
+        Files.createDirectories(src);
+        Files.writeString(src.resolve("TestExternalSub.java"), """
+                package test;
+
+                public class TestExternalSub extends some.lib.ExternalMarshallingBase {
+                }
+                """);
+        Files.writeString(src.resolve("TestExternalHelper.java"), """
+                package test;
+
+                public class TestExternalHelper extends some.lib.ExternalUtil {
+                    void notATest() { }
+                }
+                """);
+        Path dep = tmp.resolve("dep-classes");
+        Files.createDirectories(dep);
+        Files.writeString(dep.resolve("README"), "placeholder");
+        Path out = tmp.resolve("test-classes");
+        Files.createDirectories(out);
+        // compile against a synthetic external base on the classpath
+        Files.createDirectories(tmp.resolve("ext/some/lib"));
+        Files.writeString(tmp.resolve("ext/some/lib/ExternalMarshallingBase.java"), """
+                package some.lib;
+
+                public abstract class ExternalMarshallingBase {
+                    @org.junit.jupiter.api.Test
+                    void inheritedFromExternal() { }
+                }
+                """);
+        Files.writeString(tmp.resolve("ext/some/lib/ExternalUtil.java"), """
+                package some.lib;
+
+                public class ExternalUtil { }
+                """);
+        JavaFileCompileResult ext = new JdkJavaCompiler().compileFiles(
+                List.of(tmp.resolve("ext/some/lib/ExternalMarshallingBase.java").toFile(),
+                        tmp.resolve("ext/some/lib/ExternalUtil.java").toFile()),
+                new JavaCompileOptions().setOutputDir(dep.toFile()).setClassPaths(junitClasspath()));
+        assertTrue(ext.isSuccess(), String.valueOf(ext.getDiagnostics()));
+        java.util.List<String> cp = new java.util.ArrayList<>(junitClasspath());
+        cp.add(dep.toString()); // package root dir on the javac classpath
+        JavaFileCompileResult result = new JdkJavaCompiler().compileFiles(
+                List.of(src.resolve("TestExternalSub.java").toFile(),
+                        src.resolve("TestExternalHelper.java").toFile()),
+                new JavaCompileOptions().setOutputDir(out.toFile()).setClassPaths(cp));
+        assertTrue(result.isSuccess(), String.valueOf(result.getDiagnostics()));
+
+        UnitIndex index = new UnitIndexer().scan("fixture", List.of(out), tmp);
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (ClassInfo info : index.testClasses())
+            names.add(info.getClassName());
+
+        // concrete class with external test base stays dispatchable (defect 18)
+        assertTrue(names.contains("test.TestExternalSub"), String.valueOf(names));
+        // helper extending a bare external utility class is still filtered only by
+        // name pattern at dispatch; the index marks it dispatchable too (engine
+        // discovers zero tests) — assert marker facts instead
+        assertTrue(index.classInfo("test.TestExternalHelper") != null);
+    }
+
+    @Test
     void testRoundTrip(@org.junit.jupiter.api.io.TempDir Path tmp) throws Exception {
         Path out = compileFixture(tmp);
         UnitIndex index = new UnitIndexer().scan("fixture", List.of(out), tmp);

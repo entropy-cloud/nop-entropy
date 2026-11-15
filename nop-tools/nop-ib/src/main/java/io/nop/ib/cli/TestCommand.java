@@ -14,6 +14,7 @@ import io.nop.ib.model.IbModel;
 import io.nop.ib.model.IbModule;
 import io.nop.ib.scope.PlanResult;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
@@ -362,6 +363,21 @@ public final class TestCommand {
         return null;
     }
 
+    /** true when the module declares a test source dir containing .java sources. */
+    private static boolean hasTestSources(IbEngine engine, IbModule module) {
+        String dir = module.getTestSourceDir();
+        if (dir == null)
+            return false;
+        Path testSrc = engine.getRepoRoot().resolve(dir);
+        if (!java.nio.file.Files.isDirectory(testSrc))
+            return false;
+        try (java.util.stream.Stream<Path> s = java.nio.file.Files.walk(testSrc)) {
+            return s.anyMatch(p -> p.getFileName().toString().endsWith(".java"));
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     /**
      * Fast-path execution: forked JUnit JVM (design 02 contract). Falls back to
      * surefire ONLY when the junit setup cannot be satisfied (no platform artifacts
@@ -372,6 +388,7 @@ public final class TestCommand {
     static TestRun runModuleTests(IbEngine engine, IbModule module, List<String> classes,
                                   String runner, boolean json, PrintWriter out, PrintWriter err,
                                   int workerCount) {
+        List<String> warnings = new ArrayList<>();
         if (!"junit".equals(runner))
             return runSurefire(engine, module, classes, json, out, err);
         if (classes == null) {
@@ -391,6 +408,46 @@ public final class TestCommand {
             // classes like *ITCase carry @Test methods but rely on a subclass
             // @BeforeAll — running them standalone fails and poisons the module.
             classes = SurefireClassFilter.filter(classes, module);
+            if (classes.isEmpty() && hasTestSources(engine, module)) {
+                // flink observation (defect 19): empty index ≠ no tests. The module
+                // may have test sources that were never compiled (project installed
+                // with -Dmaven.test.skip, or a Maven baseline stopped earlier in the
+                // reactor) — skipping here reports "nothing to run" while Maven
+                // compiles and runs them (flink-fs-tests: 4 classes missed). One
+                // Maven test-compile retry, then re-index and re-enumerate.
+                io.nop.ib.compile.MavenFallback fallback =
+                        new io.nop.ib.compile.MavenFallback(engine.getRepoRoot());
+                StringBuilder mout = new StringBuilder();
+                int code = fallback.delegate("-pl :" + module.getArtifactId()
+                        + " test-compile -q", mout, new StringBuilder());
+                if (code == 0) {
+                    // Maven compiled the test sources: rescan the products and
+                    // persist a fresh unit index (the on-disk index still holds
+                    // the stale empty scan — refreshIndexes alone cannot see it)
+                    io.nop.ib.index.UnitIndexStore unitStore = engine.getUnitStore();
+                    io.nop.ib.index.UnitIndexer indexer = new io.nop.ib.index.UnitIndexer();
+                    List<Path> outputs = new ArrayList<>();
+                    if (module.getOutputDir() != null)
+                        outputs.add(engine.getRepoRoot().resolve(module.getOutputDir()));
+                    if (module.getTestOutputDir() != null)
+                        outputs.add(engine.getRepoRoot().resolve(module.getTestOutputDir()));
+                    unitStore.save(indexer.scan(module.getArtifactId(), outputs,
+                            engine.getRepoRoot().resolve(module.getBasedir())));
+                    engine.refreshIndexesIfModelChanged();
+                    var fresh = engine.index(module.getArtifactId());
+                    if (fresh != null) {
+                        List<String> reloaded = new ArrayList<>();
+                        for (var info : fresh.testClasses())
+                            reloaded.add(info.getClassName());
+                        reloaded = SurefireClassFilter.filter(reloaded, module);
+                        if (!reloaded.isEmpty()) {
+                            classes = reloaded;
+                            warnings.add("empty unit index: test sources compiled via "
+                                    + "Maven retry, " + classes.size() + " classes discovered");
+                        }
+                    }
+                }
+            }
             if (classes.isEmpty()) {
                 TestRun run = TestRun.skipped(module.getArtifactId(), "no test classes in unit index");
                 return run;
@@ -424,6 +481,7 @@ public final class TestCommand {
             fb.kind = "surefire(worker-setup: " + e + " @ " + head + ")";
             return fb;
         }
+        forkWarnings.addAll(warnings);
         forkWarnings.addAll(fork.warnings());
         // module-level differential rerun (design 06 WR-D4, v2 semantics): when
         // the worker run fails, rerun the WHOLE module in ONE fresh sequential
