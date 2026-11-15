@@ -57,9 +57,16 @@ public final class ClasspathMaterializer {
                     && model.module(parts[1]).getGa().equals(ga);
             if (intra) {
                 IbModule dep = model.module(parts[1]);
-                if ("test".equals(scope) && test && dep.getTestOutputDir() != null)
+                // surefire semantics: a plain test-scoped dependency contributes its
+                // MAIN products only — dependency test-classes enter the classpath
+                // exclusively through an explicit test-jar typed dependency. Adding
+                // dep.testOutputDir for every test-scoped dep pulled dozens of
+                // foreign test-classes dirs (and their processes/ resources) into
+                // Spring auto-deployment (Activiti Duplicate key observation).
+                boolean testJar = "test-jar".equals(type);
+                if (testJar && test && dep.getTestOutputDir() != null)
                     seen.add(dep.getTestOutputDir());
-                if (dep.getOutputDir() != null)
+                else if (!"test-jar".equals(type) && dep.getOutputDir() != null)
                     seen.add(dep.getOutputDir());
                 continue;
             }

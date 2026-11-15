@@ -418,65 +418,31 @@ public final class TestCommand {
             return fb;
         }
         forkWarnings.addAll(fork.warnings());
-        // differential rerun (design 06 WR-D4): every failed class gets ONE fresh
-        // per-class fork; fresh passes => pollution (worker result discarded)
-        if (fork.exitCode() == 1 && fork.summary().get("failed") instanceof Iterable<?> failedList) {
-            // differential reruns in PARALLEL fresh forks (each retry is independent);
-            // retry timeout adapts to the worker-measured class time (4x, floored at
-            // 60s) — a class that hangs in a fresh fork is a genuine hang, not
-            // pollution, and must not burn another full watchdog period
-            List<Map<String, String>> stillFailed =
-                    java.util.Collections.synchronizedList(new ArrayList<>());
-            List<String> pollution = java.util.Collections.synchronizedList(new ArrayList<>());
-            List<String> failedClasses = new ArrayList<>();
-            Map<String, Map<String, String>> failedMeta = new java.util.concurrent.ConcurrentHashMap<>();
-            for (Object o : failedList) {
-                if (!(o instanceof Map<?, ?> m))
-                    continue;
-                String cls = String.valueOf(m.get("class"));
-                failedClasses.add(cls);
-                Map<String, String> meta = new LinkedHashMap<>();
-                meta.put("class", cls);
-                meta.put("method", String.valueOf(m.get("method")));
-                meta.put("type", String.valueOf(m.get("type")));
-                meta.put("message", String.valueOf(m.get("message")));
-                meta.put("timeMs", String.valueOf(m.get("timeMs")));
-                failedMeta.put(cls, meta);
+        // module-level differential rerun (design 06 WR-D4, v2 semantics): when
+        // the worker run fails, rerun the WHOLE module in ONE fresh sequential
+        // fork — surefire's own execution model (single JVM, classes in order,
+        // cross-class state accumulates). Activiti conformance tests assert on
+        // deployment registries accumulated ACROSS test classes: per-class fresh
+        // forks reproduce the failure (missing accumulated state) and per-class
+        // pollution checks cannot apply, so the only faithful oracle is the
+        // surefire-shaped rerun. Fresh result authoritative either way.
+        System.err.println("nop-ib debug: rerun-gate exit=" + fork.exitCode()
+                + " classes=" + (classes == null ? "null" : classes.size()));
+        if (fork.exitCode() == 1 && classes != null && !classes.isEmpty()) {
+            long rerunCap = Long.getLong("nop.ib.moduleRerunTimeoutSeconds", 1800);
+            System.err.println("nop-ib debug: rerun EXECUTING fresh full-module fork, cap=" + rerunCap);
+            JUnitForkExecutor.ForkResult fresh = executor.execute(
+                    module, cp, classes, java.time.Duration.ofSeconds(rerunCap));
+            System.err.println("nop-ib debug: rerun DONE freshExit=" + fresh.exitCode());
+            if (fresh.exitCode() == 0) {
+                forkWarnings.add("module differential rerun: PASSES in fresh single-fork "
+                        + "(worker-model pollution/order divergence) -> fresh result authoritative");
+            } else {
+                forkWarnings.add("module differential rerun: fails identically in fresh "
+                        + "single-fork -> genuine failures confirmed");
             }
-            java.util.concurrent.ExecutorService retryPool =
-                    java.util.concurrent.Executors.newFixedThreadPool(
-                            Math.min(8, Math.max(1, failedClasses.size())), r -> {
-                                Thread t = new Thread(r, "nop-ib-retry");
-                                t.setDaemon(true);
-                                return t;
-                            });
-            java.util.List<java.util.concurrent.Future<?>> retries = new ArrayList<>();
-            for (String cls : failedClasses) {
-                retries.add(retryPool.submit(() -> {
-                    JUnitForkExecutor.ForkResult fresh =
-                            executor.execute(module, cp, List.of(cls),
-                                    retryTimeout(failedMeta.get(cls).get("timeMs")));
-                    if (fresh.exitCode() == 0) {
-                        pollution.add(cls + " (passes in fresh fork) -> fresh result authoritative");
-                    } else {
-                        stillFailed.add(failedMeta.get(cls));
-                    }
-                }));
-            }
-            retryPool.shutdown();
-            for (var r : retries) {
-                try {
-                    r.get();
-                } catch (Exception e) {
-                    forkWarnings.add("retry error: " + e);
-                }
-            }
-            forkWarnings.addAll(pollution);
-            {
-            fork = new JUnitForkExecutor.ForkResult(
-                    stillFailed.isEmpty() ? 0 : 1,
-                    remapSummary(fork.summary(), stillFailed), forkWarnings);
-            }
+            forkWarnings.addAll(fresh.warnings());
+            fork = fresh;
         }
         if (fork.exitCode() == -3) {
             // junit setup unsatisfiable -> explicit fallback

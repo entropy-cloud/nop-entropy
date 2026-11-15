@@ -94,11 +94,19 @@ public final class JUnitForkExecutor {
         String argLine = module.getSurefireArgLine();
         if (argLine != null && !argLine.isBlank()) {
             for (String token : argLine.trim().split("\\s+")) {
-                // unresolvable placeholders: ${...} (Maven property) and @{...}
-                // (surefire late-binding, used by Apache pdfbox) — both belong to
-                // Maven machinery and are dropped with a per-token warning
-                if (token.contains("${") || token.contains("@{")) {
+                // @{...} is surefire late-binding (jacoco argLine) — Maven machinery,
+                // dropped with a warning. ${g:a:type} IS resolvable from the module
+                // classpath (mockito javaagent etc.): substitute and keep the token.
+                if (token.contains("@{")) {
                     warnings.add("argLine token dropped (unresolvable placeholder): " + token);
+                    continue;
+                }
+                if (token.contains("${")) {
+                    String resolved = resolveArgLineToken(token, classpath.entries());
+                    if (resolved != null)
+                        cmd.add(resolved);
+                    else
+                        warnings.add("argLine token dropped (unresolvable placeholder): " + token);
                     continue;
                 }
                 cmd.add(token);
@@ -328,4 +336,48 @@ public final class JUnitForkExecutor {
         String javaHome = System.getProperty("java.home");
         return javaHome != null ? Path.of(javaHome, "bin", tool).toString() : tool;
     }
+    /**
+     * Resolve Maven ${groupId:artifactId:type} placeholders inside an argLine
+     * token against the module classpath (e.g. surefire's
+     * -javaagent:"${org.mockito:mockito-core:jar}" — the mockito inline agent
+     * Activiti conformance tests require). Returns the token with placeholders
+     * substituted, or null when any placeholder is unresolvable (caller drops
+     * it with a warning, previous behavior).
+     */
+    static String resolveArgLineToken(String token, List<String> cpEntries) {
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("\\$\\{([^}]+)\\}").matcher(token);
+        StringBuilder out = new StringBuilder();
+        int last = 0;
+        while (m.find()) {
+            String spec = m.group(1);
+            String jar = findClasspathJar(spec, cpEntries);
+            if (jar == null)
+                return null;
+            out.append(token, last, m.start()).append(jar);
+            last = m.end();
+        }
+        out.append(token.substring(last));
+        String resolved = out.toString().replace("\"", "");
+        return resolved.isBlank() ? null : resolved;
+    }
+
+    /** classpath entry ending with /artifact-<version>.jar for ${g:a:type}. */
+    private static String findClasspathJar(String spec, List<String> cpEntries) {
+        String[] parts = spec.split(":");
+        if (parts.length < 2)
+            return null;
+        String artifact = parts[1];
+        String suffix = "/" + artifact + "-";
+        String best = null;
+        for (String entry : cpEntries) {
+            int idx = entry.lastIndexOf(suffix);
+            if (idx >= 0 && entry.endsWith(".jar")) {
+                if (best == null || entry.length() > best.length())
+                    best = entry;
+            }
+        }
+        return best;
+    }
+
 }

@@ -436,9 +436,17 @@ public final class JUnitWorkerPool {
         String argLine = module.getSurefireArgLine();
         if (argLine != null && !argLine.isBlank()) {
             for (String token : argLine.trim().split("\\s+")) {
-                // drop Maven ${...} and surefire @{...} late-binding placeholders
-                if (token.contains("${") || token.contains("@{"))
+                // @{...} late-binding dropped; ${g:a:type} resolved from classpath
+                // (mockito javaagent — Activiti conformance requires it)
+                if (token.contains("@{"))
                     continue;
+                if (token.contains("${")) {
+                    String resolved = JUnitForkExecutor.resolveArgLineToken(
+                            token, classpath.entries());
+                    if (resolved != null)
+                        cmd.add(resolved);
+                    continue;
+                }
                 cmd.add(token);
             }
         }
