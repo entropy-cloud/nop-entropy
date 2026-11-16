@@ -162,15 +162,33 @@ public final class ServeHttp {
 
     // ---- helpers ---------------------------------------------------------
 
-    /** payload parsed into a JSON object when possible (same contract as stdio serve). */
+    /**
+     * payload parsed into JSON when possible (same contract as stdio serve).
+     * CLI output is NDJSON (plan line + per-module report lines): single line
+     * -> object, multiple lines -> array of objects, unparseable -> raw string.
+     */
     static Map<String, Object> jobSnapshot(BuildJob job) {
         Map<String, Object> snap = job.snapshot();
         String payload = job.payload;
         if (payload != null) {
-            Object parsed = JsonIn.silentParse(payload);
+            Object parsed = parseCliOutput(payload);
             snap.put("payload", parsed != null ? parsed : payload);
         }
+        if (job.stderr != null)
+            snap.put("stderr", job.stderr);
         return snap;
+    }
+
+    private static Object parseCliOutput(String payload) {
+        // stdout carries non-JSON progress lines too ("[nop-ib] log: ..."):
+        // drop bracketed progress lines before the sequence parse
+        StringBuilder json = new StringBuilder(payload.length());
+        for (String line : payload.split("\n")) {
+            if (line.startsWith("[nop-ib]"))
+                continue;
+            json.append(line).append('\n');
+        }
+        return JsonIn.silentParseSequence(json.toString());
     }
 
     private static String str(Object o) {

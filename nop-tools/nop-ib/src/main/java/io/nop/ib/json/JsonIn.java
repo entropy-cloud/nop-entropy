@@ -53,6 +53,29 @@ public final class JsonIn {
         }
     }
 
+    /**
+     * Wave 10 service payload: CLI output is a whitespace-separated sequence of
+     * JSON documents (NDJSON whose strings may contain newlines). Parses all
+     * consecutive values; returns a single value when one, a list otherwise,
+     * null when any segment is malformed.
+     */
+    public static Object silentParseSequence(String text) {
+        try {
+            JsonIn p = new JsonIn(text);
+            List<Object> values = new ArrayList<>();
+            p.skipWs();
+            while (p.pos < p.text.length()) {
+                values.add(p.readValue());
+                p.skipWs();
+            }
+            if (values.isEmpty())
+                return null;
+            return values.size() == 1 ? values.get(0) : values;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static class NopIbJsonException extends RuntimeException {
         public NopIbJsonException(String message) {
             super(message);

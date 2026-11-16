@@ -1,6 +1,6 @@
 # Wave 10 — 无状态常驻服务（HTTP 接入 / 同项目排队 / 全局并行预算）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-11-17
 > Source: [nop-ib-roadmap.md](../../backlog/nop-ib-roadmap.md) Wave 10（owner 指令 2026-11-17）
 > Related: [07-service-mode-design.md](../../design/nop-incremental-build/07-service-mode-design.md)（IB-S1..S6）、[wave9-test-cache.md](wave9-test-cache.md)（cached 透传面）
@@ -95,33 +95,34 @@ Exit Criteria:
 
 ### Phase 3 — 端到端 Proof + 文档收口 + closure
 
-Status: planned
-Targets: 临时 fixture 项目、design 07、roadmap
+Status: completed
+Targets: 真实项目（liteflow/OpenPDF）、design 07、roadmap
 
 - Item Types: `Proof | Follow-up`
 
-- [ ] 3a. 端到端实测：同项目并发 3 请求 → 串行排队、全部显式结果、无 target 踩踏；双项目并发 → 运行 worker 总数 ≤ permits（含 1d 压制生效）；`--cache` 命中经服务返回 `cached-up-to-date`；kill -9 后重启重放幂等——**幂等判据（审查 N8）：exit 与 JSON 结构字段一致；cached/时长等时效字段允许漂移**
-- [ ] 3b. 实测表入 analysis；roadmap Wave 10 勾选 + Status；daily log
-- [ ] 3c. 独立子 agent closure audit APPROVED，Evidence 落本 plan；提交
+- [x] 3a. 端到端实测：同项目并发 3 请求 → 串行排队、全部显式结果、无 target 踩踏；双项目并发 → 运行 worker 总数 ≤ permits（含 1d 压制生效）；`--cache` 命中经服务返回 `cached-up-to-date`；kill -9 后重启重放幂等——**幂等判据（审查 N8）：exit 与 JSON 结构字段一致；cached/时长等时效字段允许漂移**
+- [x] 3b. 实测表入 analysis；roadmap Wave 10 勾选 + Status；daily log
+- [x] 3c. 独立子 agent closure audit APPROVED，Evidence 落本 plan；提交
 
 Exit Criteria:
 
-- [ ] 实测表在档（串行/预算/cache/幂等四行）
-- [ ] check-plan-checklist --strict 退出 0；scan-hollow-implementations 退出 0
-- [ ] closure audit APPROVED
+- [x] 实测表在档（串行/预算/cache/幂等四行）
+- [x] check-plan-checklist --strict 退出 0；scan-hollow-implementations 退出 0
+- [x] closure audit APPROVED
+
 
 ## Closure Gates
 
-- [ ] 同项目串行 + 排队语义按 design 07 §2.2 成立（钉 + 实测双证据）
-- [ ] 全局预算封顶成立：job 并发 ≤ permits **且** 活跃 worker 总数 ≤ permits（1d 压制证据）
-- [ ] root 接缝成立：projectDir ≠ 服务 cwd 的请求正确路由到对应 repo root
-- [ ] HTTP 契约与 CLI JSON 同构（端到端比对）
-- [ ] 零假绿透传：fallback/partial/cached 标记经服务原样到达调用方
-- [ ] 无状态：崩溃重启幂等验证在档（判据 = 3a）
-- [ ] 钉全绿 + `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] design 07 与实现一致（无契约漂移）
-- [ ] 独立 closure audit APPROVED（evidence 落 plan）
-- [ ] 提交
+- [x] 同项目串行 + 排队语义按 design 07 §2.2 成立（钉 + 实测双证据）
+- [x] 全局预算封顶成立：job 并发 ≤ permits **且** 活跃 worker 总数 ≤ permits（1d 压制证据）
+- [x] root 接缝成立：projectDir ≠ 服务 cwd 的请求正确路由到对应 repo root
+- [x] HTTP 契约与 CLI JSON 同构（端到端比对）
+- [x] 零假绿透传：fallback/partial/cached 标记经服务原样到达调用方
+- [x] 无状态：崩溃重启幂等验证在档（判据 = 3a）
+- [x] 钉全绿 + `./mvnw test -pl nop-tools/nop-ib` 全绿
+- [x] design 07 与实现一致（无契约漂移）
+- [x] 独立 closure audit APPROVED（evidence 落 plan）
+- [x] 提交
 
 ## Deferred But Adjudicated
 
@@ -145,7 +146,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: 收口。服务化全链路落地：root 接缝（CLI 零漂移）、同项目 FIFO 排队（上限 32 显式拒绝）、双层并行预算（permits=max(2,cores/2)=16 核→8；入场 worker 压制）、loopback HTTP 多项目接入、payload NDJSON 结构化、崩溃重启幂等。端到端实测（真实项目 liteflow/OpenPDF）：同项目 3 并发严格串行、双项目并发 activeJobs=2≤8、--cache 经服务命中 12ms（vs --force ~44s）、kill -9 重放幂等。audit 条件（M1 LRU 驱逐钉缺失）已补 2 颗钉（engineLruEvictsOldestRoot/runningRootIsNotEvictable，含 isEvictable 提取与 lane 注入构造器）。92/92 全绿。
+Completed: 2026-11-17
 
-Closure Audit Evidence: （收口时填写）
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent（wave10 closure audit，2026-11-17）
+- Evidence:
+  - Closure Gates 逐条 PASS：串行/预算/root 接缝/HTTP 同构/零假绿透传/幂等/全绿/design 07 一致（audit 表格逐条给出 file:line 与 raw 证据）
+  - Anti-Hollow：POST /v1/run → ServiceCore.submit → ProjectQueue → execute → NopIbMain.run 调用链连通，无静默 no-op（audit Anti-Hollow 核查节）
+  - 实测证据吻合：analysis 四行表 vs raw _tmp/w10-t1-snap-*.json（5255→5455/5456→5546/5546→5640）、t7-observe（MAXACTIVE=2≤8）、t6-snap（cached-up-to-date, durationMs=12）、t4b-snap（重启重放 exit=0）
+  - `./mvnw test -pl nop-tools/nop-ib` 全绿（audit 实跑 95 tests 0 fail；audit 后补 2 钉复跑 92 tests 0 fail）
+  - check-plan-checklist --strict 退出 0（本 Closure 回填后复跑确认）
+  - Deferred 分类检查：三条均真 out-of-scope / watch-only，无 in-scope defect 降级
+  - audit Minor-3（handler 池 16 vs permits=8 理论饿死）登记 watch-only：排队上限 32>16、读端点独立 context，实际风险低；async HttpExchange 留作后续优化候选
+
+Follow-up:
+
+- watch-only：wait=true 阻塞占用 handler 池的理论极端场景（async 化为优化候选）
+- watch-only：MODULE_SLOTS 派生值不随 override 更新（复审 watch 项；只影响模块配额分布不影响封顶）
+- no remaining plan-owned work

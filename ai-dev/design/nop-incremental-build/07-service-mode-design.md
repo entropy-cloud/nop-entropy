@@ -29,7 +29,7 @@ GET  /v1/health       → {"version", "cores", "workerBudget", "activeProjects"}
 DELETE /v1/job/{id}   → 取消排队中的 job（running 的 job 不中断，语义 = 构建不可安全半途中断）
 ```
 
-- 回复 payload 与 CLI `--json` 输出逐字节同构（同一 RunLog 契约）；payload 超 8MB 截断并附 `truncated:true`；
+- 回复 payload 与 CLI `--json` 输出同构（同一 RunLog 契约）：CLI stdout 是 NDJSON 序列且字符串可含换行——服务端按 JSON 序列解析（单文档 → 对象，多文档 → 数组），`[nop-ib]` 进度行过滤，stderr 诊断单独放 `stderr` 字段（不混入 payload）；解析失败回退原始字符串并如实标注；payload 超 8MB 截断并附 `truncated:true`；
 - HTTP 状态码只表达传输层结果（队列满 = 429）；构建成败看 `exit` 字段（与 CLI 退出码同表：0 成功 / 1 失败 / 6 partial / 75 锁超时）。
 
 ### 2.2 排队语义
@@ -49,7 +49,7 @@ on run(projectDir, cmd, args):
 ### 2.3 并行预算
 
 - 全局信号量 permits = `max(2, cores/2)`，系统属性 `nop.ib.serviceWorkerBudget` 覆盖；
-- 服务执行 job 时把单 job 的 worker 预算压为 `max(2, permits / 活跃 job 数)`：经引擎的 worker 预算 override 接缝生效，CLI（非服务）路径不读 override、行为零漂移；单 job 内部调度（worker pool、模块级并行）不变；
+- 服务执行 job 时把单 job 的 worker 预算压为 `max(2, permits / 活跃 job 数)`（**入场时压缩**：已运行 job 保持其入场份额直到结束，瞬态超出以一个 job 的初始份额为界）；经引擎的 worker 预算 override 接缝生效，CLI（非服务）路径不读 override、行为零漂移；单 job 内部调度（worker pool、模块级并行）不变；
 - 编译执行沿用引擎内既有的"模块间有界并行"；服务层不重复实现模块级调度；
 - `wait=true` 请求与异步 job 走同一提交路径（handler 内等待完成），保证执行语义唯一；HTTP executor 固定小尺寸但有下限（≥ 排队面），长任务不得饿死读端点。
 

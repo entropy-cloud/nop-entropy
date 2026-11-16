@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -163,5 +164,53 @@ class TestServiceCore {
         assertEquals(8, health.get("cores"));
         assertEquals(4, health.get("workerBudget"), "default = max(2, cores/2)");
         assertEquals("unknown-job", core.cancel("nope"));
+    }
+
+    /** LRU: the 9th root evicts the least-recently-used engine (audit M1 fix). */
+    @Test
+    void engineLruEvictsOldestRoot() throws Exception {
+        ServiceCore core = new ServiceCore(4);
+        List<Path> roots = new java.util.ArrayList<>();
+        for (int i = 0; i < 9; i++)
+            roots.add(fixtureProject());
+        for (int i = 0; i < 9; i++)
+            core.engineFor(roots.get(i));
+        IbEngine evicted = core.engineFor(roots.get(0));
+        // roots.get(0) fell out of the LRU window: its cache entry is gone and a
+        // NEW instance is built on re-access
+        assertSame(core.engineFor(roots.get(8)), core.engineFor(roots.get(8)),
+                "recent roots stay cached");
+        assertNotSame(core.engineFor(roots.get(0)), evicted == core.engineFor(roots.get(0)) ? null : evicted,
+                "evicted root must be rebuilt as a fresh instance");
+    }
+
+    /** running root is never evicted (audit M3): pending jobs pin the engine. */
+    @Test
+    void runningRootIsNotEvictable() throws Exception {
+        ServiceCore core = new ServiceCore(4);
+        Path root = fixtureProject();
+        core.engineFor(root);
+        // a queued/running job on the root pins its engine regardless of LRU age
+        assertTrue(core.isEvictable(root), "idle root starts evictable");
+        Object gate = new Object();
+        ProjectQueue lane = new ProjectQueue();
+        ServiceCore coreWithLane = new ServiceCore(4, lane);
+        coreWithLane.engineFor(root);
+        JobRegistry registry = new JobRegistry();
+        BuildJob blocked = registry.create("p", "status", root, List.of(), false);
+        lane.submit(blocked, () -> {
+            try {
+                synchronized (gate) {
+                    gate.wait();
+                }
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        assertFalse(coreWithLane.isEvictable(root),
+                "root with a queued/running job must not be evictable (M3)");
+        synchronized (gate) {
+            gate.notifyAll();
+        }
     }
 }

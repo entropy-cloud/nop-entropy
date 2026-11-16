@@ -27,7 +27,7 @@ public final class ServiceCore {
     public static final Set<String> ALLOWED_CMDS = Set.of("status", "plan", "compile", "test", "check");
 
     private final JobRegistry registry = new JobRegistry();
-    private final ProjectQueue queue = new ProjectQueue();
+    private final ProjectQueue queue;
     private final JobBudget budget;
     private final int cores;
 
@@ -37,14 +37,28 @@ public final class ServiceCore {
         protected boolean removeEldestEntry(Map.Entry<Path, IbEngine> eldest) {
             if (size() <= 8)
                 return false;
-            // audit M3: a root with queued/running jobs holds a live engine —
-            // evicting it would fork a second instance with its own caches
-            return queue.pending(eldest.getKey()) == 0;
+            return isEvictable(eldest.getKey());
         }
     };
 
+    /**
+     * audit M3 guard, extracted for pins: a root with queued/running jobs holds
+     * a live engine — evicting it would fork a second instance with its own
+     * caches. Package-private for the LRU pins.
+     */
+    boolean isEvictable(Path root) {
+        return queue.pending(root) == 0;
+    }
+
     public ServiceCore(int cores) {
+        this(cores, new ProjectQueue());
+    }
+
+
+    /** Package-private: pins inject a lane with pre-seeded pending jobs. */
+    ServiceCore(int cores, ProjectQueue queue) {
         this.cores = cores;
+        this.queue = queue;
         this.budget = JobBudget.fromSystem(cores);
     }
 
@@ -86,6 +100,10 @@ public final class ServiceCore {
         }
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(buf, true, StandardCharsets.UTF_8);
+        // stdout carries the --json payload; stderr diagnostics (Maven fallback
+        // warnings etc.) are captured separately — merging them breaks the JSON
+        ByteArrayOutputStream errBuf = new ByteArrayOutputStream();
+        PrintStream errOut = new PrintStream(errBuf, true, StandardCharsets.UTF_8);
         List<String> allArgs = new ArrayList<>();
         allArgs.add(job.cmd);
         allArgs.add("--json");
@@ -97,7 +115,7 @@ public final class ServiceCore {
             io.nop.ib.cli.TestCommand.setWorkerBudgetOverride(perJobWorkers);
             try {
                 job.exit = NopIbMain.run(allArgs.toArray(new String[0]),
-                        engineFor(job.repoRoot), job.repoRoot, out, out);
+                        engineFor(job.repoRoot), job.repoRoot, out, errOut);
             } finally {
                 io.nop.ib.cli.TestCommand.setWorkerBudgetOverride(0);
             }
@@ -116,6 +134,9 @@ public final class ServiceCore {
             } else {
                 job.payload = new String(bytes, StandardCharsets.UTF_8);
             }
+            String stderrText = errBuf.toString(StandardCharsets.UTF_8).trim();
+            if (!stderrText.isEmpty())
+                job.stderr = stderrText;
             synchronized (job) {
                 job.notifyAll();
             }

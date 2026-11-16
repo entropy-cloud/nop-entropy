@@ -22,7 +22,8 @@ public final class BuildJob {
 
     public volatile State state = State.QUEUED;
     public volatile int exit = -1;
-    public volatile String payload;      // raw CLI --json output (may be truncated)
+    public volatile String payload;      // CLI --json stdout (may be truncated)
+    public volatile String stderr;       // diagnostics stream, kept out of the payload
     public volatile boolean truncated;
     public volatile String error;
     public volatile long queuedAt = System.currentTimeMillis();
