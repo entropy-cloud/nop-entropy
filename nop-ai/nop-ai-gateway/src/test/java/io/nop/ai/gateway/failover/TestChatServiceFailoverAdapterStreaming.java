@@ -338,7 +338,8 @@ class TestChatServiceFailoverAdapterStreaming {
 
         sub.await();
         assertTrue(sub.texts.size() >= 3,
-                "window (N=2) must have passed and forwarded data before the error; got: " + sub.texts);
+                "window (N=2) must have passed and forwarded data before the error; got: " + sub.texts
+                        + " error=" + sub.error + " completed=" + sub.completed);
         assertEquals("c1", sub.texts.get(0));
         assertEquals("c2", sub.texts.get(1));
         assertNotNull(sub.error, "out-of-window failure must surface as stream error");

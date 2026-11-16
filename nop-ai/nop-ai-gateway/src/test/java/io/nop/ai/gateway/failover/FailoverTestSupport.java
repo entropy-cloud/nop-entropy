@@ -264,7 +264,11 @@ final class FailoverTestSupport {
                 if (!started.compareAndSet(false, true)) {
                     return;
                 }
-                CompletableFuture.runAsync(() -> {
+                // 虚拟线程承载发射（替代 CompletableFuture.runAsync 的 commonPool 承载）：
+                // gate.await 是阻塞等待，落在共享 commonPool 上会与其他测试类的任务互相
+                // 占死 worker（full-build 4 fork 场景下发射被任意延迟/饿死，表现为窗口内
+                // 失败误分类/空交付）。虚拟线程无共享池容量约束，发射时序只由 gate 决定。
+                Thread.ofVirtual().name("fake-stream-emitter-").start(() -> {
                     try {
                         if (scenario.gate != null) {
                             scenario.gate.await(10, TimeUnit.SECONDS);
