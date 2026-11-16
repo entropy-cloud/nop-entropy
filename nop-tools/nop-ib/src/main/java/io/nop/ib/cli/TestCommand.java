@@ -70,7 +70,13 @@ public final class TestCommand {
      * gives each module budget/slots (the G-B behavior that beat mvn 9.6s vs
      * 11.9s). Greedy grab-everything starved sibling modules (22s slice).
      */
-    static final int MODULE_SLOTS = Math.max(4, WORKER_BUDGET / 4);
+    static final int MODULE_SLOTS = moduleSlots();
+
+    /** wave7 E4 experiment knob: independent module-slot override (serial = 1). */
+    static int moduleSlots() {
+        return Math.max(1, Integer.getInteger("nop.ib.moduleSlots",
+                Math.max(4, WORKER_BUDGET / 4)));
+    }
 
     private static final java.util.concurrent.ExecutorService moduleTestPool =
             java.util.concurrent.Executors.newFixedThreadPool(
@@ -593,9 +599,45 @@ public final class TestCommand {
                 + " failures=" + fork.summary().get("failures"));
         if (fork.exitCode() == 1 && classes != null && !classes.isEmpty()) {
             long rerunCap = Long.getLong("nop.ib.moduleRerunTimeoutSeconds", 1800);
+            // wave7 E1 experiment switch (default off): failed-only subset rerun.
+            // Semantics: rerun ONLY the failed classes fresh; if the subset fails,
+            // verdict FAILED as usual. If the subset PASSES, the module verdict
+            // STILL comes from a full fresh fork (fail-safe; the Activiti
+            // precedent shows order-sensitive failures can vanish in a subset) —
+            // but the divergent-pass timing and divergence flag are recorded so
+            // the experiment can measure the subset's saving and false-positive
+            // rate. With divergence measured 0 across a corpus, the saving is the
+            // adoption candidate; the full fork never leaves the default path.
+            if ("failed-only".equals(System.getProperty("nop.ib.moduleRerunMode"))
+                    && failedClassesOf(fork.summary()) != null) {
+                List<String> failedSubset = failedClassesOf(fork.summary());
+                System.err.println("nop-ib debug: rerun E1 failed-only subset, classes="
+                        + failedSubset.size() + " cap=" + rerunCap);
+                long t0 = System.currentTimeMillis();
+                JUnitForkExecutor.ForkResult subset = executor.execute(
+                        module, cp, failedSubset, java.time.Duration.ofSeconds(rerunCap));
+                long subsetMs = System.currentTimeMillis() - t0;
+                forkWarnings.add("E1 failed-only rerun: subset=" + failedSubset.size()
+                        + " classes, " + subsetMs + "ms, exit=" + subset.exitCode()
+                        + " (full fresh fork still governs the verdict)");
+                if (subset.exitCode() != 0) {
+                    forkWarnings.add("E1: subset reproduces failures -> genuine, full rerun skipped "
+                            + "(saving=" + subsetMs + "ms)");
+                    forkWarnings.addAll(subset.warnings());
+                    fork = new JUnitForkExecutor.ForkResult(1, fork.summary(), fork.warnings());
+                } else {
+                    System.err.println("nop-ib debug: rerun E1 subset PASSED, executing full fresh fork (fail-safe)");
+                    JUnitForkExecutor.ForkResult fresh = executeRerun(
+                            executor, module, cp, classes, rerunCap, forkWarnings);
+                    forkWarnings.add("E1 divergence probe: subset passed but full fork exit="
+                            + fresh.exitCode() + " (divergence=" + (fresh.exitCode() == 0 ? "0" : "1") + ")");
+                    forkWarnings.addAll(fresh.warnings());
+                    fork = fresh;
+                }
+            } else {
             System.err.println("nop-ib debug: rerun EXECUTING fresh full-module fork, cap=" + rerunCap);
-            JUnitForkExecutor.ForkResult fresh = executor.execute(
-                    module, cp, classes, java.time.Duration.ofSeconds(rerunCap));
+            JUnitForkExecutor.ForkResult fresh = executeRerun(
+                    executor, module, cp, classes, rerunCap, forkWarnings);
             System.err.println("nop-ib debug: rerun DONE freshExit=" + fresh.exitCode());
             // wave6 audit A-1: a rerun-gate TIMEOUT must not overwrite the worker
             // run's collected results (spring-batch-core precedent — the fresh
@@ -618,6 +660,7 @@ public final class TestCommand {
                         + "single-fork -> genuine failures confirmed");
                 forkWarnings.addAll(fresh.warnings());
                 fork = fresh;
+            }
             }
         }
         if (fork.exitCode() == -3) {
@@ -728,6 +771,75 @@ public final class TestCommand {
 
     private static int numOf(Object v) {
         return v instanceof Number n ? n.intValue() : 0;
+    }
+
+    /** failed classes from a worker summary ("failed" entries carry class=), or null when absent. */
+    static List<String> failedClassesOf(Map<String, Object> summary) {
+        Object failedList = summary.get("failed");
+        if (!(failedList instanceof Iterable<?> iter))
+            return null;
+        List<String> out = new ArrayList<>();
+        for (Object o : iter) {
+            if (o instanceof Map<?, ?> m && m.get("class") != null)
+                out.add(String.valueOf(m.get("class")));
+        }
+        return out.isEmpty() ? null : out;
+    }
+
+    /**
+     * wave7 E5 experiment switch (default off): a rerun executed in batches of
+     * {@code nop.ib.rerunBatchSize} fresh forks instead of one big fork — the
+     * zeebe-engine 8k-tests single-fork crash precedent. Batches run
+     * sequentially and merge additively; the merged exit is 0 only when every
+     * batch is green (zero-fake-green: any batch failure fails the merge).
+     */
+    static JUnitForkExecutor.ForkResult executeRerun(JUnitForkExecutor executor,
+                                                     IbModule module,
+                                                     ClasspathMaterializer.Materialized cp,
+                                                     List<String> classes,
+                                                     long rerunCap,
+                                                     List<String> warnings) {
+        int batch = Integer.getInteger("nop.ib.rerunBatchSize", 0);
+        java.time.Duration cap = java.time.Duration.ofSeconds(rerunCap);
+        if (batch <= 0 || classes.size() <= batch)
+            return executor.execute(module, cp, classes, cap);
+        long t0 = System.currentTimeMillis();
+        int tests = 0, failures = 0, skipped = 0;
+        List<Map<String, String>> failed = new ArrayList<>();
+        List<String> batchWarnings = new ArrayList<>();
+        int exit = 0;
+        for (int from = 0; from < classes.size(); from += batch) {
+            List<String> slice = classes.subList(from, Math.min(from + batch, classes.size()));
+            JUnitForkExecutor.ForkResult r = executor.execute(module, cp, slice, cap);
+            warnings.add("E5 rerun batch " + (from / batch + 1) + "/" + ((classes.size() + batch - 1) / batch)
+                    + ": " + slice.size() + " classes, exit=" + r.exitCode());
+            batchWarnings.addAll(r.warnings());
+            Map<String, Object> s = r.summary();
+            tests += numOf(s.get("tests"));
+            failures += numOf(s.get("failures"));
+            skipped += numOf(s.get("skipped"));
+            if (s.get("failed") instanceof Iterable<?> iter)
+                for (Object o : iter)
+                    if (o instanceof Map<?, ?> m) {
+                        Map<String, String> d = new LinkedHashMap<>();
+                        d.put("class", String.valueOf(m.get("class")));
+                        d.put("method", String.valueOf(m.get("method")));
+                        d.put("type", String.valueOf(m.get("type")));
+                        d.put("message", String.valueOf(m.get("message")));
+                        failed.add(d);
+                    }
+            if (r.exitCode() != 0 && exit == 0)
+                exit = r.exitCode();
+        }
+        warnings.add("E5 batched rerun: " + classes.size() + " classes in "
+                + ((classes.size() + batch - 1) / batch) + " forks, "
+                + (System.currentTimeMillis() - t0) + "ms total");
+        Map<String, Object> merged = new LinkedHashMap<>();
+        merged.put("tests", tests);
+        merged.put("failures", failures);
+        merged.put("skipped", skipped);
+        merged.put("failed", failed);
+        return new JUnitForkExecutor.ForkResult(exit, merged, batchWarnings);
     }
 
     /** Module-scoped Maven build+test for widened modules lacking test products. */

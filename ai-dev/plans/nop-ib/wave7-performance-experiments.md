@@ -14,7 +14,7 @@
 - 模块并行 sweep 已存在（design 06 WR-D6：moduleTestPool + workerPermits，`nop.ib.workerBudget` 可调）；E4 的"激活条件"（Deferred 27）事实上已部分落地，实验内容改为串行-vs-并行的实测对照。
 - 差分重跑为模块级全量 fresh fork（design 06 WR-D4）；`nop.ib.moduleRerunTimeoutSeconds` 唯一调节钮。E1 的"仅失败类子集重跑"模式不存在。
 - worker 批大小 `nop-ib.config.json test.workerMaxClasses`（默认 20）；worker 数=公平份额（budget/slots）。E2 网格可用现有钮。
-- 索引刷新为全量重扫（UnitIndexer.scan 全产物目录）；E3 增量刷新不存在。
+索引刷新为全量重扫（UnitIndexer.scan 全产物目录）；E3 增量刷新不存在。跨运行失败类子集重跑机制已存在（--rerun-failed，TestCommand），E1 的 delta 是 rerun-gate 内的 mode 开关+裁定语义，非新机制（对抗审查 Minor 修订）。
 - zeebe-workflow-engine/spring-batch-core 的阶段耗时数据散在今日日志（/tmp/w6-*），无结构化分解。
 - bench 命令存在（BenchCommand：noop/singleMethod/singleAbi/affectedTests 四指标）但无跨项目 harness。
 
@@ -41,7 +41,7 @@ Targets: `nop-tools/nop-ib/tools/bench-e2e.sh`、`_tmp/bench/`
 Item Types: `Feature | Proof`
 
 - [ ] 可重复 bench 脚本：项目 × {mvn test, ib test 主路径, ib 回退路径} × 冷/温双态，输出 JSON 结果表（`tools/bench-e2e.sh`，入 repo）
-- [ ] 五项目（zeebe/spring-batch/flink-agents/jsr352/liteflow）≥1 模块基线实测，结果表入库（`_tmp/bench/baseline.json` + analysis 文档表）
+- [ ] 五项目（roadmap 口径：zeebe/shardingsphere/spring-batch/flink-agents/jsr352）≥1 模块基线实测（jsr352 跳过 test-deployment 的 provision 绑定失败模块，换 jberet-core/se 先例模块；flink-agents 以 fallback 路径为 oracle——fork-134 环境缺陷），结果表入库（`_tmp/bench/baseline.json` + analysis 文档表）
 - [ ] `ai-dev/logs/` 条目
 
 Exit Criteria:
@@ -72,10 +72,10 @@ Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/**`（实验开关）、`ai-d
 
 Item Types: `Feature | Proof`
 
-- [ ] E1 分档重跑：`nop.ib.moduleRerunMode=failed-only`（仅失败类子集重跑）vs 全模块 fresh fork 假阳性对照（Activiti 顺序敏感先例为反例约束）
+- [ ] E1 分档重跑：`nop.ib.moduleRerunMode=failed-only`（仅失败类子集重跑）。**裁定语义（对抗审查 Major-a）**：子集复现失败 ⇒ FAILED（全量 rerun 跳过，节省=实测）；子集通过 ⇒ **verdict 仍由全量 fresh fork 决定**（fail-safe；Activiti 顺序敏感先例），仅记录 divergence 标记与子集耗时——采纳候选=divergence=0 时的时间节省，默认开关关闭
 - [ ] E2 worker 批调度：maxClasses/worker 数在 1/5/10/20 网格的吞吐-隔离曲线（含 fork abort 类模块可跳过，标注）
 - [ ] E3 索引增量刷新：pom/类变更后只重扫受影响产物目录 vs 全量重扫的正确性对照 + 耗时
-- [ ] E4 并行 sweep：-pl 多模块并行 vs 串行墙钟对照（现有 workerBudget/`nop.ib.moduleSlots` 钮；串行 = 槽位 1）+ 产物互斥已有证明（6A-5 B-6）
+- [ ] E4 并行 sweep：-pl 多模块并行 vs 串行墙钟对照。现有 MODULE_SLOTS 为 workerBudget 派生值无独立钮（对抗审查 Major-b）→ 实验新增 `nop.ib.moduleSlots` 覆盖（默认不变，串行=1）+ 单元钉；产物互斥已有证明（6A-5 B-6）
 - [ ] E5 大模块 fast-path 分批：重模块 rerun 单 fork 大批崩溃/超时的分批 fresh fork 合并 vs 回退对照
 - [ ] E6 类级 fork 缓存：未变更类 discovery 结果缓存（测试面=f(类哈希)）的正确性对照
 - [ ] 每项：数据表 + 采纳/拒绝裁定；采纳项端到端实测 ≥20% 且漏测 oracle 抽查零假绿；拒绝项登记 Deferred
@@ -92,7 +92,7 @@ Exit Criteria:
 Status: planned
 Targets: design 05/06、roadmap Wave 7
 
-- [ ] design 05/06 增补实验结论（采纳项契约；拒绝项一句话理由）
+- [ ] design 05/06 增补实验结论（采纳项契约；拒绝项一句话理由）；design 06 增补 E1 裁定语义段（对抗审查 Major-a）
 - [ ] roadmap Wave 7 checklist 勾选 + Status
 - [ ] 独立子 agent closure audit APPROVED，Evidence 落本 plan
 - [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿；提交
