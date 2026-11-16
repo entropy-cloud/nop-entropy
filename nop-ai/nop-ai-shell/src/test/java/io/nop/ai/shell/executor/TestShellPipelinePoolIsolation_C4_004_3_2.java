@@ -196,6 +196,21 @@ public class TestShellPipelinePoolIsolation_C4_004_3_2 {
         }
     }
 
+    /**
+     * Minor-8 守卫双向钉（误判修复回归）：真同步 executor（caller 线程内联）必须仍被拒绝；
+     * 判定语义 = 探针执行线程 == 调用线程，而非"探针在构造返回前完成"——后者会把探针被
+     * 异步 worker 抢跑完成的健康线程池误判为内联（满载构建下 inject 前置测试随机炸）。
+     */
+    @Test
+    void syncInlineExecutorStillRejected_C4_004_3_2() {
+        IllegalArgumentException e = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new ShellCommandExecutor(registry, Runnable::run, null, fileSystem));
+        assertTrue(e.getMessage().contains("must be asynchronous"),
+                "inline executor rejection message must identify the sync-executor contract: "
+                        + e.getMessage());
+    }
+
     @Test
     void closeTerminatesTheOwnedPipelinePool_C4_004_3_2() throws Exception {
         ShellCommandExecutor executor = new ShellCommandExecutor(registry, fileSystem);

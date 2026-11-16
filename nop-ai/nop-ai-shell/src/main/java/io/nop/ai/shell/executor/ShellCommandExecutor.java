@@ -138,14 +138,18 @@ public class ShellCommandExecutor implements Closeable {
      * fail-fast（typed IllegalArgumentException）；异步 executor 上探针只是入队一个空任务。
      */
     private static void rejectSynchronousExecutor(Executor executor) {
-        java.util.concurrent.atomic.AtomicBoolean ranInline = new java.util.concurrent.atomic.AtomicBoolean();
+        // 记录探针的执行线程而非布尔标志：boolean 版本存在误判竞态——异步 executor 的
+        // 空闲 worker 可能在 execute() 返回后、标志读取前抢跑完成探针任务，把健康的
+        // 异步 executor 当成内联执行而拒绝（满载构建下随机炸测试/生产装配）。
+        // 仅当探针由"调用线程自身"执行（= 内联语义）时才判定为同步 executor。
+        java.util.concurrent.atomic.AtomicReference<Thread> ranBy = new java.util.concurrent.atomic.AtomicReference<>();
         try {
-            executor.execute(() -> ranInline.set(true));
+            executor.execute(() -> ranBy.compareAndSet(null, Thread.currentThread()));
         } catch (Throwable e) {
             // 探针提交失败按既有 RejectedExecutionException 语义留给首个真实提交点暴露
             return;
         }
-        if (ranInline.get()) {
+        if (ranBy.get() == Thread.currentThread()) {
             throw new IllegalArgumentException(
                     "ShellCommandExecutor: injected executor must be asynchronous — a synchronous "
                             + "(caller-thread inline) executor deadlocks the pipeline stage/collector design "
