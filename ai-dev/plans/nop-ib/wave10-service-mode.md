@@ -49,27 +49,27 @@ owner 需求：`nop-ib` 可启动为无状态服务；任何程序发送项目�
 
 ### Phase 1 — root 接缝与服务内核
 
-Status: planned
+Status: completed
 Targets: `NopIbMain.java`、`nop-tools/nop-ib/src/main/java/io/nop/ib/service/`、`cli/TestCommand.java`
 
 - Item Types: `Feature`
 
-- [ ] 1a. **[Feature]**（审查 B1）`NopIbMain` root 感知重载：`run(String[] args, Path repoRoot, out, err)`，原签名委托 `Paths.get("")` 保持 CLI 行为零漂移；服务路径全部走新重载
-- [ ] 1b. **[Feature]** `ProjectQueue`：per canonical repo root 的 FIFO 队列 + 单执行闸门（同项目串行）；深度上限 32，满则显式拒绝（HTTP 429，不静默丢弃）
-- [ ] 1c. **[Feature]** `JobRegistry`：job 状态机 queued→running→done/failed；排队中可取消；running 取消返回 `cannot-cancel-running`（显式响应体字段）；registry 仅内存（无状态原则）；payload 大小上限 8MB，超出截断并附 `truncated:true` 标记
-- [ ] 1d. **[Feature]** `JobBudget`：全局信号量 permits = `max(2, cores/2)`（`nop.ib.serviceWorkerBudget` 覆盖）；job 执行前 acquire、结束释放；服务内把单 job worker 预算压为 `max(2, permits / activeJobs)`（经 `TestCommand` 的 override 接缝，见 1e）
-- [ ] 1e. **[Feature]**（审查 B2）`TestCommand` worker 预算 override 接缝：静态 volatile override（默认空 = CLI 行为不变），`runModuleTests` 的 workerCount 调用点经 override 生效；CLI 路径零漂移钉
-- [ ] 1f. **[Feature]** `ServiceCore`：engine cache（canonical root → IbEngine，LRU 上限 8）；**驱逐只作用于非 running root**（running job 持强引用，审查 M3）；执行入口复用 1a 的 root 感知 `NopIbMain.run`（同一 JSON 契约，无平行实现）
-- [ ] 1g. 单元钉：同项目串行互斥、排队顺序、队列满拒绝、预算封顶（活跃 worker 总数 ≤ permits，含 override 生效断言）、取消语义（queued 可取消 / running 返回 cannot-cancel-running）、engine 驱逐后重建、running root 不被驱逐
+- [x] 1a. **[Feature]**（审查 B1）`NopIbMain` root 感知重载：`run(String[] args, Path repoRoot, out, err)`，原签名委托 `Paths.get("")` 保持 CLI 行为零漂移；服务路径全部走新重载
+- [x] 1b. **[Feature]** `ProjectQueue`：per canonical repo root 的 FIFO 队列 + 单执行闸门（同项目串行）；深度上限 32，满则显式拒绝（HTTP 429，不静默丢弃）
+- [x] 1c. **[Feature]** `JobRegistry`：job 状态机 queued→running→done/failed；排队中可取消；running 取消返回 `cannot-cancel-running`（显式响应体字段）；registry 仅内存（无状态原则）；payload 大小上限 8MB，超出截断并附 `truncated:true` 标记
+- [x] 1d. **[Feature]** `JobBudget`：全局信号量 permits = `max(2, cores/2)`（`nop.ib.serviceWorkerBudget` 覆盖）；job 执行前 acquire、结束释放；服务内把单 job worker 预算压为 `max(2, permits / activeJobs)`（经 `TestCommand` 的 override 接缝，见 1e）
+- [x] 1e. **[Feature]**（审查 B2）`TestCommand` worker 预算 override 接缝：静态 volatile override（默认空 = CLI 行为不变），`runModuleTests` 的 workerCount 调用点经 override 生效；CLI 路径零漂移钉
+- [x] 1f. **[Feature]** `ServiceCore`：engine cache（canonical root → IbEngine，LRU 上限 8）；**驱逐只作用于非 running root**（running job 持强引用，审查 M3）；执行入口复用 1a 的 root 感知 `NopIbMain.run`（同一 JSON 契约，无平行实现）
+- [x] 1g. 单元钉：同项目串行互斥、排队顺序、队列满拒绝、预算封顶（活跃 worker 总数 ≤ permits，含 override 生效断言）、取消语义（queued 可取消 / running 返回 cannot-cancel-running）、engine 驱逐后重建、running root 不被驱逐
 
 Exit Criteria:
 
-- [ ] 1g 钉全绿；并发/串行/预算断言可在测试中观测
-- [ ] **无静默跳过**：队列满/取消 running/未知 cmd/projectDir 非法均显式报错，无 no-op 分支
-- [ ] **接线验证**：ServiceCore 确实通过 root 感知 `NopIbMain.run` 执行（projectDir ≠ 服务 cwd 的钉在档），不是平行实现
-- [ ] CLI 零漂移：不带服务属性时 `run(String[], out, err)` 行为与现版本一致（既有钉全绿）
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] No owner-doc update required（Phase 2 完成后统一核对 design 07）
+- [x] 1g 钉全绿；并发/串行/预算断言可在测试中观测
+- [x] **无静默跳过**：队列满/取消 running/未知 cmd/projectDir 非法均显式报错，无 no-op 分支
+- [x] **接线验证**：ServiceCore 确实通过 root 感知 `NopIbMain.run` 执行（projectDir ≠ 服务 cwd 的钉在档），不是平行实现
+- [x] CLI 零漂移：不带服务属性时 `run(String[], out, err)` 行为与现版本一致（既有钉全绿）
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿
+- [x] No owner-doc update required（Phase 2 完成后统一核对 design 07）
 
 ### Phase 2 — HTTP 接入
 

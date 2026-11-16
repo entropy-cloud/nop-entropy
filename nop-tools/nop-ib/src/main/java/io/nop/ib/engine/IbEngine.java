@@ -35,7 +35,8 @@ public final class IbEngine {
      * with a pom.xml. The mvnw/.mvn markers take precedence when present (they
      * pin the nop-entropy worktree layout and mvnq integration).
      */
-    static Path discoverRepoRoot(Path start) {
+    /** wave 10: public — the service layer validates request projectDirs with it. */
+    public static Path discoverRepoRoot(Path start) {
         Path current = start.toAbsolutePath().normalize();
         Path firstPom = null;
         while (current != null) {

@@ -39,6 +39,27 @@ public class NopIbMain {
     }
 
     public static int run(String[] args, PrintStream out, PrintStream err) {
+        // CLI entry: repo root discovered from the process cwd (unchanged behavior)
+        return run(args, Paths.get("").toAbsolutePath(), out, err);
+    }
+
+    /**
+     * Wave 10 root-aware entry (design 07 B1): the service layer calls this with
+     * the requested projectDir's repo root — the service process cwd is NOT the
+     * target project. Identical semantics otherwise; the CLI overload delegates
+     * here with the cwd so one code path serves both.
+     */
+    public static int run(String[] args, java.nio.file.Path repoRoot, PrintStream out, PrintStream err) {
+        return run(args, null, repoRoot, out, err);
+    }
+
+    /**
+     * Engine-injecting entry (wave 10 IB-S6): the service layer passes a cached
+     * IbEngine per repo root; the CLI overloads pass null and the engine is
+     * constructed here, preserving per-invocation discovery semantics.
+     */
+    public static int run(String[] args, IbEngine injectedEngine, java.nio.file.Path repoRoot,
+                          PrintStream out, PrintStream err) {
         if (args.length == 0) {
             usage(err);
             return 3;
@@ -119,7 +140,7 @@ public class NopIbMain {
         }
 
         try {
-            IbEngine engine = new IbEngine(Paths.get("").toAbsolutePath());
+            IbEngine engine = injectedEngine != null ? injectedEngine : new IbEngine(repoRoot);
             switch (cmd) {
                 case "model":
                     return Commands.model(engine, positional, out, json);

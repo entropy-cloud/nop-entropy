@@ -62,6 +62,26 @@ public final class TestCommand {
             4 * Runtime.getRuntime().availableProcessors()));
 
     /**
+     * Wave 10 service seam (design 07 §2.3): the service layer compresses the
+     * effective per-job worker budget to {@code max(2, permits / activeJobs)}
+     * while other projects are running. CLI runs never set the override, so
+     * their behavior is byte-for-byte unchanged. Volatile: set/cleared around
+     * each service job on the job's executor thread; read on the module pool.
+     */
+    private static volatile int workerBudgetOverride = 0;
+
+    /** wave 10: public seam for the service layer (io.nop.ib.service). */
+    public static void setWorkerBudgetOverride(int value) {
+        workerBudgetOverride = value;
+    }
+
+    /** Effective budget: service override (if active) else the CLI constant. */
+    static int workerBudget() {
+        int override = workerBudgetOverride;
+        return override > 0 ? Math.max(2, override) : WORKER_BUDGET;
+    }
+
+    /**
      * Module slots mirror mvn -T 1C: ~cores modules under test at once. Worker
      * permits are divided into fair shares: each module takes
      * min(classCount, budget / slots) workers, so a full sweep gives every
@@ -200,11 +220,10 @@ public final class TestCommand {
                 }
                 moduleIds.add(id);
             }
-            int cores = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
             // fair worker shares (see MODULE_SLOTS): full sweep -> ~4/module like
             // surefire forkCount; small slice -> budget/slots per module
-            java.util.concurrent.Semaphore workerPermits = new java.util.concurrent.Semaphore(WORKER_BUDGET);
-            int fairShare = Math.max(1, WORKER_BUDGET / Math.min(Math.max(moduleIds.size(), 1), MODULE_SLOTS));
+            java.util.concurrent.Semaphore workerPermits = new java.util.concurrent.Semaphore(workerBudget());
+            int fairShare = Math.max(1, workerBudget() / Math.min(Math.max(moduleIds.size(), 1), MODULE_SLOTS));
             Map<String, TestRun> runByModule = new java.util.concurrent.ConcurrentHashMap<>();
             Map<String, Integer> classCounts = new LinkedHashMap<>();
             Set<String> modelSkipped = new LinkedHashSet<>();
@@ -392,7 +411,7 @@ public final class TestCommand {
                     continue;
                 }
                 TestRun run = runModuleMaybeCached(engine, cache, forceRun, module, null,
-                        runner, json, out, err, Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
+                        runner, json, out, err, Math.max(2, Math.min(Runtime.getRuntime().availableProcessors() - 1, workerBudget())));
                 recordLastFailed(engine, moduleId, run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -403,7 +422,7 @@ public final class TestCommand {
                 if (module == null)
                     continue;
                 TestRun run = runModuleMaybeCached(engine, cache, forceRun, module, e.getValue(),
-                        runner, json, out, err, Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
+                        runner, json, out, err, Math.max(2, Math.min(Runtime.getRuntime().availableProcessors() - 1, workerBudget())));
                 recordLastFailed(engine, e.getKey(), run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
