@@ -98,6 +98,81 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 
 - ✅ **Milestone M5：L1/L3 处置有数据背书；默认边界稳定**（unlocks when 31–33 done）
 
+## Wave 6 — 深度审计 + 开放式审计 + 全量问题修复
+
+Status: todo（2026-11-16 立项；来源：external-project-support-campaign 完成后的残余面与审计债）
+
+- Item Types: `Fix | Proof | Follow-up`
+
+**6A 深度审计（定向，静态+运行时）**：
+- [ ] 引擎全路径审计：`model refresh → plan → compile → index → dispatch → fork/worker → differential rerun → fallback` 逐环节 invariant 核对（对应 `ai-dev/skills/invariant-loop-audit-prompt.md` 方法论），每条 invariant 给出 file:line 证据或缺陷登记。
+- [ ] 模型事实完备性审计：effective-pom 解析面 vs surefire 实际消费面差异清单（23–31 号缺陷均为"解析面缺口"族，系统性枚举剩余缺口：`<runOrder>`/`<groups>`/`<parallel>`/`<reuseForks>`/`<systemPropertyVariables>` 引用型 `${...}`/`<additionalClasspathElements>`/`<additionalClasspathDependencies>`/profile 条件激活）。
+- [ ] 派发面三向审计：UNDER / OVER / IB-ONLY 每一类在 ≥3 个已测项目上做类级差分复算（复用 `nop.ib.debugPerClass` + surefire-reports 口径），产出全量差异登记表并归零（修完或裁定）。
+- [ ] 失败语义审计：watchdog/rerun-gate/worker-crash/firstError 剪枝路径的行为矩阵（每格：发生条件→可见输出→oracle 影响），消灭"结果被覆盖/丢弃"类路径（spring-batch-core 1800s 覆盖、jsr352 firstError 剪枝先例）。
+- [ ] 锁与并发审计：`.mvn/build.lock` 与 worker 池/fallback/多模块并行 sweep 的交互矩阵；多模块并行 sweep（-pl 多模块）与单模块 sweep 的输出互斥证明。
+
+**6B 开放式审计（对抗性，不预设方向）**：
+- [ ] 独立审计 agent（fresh session，≥2 轮迭代对抗审查）以"证明 nop-ib 会假绿/漏测/错判"为目标做开放式探索（变异测试：对已知绿项目注入注入式变更，验证 ib 报红；对已知红项目验证 ib 不吞错）。
+- [ ] 惯例长尾模糊面 fuzz：对 effective-pom 的 surefire 配置维度做组合变异（变异→钉→复验纪律见 plan guide R5），每个差异一个回归钉。
+- [ ] 跨项目不变式：12 已测项目全量重跑（每个 ≥1 模块），产出"零回退矩阵"作为本 wave 收口门。
+
+**6C 修复收口**：
+- [ ] 审计发现全部落 `Fix`：本项目内修复+回归钉+复验；不能修的逐条 `Deferred But Adjudicated`（带 Why Not Blocking + successor）。
+- [ ] 已知遗留收口：缺陷 29（vintage Enclosed 双跑）、flink-agents-runtime fork abort 134、engine 大模块 rerun 超时覆盖、`forkError/forkStdoutTail` 诊断透出（jsr352 试跑缺口 #2）、`-pl` 语法统一（缺口 #1）。
+- [ ] 文档收口：design 05/06 原地更新至 live baseline；`docs-for-ai`/runbook 对齐。
+
+Exit Criteria：
+- [ ] 6A 每条审计有 file:line 级证据清单；发现项 100% 落 Fix 或 Deferred（无 open 残留）。
+- [ ] 6B 变异测试全部按预期报红/不吞错（假绿=0）；对抗审查两轮无新 Blocker。
+- [ ] 12 项目零回退矩阵全绿；`./mvnw test -pl nop-tools/nop-ib` 全绿。
+- [ ] 独立 closure audit APPROVED。
+
+## Wave 7 — 性能实验最大化（实验驱动，非默认承诺）
+
+Status: todo
+
+- Item Types: `Feature | Proof | Follow-up`
+
+- [ ] 基准固化：把 external-project-support-campaign 的实测口径固化为可重复 bench 脚本（zeebe/shardingsphere/spring-batch/flink-agents/jsr352 五项目 × {mvn test, ib test 主路径, ib 回退路径} × 冷/温双态），落 `_tmp` bench harness + 结果表。
+- [ ] 瓶颈画像：对最重模块（zeebe-workflow-engine 850 类、spring-batch-core 157 类）做阶段耗时分解（selection/index/discovery/执行/rerun-gate），定位 top-3 瓶颈后再动手（先测量后优化）。
+- [ ] 实验矩阵（每项独立 plan，可证伪、可回退，默认不改行为）：
+  - [ ] E1 分档重跑（differential rerun）降本：仅失败类子集重跑 vs 全模块 fresh fork 的假阳性率对照（Activiti 顺序敏感先例为反例约束）。
+  - [ ] E2 worker 常驻批调度：maxClasses/worker 数在 1/5/10/20 网格上的吞吐-隔离曲线（含 fork abort 134 类模块）。
+  - [ ] E3 索引增量刷新：pom/类变更后只重扫受影响产物目录（当前全量重扫）的正确性对照 + 耗时。
+  - [ ] E4 并行模块 sweep：-pl 多模块并行（复用 MODULE_SLOTS/WORKER_BUDGET）vs 串行的墙钟对照 + 产物互斥证明（Deferred 27 的激活条件）。
+  - [ ] E5 大模块 fast-path 大堆/分批策略：zeebe-engine rerun 8k-tests 单 fork 崩溃的绕行实验（分批 fresh fork 合并结果 vs 回退路径）。
+  - [ ] E6 类级 fork 缓存：未变更类的 discovery 结果缓存（测试面 = f(类哈希)）的正确性对照。
+- [ ] 每项实验产出：数据表 + 显式采纳/拒绝裁定 + （采纳时）回归钉与默认开关策略；拒绝项登记 Deferred 不留半实现。
+
+Exit Criteria：
+- [ ] bench harness 可重复，五项目基线表入库；top-3 瓶颈有数据结论。
+- [ ] E1–E6 每项有采纳/拒绝裁定与证据；采纳项端到端实测提升 ≥20% 且零假绿（漏测 oracle 抽查）。
+- [ ] 独立 closure audit APPROVED。
+
+## Wave 8 — mvnd 对比 + Gradle/mvnd 经验吸收
+
+Status: todo
+
+- Item Types: `Proof | Feature | Follow-up`
+
+- [ ] **机制对比报告（analysis）**：`~/sources/mvnd`（Maven 4 daemon）与 nop-ib 在六个维度逐项对照：常驻进程模型（daemon vs 一次性 CLI+worker 池）、增量判定（mvnd 依赖 mvn4 增量 builder vs ib git 变更集+模型哈希）、缓存层（mvnd 事件监听/构建缓存扩展 vs ib 索引持久化）、测试调度（surefire 复用 vs ib 自研 fork）、失效语义（mvnd 全量兜底策略 vs ib 过期即全量）、并发治理。产出"可吸收/不可吸收（原因）"清单。
+- [ ] **实证对比实验**：同一变更序列（单文件→ABI 扩散→测试失败→修复→全绿）在 mvnd 与 ib 上跑 wall-clock 对照（复用 Wave 7 bench harness），mvnd 用其官方口径（`./mvnw :mvnd ...` 或安装的 mvnd 二进制）。
+- [ ] **Gradle 经验清单落地**（对照 `04` Gradle 机制分析逐项裁定）：
+  - [ ] 事务化输出（transactional task output，避免半写产物可见）——对照 ib 产物写入现状裁定。
+  - [ ] build cache 之 content-addressable（输入哈希→输出复用）——对照 Deferred 26 裁定是否翻案。
+  - [ ] 文件系统监听（daemon 常驻 watch）——对照 Deferred 26 前半裁定。
+  - [ ] configuration cache / 行为契约（模型=配置缓存的对应物）——对照 model.json 过期策略。
+  - [ ] worker API 的隔离与复用模型——对照 JUnitWorkerPool（design 06）。
+  - [ ] 每项：吸收则 Feature+钉；不吸收则记录"为什么在 ib 的零假绿/不替换构建系统约束下不成立"。
+- [ ] **mvnd 兼容面**：mvnd 项目（Maven 4）已在实测中跑通（client/common/daemon 逐数精确）；验证 Maven 4 effective-pom 解析差异点清单（`maven.compiler.release`/新 pom flavor）并补解析钉。
+- [ ] 差异报告与实验结论落 `ai-dev/analysis/`（时效性文档），采纳项的 design 变更落 `05/06` 原地更新。
+
+Exit Criteria：
+- [ ] 对比报告与实证数据入库（mvnd vs ib 六维对照 + wall-clock 表）。
+- [ ] Gradle/mvnd 经验清单每项有显式裁定（吸收/不吸收+理由），吸收项带钉合入。
+- [ ] Maven 4 解析差异清单 100% 有钉。
+- [ ] 独立 closure audit APPROVED。
+
 ## Status values
 
 | Status | Meaning |
@@ -166,4 +241,5 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 - 复刻 Maven 的全部插件语义（只消费 `model.json` 中与编译/测试相关的事实）；
 - 重新实现 `nop-lint` 的实时诊断；
 - 修改既有 Maven 插件、codegen 或 AOP 生成链（扩张只在 Wave 5 以"路由/回退裁定"形式出现）；
-- **JUnit4/vintage 测试执行**（owner 裁定 2026-11-14：只承接 JUnit5/JUnit6 项目）：单元索引只把带 JUnit Platform 测试标记的类纳入派发面，JUnit4-only 类不派发、不回退、不做 vintage 引擎——JUnit4 项目的测试反馈回路继续走 `mvnw`。
+- **JUnit4/vintage 测试执行**（owner 裁定 2026-11-14：只承接 JUnit5/JUnit6 项目）：单元索引只把带 JUnit Platform 测试标记的类纳入派发面，JUnit4-only 项目不承接——JUnit4 项目的测试反馈回路继续走 `mvnw`。
+  - **修订注记（2026-11-16）**：该裁定约束的是**项目级承接面**（JUnit4-only 项目不实测不优化），不约束 JUnit5 项目的 classpath 装配——外部实测证明 JUnit5 项目常带 JUnit4 测试类（zeebe/spring-batch），fork 引擎组装 vintage（缺陷 27a）与 surefire `<excludes>`（缺陷 30，IntegrationTests 归 failsafe）属于"忠实复刻 mvn `test` phase 执行面"的范畴，与本非目标不冲突。
