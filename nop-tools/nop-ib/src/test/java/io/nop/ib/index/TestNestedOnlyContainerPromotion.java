@@ -44,4 +44,31 @@ class TestNestedOnlyContainerPromotion {
                 "helper classes without any nested tests stay undispatched, got " + names);
         assertEquals(1, names.size());
     }
+
+    /**
+     * Defect 29 regression pin (wave6 6C-1): JUnit4 static inner classes carry
+     * NO @Nested annotation — the old @Nested-only guard dispatched BOTH the
+     * Enclosed container AND its members (zeebe-gateway-grpc ActivateJobsTest:
+     * container 18 + members 10+8 = 36 vs mvn's 18). Binary-name $ nesting must
+     * cover the guard for JUnit4 too.
+     */
+    @Test
+    void junit4EnclosedMembersAreNotDoubleDispatched() {
+        UnitIndex index = UnitIndex.empty("m");
+        index.put(cls("z.ActivateJobsTest", false, false));              // Enclosed container
+        index.put(cls("z.ActivateJobsTest$MultiTenancyDisabledTest", true, false)); // JUnit4 inner
+        index.put(cls("z.ActivateJobsTest$MultiTenancyEnabledTest", true, false));  // JUnit4 inner
+
+        var names = index.testClasses().stream()
+                .map(ClassInfo::getClassName)
+                .toList();
+
+        assertTrue(names.contains("z.ActivateJobsTest"),
+                "Enclosed container must be dispatched (vintage discovers members), got " + names);
+        assertFalse(names.contains("z.ActivateJobsTest$MultiTenancyDisabledTest"),
+                "JUnit4 inner must not double-dispatch (defect 29), got " + names);
+        assertFalse(names.contains("z.ActivateJobsTest$MultiTenancyEnabledTest"),
+                "JUnit4 inner must not double-dispatch (defect 29), got " + names);
+        assertEquals(1, names.size());
+    }
 }

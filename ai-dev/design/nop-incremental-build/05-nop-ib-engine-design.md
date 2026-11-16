@@ -94,13 +94,13 @@ nop-ib → JDK（javax.tools / JUnit Platform，测试执行阶段）
 | 依赖边 | 目标模块/外部坐标、scope、type（含 `test-jar`）、classifier |
 | 编译 | `sourceDirectory`/`testSourceDirectory`、resources、`outputDirectory`/`testOutputDirectory`、每个 compiler execution 的 `release`/`proc`/`compilerArgs`/`annotationProcessorPaths` |
 | 插件 | `exec-maven-plugin`（codegen/AOP 的 execution id）、`jandex`、`build-helper`、shaded 类插件 |
-| 测试 | Surefire 配置（`argLine`、系统属性、includes/excludes、fork/reuse 语义） |
+| 测试 | Surefire 配置（`argLine`、系统属性含 `<property>` name/value 形态、includes/excludes、`groups`/`excludedGroups` tag 面、`environmentVariables`、`additionalClasspathElements`（仅 repo 外条目入 fork classpath）、非默认 `workingDirectory`/`additionalClasspathDependencies` → 记录为不支持事实并回退 surefire；fork/reuse 语义不消费，fork 隔离严格强于 surefire=documented-nonequivalence，wave6 6A-2） |
 | 工具链 | JDK/toolchain、编码、Maven 版本 |
 
 ### 5.3 刷新与失效
 
-- `model.json` 带内容哈希与 Maven/JDK 版本；
-- 任一 `pom.xml`/profile/属性变化、模块增删、source root 变化 → 标记过期；
+- `model.json` 带内容哈希与 Maven/JDK 版本；JDK 版本变化在每次 staleness 检查中比对（wave6 6A-1 F8）；Maven 版本与 dumpSha256 只在显式 `model refresh`/`cache verify` 时重验（per-command 子进程成本不可接受）；
+- 任一 `pom.xml`/profile/属性变化、模块增删、source root 变化 → 标记过期。磁盘上存在但不属于 reactor 的 pom（profile-gated/aggregator）不构成过期（wave6 修订：假阳性族）；新增模块以 plan 时"reactor 外源码变更 → 强制 Maven fallback"覆盖（ScopePlanner）；
 - 过期状态下的**任何**快路径结论无效，必须先刷新模型（或显式回退冷路径）；
 - 模型不得与 `01 §12.4` 的构建侧增量状态混写。
 
@@ -204,7 +204,8 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 
 ### 7.3 并发与锁
 
-- 写产物 / 跑测试 → 取 `.mvn/build.lock` 排他锁（与 `mvnq` 同一文件、同一语义）；
+- 写产物（fast-path compile）/ Maven 委托 → `.mvn/build.lock` 排他锁（与 `mvnq` 同一文件、同一语义；Maven 委托不外层嵌套取锁——mvnq 自己取同一把锁，嵌套即自死锁）；
+- junit-fork 测试路径不取锁（wave6 6A-5 B-1 裁定：只读 target/classes、写每进程独立临时文件，非共享资源写者；取锁会串行化并行模块 sweep。compile-vs-test 跨进程竞争只可能产生假红，方向 fail-safe）；
 - 只读（`status/plan/model show`）→ 不取锁，但必须容忍并报告"检测到 Maven 构建持有锁"；
 - 超时与 `mvnq` 对齐（默认 3600s，`75` 退出码）；
 - 进程内并发：模块级串行 + 模块间有界并行；编译执行器实例按构建侧做法池化（编译器/file manager 非线程安全）。

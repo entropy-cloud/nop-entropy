@@ -29,7 +29,7 @@
 | liquibase | 10 | yes | 17 | yes | measured-parity | 6494/0=6517−23skipped 精确同数 |
 | syncope | 131 | yes | ? | yes | measured-preexisting | 真基线 355 errors（无 PG/Docker），两侧同红 |
 | flowable-engine | 138 | yes | ? | yes | measured-preexisting | 内置 Groovy 不支持 class major 70，两侧同红 |
-| zeebe | 149 | yes | ? | yes | qualified-todo | in progress：install 遇 -T1C artifact 锁竞态，需串行 install（见 campaign Risks） |
+| zeebe | 149 | yes | ? | yes | measured-parity | gateway-grpc 462/0 精确（wave6 缺陷 29 已修：Enclosed 双跑 +18 归零，UnitIndex $-嵌套去重守卫） |
 | BroadleafCommerce | 13 | yes | ? | yes | qualified-todo | |
 | camunda-bpm-platform | 181 | yes | ? | yes | qualified-todo | |
 | eclipse.jdt.ls | 102 | yes | 9 | yes | qualified-todo | jdkTarget=9：JDK26 javac 对 source 9 尚支持（8 已移除），资格门首验 |

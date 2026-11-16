@@ -152,7 +152,16 @@ public class UnitIndex {
                 continue;
             if (!isDispatchableTest(info.getClassName(), marker))
                 continue;
-            if (info.isNested() && coveredByOuterContainer(info.getClassName()))
+            // defect 29 (wave6 6C-1): the double-dispatch guard must cover ALL
+            // nested classes, not only jupiter @Nested ones. isNested() is
+            // @Nested-annotation-only, so JUnit4 static inner classes (zeebe
+            // gateway ActivateJobsTest: @RunWith(Enclosed.class) with two
+            // Parameterized members) were dispatched BOTH via the Enclosed
+            // container (vintage discovers them once = mvn's 18) AND standalone
+            // (again = +18, 36 vs mvn's 18). Binary-name $ nesting is the
+            // class-file-level fact and covers both worlds.
+            if ((info.isNested() || hasEnclosingClassInIndex(info.getClassName()))
+                    && coveredByOuterContainer(info.getClassName()))
                 continue;
             out.add(info);
         }
@@ -189,6 +198,18 @@ public class UnitIndex {
         }
         memo.put(className, result);
         return result;
+    }
+
+    /** class-file-level nesting fact: binary name carries a $ member separator
+     *  (Java compilers emit $ only for nested/compiled-inner classes). */
+    private boolean hasEnclosingClassInIndex(String className) {
+        int idx = className.indexOf('$');
+        while (idx > 0) {
+            if (classes.containsKey(className.substring(0, idx)))
+                return true;
+            idx = className.indexOf('$', idx + 1);
+        }
+        return false;
     }
 
     /** a $-prefix ancestor in this index is itself dispatchable (it discovers me). */
