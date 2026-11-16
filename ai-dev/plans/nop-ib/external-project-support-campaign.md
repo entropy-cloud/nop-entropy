@@ -1,7 +1,8 @@
 # nop-ib 外部项目支持度持续实测（campaign plan）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-16
+> Completed: 2026-11-16
 > Source: [ai-dev/analysis/2026-11/2026-11-15-nop-ib-external-project-support.md](../../analysis/2026-11/2026-11-15-nop-ib-external-project-support.md)（缺陷族 A–D 与预存清单）; [ai-dev/backlog/nop-ib-roadmap.md](../../backlog/nop-ib-roadmap.md)（Hard constraints 1–8）; [ai-dev/logs/2026/11-15.md](../../logs/2026/11-15.md)（缺陷 16–22 实测记录）
 > Related: [ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md](../../design/nop-incremental-build/05-nop-ib-engine-design.md)、[06-junit-worker-reuse-and-generalization-design.md](../../design/nop-incremental-build/06-junit-worker-reuse-and-generalization-design.md)
 
@@ -112,7 +113,7 @@ Exit Criteria:
 - [x] 至少 4 个项目（含 zeebe）有 daily log 条目与明确裁定：**5 个**（flink-agents、zeebe、shardingsphere、mvnd、BroadleafCommerce；另 Juggle excluded 登记）。
 - [x] 新增缺陷全部修复且带回归钉：23/24/25/27/28/30 各带钉（TestSurefireFallbackArgs 5、TestMavenFallbackSelection 2、TestClasspathMaterializer 2、TestEffectivePomParser 1、TestExcludedTagFilter 1、TestNestedOnlyContainerPromotion 1、TestSurefireClassFilterExcludes 1）；缺陷 29 为 Deferred watch-only（over-dispatch 安全向）。
 - [x] 预存失败全部给出根因与两侧同红证据：Mongo（spring-batch-core mvn 1e=ib 1f 同源）、zeebe backup-stores（云模拟器超时）、DeploymentRejection 25/1f 两侧同红、BroadleafCommerce Lombok/JDK26（mvn 主源码即红）。
-- [x] 每轮修复后 `nop-tools/nop-ib` 全绿（最终 53/53），且零回退：spring-batch 复跑 906 执行=mvn 904（差 2=skipped 口径），1 失败=Mongo 两侧同红。
+- [x] 每轮修复后 `nop-tools/nop-ib` 全绿（本轮时点 53/53；Phase 4 缺陷 31 两钉后终态 55/55），且零回退：spring-batch 复跑 906 执行=mvn 904（差 2=skipped 口径），1 失败=Mongo 两侧同红。
 - [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 — 实测 runbook 固化
@@ -162,24 +163,29 @@ Exit Criteria:
 
 - zeebe 若 install 长时间不可完成，可移出本计划并登记为独立 follow-up（不阻塞其他项目推进）。
 
-## Closure Gates
-
-- [ ] Phase 1–4 全部 Exit Criteria 勾选。
-- [ ] 资格矩阵无 `undecided` 行。
-- [ ] 已达 parity 的项目集合有完整证据链（mvn 基线 + ib 结果 + 类级差分）。
-- [ ] 独立子 agent closure audit（不同 session）通过，证据写入本 plan 的 Closure 段。
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-ib/external-project-support-campaign.md --strict` 退出码 0。
-
 ## Closure
 
-Status Note: 计划刚创建，执行未开始；closure audit 待 Phase 1–4 完成后由独立子 agent 执行。
+Status Note: Phase 1–4 全部完成，独立子 agent closure audit APPROVED（无 Blocker/Major，1 Minor 已修）。外部项目支持度成为有证据链、可复核的常态结论：资格矩阵 44 项目全分类 0 undecided；累计 12 项目实测（7 parity / 2 预存 / parity+新增缺陷已修 flink-agents、zeebe、shardingsphere、mvnd / jsr352 试跑 parity）；nop-ib 55/55 绿；残留项全部 Deferred But Adjudicated 带 successor path。
+Completed: 2026-11-16
 
-### Closure Audit Evidence
+Closure Audit Evidence:
 
-Reviewer / Agent: （待填）
+Reviewer / Agent: 独立 closure audit 子 agent（fresh session，agent_1cbbc653-5617-4292-82e1-b0e90b088b9c）
+
+Audit Session: agent_1cbbc653-5617-4292-82e1-b0e90b088b9c
 
 Evidence:
+- Gate 1（Phase 1–4 Exit Criteria）PASS：逐条对照 live——Phase 1 `surefireFallbackArgs`=lifecycle test+双 flag（TestCommand.java:774-781，运行时经 MavenFallback.delegate 调用）、`extractSummaries` 剥离 per-class 行、TestSurefireFallbackArgs 5 钉；Phase 2 matrix 44 行 0 undecided + 派生视图声明；Phase 3 `./mvnw test -pl nop-tools/nop-ib` 实跑 55/55 绿、缺陷 25/27/28/30/31 修复点与调用链逐一定位（ClasspathMaterializer segmentedJar / JUnitForkExecutor vintage+applySurefireEnvironment / UnitIndex ownsDispatchableNested / SurefireClassFilter excludes / JUnitWorkerPool 双路径）；Phase 4 runbook 固化+jsr352 试跑落账。
+- Gate 2（矩阵无 undecided）PASS；Gate 3（parity 证据链）PASS（gateway-grpc 462、util 780/780、logstreams 1316/1316、jsr352 逐数精确）。
+- Anti-Hollow PASS：scan-hollow-implementations exit=0（critical/high 0）；修复点运行时调用链抽查成立。
+- 工具退出码：check-plan-checklist --strict exit=0；scan-hollow exit=0。
+- Deferred 项分类检查 PASS：Enclosed 双跑（over-dispatch 安全向）、flink-agents-runtime fork 134（诚实失败非假绿，回退 oracle 精确）；无 in-scope live defect 被降级。
+- Minor（已修）：Phase 3 勾选行"53/53"补注 Phase 4 后终态 55/55。
 
-```
-（待 closure audit 填写：逐条 Exit Criterion 与 Closure Gate 的验证结果）
-```
+## Closure Gates
+
+- [x] Phase 1–4 全部 Exit Criteria 勾选。
+- [x] 资格矩阵无 `undecided` 行。
+- [x] 已达 parity 的项目集合有完整证据链（mvn 基线 + ib 结果 + 类级差分）。
+- [x] 独立子 agent closure audit（不同 session）通过，证据写入本 plan 的 Closure 段。
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/nop-ib/external-project-support-campaign.md --strict` 退出码 0。
