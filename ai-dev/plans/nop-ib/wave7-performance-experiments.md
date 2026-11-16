@@ -119,7 +119,7 @@ Exit Criteria:
 
 ## Deferred But Adjudicated
 
-（执行中填充）
+（空——六项实验全部有显式裁定，无 deferred 残留；E1 附带发现的 exit-2 重试语义登记于 experiment-verdicts §E1 follow-up，属 successor 候选非本 plan deferred）
 
 ## Non-Blocking Follow-ups
 

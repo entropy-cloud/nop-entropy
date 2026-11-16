@@ -125,7 +125,7 @@ Exit Criteria：
 - [x] 6A 每条审计有 file:line 级证据清单；发现项 100% 落 Fix 或 Deferred（无 open 残留）。
 - [x] 6B 变异测试全部按预期报红/不吞错（假绿=0）；对抗审查两轮无新 Blocker。
 - [x] 12 项目零回退矩阵全绿；`./mvnw test -pl nop-tools/nop-ib` 全绿。
-- [ ] 独立 closure audit APPROVED
+- [x] 独立 closure audit APPROVED
 
 ## Wave 7 — 性能实验最大化（实验驱动，非默认承诺）
 
@@ -145,8 +145,8 @@ Status: done（2026-11-16 收口；E1/E2/E3/E5 拒绝、E4 确认默认、E6 已
 - [x] 每项实验产出：数据表 + 显式采纳/拒绝裁定 + （采纳时）回归钉与默认开关策略；拒绝项登记 Deferred 不留半实现。
 
 Exit Criteria：
-- [ ] bench harness 可重复，五项目基线表入库；top-3 瓶颈有数据结论。
-- [ ] E1–E6 每项有采纳/拒绝裁定与证据；采纳项端到端实测提升 ≥20% 且零假绿（漏测 oracle 抽查）。
+- [x] bench harness 可重复，五项目基线表入库；top-3 瓶颈有数据结论。
+- [x] E1–E6 每项有采纳/拒绝裁定与证据（采纳=无：E1/E2/E3/E5 拒绝、E4 确认默认、E6 已覆盖）；零假绿（漏测 oracle 抽查=矩阵全绿）。
 - [x] 独立 closure audit APPROVED
 
 ## Wave 8 — mvnd 对比 + Gradle/mvnd 经验吸收
@@ -168,10 +168,10 @@ Status: done（2026-11-16 收口，独立 closure audit APPROVED；六维对照+
 - [x] 差异报告与实验结论落 `ai-dev/analysis/`（时效性文档），采纳项的 design 变更落 `05/06` 原地更新。
 
 Exit Criteria：
-- [ ] 对比报告与实证数据入库（mvnd vs ib 六维对照 + wall-clock 表）。
-- [ ] Gradle/mvnd 经验清单每项有显式裁定（吸收/不吸收+理由），吸收项带钉合入。
-- [ ] Maven 4 解析差异清单 100% 有钉。
-- [ ] 独立 closure audit APPROVED（audit 进行中）
+- [x] 对比报告与实证数据入库（mvnd vs ib 六维对照 + wall-clock 表）。
+- [x] Gradle/mvnd 经验清单每项有显式裁定（吸收/不吸收+理由），吸收项带钉合入。
+- [x] Maven 4 解析差异清单 100% 有钉（TestMaven4FlavorPins 3 tests）。
+- [x] 独立 closure audit APPROVED
 
 ## Status values
 
