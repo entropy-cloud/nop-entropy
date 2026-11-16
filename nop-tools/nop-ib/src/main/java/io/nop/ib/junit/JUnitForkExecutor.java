@@ -190,6 +190,7 @@ public final class JUnitForkExecutor {
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.directory(model.resolve(module.getBasedir())); // cwd = module basedir, 硬约束
+        applySurefireEnvironment(pb, module);
         pb.redirectErrorStream(false);
         try {
             Process process = pb.start();
@@ -286,6 +287,18 @@ public final class JUnitForkExecutor {
         }
         warnings.add("fork produced no result document (exit " + exitValue + ")");
         return summary;
+    }
+
+    /**
+     * surefire <environmentVariables> parity (defect 31, jsr352/JBeret
+     * observation): surefire injects these into the forked test JVM — jberet-se
+     * reads DB_PASS from the env to resolve jberet.properties placeholders; a
+     * fork without them died 34/34 with ServiceConfigurationError while the
+     * `--runner maven` fallback (real surefire) matched the baseline exactly.
+     */
+    static void applySurefireEnvironment(ProcessBuilder pb, IbModule module) {
+        module.getSurefireEnvironmentVariables()
+                .forEach((k, v) -> pb.environment().put(k, v));
     }
 
     /** junit-platform-commons-<version>.jar on the materialized classpath → version. */

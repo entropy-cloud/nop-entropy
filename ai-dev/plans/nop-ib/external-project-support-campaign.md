@@ -122,17 +122,17 @@ Targets: `ai-dev/plans/nop-ib/external-project-support-matrix.md`（合并为 ru
 
 - Item Types: `Feature`
 
-- [ ] 写出标准流程：资格判定 → install 前置（含 test-jar/`-Dmaven.test.skip` 陷阱、enforcer）→ model refresh → mvn 基线（禁 build-cache）→ ib compile → ib test → 类级差分脚本口径 → 裁定分级。
-- [ ] 写入预存环境失败清单（SecurityManager、Groovy major、Thread.stop、无 DB/Docker）作为"遇到即登记，不调查"的速查表。
-- [ ] 写入"框架惯例 → 索引标记"对照表（Jupiter 注解 / vintage / Spock feature / JUnit3 suite / 继承外部基类），并指向对应回归钉。
-- [ ] 由独立子 agent 按 runbook 对一个**未测项目**做一次试跑，验证 runbook 可被独立执行。
+- [x] 写出标准流程：资格判定 → install 前置（含 test-jar/`-Dmaven.test.skip` 陷阱、enforcer）→ model refresh → mvn 基线（禁 build-cache）→ ib compile → ib test → 类级差分脚本口径 → 裁定分级。
+- [x] 写入预存环境失败清单（SecurityManager、Groovy major、Thread.stop、无 DB/Docker）作为"遇到即登记，不调查"的速查表。
+- [x] 写入"框架惯例 → 索引标记"对照表（Jupiter 注解 / vintage / Spock feature / JUnit3 suite / 继承外部基类），并指向对应回归钉。
+- [x] 由独立子 agent 按 runbook 对一个**未测项目**做一次试跑，验证 runbook 可被独立执行（jsr352/JBeret：5 模块 parity + 缺陷 31 发现并修复 + 3 个 runbook 缺口补齐）。
 
 Exit Criteria:
 
-- [ ] runbook 覆盖流程全部步骤，每步有可复制命令。
-- [ ] 独立 agent 按 runbook 试跑成功（或记录其暴露的缺口并补齐）。
-- [ ] 框架惯例对照表的每一行都能定位到索引器代码与回归钉。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] runbook 覆盖流程全部步骤，每步有可复制命令。
+- [x] 独立 agent 按 runbook 试跑成功（或记录其暴露的缺口并补齐）——成功，缺口已补齐（-pl 语法/fork 根因定位/速查表 provision 条目）。
+- [x] 框架惯例对照表的每一行都能定位到索引器代码与回归钉。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ## Risks And Watch Items
 

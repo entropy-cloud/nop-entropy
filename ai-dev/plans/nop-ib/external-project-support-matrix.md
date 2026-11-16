@@ -132,7 +132,7 @@ mvn test -fae -Dmaven.test.failure.ignore=true -Dmaven.build.cache.skipCache=tru
 ### 4. ib 执行
 
 ```bash
-java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl <modules>            # 主路径 junit-fork
+java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl <modules>            # 主路径 junit-fork；-pl 只接受裸 artifactId（路径/`:id` 均拒绝）
 java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test --runner maven -pl <m>   # 回退路径（lifecycle test 语义，缺陷 20 修复后=忠实 oracle）
 ```
 
@@ -163,6 +163,12 @@ java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test --runner maven -pl <m>   # 回退
 | 无 PostgreSQL/Docker/云模拟器 | 环境缺依赖，两侧同红 | syncope、zeebe backup-stores、spring-batch Mongo 集成测试 |
 | Lombok `找不到符号: 变量 log` | Lombok 版本不支持 JDK26 | BroadleafCommerce |
 | javac `source/target 8` 拒绝 | JDK26 移除 source 8 | seatunnel/PowerJob（资格门首验） |
+| test 阶段绑定 provision/容器（wildfly-maven-plugin、testcontainers compose） | 基线即 FAILURE，两侧同不执行 | jsr352 test-deployment |
+
+### fork 失败根因定位（试跑缺口补齐，jsr352 先例）
+
+- junit-fork 不产 surefire-reports 等价物，`debugPerClass` 只给计数与摘要——失败根因需复现探针：用与 fork 相同顺序的 classpath（test-classes → classes → deps）直接反射实例化/执行失败类。
+- 环境类失败先查 surefire `<environmentVariables>`（缺陷 31 已透传）与 `<systemPropertyVariables>`；再对比 `--runner maven` 回退结果定位"是否 fork 装配差异"。
 
 ### 框架惯例 → 索引标记对照表（族 C）
 

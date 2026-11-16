@@ -37,6 +37,8 @@ public class IbModule {
     /** explicit surefire <excludes> patterns (basename stems); empty = none */
     private List<String> surefireExcludes = new ArrayList<>();
     private Map<String, String> surefireSystemProperties = new LinkedHashMap<>();
+    /** surefire <environmentVariables> (fork env injection); empty = none */
+    private Map<String, String> surefireEnvironmentVariables = new LinkedHashMap<>();
     /** resolved external artifacts in dependency order, "ga:version:scope" */
     private List<String> externalArtifacts = new ArrayList<>();
     /** sha256 of the module's raw pom.xml at model build time */
@@ -74,6 +76,7 @@ public class IbModule {
         if (!surefireExcludes.isEmpty())
             surefire.put("excludes", surefireExcludes);
         surefire.put("systemPropertyVariables", surefireSystemProperties);
+        surefire.put("environmentVariables", surefireEnvironmentVariables);
         m.put("surefire", surefire);
         m.put("externalArtifacts", externalArtifacts);
         m.put("pomHash", pomHash);
@@ -118,6 +121,11 @@ public class IbModule {
             if (props instanceof Map<?, ?> pm) {
                 for (Map.Entry<?, ?> e : pm.entrySet())
                     mod.surefireSystemProperties.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
+            }
+            Object env = sf.get("environmentVariables");
+            if (env instanceof Map<?, ?> em) {
+                for (Map.Entry<?, ?> e : em.entrySet())
+                    mod.surefireEnvironmentVariables.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
             }
         }
         mod.externalArtifacts = fromStringList(m.get("externalArtifacts"));
@@ -272,6 +280,10 @@ public class IbModule {
 
     public Map<String, String> getSurefireSystemProperties() {
         return surefireSystemProperties;
+    }
+
+    public Map<String, String> getSurefireEnvironmentVariables() {
+        return surefireEnvironmentVariables;
     }
 
     public List<String> getExternalArtifacts() {

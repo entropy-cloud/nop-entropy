@@ -261,6 +261,24 @@ public final class EffectivePomParser {
                     mod.getSurefireExcludes().add(v.trim());
             }
         }
+        Element envVars = first(cfg, "environmentVariables");
+        if (envVars != null) {
+            Map<String, String> env = new LinkedHashMap<>();
+            for (Element prop : children(envVars, null)) {
+                if (prop.getNodeName().equals("property"))
+                    continue;
+                String k = text(first(prop, "key"));
+                String v = text(first(prop, "value"));
+                if (k == null) {
+                    k = prop.getNodeName();
+                    v = text(prop);
+                }
+                if (k != null && v != null)
+                    env.put(k, v);
+            }
+            if (!env.isEmpty())
+                mod.getSurefireEnvironmentVariables().putAll(env);
+        }
         Element props = first(cfg, "systemPropertyVariables");
         if (props != null) {
             Map<String, String> map = new LinkedHashMap<>();

@@ -105,6 +105,10 @@ class TestEffectivePomParser {
                           <configuration>
                             <argLine>-Xmx1G -Dfoo=bar</argLine>
                             <excludedGroups>slow, performance, randomized</excludedGroups>
+                            <environmentVariables>
+                              <DB_PASS>foopass</DB_PASS>
+                              <FOO>foo</FOO>
+                            </environmentVariables>
                             <systemPropertyVariables>
                               <nop.test>1</nop.test>
                             </systemPropertyVariables>
@@ -176,6 +180,18 @@ class TestEffectivePomParser {
         assertEquals("-Xmx1G -Dfoo=bar", mod.getSurefireArgLine());
         assertEquals("1", mod.getSurefireSystemProperties().get("nop.test"));
         assertNull(mod.getSurefireSkipTests());
+    }
+
+    /**
+     * Defect 31: surefire environmentVariables must land on the module fact so
+     * the fork process inherits them (jberet-se reads DB_PASS from the env;
+     * a fork without them died 34/34 with ServiceConfigurationError).
+     */
+    @Test
+    void testSurefireEnvironmentVariablesParsed() throws Exception {
+        IbModule mod = parseFixture();
+        assertEquals("foopass", mod.getSurefireEnvironmentVariables().get("DB_PASS"));
+        assertEquals("foo", mod.getSurefireEnvironmentVariables().get("FOO"));
     }
 
     /**

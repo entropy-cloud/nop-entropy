@@ -281,6 +281,7 @@ public final class JUnitWorkerPool {
             try {
                 ProcessBuilder pb = new ProcessBuilder(cmdPrefix());
                 pb.directory(model.resolve(module.getBasedir())); // cwd = module basedir
+                JUnitForkExecutor.applySurefireEnvironment(pb, module);
                 pb.redirectErrorStream(false);
                 process = pb.start();
                 stdin = new java.io.BufferedWriter(new java.io.OutputStreamWriter(
