@@ -32,6 +32,8 @@ public class IbModule {
     private String surefireSkipTests;
     /** explicit surefire <includes> patterns; empty = default naming rules */
     private List<String> surefireIncludes = new ArrayList<>();
+    /** surefire <excludedGroups> (comma-separated JUnit tags); null = unset */
+    private String surefireExcludedGroups;
     private Map<String, String> surefireSystemProperties = new LinkedHashMap<>();
     /** resolved external artifacts in dependency order, "ga:version:scope" */
     private List<String> externalArtifacts = new ArrayList<>();
@@ -66,6 +68,7 @@ public class IbModule {
         surefire.put("skipTests", surefireSkipTests);
         if (!surefireIncludes.isEmpty())
             surefire.put("includes", surefireIncludes);
+        surefire.put("excludedGroups", surefireExcludedGroups);
         surefire.put("systemPropertyVariables", surefireSystemProperties);
         m.put("surefire", surefire);
         m.put("externalArtifacts", externalArtifacts);
@@ -101,6 +104,7 @@ public class IbModule {
                 for (Object o : iter)
                     mod.surefireIncludes.add(String.valueOf(o));
             }
+            mod.surefireExcludedGroups = (String) sf.get("excludedGroups");
             Object props = sf.get("systemPropertyVariables");
             if (props instanceof Map<?, ?> pm) {
                 for (Map.Entry<?, ?> e : pm.entrySet())
@@ -243,6 +247,14 @@ public class IbModule {
 
     public List<String> getSurefireIncludes() {
         return surefireIncludes;
+    }
+
+    public String getSurefireExcludedGroups() {
+        return surefireExcludedGroups;
+    }
+
+    public void setSurefireExcludedGroups(String surefireExcludedGroups) {
+        this.surefireExcludedGroups = surefireExcludedGroups;
     }
 
     public Map<String, String> getSurefireSystemProperties() {

@@ -3,6 +3,7 @@ package io.nop.ib.junit;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.launcher.Launcher;
+import org.junit.platform.launcher.TagFilter;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
@@ -18,6 +19,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Fork-side JUnit Platform runner for nop-ib (design 02-test-execution: per-module
@@ -35,6 +39,19 @@ public class IbJUnitRunner {
 
     /** worker protocol lines are prefixed to survive test-code stdout logging */
     public static final String PROTOCOL_PREFIX = "@@NOP-IB@@";
+
+    /**
+     * JUnit tags excluded at discovery (defect 27): mirrors surefire's
+     * &lt;excludedGroups&gt; (zeebe excludes performance/randomized/slow/... via
+     * tag groups; without this filter ib over-dispatched those tests — 526 vs
+     * mvn's 462 on zeebe-gateway-grpc). Populated by the parent through the
+     * {@code nop.ib.excludeTags} system property (comma-separated), which the
+     * fork command forwards like the other surefire system properties.
+     */
+    static final Set<String> EXCLUDED_TAGS = Stream.of(
+            System.getProperty("nop.ib.excludeTags", "").split("[,\\s]+"))
+            .filter(s -> !s.isBlank())
+            .collect(Collectors.toUnmodifiableSet());
 
     /**
      * Worker-lifetime Launcher singleton: LauncherFactory.create() runs a full
@@ -74,6 +91,7 @@ public class IbJUnitRunner {
         LauncherDiscoveryRequestBuilder builder = LauncherDiscoveryRequestBuilder.request();
         for (String cls : classes)
             builder.selectors(DiscoverySelectors.selectClass(cls));
+        applyExcludedTagFilter(builder);
 
         // containment mirrors the worker loop: a discovery/execution error must
         // surface as this class's failure in the result document, not as a fork
@@ -290,10 +308,17 @@ public class IbJUnitRunner {
         return out;
     }
 
+    /** mirrors surefire excludedGroups at the discovery level (defect 27) */
+    private static void applyExcludedTagFilter(LauncherDiscoveryRequestBuilder builder) {
+        if (!EXCLUDED_TAGS.isEmpty())
+            builder.filters(TagFilter.excludeTags(List.copyOf(EXCLUDED_TAGS)));
+    }
+
     /** Single-class execution shared by single-run and worker modes. */
     private static Map<String, Object> executeClass(String cls) throws Exception {
         LauncherDiscoveryRequestBuilder builder = LauncherDiscoveryRequestBuilder.request()
                 .selectors(DiscoverySelectors.selectClass(cls));
+        applyExcludedTagFilter(builder);
         Launcher launcher = launcher();
         launcher.discover(builder.build());
         long[] counts = new long[3]; // tests, failures, skipped

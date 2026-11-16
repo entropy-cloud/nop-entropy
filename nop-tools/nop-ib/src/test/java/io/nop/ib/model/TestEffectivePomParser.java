@@ -104,6 +104,7 @@ class TestEffectivePomParser {
                           <artifactId>maven-surefire-plugin</artifactId>
                           <configuration>
                             <argLine>-Xmx1G -Dfoo=bar</argLine>
+                            <excludedGroups>slow, performance, randomized</excludedGroups>
                             <systemPropertyVariables>
                               <nop.test>1</nop.test>
                             </systemPropertyVariables>
@@ -175,6 +176,17 @@ class TestEffectivePomParser {
         assertEquals("-Xmx1G -Dfoo=bar", mod.getSurefireArgLine());
         assertEquals("1", mod.getSurefireSystemProperties().get("nop.test"));
         assertNull(mod.getSurefireSkipTests());
+    }
+
+    /**
+     * Defect 27: surefire excludedGroups must land on the module fact so the
+     * fork runner can mirror it via TagFilter (zeebe excludes slow/performance
+     * tag groups; without the field ib over-dispatched those tests).
+     */
+    @Test
+    void testSurefireExcludedGroupsParsed() throws Exception {
+        IbModule mod = parseFixture();
+        assertEquals("slow, performance, randomized", mod.getSurefireExcludedGroups());
     }
 
     @Test

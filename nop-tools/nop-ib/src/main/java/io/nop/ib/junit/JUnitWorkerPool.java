@@ -139,6 +139,11 @@ public final class JUnitWorkerPool {
                             if (r.get("resetMs") instanceof Number n && n.longValue() > startupThreshold)
                                 degrade[0] = true;
                             results.put(cls, r);
+                            if (Boolean.getBoolean("nop.ib.debugPerClass"))
+                                System.err.println("nop-ib debug: class " + cls
+                                        + " tests=" + r.get("tests") + " failures="
+                                        + r.get("failures") + " skipped=" + r.get("skipped")
+                                        + " full=" + r);
                         }
                         if (retire)
                             w.kill();
@@ -434,6 +439,17 @@ public final class JUnitWorkerPool {
             if (platformEngine != null)
                 cp.add(platformEngine.toString());
         }
+        // vintage parity (defect 27): JUnit4 on the classpath requires
+        // junit-vintage-engine at fork runtime — surefire's plugin dependencies
+        // supply it (zeebe-build-tools); without it JUnit4 classes discover as
+        // found-but-zero-tests and silently execute nothing
+        boolean junit4 = cp.stream().anyMatch(e -> e.matches(".*junit-4[\\d.]*\\.jar"));
+        if (junit4 && cp.stream().noneMatch(e -> e.contains("junit-vintage-engine"))) {
+            Path vintage = locateArtifactJar("org.junit.vintage", "junit-vintage-engine",
+                    platformVersion, null);
+            if (vintage != null)
+                cp.add(vintage.toString());
+        }
         // guard: a launcher without any TestEngine fails at boot — callers fall
         // back to surefire on this exception (JUnit4-only or exotic stacks)
         if (cp.stream().noneMatch(e -> e.contains("junit-platform-engine"))) {
@@ -465,6 +481,10 @@ public final class JUnitWorkerPool {
         cmd.add("-Dnop.autotest.force-save-output=false");
         cmd.add("-Dnop.autotest.disable-snapshot=false");
         module.getSurefireSystemProperties().forEach((k, v) -> cmd.add("-D" + k + "=" + v));
+        // excludedGroups tag parity (defect 27): forwarded to the runner via a
+        // system property (worker protocol unchanged)
+        if (module.getSurefireExcludedGroups() != null)
+            cmd.add("-Dnop.ib.excludeTags=" + module.getSurefireExcludedGroups());
         cmd.add("-cp");
         cmd.add(String.join(":", cp));
         cmd.add(IbJUnitRunner.class.getName());

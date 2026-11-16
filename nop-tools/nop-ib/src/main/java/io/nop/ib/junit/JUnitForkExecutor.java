@@ -115,6 +115,10 @@ public final class JUnitForkExecutor {
         cmd.add("-Dnop.autotest.force-save-output=false");
         cmd.add("-Dnop.autotest.disable-snapshot=false");
         module.getSurefireSystemProperties().forEach((k, v) -> cmd.add("-D" + k + "=" + v));
+        // excludedGroups tag parity (defect 27): forwarded to the runner via a
+        // system property (worker protocol unchanged)
+        if (module.getSurefireExcludedGroups() != null)
+            cmd.add("-Dnop.ib.excludeTags=" + module.getSurefireExcludedGroups());
         cmd.add("-cp");
         // fork cwd = module basedir; classpath entries are repo-relative -> absolutize
         Path repoRoot = Path.of(model.getRepoRoot());
@@ -151,6 +155,22 @@ public final class JUnitForkExecutor {
             else
                 warnings.add("junit-platform-engine " + platformVersion
                         + " not found in local repos - tests cannot run");
+        }
+        // vintage parity (defect 27): when the module's test classpath carries
+        // JUnit 4 (junit:junit) the surefire run executes those classes through
+        // junit-vintage-engine (surefire's plugin dependencies supply it — zeebe
+        // via zeebe-build-tools). Without it the fork discovers JUnit4 classes as
+        // found-but-zero-tests: 35 classes silently executed nothing on
+        // zeebe-gateway-grpc (270 vs mvn's 462).
+        boolean junit4 = cp.stream().anyMatch(e -> e.matches(".*junit-4[\\d.]*\\.jar"));
+        if (junit4 && cp.stream().noneMatch(e -> e.contains("junit-vintage-engine"))) {
+            Path vintage = locateArtifactJar("org.junit.vintage", "junit-vintage-engine",
+                    platformVersion, null);
+            if (vintage != null)
+                cp.add(vintage.toString());
+            else
+                warnings.add("junit4 on classpath but junit-vintage-engine " + platformVersion
+                        + " not found in local repos - JUnit4 tests cannot run");
         }
         // guard: a launcher without any TestEngine fails at boot — fall back to
         // surefire instead of a doomed fork (JUnit4-only or exotic stacks)

@@ -171,7 +171,8 @@ public class UnitIndex {
         memo.put(className, false);
         boolean result = info.hasTestMethods() || info.isNested()
                 || (info.getSuperName() != null
-                        && isDispatchableTest(info.getSuperName(), memo));
+                        && isDispatchableTest(info.getSuperName(), memo))
+                || ownsDispatchableNested(className, memo);
         if (!result && info.getSuperName() != null
                 && !"java.lang.Object".equals(info.getSuperName())
                 && !classes.containsKey(info.getSuperName())
@@ -195,10 +196,27 @@ public class UnitIndex {
         int idx = className.indexOf('$');
         while (idx > 0) {
             String outer = className.substring(0, idx);
-            ClassInfo outerInfo = classes.get(outer);
-            if (outerInfo != null && outerInfo.hasTestMethods())
+            if (isDispatchableTest(outer, new HashMap<>()))
                 return true;
             idx = className.indexOf('$', idx + 1);
+        }
+        return false;
+    }
+
+    /**
+     * true when any {@code className$...} member of this index is itself a
+     * dispatchable test (defect 28, zeebe-util observation): a top-level class
+     * whose tests live ENTIRELY in {@code @Nested} members carries no test
+     * markers itself and used to be dropped — and with it the whole nested
+     * family (CollectionUtilTest 9, FuturesUtilTest 6, VersionCompatibilityCheck
+     * Test 12 on zeebe-util; 27 of mvn's 780). The JUnit platform discovers the
+     * nested tree from the outer selector, same as Maven.
+     */
+    private boolean ownsDispatchableNested(String className, Map<String, Boolean> memo) {
+        for (String name : classes.keySet()) {
+            if (name.startsWith(className + "$")
+                    && isDispatchableTest(name, memo))
+                return true;
         }
         return false;
     }

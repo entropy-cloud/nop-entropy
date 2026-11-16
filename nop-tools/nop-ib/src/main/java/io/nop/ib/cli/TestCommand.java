@@ -475,6 +475,12 @@ public final class TestCommand {
         ClasspathMaterializer materializer = new ClasspathMaterializer(engine.model());
         ClasspathMaterializer.Materialized cp = materializer.testClasspath(module);
         cp.assertNoIntraProjectJars(engine.model());
+        // dispatch-surface ruling (candidate defect 26, zeebe-gateway-grpc): Maven
+        // surefire puts test-jar dependencies on the classpath but does NOT discover
+        // their test classes — the dispatch surface is the module's OWN test classes
+        // only (grpc: 65 mvn classes, all from src/test; the first tests-jar scan
+        // attempt over-dispatched 121 classes / 526 tests vs mvn's 462 and was
+        // reverted). Test-jar classes stay classpath-only (harness/base classes).
         if (!cp.complete()) {
             TestRun run = runSurefire(engine, module, classes, json, out, err);
             run.kind = "surefire(classpath-incomplete)";
