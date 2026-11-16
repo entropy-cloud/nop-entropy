@@ -92,6 +92,7 @@
 | 判断应用项目本地 docs 与 docs-for-ai 的边界 | `02-core-guides/application-project-docs-and-domain-design.md` |
 | 理解 ORM 模块级菜单图标 / `module-meta.json` / TOPM 传播 | `02-core-guides/model-first-development.md` |
 | 编写 BizModel / 服务层逻辑 | `02-core-guides/service-layer.md` |
+| 日常编译/测试反馈（AI 快路径 `nop-ib check`、回退与回滚开关） | `02-core-guides/incremental-build.md` |
 | 理解 GraphQL / API 暴露方式 | `02-core-guides/api-and-graphql.md` |
 | 理解 API 模型（*.api.xml）与代码生成（API 接口 vs SPI、生成物清单） | `02-core-guides/api-model-and-codegen.md` |
 | 理解 RPC 机制、分布式代理（/px/）、IRpcService、token 转发 | `02-core-guides/rpc-and-distributed-rpc.md` |

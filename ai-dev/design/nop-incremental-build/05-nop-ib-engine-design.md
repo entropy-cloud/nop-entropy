@@ -94,13 +94,13 @@ nop-ib → JDK（javax.tools / JUnit Platform，测试执行阶段）
 | 依赖边 | 目标模块/外部坐标、scope、type（含 `test-jar`）、classifier |
 | 编译 | `sourceDirectory`/`testSourceDirectory`、resources、`outputDirectory`/`testOutputDirectory`、每个 compiler execution 的 `release`/`proc`/`compilerArgs`/`annotationProcessorPaths` |
 | 插件 | `exec-maven-plugin`（codegen/AOP 的 execution id）、`jandex`、`build-helper`、shaded 类插件 |
-| 测试 | Surefire 配置（`argLine`、系统属性、includes/excludes、fork/reuse 语义） |
+| 测试 | Surefire 配置（`argLine`、系统属性含 `<property>` name/value 形态、includes/excludes、`groups`/`excludedGroups` tag 面、`environmentVariables`、`additionalClasspathElements`（仅 repo 外条目入 fork classpath）、非默认 `workingDirectory`/`additionalClasspathDependencies` → 记录为不支持事实并回退 surefire；fork/reuse 语义不消费，fork 隔离严格强于 surefire=documented-nonequivalence，wave6 6A-2） |
 | 工具链 | JDK/toolchain、编码、Maven 版本 |
 
 ### 5.3 刷新与失效
 
-- `model.json` 带内容哈希与 Maven/JDK 版本；
-- 任一 `pom.xml`/profile/属性变化、模块增删、source root 变化 → 标记过期；
+- `model.json` 带内容哈希与 Maven/JDK 版本；JDK 版本变化在每次 staleness 检查中比对（wave6 6A-1 F8）；Maven 版本与 dumpSha256 只在显式 `model refresh`/`cache verify` 时重验（per-command 子进程成本不可接受）；
+- 任一 `pom.xml`/profile/属性变化、模块增删、source root 变化 → 标记过期。磁盘上存在但不属于 reactor 的 pom（profile-gated/aggregator）不构成过期（wave6 修订：假阳性族）；新增模块以 plan 时"reactor 外源码变更 → 强制 Maven fallback"覆盖（ScopePlanner）；
 - 过期状态下的**任何**快路径结论无效，必须先刷新模型（或显式回退冷路径）；
 - 模型不得与 `01 §12.4` 的构建侧增量状态混写。
 
@@ -193,7 +193,7 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 - 输入：受影响源文件集合 + 已物化 classpath + 每 execution 的编译器选项；
 - 引擎：`nop-javac` 文件式编译（`-implicit:none`、`-proc:none` 默认、`--release` 按 execution）；
 - 输出：模块 `<module>/target/classes` / `<module>/target/test-classes`（测试编译使用**定序** classpath：测试输出 → 主输出 → 依赖，禁止跨模块合并）；
-- 删除策略：先删除本轮将被重写/淘汰的类与资源，再编译；失败时**事务化回滚**（stash/restore），失败后状态按 `01` 的"失败可继续增量"规则处理；
+- 删除策略：先删除本轮将被重写/淘汰的类与资源，再编译；编译失败 = **fail-loud**（结构化诊断 + 模块判败，exit≠0），无事务化回滚（wave8 审计裁定：Gradle 式 stash/restore 在"零假绿+不替换构建系统"约束下不成立——失败后冷路径 mvn 全量重建即权威恢复，比自实现事务更可信；Gradle 经验裁定详见 analysis wave8-mvnd-six-dimension-comparison）；
 - 拓扑：按 reactor 依赖序执行；同层可并行，输出目录互斥。
 
 ### 7.2 测试执行
@@ -204,7 +204,8 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 
 ### 7.3 并发与锁
 
-- 写产物 / 跑测试 → 取 `.mvn/build.lock` 排他锁（与 `mvnq` 同一文件、同一语义）；
+- 写产物（fast-path compile）/ Maven 委托 → `.mvn/build.lock` 排他锁（与 `mvnq` 同一文件、同一语义；Maven 委托不外层嵌套取锁——mvnq 自己取同一把锁，嵌套即自死锁）；
+- junit-fork 测试路径不取锁（wave6 6A-5 B-1 裁定：只读 target/classes、写每进程独立临时文件，非共享资源写者；取锁会串行化并行模块 sweep。compile-vs-test 跨进程竞争只可能产生假红，方向 fail-safe）；
 - 只读（`status/plan/model show`）→ 不取锁，但必须容忍并报告"检测到 Maven 构建持有锁"；
 - 超时与 `mvnq` 对齐（默认 3600s，`75` 退出码）；
 - 进程内并发：模块级串行 + 模块间有界并行；编译执行器实例按构建侧做法池化（编译器/file manager 非线程安全）。
@@ -219,6 +220,15 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 | `.nop-ib/units/<module>.bin` | 类图、ABI、常量、source→class、测试引用、生成指纹 | 模块重编/产物被外部改写 |
 | `.nop-ib/inputs.bin` | 文件 stat/内容哈希缓存 | 默认按 (size,mtime) 复用；不可信时重算 |
 | `.nop-ib/last-check.json` | 上次成功状态（用于 `--changed` 默认基线） | 失败不推进基线 |
+| `.nop-ib/test-cache.json` | opt-in `--cache` 的模块级绿结果缓存（wave9） | 指纹不命中即视为过期 |
+
+### 测试结果缓存契约（opt-in `--cache`）
+
+- **只缓存绿**：`junit-fork` 执行且 exit=0 才写入；红结果写入即作废既有绿条目（预存红天然每次真跑）。
+- **命中条件**：模块指纹逐字节一致。指纹 = 模块单元索引全部 (class, contentHash, abiDigest) + 传递依赖模块的 ABI digest 表 + externalArtifacts + surefire 全部 facts（argLine/skip/includes/excludes/groups/excludedGroups/系统属性/env）。任一成分缺失（索引缺失、模型过期、依赖模块无索引）→ 指纹 null → **不命中**（fail-safe，不静默跳过）。
+- **显式性**：命中输出 kind=`cached-up-to-date` + JSON `cached:true` + advisory warning（点名 `--force` 逃逸）；不冒充执行结果。
+- **不可见输入披露**：外部环境（DB/容器/host 状态、环境变量）不在指纹内——cached 绿的环境失效由 `--force` 兜底；依赖模块无索引时其 ABI 变化不入指纹（reactor 内依赖正常有索引；外部 jar 由 externalArtifacts 兜底）。
+- 适用面：`-pl` 显式模块与 plan scope 分支；`--class`/`--rerun-failed`（显式执行请求）与 Maven fallback 路径永不缓存。
 
 跨 worktree 共享（用户级）：jar 的 ABI digest / 内容哈希缓存，键为内容哈希，路径无关。
 
@@ -330,3 +340,9 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 | IB-G4 | 动态覆盖是否进入 v1（还是仅作为后续收窄） | v1 不做，静态优先 | Wave 3 验收 |
 | IB-G5 | 是否允许 `nop-ib` 直接依赖 `nop-bytecode`（含 ASM） | 允许（同组工具依赖） | Wave 1 item 7 |
 | IB-G6 | 波及面过大时的默认策略（全量 vs 显式 partial） | 默认全量；partial 必须显式 | 命令面冻结前 |
+
+## wave7 性能实验结论（2026-11-16，live baseline）
+
+- bench harness：`nop-tools/nop-ib/tools/bench-e2e.sh`（五项目基线：小测试重模块 ib 1.6–5.5x，zeebe ~30s 模块 setup 主导无优势，spring-batch 大模块失败路径 0.39x——rerun/重试族为杠杆，见 analysis bench-baseline/experiment-verdicts）。
+- 实验开关（默认关闭）：`nop.ib.moduleRerunMode=failed-only`（E1）、`nop.ib.moduleSlots`（E4 对照钮）、`nop.ib.rerunBatchSize`（E5）。E2/E3/E6 无新代码（数据裁定：无 ≥20% 空间/目标开销 <1%/已被单元索引覆盖）。
+- follow-up 登记：exit-2 重试"仅补缺失类"语义（失败大模块 wall −67% 候选）。

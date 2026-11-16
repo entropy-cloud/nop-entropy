@@ -1,0 +1,405 @@
+2026-11-14 13:43:12.490998+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:19.010891+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:26.054913+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:33.628601+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 13:43:41.337756+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:11.379019+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:17.617287+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:24.015265+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:31.404736+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 15:07:38.267148+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:17.012663+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:23.175582+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:29.675093+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:36.989813+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 16:10:43.573311+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:20.487979+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:26.994126+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:34.213449+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:42.039020+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 17:13:49.257958+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:03:26.147747+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:03:40.453785+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:04:00.077386+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:04:12.041147+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:09:01.484540+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:09:44.803696+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:10:44.513707+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:11:31.910308+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]
+2026-11-14 19:23:16.303312+08:00 database: flush
+org.h2.message.DbException: General error: "org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]" [50000-240]
+	at org.h2.message.DbException.get(DbException.java:212)
+	at org.h2.message.DbException.convert(DbException.java:407)
+	at org.h2.mvstore.db.Store.lambda$new$0(Store.java:122)
+	at org.h2.mvstore.MVStore.handleException(MVStore.java:1675)
+	at org.h2.mvstore.MVStore.panic(MVStore.java:502)
+	at org.h2.mvstore.MVStore.<init>(MVStore.java:296)
+	at org.h2.mvstore.MVStore$Builder.open(MVStore.java:2164)
+	at org.h2.mvstore.db.Store.<init>(Store.java:133)
+	at org.h2.engine.Database.<init>(Database.java:328)
+	at org.h2.engine.Engine.openSession(Engine.java:92)
+	at org.h2.engine.Engine.openSession(Engine.java:222)
+	at org.h2.engine.Engine.createSession(Engine.java:201)
+	at org.h2.engine.SessionRemote.connectEmbeddedOrServer(SessionRemote.java:350)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:124)
+	at org.h2.Driver.connect(Driver.java:59)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:373)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:210)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:576)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:97)
+	at com.zaxxer.hikari.HikariDataSource.<init>(HikariDataSource.java:80)
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:483)
+	at io.nop.commons.util.ClassHelper.newInstance(ClassHelper.java:735)
+	at io.nop.core.reflect.impl.ConstructorInvoker.invoke(ConstructorInvoker.java:27)
+	at io.nop.core.reflect.IFunctionModel.invoke(IFunctionModel.java:161)
+	at io.nop.ioc.impl.BeanDefinition.newInstance(BeanDefinition.java:569)
+	at io.nop.ioc.impl.BeanDefinition.createInstance(BeanDefinition.java:579)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:522)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:341)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanDefinition.getConstructorArgs(BeanDefinition.java:547)
+	at io.nop.ioc.impl.BeanDefinition.newInstance(BeanDefinition.java:560)
+	at io.nop.ioc.impl.BeanDefinition.createInstance(BeanDefinition.java:579)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:522)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.startBean(BeanContainerImpl.java:777)
+	at io.nop.ioc.impl.BeanContainerImpl.start(BeanContainerImpl.java:615)
+	at io.nop.ioc.initialize.IocCoreInitializer.initialize(IocCoreInitializer.java:46)
+	at io.nop.core.initialize.CoreInitialization.reinitialize(CoreInitialization.java:256)
+	at io.nop.core.initialize.CoreInitialization.reinitialize(CoreInitialization.java:209)
+	at io.nop.autotest.core.NopIbTestEnvResetter.resetBefore(NopIbTestEnvResetter.java:19)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at io.nop.ib.junit.IbJUnitRunner.invokeReset(IbJUnitRunner.java:273)
+	at io.nop.ib.junit.IbJUnitRunner.runOne(IbJUnitRunner.java:233)
+	at io.nop.ib.junit.IbJUnitRunner.runWorker(IbJUnitRunner.java:192)
+	at io.nop.ib.junit.IbJUnitRunner.main(IbJUnitRunner.java:62)
+Caused by: org.h2.jdbc.JdbcSQLNonTransientException: General error: "org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]" [50000-240]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:566)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	... 93 more
+Caused by: org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]
+	at org.h2.mvstore.DataUtils.newMVStoreException(DataUtils.java:996)
+	at org.h2.mvstore.SingleFileStore.lockFileChannel(SingleFileStore.java:143)
+	at org.h2.mvstore.SingleFileStore.open(SingleFileStore.java:117)
+	at org.h2.mvstore.SingleFileStore.open(SingleFileStore.java:81)
+	at org.h2.mvstore.MVStore.<init>(MVStore.java:291)
+	... 87 more
+2026-11-14 19:23:17.625815+08:00 database: flush
+org.h2.message.DbException: General error: "org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]" [50000-240]
+	at org.h2.message.DbException.get(DbException.java:212)
+	at org.h2.message.DbException.convert(DbException.java:407)
+	at org.h2.mvstore.db.Store.lambda$new$0(Store.java:122)
+	at org.h2.mvstore.MVStore.handleException(MVStore.java:1675)
+	at org.h2.mvstore.MVStore.panic(MVStore.java:502)
+	at org.h2.mvstore.MVStore.<init>(MVStore.java:296)
+	at org.h2.mvstore.MVStore$Builder.open(MVStore.java:2164)
+	at org.h2.mvstore.db.Store.<init>(Store.java:133)
+	at org.h2.engine.Database.<init>(Database.java:328)
+	at org.h2.engine.Engine.openSession(Engine.java:92)
+	at org.h2.engine.Engine.openSession(Engine.java:222)
+	at org.h2.engine.Engine.createSession(Engine.java:201)
+	at org.h2.engine.SessionRemote.connectEmbeddedOrServer(SessionRemote.java:350)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:124)
+	at org.h2.Driver.connect(Driver.java:59)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:373)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:210)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:576)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:97)
+	at com.zaxxer.hikari.HikariDataSource.<init>(HikariDataSource.java:80)
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:483)
+	at io.nop.commons.util.ClassHelper.newInstance(ClassHelper.java:735)
+	at io.nop.core.reflect.impl.ConstructorInvoker.invoke(ConstructorInvoker.java:27)
+	at io.nop.core.reflect.IFunctionModel.invoke(IFunctionModel.java:161)
+	at io.nop.ioc.impl.BeanDefinition.newInstance(BeanDefinition.java:569)
+	at io.nop.ioc.impl.BeanDefinition.createInstance(BeanDefinition.java:579)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:522)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:341)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanDefinition.getConstructorArgs(BeanDefinition.java:547)
+	at io.nop.ioc.impl.BeanDefinition.newInstance(BeanDefinition.java:560)
+	at io.nop.ioc.impl.BeanDefinition.createInstance(BeanDefinition.java:579)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:522)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.startBean(BeanContainerImpl.java:777)
+	at io.nop.ioc.impl.BeanContainerImpl.start(BeanContainerImpl.java:615)
+	at io.nop.ioc.initialize.IocCoreInitializer.initialize(IocCoreInitializer.java:46)
+	at io.nop.core.initialize.CoreInitialization.reinitialize(CoreInitialization.java:256)
+	at io.nop.core.initialize.CoreInitialization.reinitialize(CoreInitialization.java:209)
+	at io.nop.autotest.core.NopIbTestEnvResetter.resetBefore(NopIbTestEnvResetter.java:19)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at io.nop.ib.junit.IbJUnitRunner.invokeReset(IbJUnitRunner.java:273)
+	at io.nop.ib.junit.IbJUnitRunner.runOne(IbJUnitRunner.java:233)
+	at io.nop.ib.junit.IbJUnitRunner.runWorker(IbJUnitRunner.java:192)
+	at io.nop.ib.junit.IbJUnitRunner.main(IbJUnitRunner.java:62)
+Caused by: org.h2.jdbc.JdbcSQLNonTransientException: General error: "org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]" [50000-240]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:566)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	... 93 more
+Caused by: org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]
+	at org.h2.mvstore.DataUtils.newMVStoreException(DataUtils.java:996)
+	at org.h2.mvstore.SingleFileStore.lockFileChannel(SingleFileStore.java:143)
+	at org.h2.mvstore.SingleFileStore.open(SingleFileStore.java:117)
+	at org.h2.mvstore.SingleFileStore.open(SingleFileStore.java:81)
+	at org.h2.mvstore.MVStore.<init>(MVStore.java:291)
+	... 87 more
+2026-11-14 19:23:17.627581+08:00 database: flush
+org.h2.message.DbException: General error: "org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]" [50000-240]
+	at org.h2.message.DbException.get(DbException.java:212)
+	at org.h2.message.DbException.convert(DbException.java:407)
+	at org.h2.mvstore.db.Store.lambda$new$0(Store.java:122)
+	at org.h2.mvstore.MVStore.handleException(MVStore.java:1675)
+	at org.h2.mvstore.MVStore.panic(MVStore.java:502)
+	at org.h2.mvstore.MVStore.<init>(MVStore.java:296)
+	at org.h2.mvstore.MVStore$Builder.open(MVStore.java:2164)
+	at org.h2.mvstore.db.Store.<init>(Store.java:133)
+	at org.h2.engine.Database.<init>(Database.java:328)
+	at org.h2.engine.Engine.openSession(Engine.java:92)
+	at org.h2.engine.Engine.openSession(Engine.java:222)
+	at org.h2.engine.Engine.createSession(Engine.java:201)
+	at org.h2.engine.SessionRemote.connectEmbeddedOrServer(SessionRemote.java:350)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:124)
+	at org.h2.Driver.connect(Driver.java:59)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:373)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:210)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488)
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:576)
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:97)
+	at com.zaxxer.hikari.HikariDataSource.<init>(HikariDataSource.java:80)
+	at java.base/jdk.internal.reflect.DirectConstructorHandleAccessor.newInstance(DirectConstructorHandleAccessor.java:62)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:483)
+	at io.nop.commons.util.ClassHelper.newInstance(ClassHelper.java:735)
+	at io.nop.core.reflect.impl.ConstructorInvoker.invoke(ConstructorInvoker.java:27)
+	at io.nop.core.reflect.IFunctionModel.invoke(IFunctionModel.java:161)
+	at io.nop.ioc.impl.BeanDefinition.newInstance(BeanDefinition.java:569)
+	at io.nop.ioc.impl.BeanDefinition.createInstance(BeanDefinition.java:579)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:522)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:341)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanDefinition.getConstructorArgs(BeanDefinition.java:547)
+	at io.nop.ioc.impl.BeanDefinition.newInstance(BeanDefinition.java:560)
+	at io.nop.ioc.impl.BeanDefinition.createInstance(BeanDefinition.java:579)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:522)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean(BeanContainerImpl.java:345)
+	at io.nop.ioc.impl.resolvers.InjectRefValueResolver.resolveValue(InjectRefValueResolver.java:78)
+	at io.nop.ioc.impl.BeanProperty.assignToObject(BeanProperty.java:71)
+	at io.nop.ioc.impl.BeanDefinition.setupInstance(BeanDefinition.java:633)
+	at io.nop.ioc.impl.BeanContainerImpl.getOrCreateSingleton(BeanContainerImpl.java:531)
+	at io.nop.ioc.impl.BeanContainerImpl.getBean0(BeanContainerImpl.java:439)
+	at io.nop.ioc.impl.BeanContainerImpl.startBean(BeanContainerImpl.java:777)
+	at io.nop.ioc.impl.BeanContainerImpl.start(BeanContainerImpl.java:615)
+	at io.nop.ioc.initialize.IocCoreInitializer.initialize(IocCoreInitializer.java:46)
+	at io.nop.core.initialize.CoreInitialization.reinitialize(CoreInitialization.java:256)
+	at io.nop.core.initialize.CoreInitialization.reinitialize(CoreInitialization.java:209)
+	at io.nop.autotest.core.NopIbTestEnvResetter.resetBefore(NopIbTestEnvResetter.java:19)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at io.nop.ib.junit.IbJUnitRunner.invokeReset(IbJUnitRunner.java:273)
+	at io.nop.ib.junit.IbJUnitRunner.runOne(IbJUnitRunner.java:233)
+	at io.nop.ib.junit.IbJUnitRunner.runWorker(IbJUnitRunner.java:192)
+	at io.nop.ib.junit.IbJUnitRunner.main(IbJUnitRunner.java:62)
+Caused by: org.h2.jdbc.JdbcSQLNonTransientException: General error: "org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]" [50000-240]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:566)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	... 93 more
+Caused by: org.h2.mvstore.MVStoreException: The file is locked: /Users/abc/app/nop-entropy-wt/nop-entropy-ib/nop-rule/nop-rule-service/db/test.mv.db [2.4.240/7]
+	at org.h2.mvstore.DataUtils.newMVStoreException(DataUtils.java:996)
+	at org.h2.mvstore.SingleFileStore.lockFileChannel(SingleFileStore.java:143)
+	at org.h2.mvstore.SingleFileStore.open(SingleFileStore.java:117)
+	at org.h2.mvstore.SingleFileStore.open(SingleFileStore.java:81)
+	at org.h2.mvstore.MVStore.<init>(MVStore.java:291)
+	... 87 more
+2026-11-14 19:23:24.708306+08:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "NOP_SYS_I18N" not found (this database is empty); SQL statement:
+ select o.I18N_KEY,o.I18N_LOCALE,o."VALUE",o.VERSION,o.CREATED_BY,o.CREATE_TIME,o.UPDATED_BY,o.UPDATE_TIME,o.REMARK from NOP_SYS_I18N as o  where  1=1  [42104-240]

@@ -96,6 +96,18 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-bytecode</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-ib</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-java-parser</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

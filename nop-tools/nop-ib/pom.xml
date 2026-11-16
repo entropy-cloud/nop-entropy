@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.entropy-cloud</groupId>
+        <artifactId>nop-tools</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-ib</artifactId>
+    <name>42-nop-ib</name>
+
+    <description>
+        Incremental build engine for AI-assisted development: replaces the daily mvn build / mvn test
+        feedback loop with nop-javac file compilation + bytecode dependency closure (compile) and
+        module coarse filter + class graph fine selection (test). Cold path stays on ./mvnw via mvnq.
+        Design authority: ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md;
+        roadmap: ai-dev/backlog/nop-ib-roadmap.md.
+
+        Adjudicated invariants (IB-G1/IB-G5): no -api module; no nop-code-service dependency; never on a
+        release module's runtime classpath; product writes and test runs share .mvn/build.lock (exit 75 on
+        lock timeout, aligned with mvnq); read-only commands take no lock.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-javac</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-bytecode</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- compile scope: the fork-side runner (io.nop.ib.junit.IbJUnitRunner) is
+             compiled against the Launcher API; at test runtime the fork uses the
+             module's own platform jars + the version-matched launcher jar -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-engine</artifactId>
+        </dependency>
+    </dependencies>
+</project>

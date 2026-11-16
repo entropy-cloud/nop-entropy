@@ -1,0 +1,571 @@
+package io.nop.ib.model;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * One reactor module's build facts, exported by Maven itself (design 05 §五).
+ * Paths are stored repo-relative; dependency coordinates as group:artifact.
+ */
+public class IbModule {
+    public static final String FORMAT_VERSION = "1";
+
+    private String groupId;
+    private String artifactId;
+    private String version;
+    private String packaging;
+    private String parentGa;
+    /** repo-relative basedir */
+    private String basedir;
+    private String sourceDir;
+    private String testSourceDir;
+    private String outputDir;
+    private String testOutputDir;
+    private List<String> resourceDirs = new ArrayList<>();
+    private List<String> testResourceDirs = new ArrayList<>();
+    private List<DepEdge> dependencies = new ArrayList<>();
+    private List<CompilerExec> compilerExecs = new ArrayList<>();
+    private List<String> execExecutionIds = new ArrayList<>();
+    private String surefireArgLine;
+    private String surefireSkipTests;
+    /** explicit surefire <includes> patterns; empty = default naming rules */
+    private List<String> surefireIncludes = new ArrayList<>();
+    /** surefire <excludedGroups> (comma-separated JUnit tags); null = unset */
+    private String surefireExcludedGroups;
+    /** surefire <groups> (comma-separated JUnit tags); null = unset (wave6 6A-2) */
+    private String surefireGroups;
+    /**
+     * surefire <additionalClasspathElements>: entries that live OUTSIDE the repo
+     * (external jars/dirs) are appended verbatim to the fork classpath. Entries
+     * inside the repo would violate the no-intra-project-jar invariant (I1), so
+     * the module is routed to surefire via {@link #surefireUnsupportedReason}
+     * instead (wave6 6A-2).
+     */
+    private List<String> surefireAdditionalClasspathElements = new ArrayList<>();
+    /**
+     * non-null when the module's surefire config uses a dimension the fork
+     * engine cannot faithfully replicate (non-default workingDirectory,
+     * additionalClasspathDependencies with repo-internal resolution targets,
+     * repo-internal additionalClasspathElements): dispatch falls back to real
+     * surefire with this reason (wave6 6A-2; zero-fake-green > speed).
+     */
+    private String surefireUnsupportedReason;
+    /** transient parse state: raw surefire workingDirectory, resolved post-basedir */
+    private transient String pendingSurefireWorkingDirectory;
+    /** explicit surefire <excludes> patterns (basename stems); empty = none */
+    private List<String> surefireExcludes = new ArrayList<>();
+    private Map<String, String> surefireSystemProperties = new LinkedHashMap<>();
+    /** surefire <environmentVariables> (fork env injection); empty = none */
+    private Map<String, String> surefireEnvironmentVariables = new LinkedHashMap<>();
+    /** resolved external artifacts in dependency order, "ga:version:scope" */
+    private List<String> externalArtifacts = new ArrayList<>();
+    /** sha256 of the module's raw pom.xml at model build time */
+    private String pomHash;
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("groupId", groupId);
+        m.put("artifactId", artifactId);
+        m.put("version", version);
+        m.put("packaging", packaging);
+        m.put("parent", parentGa);
+        m.put("basedir", basedir);
+        m.put("sourceDirectory", sourceDir);
+        m.put("testSourceDirectory", testSourceDir);
+        m.put("outputDirectory", outputDir);
+        m.put("testOutputDirectory", testOutputDir);
+        m.put("resources", resourceDirs);
+        m.put("testResources", testResourceDirs);
+        List<Object> deps = new ArrayList<>();
+        for (DepEdge d : dependencies)
+            deps.add(d.toMap());
+        m.put("dependencies", deps);
+        List<Object> execs = new ArrayList<>();
+        for (CompilerExec e : compilerExecs)
+            execs.add(e.toMap());
+        m.put("compilerExecutions", execs);
+        m.put("execExecutionIds", execExecutionIds);
+        Map<String, Object> surefire = new LinkedHashMap<>();
+        surefire.put("argLine", surefireArgLine);
+        surefire.put("skipTests", surefireSkipTests);
+        if (!surefireIncludes.isEmpty())
+            surefire.put("includes", surefireIncludes);
+        surefire.put("excludedGroups", surefireExcludedGroups);
+        surefire.put("groups", surefireGroups);
+        if (!surefireAdditionalClasspathElements.isEmpty())
+            surefire.put("additionalClasspathElements", surefireAdditionalClasspathElements);
+        if (surefireUnsupportedReason != null)
+            surefire.put("unsupportedReason", surefireUnsupportedReason);
+        if (!surefireExcludes.isEmpty())
+            surefire.put("excludes", surefireExcludes);
+        surefire.put("systemPropertyVariables", surefireSystemProperties);
+        surefire.put("environmentVariables", surefireEnvironmentVariables);
+        m.put("surefire", surefire);
+        m.put("externalArtifacts", externalArtifacts);
+        m.put("pomHash", pomHash);
+        return m;
+    }
+
+    public static IbModule fromMap(Map<String, Object> m) {
+        IbModule mod = new IbModule();
+        mod.groupId = (String) m.get("groupId");
+        mod.artifactId = (String) m.get("artifactId");
+        mod.version = (String) m.get("version");
+        mod.packaging = (String) m.get("packaging");
+        mod.parentGa = (String) m.get("parent");
+        mod.basedir = (String) m.get("basedir");
+        mod.sourceDir = (String) m.get("sourceDirectory");
+        mod.testSourceDir = (String) m.get("testSourceDirectory");
+        mod.outputDir = (String) m.get("outputDirectory");
+        mod.testOutputDir = (String) m.get("testOutputDirectory");
+        mod.resourceDirs = fromStringList(m.get("resources"));
+        mod.testResourceDirs = fromStringList(m.get("testResources"));
+        for (Object o : JsonListAdapter.asListOrEmpty(m.get("dependencies")))
+            mod.dependencies.add(DepEdge.fromMap(JsonListAdapter.asMapOrEmpty(o)));
+        for (Object o : JsonListAdapter.asListOrEmpty(m.get("compilerExecutions")))
+            mod.compilerExecs.add(CompilerExec.fromMap(JsonListAdapter.asMapOrEmpty(o)));
+        mod.execExecutionIds = fromStringList(m.get("execExecutionIds"));
+        Object surefire = m.get("surefire");
+        if (surefire instanceof Map<?, ?> sf) {
+            mod.surefireArgLine = (String) sf.get("argLine");
+            mod.surefireSkipTests = (String) sf.get("skipTests");
+            Object inc = sf.get("includes");
+            if (inc instanceof Iterable<?> iter) {
+                for (Object o : iter)
+                    mod.surefireIncludes.add(String.valueOf(o));
+            }
+            mod.surefireExcludedGroups = (String) sf.get("excludedGroups");
+            mod.surefireGroups = (String) sf.get("groups");
+            Object acle = sf.get("additionalClasspathElements");
+            if (acle instanceof Iterable<?> iter3) {
+                for (Object o : iter3)
+                    mod.surefireAdditionalClasspathElements.add(String.valueOf(o));
+            }
+            mod.surefireUnsupportedReason = (String) sf.get("unsupportedReason");
+            Object exc = sf.get("excludes");
+            if (exc instanceof Iterable<?> iter2) {
+                for (Object o : iter2)
+                    mod.surefireExcludes.add(String.valueOf(o));
+            }
+            Object props = sf.get("systemPropertyVariables");
+            if (props instanceof Map<?, ?> pm) {
+                for (Map.Entry<?, ?> e : pm.entrySet())
+                    mod.surefireSystemProperties.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
+            }
+            Object env = sf.get("environmentVariables");
+            if (env instanceof Map<?, ?> em) {
+                for (Map.Entry<?, ?> e : em.entrySet())
+                    mod.surefireEnvironmentVariables.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
+            }
+        }
+        mod.externalArtifacts = fromStringList(m.get("externalArtifacts"));
+        mod.pomHash = (String) m.get("pomHash");
+        return mod;
+    }
+
+    private static List<String> fromStringList(Object value) {
+        List<String> out = new ArrayList<>();
+        if (value instanceof Iterable<?> iter) {
+            for (Object o : iter)
+                out.add(String.valueOf(o));
+        }
+        return out;
+    }
+
+    public String getGa() {
+        return groupId + ":" + artifactId;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getArtifactId() {
+        return artifactId;
+    }
+
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public String getPackaging() {
+        return packaging;
+    }
+
+    public void setPackaging(String packaging) {
+        this.packaging = packaging;
+    }
+
+    public String getParentGa() {
+        return parentGa;
+    }
+
+    public void setParentGa(String parentGa) {
+        this.parentGa = parentGa;
+    }
+
+    public String getBasedir() {
+        return basedir;
+    }
+
+    public void setBasedir(String basedir) {
+        this.basedir = basedir;
+    }
+
+    public String getSourceDir() {
+        return sourceDir;
+    }
+
+    public void setSourceDir(String sourceDir) {
+        this.sourceDir = sourceDir;
+    }
+
+    public String getTestSourceDir() {
+        return testSourceDir;
+    }
+
+    public void setTestSourceDir(String testSourceDir) {
+        this.testSourceDir = testSourceDir;
+    }
+
+    public String getOutputDir() {
+        return outputDir;
+    }
+
+    public void setOutputDir(String outputDir) {
+        this.outputDir = outputDir;
+    }
+
+    public String getTestOutputDir() {
+        return testOutputDir;
+    }
+
+    public void setTestOutputDir(String testOutputDir) {
+        this.testOutputDir = testOutputDir;
+    }
+
+    public List<String> getResourceDirs() {
+        return resourceDirs;
+    }
+
+    public List<String> getTestResourceDirs() {
+        return testResourceDirs;
+    }
+
+    public List<DepEdge> getDependencies() {
+        return dependencies;
+    }
+
+    public List<CompilerExec> getCompilerExecs() {
+        return compilerExecs;
+    }
+
+    public List<String> getExecExecutionIds() {
+        return execExecutionIds;
+    }
+
+    public String getSurefireArgLine() {
+        return surefireArgLine;
+    }
+
+    public void setSurefireArgLine(String argLine) {
+        this.surefireArgLine = argLine;
+    }
+
+    public void setSurefireSkipTests(String skipTests) {
+        this.surefireSkipTests = skipTests;
+    }
+
+    public String getSurefireSkipTests() {
+        return surefireSkipTests;
+    }
+
+    public List<String> getSurefireIncludes() {
+        return surefireIncludes;
+    }
+
+    public String getSurefireExcludedGroups() {
+        return surefireExcludedGroups;
+    }
+
+    public List<String> getSurefireExcludes() {
+        return surefireExcludes;
+    }
+
+    public void setSurefireExcludedGroups(String surefireExcludedGroups) {
+        this.surefireExcludedGroups = surefireExcludedGroups;
+    }
+
+    public String getSurefireGroups() {
+        return surefireGroups;
+    }
+
+    public void setSurefireGroups(String surefireGroups) {
+        this.surefireGroups = surefireGroups;
+    }
+
+    public List<String> getSurefireAdditionalClasspathElements() {
+        return surefireAdditionalClasspathElements;
+    }
+
+    public String getSurefireUnsupportedReason() {
+        return surefireUnsupportedReason;
+    }
+
+    public void setSurefireUnsupportedReason(String surefireUnsupportedReason) {
+        this.surefireUnsupportedReason = surefireUnsupportedReason;
+    }
+
+    public String getPendingSurefireWorkingDirectory() {
+        return pendingSurefireWorkingDirectory;
+    }
+
+    public void setPendingSurefireWorkingDirectory(String pending) {
+        this.pendingSurefireWorkingDirectory = pending;
+    }
+
+    public Map<String, String> getSurefireSystemProperties() {
+        return surefireSystemProperties;
+    }
+
+    public Map<String, String> getSurefireEnvironmentVariables() {
+        return surefireEnvironmentVariables;
+    }
+
+    public List<String> getExternalArtifacts() {
+        return externalArtifacts;
+    }
+
+    public void setExternalArtifacts(List<String> externalArtifacts) {
+        this.externalArtifacts = externalArtifacts;
+    }
+
+    public String getPomHash() {
+        return pomHash;
+    }
+
+    public void setPomHash(String pomHash) {
+        this.pomHash = pomHash;
+    }
+
+    /** Capability level per design 01 §六 (evidence-based adjudication, Wave 0). */
+    public String capabilityLevel(boolean hasAopArtifacts, boolean ownsXgenTemplates) {
+        if (hasAopArtifacts)
+            return "L3";
+        if (isProcessorModule())
+            return "L2";
+        if (ownsXgenTemplates)
+            return "L1";
+        return "L0";
+    }
+
+    /** Effective compiler execution configures code-generating annotationProcessorPaths
+     *  or explicit proc. Check-only processors (error-prone et al.) do NOT count by
+     *  themselves: the -proc:none fast path output is identical for them (design 01 §六)
+     *  — EXCEPT for annotated package-info sources (see hasAnnotatedPackageInfoRisk). */
+    public boolean isProcessorModule() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.proc != null)
+                return true;
+            if (e.annotationProcessorPaths && !e.checkOnlyProcessors)
+                return true;
+        }
+        return false;
+    }
+
+    /** module runs check-only processors via annotationProcessorPaths. */
+    public boolean hasCheckOnlyProcessors() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.annotationProcessorPaths && e.checkOnlyProcessors)
+                return true;
+        }
+        return false;
+    }
+
+    /** Default compile release across executions (first found), else null. */
+    public String getCompileRelease() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.release != null)
+                return e.release;
+        }
+        return null;
+    }
+
+    /** Default compile source level (first found), else null. */
+    public String getCompileSource() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.source != null)
+                return e.source;
+        }
+        return null;
+    }
+
+    /** Explicit proc config (first found), else null (Maven default semantics). */
+    public String getCompileProc() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.proc != null)
+                return e.proc;
+        }
+        return null;
+    }
+
+    /** -parameters debug metadata requested by any compile execution. */
+    public boolean getCompileParameters() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.parameters)
+                return true;
+        }
+        return false;
+    }
+
+    public static class DepEdge {
+        String ga;
+        String scope;
+        String type;
+        String classifier;
+        boolean optional;
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("ga", ga);
+            m.put("scope", scope);
+            m.put("type", type);
+            m.put("classifier", classifier);
+            m.put("optional", optional);
+            return m;
+        }
+
+        public static DepEdge fromMap(Map<String, Object> m) {
+            DepEdge d = new DepEdge();
+            d.ga = (String) m.get("ga");
+            d.scope = (String) m.get("scope");
+            d.type = (String) m.get("type");
+            d.classifier = (String) m.get("classifier");
+            Object opt = m.get("optional");
+            d.optional = Boolean.TRUE.equals(opt) || "true".equals(opt);
+            return d;
+        }
+
+        public String getGa() {
+            return ga;
+        }
+
+        /** public for model builders (scope-layer tests, synthetic reactors). */
+        public void setGa(String ga) {
+            this.ga = ga;
+        }
+
+        public String getScope() {
+            return scope;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public boolean isOptional() {
+            return optional;
+        }
+    }
+
+    public static class CompilerExec {
+        String id;
+        String release;
+        String proc;
+        boolean annotationProcessorPaths;
+        /** every annotationProcessorPath is a known check-only processor group
+         *  (error-prone/NullAway/SpotBugs): generates nothing, so the -proc:none
+         *  fast path output is identical and L2 fallback is not needed */
+        boolean checkOnlyProcessors;
+        /** -parameters debug metadata requested (config element or compilerArg) */
+        boolean parameters;
+        String source;
+        String target;
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", id);
+            m.put("release", release);
+            m.put("proc", proc);
+            m.put("annotationProcessorPaths", annotationProcessorPaths);
+            if (checkOnlyProcessors)
+                m.put("checkOnlyProcessors", 1);
+            if (parameters)
+                m.put("parameters", 1);
+            m.put("source", source);
+            m.put("target", target);
+            return m;
+        }
+
+        public static CompilerExec fromMap(Map<String, Object> m) {
+            CompilerExec e = new CompilerExec();
+            e.id = (String) m.get("id");
+            e.release = (String) m.get("release");
+            e.proc = (String) m.get("proc");
+            Object app = m.get("annotationProcessorPaths");
+            e.annotationProcessorPaths = Boolean.TRUE.equals(app) || "true".equals(app);
+            Object cop = m.get("checkOnlyProcessors");
+            e.checkOnlyProcessors = Boolean.TRUE.equals(cop)
+                    || (cop instanceof Number n && n.intValue() != 0)
+                    || "1".equals(cop) || "true".equals(cop);
+            Object prm = m.get("parameters");
+            e.parameters = Boolean.TRUE.equals(prm)
+                    || (prm instanceof Number n && n.intValue() != 0)
+                    || "1".equals(prm) || "true".equals(prm);
+            e.source = (String) m.get("source");
+            e.target = (String) m.get("target");
+            return e;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getRelease() {
+            return release;
+        }
+
+        public String getProc() {
+            return proc;
+        }
+
+        public boolean isAnnotationProcessorPaths() {
+            return annotationProcessorPaths;
+        }
+    }
+
+    /** Shims used by fromMap so the model layer does not depend on io.nop.ib.json directly. */
+    static final class JsonListAdapter {
+        static Map<String, Object> asMapOrEmpty(Object value) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            if (value instanceof Map<?, ?> m) {
+                for (Map.Entry<?, ?> e : m.entrySet())
+                    out.put(String.valueOf(e.getKey()), e.getValue());
+            }
+            return out;
+        }
+
+        static List<Object> asListOrEmpty(Object value) {
+            List<Object> out = new ArrayList<>();
+            if (value instanceof Iterable<?> iter) {
+                for (Object o : iter)
+                    out.add(o);
+            }
+            return out;
+        }
+    }
+}

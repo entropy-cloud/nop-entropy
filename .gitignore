@@ -137,3 +137,8 @@ nop-task/nop-task-app/db/
 # H2 runtime artifacts from local demo/test runs (test.mv.db / test.trace.db)
 nop-demo/nop-quarkus-demo/db/
 _report-cache/
+
+# nop-ib per-worktree state (design 05 §八)
+.nop-ib/
+# scratch outputs (AGENTS.md: use _tmp/ under project root)
+_tmp/
