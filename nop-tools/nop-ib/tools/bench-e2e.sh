@@ -39,7 +39,7 @@ run_timed() {
   rc=$?
   set -e
   t1=$(now_ms)
-  echo "$t0 $t1 $rc"
+  echo "$((t1 - t0)) $rc"
 }
 
 result_line() { # variant pass index ms exit
@@ -51,19 +51,19 @@ RESULTS=""
 
 echo "== mvn test (oracle) =="
 for i in "cold" $(seq 1 "$REPEATS"); do
-  read -r _ _ ms rc <<< "$(run_timed "mvn-$i" mvn -q test -pl ":$MODULE" -Denforcer.skip=true -Dmaven.test.failure.ignore=true)"
+  read -r ms rc <<< "$(run_timed "mvn-$i" mvn -q test -pl ":$MODULE" -Denforcer.skip=true -Dmaven.test.failure.ignore=true)"
   line=$(result_line mvn "$i" "$ms" "$rc"); echo "$line"; RESULTS="$RESULTS$line"$'\n'
 done
 
 echo "== ib test (junit-fork fast path) =="
 for i in "cold" $(seq 1 "$REPEATS"); do
-  read -r _ _ ms rc <<< "$(run_timed "ib-$i" java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl ":$MODULE")"
+  read -r ms rc <<< "$(run_timed "ib-$i" java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl ":$MODULE")"
   line=$(result_line ib "$i" "$ms" "$rc"); echo "$line"; RESULTS="$RESULTS$line"$'\n'
 done
 
 echo "== ib test --runner maven (surefire delegation) =="
 for i in "cold" $(seq 1 "$REPEATS"); do
-  read -r _ _ ms rc <<< "$(run_timed "ibmaven-$i" java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl ":$MODULE" --runner maven)"
+  read -r ms rc <<< "$(run_timed "ibmaven-$i" java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl ":$MODULE" --runner maven)"
   line=$(result_line ibmaven "$i" "$ms" "$rc"); echo "$line"; RESULTS="$RESULTS$line"$'\n'
 done
 
