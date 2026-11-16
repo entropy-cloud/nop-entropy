@@ -193,7 +193,7 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 - 输入：受影响源文件集合 + 已物化 classpath + 每 execution 的编译器选项；
 - 引擎：`nop-javac` 文件式编译（`-implicit:none`、`-proc:none` 默认、`--release` 按 execution）；
 - 输出：模块 `<module>/target/classes` / `<module>/target/test-classes`（测试编译使用**定序** classpath：测试输出 → 主输出 → 依赖，禁止跨模块合并）；
-- 删除策略：先删除本轮将被重写/淘汰的类与资源，再编译；失败时**事务化回滚**（stash/restore），失败后状态按 `01` 的"失败可继续增量"规则处理；
+- 删除策略：先删除本轮将被重写/淘汰的类与资源，再编译；编译失败 = **fail-loud**（结构化诊断 + 模块判败，exit≠0），无事务化回滚（wave8 审计裁定：Gradle 式 stash/restore 在"零假绿+不替换构建系统"约束下不成立——失败后冷路径 mvn 全量重建即权威恢复，比自实现事务更可信；Gradle 经验裁定详见 analysis wave8-mvnd-six-dimension-comparison）；
 - 拓扑：按 reactor 依赖序执行；同层可并行，输出目录互斥。
 
 ### 7.2 测试执行

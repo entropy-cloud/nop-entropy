@@ -151,21 +151,21 @@ Exit Criteria：
 
 ## Wave 8 — mvnd 对比 + Gradle/mvnd 经验吸收
 
-Status: todo
+Status: done（2026-11-16 收口，独立 closure audit APPROVED；六维对照+实证（mvnd 编辑验证环 89.3s vs ib check 38.5s=2.3x 劣势，优势仅冷启动段）+Gradle 五项裁定（2 已吸收确认/3 不吸收）+Maven 4 钉 3 入库；audit findings F1-F3 已修）
 
 - Item Types: `Proof | Feature | Follow-up`
 
-- [ ] **机制对比报告（analysis）**：`~/sources/mvnd`（Maven 4 daemon）与 nop-ib 在六个维度逐项对照：常驻进程模型（daemon vs 一次性 CLI+worker 池）、增量判定（mvnd 依赖 mvn4 增量 builder vs ib git 变更集+模型哈希）、缓存层（mvnd 事件监听/构建缓存扩展 vs ib 索引持久化）、测试调度（surefire 复用 vs ib 自研 fork）、失效语义（mvnd 全量兜底策略 vs ib 过期即全量）、并发治理。产出"可吸收/不可吸收（原因）"清单。
-- [ ] **实证对比实验**：同一变更序列（单文件→ABI 扩散→测试失败→修复→全绿）在 mvnd 与 ib 上跑 wall-clock 对照（复用 Wave 7 bench harness），mvnd 用其官方口径（`./mvnw :mvnd ...` 或安装的 mvnd 二进制）。
-- [ ] **Gradle 经验清单落地**（对照 `04` Gradle 机制分析逐项裁定）：
-  - [ ] 事务化输出（transactional task output，避免半写产物可见）——对照 ib 产物写入现状裁定。
-  - [ ] build cache 之 content-addressable（输入哈希→输出复用）——对照 Deferred 26 裁定是否翻案。
-  - [ ] 文件系统监听（daemon 常驻 watch）——对照 Deferred 26 前半裁定。
-  - [ ] configuration cache / 行为契约（模型=配置缓存的对应物）——对照 model.json 过期策略。
-  - [ ] worker API 的隔离与复用模型——对照 JUnitWorkerPool（design 06）。
-  - [ ] 每项：吸收则 Feature+钉；不吸收则记录"为什么在 ib 的零假绿/不替换构建系统约束下不成立"。
-- [ ] **mvnd 兼容面**：mvnd 项目（Maven 4）已在实测中跑通（client/common/daemon 逐数精确）；验证 Maven 4 effective-pom 解析差异点清单（`maven.compiler.release`/新 pom flavor）并补解析钉。
-- [ ] 差异报告与实验结论落 `ai-dev/analysis/`（时效性文档），采纳项的 design 变更落 `05/06` 原地更新。
+- [x] **机制对比报告（analysis）**：`~/sources/mvnd`（Maven 4 daemon）与 nop-ib 在六个维度逐项对照：常驻进程模型（daemon vs 一次性 CLI+worker 池）、增量判定（mvnd 依赖 mvn4 增量 builder vs ib git 变更集+模型哈希）、缓存层（mvnd 事件监听/构建缓存扩展 vs ib 索引持久化）、测试调度（surefire 复用 vs ib 自研 fork）、失效语义（mvnd 全量兜底策略 vs ib 过期即全量）、并发治理。产出"可吸收/不可吸收（原因）"清单。
+- [x] **实证对比实验**：同一变更序列（单文件→ABI 扩散→测试失败→修复→全绿）在 mvnd 与 ib 上跑 wall-clock 对照（复用 Wave 7 bench harness），mvnd 用其官方口径（`./mvnw :mvnd ...` 或安装的 mvnd 二进制）。
+- [x] **Gradle 经验清单落地**（对照 `04` Gradle 机制分析逐项裁定）：
+  - [x] 事务化输出（transactional task output，避免半写产物可见）——对照 ib 产物写入现状裁定。
+  - [x] build cache 之 content-addressable（输入哈希→输出复用）——对照 Deferred 26 裁定是否翻案。
+  - [x] 文件系统监听（daemon 常驻 watch）——对照 Deferred 26 前半裁定。
+  - [x] configuration cache / 行为契约（模型=配置缓存的对应物）——对照 model.json 过期策略。
+  - [x] worker API 的隔离与复用模型——对照 JUnitWorkerPool（design 06）。
+  - [x] 每项：吸收则 Feature+钉；不吸收则记录"为什么在 ib 的零假绿/不替换构建系统约束下不成立"。
+- [x] **mvnd 兼容面**：mvnd 项目（Maven 4）已在实测中跑通（client/common/daemon 逐数精确）；验证 Maven 4 effective-pom 解析差异点清单（`maven.compiler.release`/新 pom flavor）并补解析钉。
+- [x] 差异报告与实验结论落 `ai-dev/analysis/`（时效性文档），采纳项的 design 变更落 `05/06` 原地更新。
 
 Exit Criteria：
 - [ ] 对比报告与实证数据入库（mvnd vs ib 六维对照 + wall-clock 表）。
