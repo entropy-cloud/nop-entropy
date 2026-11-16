@@ -73,25 +73,25 @@ Exit Criteria:
 
 ### Phase 2 — HTTP 接入
 
-Status: planned
+Status: completed
 Targets: `cli/ServeCommand.java`、`NopIbMain.java`
 
 - Item Types: `Feature`
 
-- [ ] 2a. `serve --http [--port N]`：JDK HttpServer loopback only（绑定 127.0.0.1）；路由 `POST /v1/run`、`GET /v1/job/{id}`、`GET /v1/queue`、`GET /v1/health`、`DELETE /v1/job/{id}`
-- [ ] 2b. `wait` 语义（审查 M4）：`wait=true`（默认）内部仍提交 job + 在 handler 内等待完成（非平行执行路径）；HTTP executor 固定 16 线程（≥ 排队面），长任务不饿死 /v1/queue、/v1/health 等读端点；`wait=false` 立即返回 job id
-- [ ] 2c. payload 与 CLI `--json` 同构；429（队列满）与 DELETE-running 的响应体字段显式钉（审查 N5）
-- [ ] 2d. stdio JSONL 模式保留，行为零漂移
-- [ ] 2e. 单元钉：路由/参数错误显式 4xx；`projectDir` 非法（非 Maven 项目）显式 400；health 暴露 version/cores/workerBudget/activeProjects
+- [x] 2a. `serve --http [--port N]`：JDK HttpServer loopback only（绑定 127.0.0.1）；路由 `POST /v1/run`、`GET /v1/job/{id}`、`GET /v1/queue`、`GET /v1/health`、`DELETE /v1/job/{id}`
+- [x] 2b. `wait` 语义（审查 M4）：`wait=true`（默认）内部仍提交 job + 在 handler 内等待完成（非平行执行路径）；HTTP executor 固定 16 线程（≥ 排队面），长任务不饿死 /v1/queue、/v1/health 等读端点；`wait=false` 立即返回 job id
+- [x] 2c. payload 与 CLI `--json` 同构；429（队列满）与 DELETE-running 的响应体字段显式钉（审查 N5）
+- [x] 2d. stdio JSONL 模式保留，行为零漂移
+- [x] 2e. 单元钉：路由/参数错误显式 4xx；`projectDir` 非法（非 Maven 项目）显式 400；health 暴露 version/cores/workerBudget/activeProjects
 
 Exit Criteria:
 
-- [ ] HTTP 端到端钉：本地起服务 → `POST /v1/run`（status 命令）→ payload JSON 与 CLI `--json` 字段一致
-- [ ] **端到端验证**（Minimum Rules #22）：从 HTTP 入口点到引擎结果 JSON 完整走通（真实临时项目 fixture）
-- [ ] **接线验证**：wait=true 请求与异步 job 走同一 ServiceCore 提交路径（审查 M4 的"非平行执行路径"断言在档）
-- [ ] stdio serve 既有钉保持全绿（零漂移）
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] design 07 与实现逐条核对，契约偏差原地修订（含 IB-S4 措辞同步为"job 并发闸 + 单 job worker 预算压制"双层语义）
+- [x] HTTP 端到端钉：本地起服务 → `POST /v1/run`（status 命令）→ payload JSON 与 CLI `--json` 字段一致
+- [x] **端到端验证**（Minimum Rules #22）：从 HTTP 入口点到引擎结果 JSON 完整走通（真实临时项目 fixture）
+- [x] **接线验证**：wait=true 请求与异步 job 走同一 ServiceCore 提交路径（审查 M4 的"非平行执行路径"断言在档）
+- [x] stdio serve 既有钉保持全绿（零漂移）
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿
+- [x] design 07 与实现逐条核对，契约偏差原地修订（含 IB-S4 措辞同步为"job 并发闸 + 单 job worker 预算压制"双层语义）
 
 ### Phase 3 — 端到端 Proof + 文档收口 + closure
 

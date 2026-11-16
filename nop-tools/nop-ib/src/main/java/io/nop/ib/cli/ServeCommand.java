@@ -2,6 +2,9 @@ package io.nop.ib.cli;
 
 import io.nop.ib.NopIbMain;
 import io.nop.ib.engine.IbEngine;
+import io.nop.ib.service.ServiceCore;
+
+import java.util.List;
 import io.nop.ib.json.JsonIn;
 import io.nop.ib.json.JsonOut;
 
@@ -24,6 +27,22 @@ public final class ServeCommand {
     private ServeCommand() {
     }
 
+    public static int serve(IbEngine engine, List<String> serveArgs,
+                            java.io.PrintStream out, java.io.PrintStream err) {
+        // wave 10: --http switches to the multi-project stateless HTTP service;
+        // the bare form keeps the design-05 stdio JSONL mode untouched
+        if (serveArgs.contains("--http")) {
+            int port = ServeHttp.DEFAULT_PORT;
+            for (int i = 0; i < serveArgs.size() - 1; i++)
+                if ("--port".equals(serveArgs.get(i)))
+                    port = Integer.parseInt(serveArgs.get(i + 1));
+            int cores = Runtime.getRuntime().availableProcessors();
+            return ServeHttp.serve(new ServiceCore(cores), port, out, err);
+        }
+        return serve(engine, out, err);
+    }
+
+    /** design-05 stdio JSONL loop (unchanged semantics; zero drift). */
     public static int serve(IbEngine engine, java.io.PrintStream out, java.io.PrintStream err) {
         Map<String, Object> hello = new LinkedHashMap<>();
         hello.put("event", "hello");

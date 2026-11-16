@@ -159,7 +159,7 @@ public class NopIbMain {
                             useCache, forceRun,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "serve":
-                    return ServeCommand.serve(engine, out, err);
+                    return ServeCommand.serve(engine, positional, out, err);
                 case "bench":
                     return BenchCommand.bench(engine, positional, json, out, err);
                 case "explain":
