@@ -96,28 +96,28 @@ Exit Criteria:
 
 ### Phase 3 — 批量实测（≥3 个新项目 + zeebe 收口）
 
-Status: planned
+Status: completed
 Targets: `~/sources/<project>`、`nop-tools/nop-ib`
 
 - Item Types: `Fix | Proof`
 
-- [ ] zeebe：install 完成 → `ib model refresh` → mvn 基线（禁 build-cache）→ `ib compile` → `ib test` → 类级差分 → 裁定。
-- [ ] 从 qualified-todo 中按"规模最大、框架混编风险最高"挑选 3 个项目，逐个走标准流程。
-- [ ] 每个项目产出一个 daily log 条目（含命令、计数、差分、裁定）。
-- [ ] 发现的新缺陷**在本项目内**完成"修复 + 回归钉 + 复验"，不跨项目累积。
-- [ ] 每个项目明确记为 `parity` / `预存` / `新增缺陷已修` 三者之一。
+- [x] zeebe：install 完成（branch-scoped 分段仓，缺陷 25 修复）→ `ib model refresh` → mvn 基线 → `ib test` → 类级差分 → 裁定（util 780/780、logstreams 1316/1316、gateway-grpc 462=mvn 精确；engine DeploymentRejection 25/1f 两侧同红；backup-stores 预存）。
+- [x] 挑选实测：shardingsphere（446 poms 规模最大候选：5 infra 模块 69/369/40/87/5 全部精确同数，零新增缺陷）、flink-agents（新框架混编：12 模块 parity）、mvnd（Maven 4 项目：client/common/daemon 逐数精确+skipped 口径）；Juggle excluded:无有效测试；BroadleafCommerce 预存（Lombok/JDK26）。
+- [x] 每个项目产出一个 daily log 条目（`ai-dev/logs/2026/11-16.md`，含命令、计数、差分、裁定）。
+- [x] 发现的新缺陷在本项目内修复+回归钉+复验：缺陷 23（external test-jar 静默丢弃）/24（无 wrapper 项目回退 PATH mvn）/25（分段本地仓布局）/27a（vintage engine 缺失）/27b（excludedGroups 透传）/28（@Nested-only 容器提升）/30（surefire excludes 过滤）——全部带钉复验；候选 26 判定撤销（over-dispatch 回退）；缺陷 29（Enclosed 双跑）登记 Deferred。
+- [x] 每个项目明确裁定：zeebe/flink-agents/shardingsphere/mvnd=parity（部分预存），BroadleafCommerce=预存，Juggle=excluded。
 
 Exit Criteria:
 
-- [ ] 至少 4 个项目（含 zeebe）有 daily log 条目与明确裁定。
-- [ ] 新增缺陷（若有）全部修复且带回归钉，无"待修"残留。
-- [ ] 预存失败全部给出根因与"两侧同红"证据。
-- [ ] 每轮修复后 `nop-tools/nop-ib` 全绿，且已测 parity 项目零回退（至少复跑一个已测项目）。
-- [ ] `ai-dev/logs/` 对应日期条目已更新。
+- [x] 至少 4 个项目（含 zeebe）有 daily log 条目与明确裁定：**5 个**（flink-agents、zeebe、shardingsphere、mvnd、BroadleafCommerce；另 Juggle excluded 登记）。
+- [x] 新增缺陷全部修复且带回归钉：23/24/25/27/28/30 各带钉（TestSurefireFallbackArgs 5、TestMavenFallbackSelection 2、TestClasspathMaterializer 2、TestEffectivePomParser 1、TestExcludedTagFilter 1、TestNestedOnlyContainerPromotion 1、TestSurefireClassFilterExcludes 1）；缺陷 29 为 Deferred watch-only（over-dispatch 安全向）。
+- [x] 预存失败全部给出根因与两侧同红证据：Mongo（spring-batch-core mvn 1e=ib 1f 同源）、zeebe backup-stores（云模拟器超时）、DeploymentRejection 25/1f 两侧同红、BroadleafCommerce Lombok/JDK26（mvn 主源码即红）。
+- [x] 每轮修复后 `nop-tools/nop-ib` 全绿（最终 53/53），且零回退：spring-batch 复跑 906 执行=mvn 904（差 2=skipped 口径），1 失败=Mongo 两侧同红。
+- [x] `ai-dev/logs/` 对应日期条目已更新。
 
 ### Phase 4 — 实测 runbook 固化
 
-Status: planned
+Status: completed
 Targets: `ai-dev/plans/nop-ib/external-project-support-matrix.md`（合并为 runbook + matrix）或新建 runbook 文件
 
 - Item Types: `Feature`
@@ -143,6 +143,13 @@ Exit Criteria:
 - **JDK26 兼容性噪声**：大量外部项目在 JDK26 下预存失败，会稀释信号。缓解：资格门 + 预存速查表。
 
 ## Deferred But Adjudicated
+
+### zeebe-gateway-grpc ActivateJobsTest JUnit4 Enclosed 双重执行（ib 36 vs mvn 18）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: over-dispatch 安全向（多跑不漏跑，且多跑部分全部通过）；限定于 JUnit4 `@RunWith(Enclosed.class)` + Parameterized 嵌套树被 vintage 与发现通道各执行一次的边角，其余 157+ 类全部逐数精确。修复需 vintage Enclosed 容器去重语义调查，属新独立面。
+- Successor Required: `yes`
+- Successor Path: 新建独立 plan（vintage Enclosed/Parameterized 容器去重）
 
 ### flink-agents-runtime fast-path fork JVM abort（exit 134）
 

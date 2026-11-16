@@ -82,3 +82,98 @@
 - 本矩阵行分类随实测推进更新；实测结论（命令/计数/差分/裁定）一律落在 daily log，本文件只做导航汇总。
 - `excluded:junit4-only` 的 owner 裁定来源：campaign Non-Goals（"不为 JUnit4-only 项目做支持"）。
 - jdkTarget 为机器启发值（多模块仓库取首个命中）；入实测前以资格门第一步（install）的实测为准。
+
+## 实测 Runbook（Phase 4 固化，2026-11-16）
+
+> 可被任一 agent 独立执行的标准流程。每步命令可直接复制；裁定分级见末节。
+
+### 0. 资格判定
+
+- 项目含顶层 `pom.xml` 且为 Maven 主构建（Gradle-only 不承接，模型来源=effective-pom）。
+- JUnit5/6 主栈（junit-jupiter/junit-platform 检出）；JUnit4-only 项目**不承接**（owner 裁定）。
+- 有测试源（`src/test/java`）；`excluded:no-test-sources` 直接登记。
+- JDK26 兼容门：Lombok 旧版、`source/target 8`、SecurityManager 依赖等**遇到即登记预存，不调查**（见速查表）。
+
+### 1. Install 前置（冷路径，串行）
+
+```bash
+cd ~/sources/<project>
+mvn install -DskipTests -Daether.syncContext.named.time=3600 \
+  -Dspotless.check.skip=true -Drevapi.skip=true -Denforcer.skip=true
+```
+
+**陷阱表（遇到过即按此处理）**：
+- `Could not find artifact g:a:jar:tests` → 有模块依赖 tests-jar：**不能用 `-Dmaven.test.skip=true`**（不产 tests-jar），改 `mvn install -DskipTests` 重装（flink-agents/shardingsphere 均踩过）。
+- `-T1C` 并行 install 触发 `Could not acquire shared/exclusive lock ... in 900 SECONDS` → 环境竞态：改串行 + `-Daether.syncContext.named.time=3600`（zeebe）。
+- enforcer 锁 Maven 版本（flink 锁 3.8.6）→ 所有后续 mvn 命令加 `-Denforcer.skip=true`。
+- 大仓库网络/空间瞬时不足 → 单独补装缺失 artifact（flink s3 test-jar/dist pom 先例）。
+
+### 2. Model refresh
+
+```bash
+CP="<nop-ib-target-classes>:$(cat <nop-ib>/target/ib-cp.txt)"
+java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain model refresh
+```
+
+ib 通过 mvnw/mvnq/PATH mvn 三级调用（缺陷 24 修复）；本地仓支持 plain/cached/installed 分段布局（缺陷 25，zeebe branch-scoped-local-repository）。
+
+### 3. mvn 基线（真 oracle）
+
+```bash
+mvn test -fae -Dmaven.test.failure.ignore=true -Dmaven.build.cache.skipCache=true \
+  -Denforcer.skip=true -Dspotless.check.skip=true -Drevapi.skip=true \
+  [-pl :moduleA,:moduleB]   # 大项目按波次选模块
+```
+
+- **硬约束：禁 build-cache**（Syncope 证伪缓存基线）。
+- `-fae` + failure.ignore 拿全 reactor 各模块计数；failure.ignore 不改变 oracle（失败仍记录在日志/reports）。
+- **权威计数=surefire-reports `TEST-*.xml` 的 testcase 元素数**（日志切片分析不可靠：文件含孤立 `\r`，sed/grep 与 python 行号会错位；只信单工具贯通或 reports）。
+
+### 4. ib 执行
+
+```bash
+java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test -pl <modules>            # 主路径 junit-fork
+java -Xmx6g -cp "$CP" io.nop.ib.NopIbMain test --runner maven -pl <m>   # 回退路径（lifecycle test 语义，缺陷 20 修复后=忠实 oracle）
+```
+
+- 大模块单 JVM 分档重跑可能超 1800s watchdog 或 fork abort（watch-only 残留，见 campaign Deferred）；此时**以回退路径结果为 parity oracle**（flink-agents-runtime 1209/270e/25s=standalone mvn 精确同数实证）。
+- `--class` 单类探针用于失败定位；`nop.ib.debugPerClass=true` 输出逐类计数（诊断用）。
+
+### 5. 类级差分口径
+
+1. mvn 侧：surefire-reports 逐 XML testcase 数，按 `$` 前聚合到 top-level。
+2. ib 侧：`nop.ib.debugPerClass=true` 重跑取逐类计数。
+3. 对比三类差异：UNDER（ib<mvn：新缺陷,修复）、OVER（ib>mvn：检查 excludes/excludedGroups/派发面,缺陷 30 先例）、IB-ONLY（0-test helper,登记即可）。
+4. skipped 计数口径：ib 不把 assume/skip 计入 run 数（OpenPDF 先例），对比用"执行数=tests−skipped"。
+
+### 6. 裁定分级
+
+- `parity`：执行面逐数精确（含已知 skipped 口径注记）。
+- `预存`：mvn/ib 同红 + 根因明确（速查表命中或两侧同红证据）。
+- `新增缺陷已修`：本项目内修复+回归钉+复验，不留待修残留。
+- 未达以上任一 → watch-only 登记进 campaign Deferred（必须带 Why Not Blocking）。
+
+### 预存环境失败速查表（遇到即登记，不调查）
+
+| 症状 | 根因 | 实例 |
+|---|---|---|
+| VM init Error / `java.security.manager` | JDK26 移除 SecurityManager，项目 profile 注入 allow | flink core/runtime/streaming-java/yarn |
+| `Unsupported class file major version 70` | 内置 Groovy 过旧 | flowable-engine |
+| `Thread.stop()` 编译失败 | JDK20+ 移除 | flink-runtime 测试源 |
+| 无 PostgreSQL/Docker/云模拟器 | 环境缺依赖，两侧同红 | syncope、zeebe backup-stores、spring-batch Mongo 集成测试 |
+| Lombok `找不到符号: 变量 log` | Lombok 版本不支持 JDK26 | BroadleafCommerce |
+| javac `source/target 8` 拒绝 | JDK26 移除 source 8 | seatunnel/PowerJob（资格门首验） |
+
+### 框架惯例 → 索引标记对照表（族 C）
+
+| 惯例 | 索引/派发标记 | 回归钉 |
+|---|---|---|
+| Jupiter 注解（@Test/@ParameterizedTest） | UnitIndexer 注解标记 | TestUnitIndexer |
+| Spock 2.x（`$spock_feature_<n>_<m>` 方法，无注解） | 方法名标记 | （liquibase 缺陷 21，见 UnitIndexer） |
+| JUnit3 `static TestSuite suite()` | 方法名标记 | （liquibase 缺陷 22） |
+| 继承外部基类（test-jar 基类） | 缺陷 18 边界：具体类超类出界即派发 | UnitIndex.testClasses javadoc |
+| `@Nested`-only 顶层容器 | 缺陷 28 提升（ownsDispatchableNested） | TestNestedOnlyContainerPromotion |
+| JUnit4 类（junit:junit 在 classpath） | 缺陷 27a vintage 组装 | TestExcludedTagFilter（语义）；E2E=zeebe-gateway-grpc 462 |
+| surefire `<excludes>`（failsafe 族） | 缺陷 30 排除 | TestSurefireClassFilterExcludes |
+| `<excludedGroups>` 标签排除 | 缺陷 27b TagFilter 透传 | TestEffectivePomParser.testSurefireExcludedGroupsParsed |
+| surefire `<includes>` 覆盖默认 | 缺陷 14 过滤 | SurefireClassFilter javadoc |
