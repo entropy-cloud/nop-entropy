@@ -804,15 +804,31 @@ public final class TestCommand {
         if (batch <= 0 || classes.size() <= batch)
             return executor.execute(module, cp, classes, cap);
         long t0 = System.currentTimeMillis();
-        int tests = 0, failures = 0, skipped = 0;
-        List<Map<String, String>> failed = new ArrayList<>();
-        List<String> batchWarnings = new ArrayList<>();
-        int exit = 0;
+        List<JUnitForkExecutor.ForkResult> batches = new ArrayList<>();
         for (int from = 0; from < classes.size(); from += batch) {
             List<String> slice = classes.subList(from, Math.min(from + batch, classes.size()));
             JUnitForkExecutor.ForkResult r = executor.execute(module, cp, slice, cap);
             warnings.add("E5 rerun batch " + (from / batch + 1) + "/" + ((classes.size() + batch - 1) / batch)
                     + ": " + slice.size() + " classes, exit=" + r.exitCode());
+            batches.add(r);
+        }
+        warnings.add("E5 batched rerun: " + classes.size() + " classes in "
+                + ((classes.size() + batch - 1) / batch) + " forks, "
+                + (System.currentTimeMillis() - t0) + "ms total");
+        return mergeBatches(batches);
+    }
+
+    /**
+     * E5 batch merge (zero-fake-green): counts add up; "failed" detail lists
+     * concatenate; the merged exit is the FIRST non-zero batch exit — a single
+     * red batch makes the whole rerun red.
+     */
+    static JUnitForkExecutor.ForkResult mergeBatches(List<JUnitForkExecutor.ForkResult> batches) {
+        int tests = 0, failures = 0, skipped = 0;
+        List<Map<String, String>> failed = new ArrayList<>();
+        List<String> batchWarnings = new ArrayList<>();
+        int exit = 0;
+        for (JUnitForkExecutor.ForkResult r : batches) {
             batchWarnings.addAll(r.warnings());
             Map<String, Object> s = r.summary();
             tests += numOf(s.get("tests"));
@@ -831,9 +847,6 @@ public final class TestCommand {
             if (r.exitCode() != 0 && exit == 0)
                 exit = r.exitCode();
         }
-        warnings.add("E5 batched rerun: " + classes.size() + " classes in "
-                + ((classes.size() + batch - 1) / batch) + " forks, "
-                + (System.currentTimeMillis() - t0) + "ms total");
         Map<String, Object> merged = new LinkedHashMap<>();
         merged.put("tests", tests);
         merged.put("failures", failures);

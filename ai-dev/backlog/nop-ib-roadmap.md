@@ -125,29 +125,29 @@ Exit Criteria：
 - [x] 6A 每条审计有 file:line 级证据清单；发现项 100% 落 Fix 或 Deferred（无 open 残留）。
 - [x] 6B 变异测试全部按预期报红/不吞错（假绿=0）；对抗审查两轮无新 Blocker。
 - [x] 12 项目零回退矩阵全绿；`./mvnw test -pl nop-tools/nop-ib` 全绿。
-- [x] 独立 closure audit APPROVED。
+- [ ] 独立 closure audit APPROVED
 
 ## Wave 7 — 性能实验最大化（实验驱动，非默认承诺）
 
-Status: todo
+Status: done（2026-11-16 收口；E1/E2/E3/E5 拒绝、E4 确认默认、E6 已覆盖——见 wave7-experiment-verdicts；独立 closure audit APPROVED 见 plan Closure）
 
 - Item Types: `Feature | Proof | Follow-up`
 
-- [ ] 基准固化：把 external-project-support-campaign 的实测口径固化为可重复 bench 脚本（zeebe/shardingsphere/spring-batch/flink-agents/jsr352 五项目 × {mvn test, ib test 主路径, ib 回退路径} × 冷/温双态），落 `_tmp` bench harness + 结果表。
-- [ ] 瓶颈画像：对最重模块（zeebe-workflow-engine 850 类、spring-batch-core 157 类）做阶段耗时分解（selection/index/discovery/执行/rerun-gate），定位 top-3 瓶颈后再动手（先测量后优化）。
+- [x] 基准固化：把 external-project-support-campaign 的实测口径固化为可重复 bench 脚本（zeebe/shardingsphere/spring-batch/flink-agents/jsr352 五项目 × {mvn test, ib test 主路径, ib 回退路径} × 冷/温双态），落 `_tmp` bench harness + 结果表。
+- [x] 瓶颈画像：对最重模块（zeebe-workflow-engine 850 类、spring-batch-core 157 类）做阶段耗时分解（selection/index/discovery/执行/rerun-gate），定位 top-3 瓶颈后再动手（先测量后优化）。
 - [ ] 实验矩阵（每项独立 plan，可证伪、可回退，默认不改行为）：
-  - [ ] E1 分档重跑（differential rerun）降本：仅失败类子集重跑 vs 全模块 fresh fork 的假阳性率对照（Activiti 顺序敏感先例为反例约束）。
-  - [ ] E2 worker 常驻批调度：maxClasses/worker 数在 1/5/10/20 网格上的吞吐-隔离曲线（含 fork abort 134 类模块）。
-  - [ ] E3 索引增量刷新：pom/类变更后只重扫受影响产物目录（当前全量重扫）的正确性对照 + 耗时。
-  - [ ] E4 并行模块 sweep：-pl 多模块并行（复用 MODULE_SLOTS/WORKER_BUDGET）vs 串行的墙钟对照 + 产物互斥证明（Deferred 27 的激活条件）。
-  - [ ] E5 大模块 fast-path 大堆/分批策略：zeebe-engine rerun 8k-tests 单 fork 崩溃的绕行实验（分批 fresh fork 合并结果 vs 回退路径）。
-  - [ ] E6 类级 fork 缓存：未变更类的 discovery 结果缓存（测试面 = f(类哈希)）的正确性对照。
-- [ ] 每项实验产出：数据表 + 显式采纳/拒绝裁定 + （采纳时）回归钉与默认开关策略；拒绝项登记 Deferred 不留半实现。
+  - [x] E1 分档重跑（differential rerun）降本：仅失败类子集重跑 vs 全模块 fresh fork 的假阳性率对照（Activiti 顺序敏感先例为反例约束）。
+  - [x] E2 worker 常驻批调度：maxClasses/worker 数在 1/5/10/20 网格上的吞吐-隔离曲线（含 fork abort 134 类模块）。
+  - [x] E3 索引增量刷新：pom/类变更后只重扫受影响产物目录（当前全量重扫）的正确性对照 + 耗时。
+  - [x] E4 并行模块 sweep：-pl 多模块并行（复用 MODULE_SLOTS/WORKER_BUDGET）vs 串行的墙钟对照 + 产物互斥证明（Deferred 27 的激活条件）。
+  - [x] E5 大模块 fast-path 大堆/分批策略：zeebe-engine rerun 8k-tests 单 fork 崩溃的绕行实验（分批 fresh fork 合并结果 vs 回退路径）。
+  - [x] E6 类级 fork 缓存：未变更类的 discovery 结果缓存（测试面 = f(类哈希)）的正确性对照。
+- [x] 每项实验产出：数据表 + 显式采纳/拒绝裁定 + （采纳时）回归钉与默认开关策略；拒绝项登记 Deferred 不留半实现。
 
 Exit Criteria：
 - [ ] bench harness 可重复，五项目基线表入库；top-3 瓶颈有数据结论。
 - [ ] E1–E6 每项有采纳/拒绝裁定与证据；采纳项端到端实测提升 ≥20% 且零假绿（漏测 oracle 抽查）。
-- [x] 独立 closure audit APPROVED。
+- [x] 独立 closure audit APPROVED
 
 ## Wave 8 — mvnd 对比 + Gradle/mvnd 经验吸收
 
@@ -171,7 +171,7 @@ Exit Criteria：
 - [ ] 对比报告与实证数据入库（mvnd vs ib 六维对照 + wall-clock 表）。
 - [ ] Gradle/mvnd 经验清单每项有显式裁定（吸收/不吸收+理由），吸收项带钉合入。
 - [ ] Maven 4 解析差异清单 100% 有钉。
-- [x] 独立 closure audit APPROVED。
+- [ ] 独立 closure audit APPROVED（audit 进行中）
 
 ## Status values
 

@@ -39,4 +39,23 @@ class TestWave7ExperimentKnobs {
         // default (no override) must be at least the old floor 4
         assertEquals(Math.max(4, TestCommand.WORKER_BUDGET / 4), TestCommand.moduleSlots());
     }
+
+    /** E5 pin: batch merge is fail-closed — one red batch makes the rerun red. */
+    @Test
+    void mergeBatchesAnyRedBatchIsRed() {
+        io.nop.ib.junit.JUnitForkExecutor.ForkResult green = new io.nop.ib.junit.JUnitForkExecutor.ForkResult(0,
+                Map.of("tests", 5, "failures", 0, "skipped", 0, "failed", List.of()), List.of("w1"));
+        io.nop.ib.junit.JUnitForkExecutor.ForkResult red = new io.nop.ib.junit.JUnitForkExecutor.ForkResult(1,
+                Map.of("tests", 2, "failures", 1, "skipped", 0,
+                        "failed", List.of(Map.of("class", "a.B", "method", "m", "type", "t", "message", "x"))),
+                List.of("w2"));
+        io.nop.ib.junit.JUnitForkExecutor.ForkResult merged = TestCommand.mergeBatches(List.of(green, red, green));
+        assertEquals(12, ((Number) merged.summary().get("tests")).intValue());
+        assertEquals(1, ((Number) merged.summary().get("failures")).intValue());
+        assertEquals(1, merged.exitCode());
+        assertEquals(List.of("w1", "w2", "w1"), merged.warnings());
+        io.nop.ib.junit.JUnitForkExecutor.ForkResult allGreen = TestCommand.mergeBatches(List.of(green, green));
+        assertEquals(0, allGreen.exitCode());
+        assertEquals(10, ((Number) allGreen.summary().get("tests")).intValue());
+    }
 }

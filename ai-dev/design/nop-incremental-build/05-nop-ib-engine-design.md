@@ -331,3 +331,9 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 | IB-G4 | 动态覆盖是否进入 v1（还是仅作为后续收窄） | v1 不做，静态优先 | Wave 3 验收 |
 | IB-G5 | 是否允许 `nop-ib` 直接依赖 `nop-bytecode`（含 ASM） | 允许（同组工具依赖） | Wave 1 item 7 |
 | IB-G6 | 波及面过大时的默认策略（全量 vs 显式 partial） | 默认全量；partial 必须显式 | 命令面冻结前 |
+
+## wave7 性能实验结论（2026-11-16，live baseline）
+
+- bench harness：`nop-tools/nop-ib/tools/bench-e2e.sh`（五项目基线：小测试重模块 ib 1.6–5.5x，zeebe ~30s 模块 setup 主导无优势，spring-batch 大模块失败路径 0.39x——rerun/重试族为杠杆，见 analysis bench-baseline/experiment-verdicts）。
+- 实验开关（默认关闭）：`nop.ib.moduleRerunMode=failed-only`（E1）、`nop.ib.moduleSlots`（E4 对照钮）、`nop.ib.rerunBatchSize`（E5）。E2/E3/E6 无新代码（数据裁定：无 ≥20% 空间/目标开销 <1%/已被单元索引覆盖）。
+- follow-up 登记：exit-2 重试"仅补缺失类"语义（失败大模块 wall −67% 候选）。
