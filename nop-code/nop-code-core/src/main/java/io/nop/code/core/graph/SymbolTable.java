@@ -34,11 +34,16 @@ public class SymbolTable {
     }
 
     public void add(CodeSymbol symbol) {
-        if (symbol.getQualifiedName() != null) {
-            byQualifiedName.put(symbol.getQualifiedName(), symbol);
-        }
+        // 发布序固定为 byId 先、byQualifiedName 后：CHM 的 volatile 写保证"读者从
+        // byQualifiedName 可见该 symbol 时，byId 必已可见"（写线程程序序 byId → name，
+        // 读者读 name 索引命中即与该 volatile 写建立 happens-before）。反之先写 name 索引
+        // 会暴露"getByQualifiedName 命中但 getById 短暂为 null"的跨索引不一致窗口。
+        // putIfAbsent 不在此序：其 dedup 判定键是 qualified name，必须先行。
         if (symbol.getId() != null) {
             byId.put(symbol.getId(), symbol);
+        }
+        if (symbol.getQualifiedName() != null) {
+            byQualifiedName.put(symbol.getQualifiedName(), symbol);
         }
     }
 
