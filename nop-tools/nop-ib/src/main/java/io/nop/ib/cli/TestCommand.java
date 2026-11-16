@@ -121,12 +121,16 @@ public final class TestCommand {
     public static int test(IbEngine engine, List<String> paths, String plModules,
                            List<String> explicitClasses, boolean allowPartial, boolean json,
                            boolean includeCompile, String onFallback, boolean rerunFailed,
-                           String runner,
+                           String runner, boolean useCache, boolean forceRun,
                            PrintWriter out, PrintWriter err) {
         RunLog log = RunLog.start(engine.getRepoRoot(), includeCompile ? "check" : "test");
+        TestCacheStore cache = useCache ? new TestCacheStore(engine) : null;
         try {
             int code = runTest(engine, paths, plModules, explicitClasses, allowPartial, json,
-                    includeCompile, onFallback, rerunFailed, runner, out, err, log);
+                    includeCompile, onFallback, rerunFailed, runner, cache, forceRun,
+                    out, err, log);
+            if (cache != null)
+                cache.save();
             log.exitCode(code);
             return code;
         } finally {
@@ -138,7 +142,7 @@ public final class TestCommand {
     static int runTest(IbEngine engine, List<String> paths, String plModules,
                        List<String> explicitClasses, boolean allowPartial, boolean json,
                        boolean includeCompile, String onFallback, boolean rerunFailed,
-                       String runner,
+                       String runner, TestCacheStore cache, boolean forceRun,
                        PrintWriter out, PrintWriter err, RunLog log) {
         IbModel model = engine.model();
         List<String> changed = paths != null && !paths.isEmpty() ? paths
@@ -241,8 +245,8 @@ public final class TestCommand {
                         // Maven re-reads the live poms and is the only valid executor
                         TestRun run = staleReason != null
                                 ? runMavenModuleTest(engine, module, json, out, err)
-                                : runModuleTests(engine, module, null, runner, json,
-                                        out, err, want);
+                                : runModuleMaybeCached(engine, cache, forceRun, module,
+                                        null, runner, json, out, err, want);
                         if (staleReason != null)
                             run.kind = "maven-module(model-stale)";
                         run.durationMs = System.currentTimeMillis() - t0;
@@ -387,7 +391,8 @@ public final class TestCommand {
                         failures++;
                     continue;
                 }
-                TestRun run = runModuleTests(engine, module, null, runner, json, out, err, Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
+                TestRun run = runModuleMaybeCached(engine, cache, forceRun, module, null,
+                        runner, json, out, err, Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
                 recordLastFailed(engine, moduleId, run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -397,8 +402,8 @@ public final class TestCommand {
                 IbModule module = model.module(e.getKey());
                 if (module == null)
                     continue;
-                TestRun run = runModuleTests(engine, module, e.getValue(), runner, json, out, err,
-                        Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
+                TestRun run = runModuleMaybeCached(engine, cache, forceRun, module, e.getValue(),
+                        runner, json, out, err, Math.max(2, Runtime.getRuntime().availableProcessors() - 1));
                 recordLastFailed(engine, e.getKey(), run);
                 runs.add(run);
                 if (run.exitCode != Commands.EXIT_OK)
@@ -408,6 +413,44 @@ public final class TestCommand {
         for (TestRun run : runs)
             report(engine, run, json, out, log);
         return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+    }
+
+    /**
+     * Wave 9 opt-in cache wrapper: on a fingerprint hit with a recorded GREEN,
+     * returns an explicit {@code cached-up-to-date} run WITHOUT executing JUnit
+     * (visible in human output and JSON as cached — never masquerades as an
+     * execution). After a real junit-fork GREEN run, records the cache entry.
+     * Red runs and non-fork kinds (surefire/maven fallback) are never cached.
+     */
+    static TestRun runModuleMaybeCached(IbEngine engine, TestCacheStore cache, boolean force,
+                                        IbModule module, List<String> classes, String runner,
+                                        boolean json, PrintWriter out, PrintWriter err,
+                                        int workers) {
+        if (cache == null || force)
+            return runModuleTests(engine, module, classes, runner, json, out, err, workers);
+        String fp = cache.fingerprint(engine, module);
+        Map<String, Object> hit = cache.hit(module.getArtifactId(), fp);
+        if (hit != null) {
+            TestRun run = new TestRun(module.getArtifactId(), null);
+            run.kind = "cached-up-to-date";
+            run.summary.add(new int[]{numOf(hit.get("tests")), numOf(hit.get("failed")),
+                    numOf(hit.get("errors")), numOf(hit.get("skipped"))});
+            run.warnings.add("cache hit (--cache): fingerprint unchanged since last GREEN run; "
+                    + "use --force to re-execute");
+            return run;
+        }
+        TestRun run = runModuleTests(engine, module, classes, runner, json, out, err, workers);
+        if ("junit-fork".equals(run.kind) && run.exitCode == Commands.EXIT_OK) {
+            int t = 0, f = 0, e = 0, sk = 0;
+            for (int[] s : run.summary) {
+                t += s[0];
+                f += s[1];
+                e += s[2];
+                sk += s[3];
+            }
+            cache.record(module.getArtifactId(), cache.fingerprint(engine, module), 0, t, f, e, sk);
+        }
+        return run;
     }
 
     private static IbModule findModuleForClass(IbEngine engine, String className) {
@@ -641,7 +684,7 @@ public final class TestCommand {
             System.err.println("nop-ib debug: rerun DONE freshExit=" + fresh.exitCode());
             // wave6 audit A-1: a rerun-gate TIMEOUT must not overwrite the worker
             // run's collected results (spring-batch-core precedent — the fresh
-            // {tests:0, failures:1} placeholder replaced 906 executed tests and
+            // fork's counts-only result replaced 906 executed tests and
             // starved --rerun-failed of the class list). Fail-safe merge: keep the
             // worker results, mark timedOut, verdict stays FAILED.
             if (fresh.summary().get("timedOut") != null) {
@@ -1069,6 +1112,9 @@ public final class TestCommand {
         m.put("ok", run.exitCode == Commands.EXIT_OK);
         m.put("module", run.module);
         m.put("kind", run.kind);
+        // wave9: explicit cache flag — a cached green must be machine-
+        // distinguishable from an execution, not only via the kind string
+        m.put("cached", "cached-up-to-date".equals(run.kind));
         m.put("selected", run.selectedClasses);
         if (!run.warnings.isEmpty())
             m.put("warnings", run.warnings);

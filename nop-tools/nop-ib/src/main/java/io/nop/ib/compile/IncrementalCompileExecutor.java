@@ -160,15 +160,26 @@ public final class IncrementalCompileExecutor {
             throw new NopIbException("cannot create output dir for " + module.getArtifactId(), e);
         }
 
-        // I4 deletion sweep from the OLD index (never the current snapshot)
+        // I4 deletion sweep from the OLD index (never the current snapshot);
+        // wave9 fix: sweep the tree the compile actually writes (test deletions
+        // live in target/test-classes, not target/classes)
+        Path sweepDir = testCompile && module.getTestOutputDir() != null
+                ? model.resolve(module.getTestOutputDir()).toPath()
+                : model.resolve(module.getOutputDir()).toPath();
         for (String deleted : deletedSources) {
             if (oldIndex != null) {
                 for (String className : oldIndex.classesOfSource(deleted))
-                    deleteClassProducts(model.resolve(module.getOutputDir()).toPath(),
-                            className, outcome);
+                    deleteClassProducts(sweepDir, className, outcome);
             }
         }
 
+        // wave9 fix (found by the --cache invalidation probe): test sources must
+        // compile into target/test-classes — the unconditional main outputDir
+        // polluted target/classes and left target/test-classes stale, so the
+        // dispatch classpath (test-classes first) kept serving the OLD bytecode.
+        Path compileOutputDir = testCompile && module.getTestOutputDir() != null
+                ? model.resolve(module.getTestOutputDir()).toPath()
+                : model.resolve(module.getOutputDir()).toPath();
         List<File> sourcePath = new ArrayList<>();
         // wave6 6B-1 finding: effective-pom ALWAYS declares the default
         // sourceDirectory/testSourceDirectory even when the directory does not
@@ -185,7 +196,7 @@ public final class IncrementalCompileExecutor {
             sourcePath.add(model.resolve(module.getTestSourceDir()));
 
         JavaCompilerFacade.CompileResult result = JavaCompilerFacade.compile(
-                files, model.resolve(module.getOutputDir()).toPath(),
+                files, compileOutputDir,
                 cp.entries(), module.getCompileRelease(), module.getCompileSource(),
                 module.getCompileProc(), sourcePath, module.getCompileParameters());
 

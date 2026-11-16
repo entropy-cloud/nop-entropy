@@ -220,6 +220,15 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 | `.nop-ib/units/<module>.bin` | 类图、ABI、常量、source→class、测试引用、生成指纹 | 模块重编/产物被外部改写 |
 | `.nop-ib/inputs.bin` | 文件 stat/内容哈希缓存 | 默认按 (size,mtime) 复用；不可信时重算 |
 | `.nop-ib/last-check.json` | 上次成功状态（用于 `--changed` 默认基线） | 失败不推进基线 |
+| `.nop-ib/test-cache.json` | opt-in `--cache` 的模块级绿结果缓存（wave9） | 指纹不命中即视为过期 |
+
+### 测试结果缓存契约（opt-in `--cache`）
+
+- **只缓存绿**：`junit-fork` 执行且 exit=0 才写入；红结果写入即作废既有绿条目（预存红天然每次真跑）。
+- **命中条件**：模块指纹逐字节一致。指纹 = 模块单元索引全部 (class, contentHash, abiDigest) + 传递依赖模块的 ABI digest 表 + externalArtifacts + surefire 全部 facts（argLine/skip/includes/excludes/groups/excludedGroups/系统属性/env）。任一成分缺失（索引缺失、模型过期、依赖模块无索引）→ 指纹 null → **不命中**（fail-safe，不静默跳过）。
+- **显式性**：命中输出 kind=`cached-up-to-date` + JSON `cached:true` + advisory warning（点名 `--force` 逃逸）；不冒充执行结果。
+- **不可见输入披露**：外部环境（DB/容器/host 状态、环境变量）不在指纹内——cached 绿的环境失效由 `--force` 兜底；依赖模块无索引时其 ABI 变化不入指纹（reactor 内依赖正常有索引；外部 jar 由 externalArtifacts 兜底）。
+- 适用面：`-pl` 显式模块与 plan scope 分支；`--class`/`--rerun-failed`（显式执行请求）与 Maven fallback 路径永不缓存。
 
 跨 worktree 共享（用户级）：jar 的 ABI digest / 内容哈希缓存，键为内容哈希，路径无关。
 

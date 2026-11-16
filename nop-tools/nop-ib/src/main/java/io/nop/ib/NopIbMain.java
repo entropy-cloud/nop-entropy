@@ -69,6 +69,8 @@ public class NopIbMain {
         String plModules = null;
         boolean rerunFailed = false;
         String runner = "junit";
+        boolean useCache = false;
+        boolean forceRun = false;
         List<String> explicitClasses = new ArrayList<>();
         List<String> positional = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
@@ -93,6 +95,11 @@ public class NopIbMain {
                 rerunFailed = true;
             } else if ("--runner".equals(arg) && i + 1 < args.length) {
                 runner = args[++i];
+            } else if ("--cache".equals(arg)) {
+                // wave 9: opt-in green-result cache (see TestCacheStore)
+                useCache = true;
+            } else if ("--force".equals(arg)) {
+                forceRun = true;
             } else if ("--fork-parallelism".equals(arg)) {
                 // legacy flag: one-fork-per-class execution was replaced by the
                 // persistent worker pool (design 06) — reject loudly instead of
@@ -128,6 +135,7 @@ public class NopIbMain {
                 case "check":
                     return TestCommand.test(engine, positional, plModules, explicitClasses,
                             allowPartial, json, "check".equals(cmd), onFallback, rerunFailed, runner,
+                            useCache, forceRun,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "serve":
                     return ServeCommand.serve(engine, out, err);
