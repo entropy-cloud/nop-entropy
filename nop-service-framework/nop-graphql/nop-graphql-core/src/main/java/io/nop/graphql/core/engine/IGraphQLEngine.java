@@ -153,6 +153,14 @@ public interface IGraphQLEngine {
         initContextFromRequest(created, request);
         try {
             IGraphQLExecutionContext context = newRpcContext(opType, operationName, request, null);
+            // 自建 context 由本请求独占，service context 即刻绑定（与既有入口的
+            // ContextBinder 先建后绑同型）。缺此一步时 executeRpcAsync/executeGraphQLAsync 的
+            // invokeWithBindingCtx 会把它当作"待安装的绑定"，在 whenComplete 里回退 restoreCtx；
+            // 而请求终态（buildRpcResponse/buildGraphQLResponse 收尾的 complete）在链内先触发
+            // 上面的 onAfterComplete 关闭，restore 落在已关闭 context 上抛
+            // nop.err.api.context-already-closed，把整个响应替换成上下文错误。
+            // 已绑定后 invokeWithBindingCtx 走 oldCtx == this 分支直接执行，无可回退的绑定。
+            context.getServiceContext().bindToContext(created);
             // 请求终态关闭：随 GraphQL 执行上下文完成而关闭（订阅路径在流结束时 complete，
             // 一次性请求在 buildRpcResponse/buildGraphQLResponse 收尾时 complete）
             context.getServiceContext().onAfterComplete(e -> created.close());

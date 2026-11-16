@@ -11,6 +11,7 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.context.BaseContextProvider;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.i18n.I18nMessageManager;
@@ -106,10 +107,19 @@ public class TestNewRpcContextBinder_C3_012 {
             t.setId(id);
             return t;
         }
+
+        /** 失败路用例：操作执行期抛错，驱动 buildRpcResponse 的 completeExceptionally */
+        @BizQuery("fail")
+        @GraphQLReturn(bizObjName = "Tree")
+        public BinderTree fail(@Name("id") String id) {
+            throw new NopException(ERR_LOCALE_PROBE);
+        }
     }
 
     public static class BinderTree {
         private String id;
+        private String name;
+        private List<BinderTree> children;
 
         public String getId() {
             return id;
@@ -117,6 +127,22 @@ public class TestNewRpcContextBinder_C3_012 {
 
         public void setId(String id) {
             this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public List<BinderTree> getChildren() {
+            return children;
+        }
+
+        public void setChildren(List<BinderTree> children) {
+            this.children = children;
         }
     }
 
@@ -224,5 +250,51 @@ public class TestNewRpcContextBinder_C3_012 {
         } finally {
             residue.close();
         }
+    }
+
+    /**
+     * C3-012 回归：在 binder 自建 context 上真正执行 RPC（成功路）。
+     * 自建 context 由 onAfterComplete 在请求终态关闭，而 executeRpcAsync 的
+     * restoreCtx 挂在该终态之外层 whenComplete——修复前 restore 落在已关闭 context 上抛
+     * nop.err.api.context-already-closed，把整个响应替换成上下文错误（gRPC/WS/消息/文件
+     * 四入口 clean thread 形态 100% 复现）；修复后 service context 入口即绑定，无可回退绑定。
+     * 本类 @BeforeEach 清残保证必走自建分支，判别面不随类序漂移。
+     */
+    @Test
+    public void testExecuteRpcOnBinderCreatedContextReturnsResponse() {
+        ApiRequest<Object> req = requestWithHeaders(Map.of("nop-locale", "en-US"));
+        IGraphQLExecutionContext ctx = engine.newRpcContext(GraphQLOperationType.query,
+                "Tree__get", req);
+        IContext created = ctx.getContext();
+
+        ApiResponse<?> res = FutureHelper.syncGet(engine.executeRpcAsync(ctx));
+        assertTrue(res.isOk(),
+                "binder-created context must not leak context-already-closed into the response: "
+                        + res.getMsg());
+
+        // 请求终态关闭语义保持不变（首条 binder 用例的既有契约）
+        assertTrue(created.isClosed(), "binder-created context must still close at request completion");
+        assertNull(ContextProvider.currentContext(),
+                "closed residue must stay unobservable via the platform read guard");
+    }
+
+    /**
+     * C3-012 回归：binder 自建 context 上执行 RPC（失败路）。失败路的
+     * completeExceptionally 同样在链内触发关闭，是最初暴露该缺陷的路径。
+     */
+    @Test
+    public void testExecuteRpcErrorOnBinderCreatedContextReturnsErrorResponse() {
+        ApiRequest<Object> req = requestWithHeaders(Map.of("nop-locale", "en-US"));
+        IGraphQLExecutionContext ctx = engine.newRpcContext(GraphQLOperationType.query,
+                "Tree__fail", req);
+        IContext created = ctx.getContext();
+
+        ApiResponse<?> res = FutureHelper.syncGet(engine.executeRpcAsync(ctx));
+        assertFalse(res.isOk(), "failing operation must yield a normal error response, not a throw");
+        assertEquals("EN-locale-probe-message", res.getMsg(),
+                "error response must carry the operation error (localized by request context)");
+
+        assertTrue(created.isClosed(), "binder-created context must still close at request completion");
+        assertNull(ContextProvider.currentContext());
     }
 }
