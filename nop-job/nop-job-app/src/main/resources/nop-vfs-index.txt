@@ -28,6 +28,7 @@
 /dict/job/executor-kind.dict.yaml
 /dict/job/fire-status.dict.yaml
 /dict/job/log-level.dict.yaml
+/dict/job/repeat-anchor-unit.dict.yaml
 /dict/job/schedule-status.dict.yaml
 /dict/job/task-status.dict.yaml
 /dict/job/trigger-source.dict.yaml
@@ -272,6 +273,11 @@
 /nop/auth/pages/NopAuthResource/_gen/_NopAuthResource_main.view.xml
 /nop/auth/pages/NopAuthResource/main.page.yaml
 /nop/auth/pages/NopAuthResource/picker.page.yaml
+/nop/auth/pages/NopAuthResource_main/NopAuthResource_main.lib.xjs
+/nop/auth/pages/NopAuthResource_main/NopAuthResource_main.view.xml
+/nop/auth/pages/NopAuthResource_main/_gen/_NopAuthResource_main.view.xml
+/nop/auth/pages/NopAuthResource_main/main.page.yaml
+/nop/auth/pages/NopAuthResource_main/picker.page.yaml
 /nop/auth/pages/NopAuthRole/NopAuthRole.lib.js
 /nop/auth/pages/NopAuthRole/NopAuthRole.lib.xjs
 /nop/auth/pages/NopAuthRole/NopAuthRole.view.xml
@@ -340,6 +346,11 @@
 /nop/auth/pages/NopAuthUserSubstitution/_gen/_NopAuthUserSubstitution.view.xml
 /nop/auth/pages/NopAuthUserSubstitution/main.page.yaml
 /nop/auth/pages/NopAuthUserSubstitution/picker.page.yaml
+/nop/auth/pages/NopAuthUser_tenant/NopAuthUser_tenant.lib.xjs
+/nop/auth/pages/NopAuthUser_tenant/NopAuthUser_tenant.view.xml
+/nop/auth/pages/NopAuthUser_tenant/_gen/_NopAuthUser_tenant.view.xml
+/nop/auth/pages/NopAuthUser_tenant/main.page.yaml
+/nop/auth/pages/NopAuthUser_tenant/picker.page.yaml
 /nop/auth/sql/NopAuthExtLogin.sql-lib.xml
 /nop/auth/sql/NopAuthMfaCredential.sql-lib.xml
 /nop/auth/sql/NopAuthMfaSetting.sql-lib.xml
@@ -575,6 +586,7 @@
 /nop/schema/office/doc.xdef
 /nop/schema/office/font.xdef
 /nop/schema/office/word-cell-style.xdef
+/nop/schema/office/word-list-style.xdef
 /nop/schema/office/word-paragraph-style.xdef
 /nop/schema/office/word-run-style.xdef
 /nop/schema/office/word-table-style.xdef
@@ -823,6 +835,11 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/picker.page.yaml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.lib.xjs
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/_gen/_{metaInfo.objName}.view.xml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/main.page.yaml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/picker.page.yaml.xgen
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/{metaInfo.objName}.lib.xjs
+/nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.objName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/.dockerignore
 /nop/templates/orm/.gitattributes
 /nop/templates/orm/.gitignore
