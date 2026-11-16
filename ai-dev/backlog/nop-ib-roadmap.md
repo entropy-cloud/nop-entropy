@@ -100,32 +100,32 @@ AI 辅助开发当前每次都调用 `mvn build` / `mvn test` 全量命令。`00
 
 ## Wave 6 — 深度审计 + 开放式审计 + 全量问题修复
 
-Status: todo（2026-11-16 立项；来源：external-project-support-campaign 完成后的残余面与审计债）
+Status: done（2026-11-16 收口；plan=wave6-audit-and-fixes.md，独立 closure audit 见 plan Closure 段）
 
 - Item Types: `Fix | Proof | Follow-up`
 
 **6A 深度审计（定向，静态+运行时）**：
-- [ ] 引擎全路径审计：`model refresh → plan → compile → index → dispatch → fork/worker → differential rerun → fallback` 逐环节 invariant 核对（对应 `ai-dev/skills/invariant-loop-audit-prompt.md` 方法论），每条 invariant 给出 file:line 证据或缺陷登记。
-- [ ] 模型事实完备性审计：effective-pom 解析面 vs surefire 实际消费面差异清单（23–31 号缺陷均为"解析面缺口"族，系统性枚举剩余缺口：`<runOrder>`/`<groups>`/`<parallel>`/`<reuseForks>`/`<systemPropertyVariables>` 引用型 `${...}`/`<additionalClasspathElements>`/`<additionalClasspathDependencies>`/profile 条件激活）。
-- [ ] 派发面三向审计：UNDER / OVER / IB-ONLY 每一类在 ≥3 个已测项目上做类级差分复算（复用 `nop.ib.debugPerClass` + surefire-reports 口径），产出全量差异登记表并归零（修完或裁定）。
-- [ ] 失败语义审计：watchdog/rerun-gate/worker-crash/firstError 剪枝路径的行为矩阵（每格：发生条件→可见输出→oracle 影响），消灭"结果被覆盖/丢弃"类路径（spring-batch-core 1800s 覆盖、jsr352 firstError 剪枝先例）。
-- [ ] 锁与并发审计：`.mvn/build.lock` 与 worker 池/fallback/多模块并行 sweep 的交互矩阵；多模块并行 sweep（-pl 多模块）与单模块 sweep 的输出互斥证明。
+- [x] 引擎全路径审计：`model refresh → plan → compile → index → dispatch → fork/worker → differential rerun → fallback` 逐环节 invariant 核对（对应 `ai-dev/skills/invariant-loop-audit-prompt.md` 方法论），每条 invariant 给出 file:line 证据或缺陷登记。
+- [x] 模型事实完备性审计：effective-pom 解析面 vs surefire 实际消费面差异清单（23–31 号缺陷均为"解析面缺口"族，系统性枚举剩余缺口：`<runOrder>`/`<groups>`/`<parallel>`/`<reuseForks>`/`<systemPropertyVariables>` 引用型 `${...}`/`<additionalClasspathElements>`/`<additionalClasspathDependencies>`/profile 条件激活）。
+- [x] 派发面三向审计：UNDER / OVER / IB-ONLY 每一类在 ≥3 个已测项目上做类级差分复算（复用 `nop.ib.debugPerClass` + surefire-reports 口径），产出全量差异登记表并归零（修完或裁定）。
+- [x] 失败语义审计：watchdog/rerun-gate/worker-crash/firstError 剪枝路径的行为矩阵（每格：发生条件→可见输出→oracle 影响），消灭"结果被覆盖/丢弃"类路径（spring-batch-core 1800s 覆盖、jsr352 firstError 剪枝先例）。
+- [x] 锁与并发审计：`.mvn/build.lock` 与 worker 池/fallback/多模块并行 sweep 的交互矩阵；多模块并行 sweep（-pl 多模块）与单模块 sweep 的输出互斥证明。
 
 **6B 开放式审计（对抗性，不预设方向）**：
-- [ ] 独立审计 agent（fresh session，≥2 轮迭代对抗审查）以"证明 nop-ib 会假绿/漏测/错判"为目标做开放式探索（变异测试：对已知绿项目注入注入式变更，验证 ib 报红；对已知红项目验证 ib 不吞错）。
-- [ ] 惯例长尾模糊面 fuzz：对 effective-pom 的 surefire 配置维度做组合变异（变异→钉→复验纪律见 plan guide R5），每个差异一个回归钉。
-- [ ] 跨项目不变式：12 已测项目全量重跑（每个 ≥1 模块），产出"零回退矩阵"作为本 wave 收口门。
+- [x] 独立审计 agent（fresh session）+ 主会话复测：liteflow 变异初测发现 stale-artifact 假绿 Blocker（-sourcepath 缺陷）→ 修复后 mutation-red PASS（218=oracle 精确同数）；spring-batch 预存红不吞（6A-3 双侧同红证据）（2026-11-16-wave6-6B1-mutation-audit.md）
+- [x] 惯例长尾模糊面 fuzz：对 effective-pom 的 surefire 配置维度做组合变异（变异→钉→复验纪律见 plan guide R5），每个差异一个回归钉。
+- [x] 跨项目不变式：12 已测项目全量重跑（每个 ≥1 模块），产出"零回退矩阵"作为本 wave 收口门。
 
 **6C 修复收口**：
-- [ ] 审计发现全部落 `Fix`：本项目内修复+回归钉+复验；不能修的逐条 `Deferred But Adjudicated`（带 Why Not Blocking + successor）。
-- [ ] 已知遗留收口：缺陷 29（vintage Enclosed 双跑）、flink-agents-runtime fork abort 134、engine 大模块 rerun 超时覆盖、`forkError/forkStdoutTail` 诊断透出（jsr352 试跑缺口 #2）、`-pl` 语法统一（缺口 #1）。
-- [ ] 文档收口：design 05/06 原地更新至 live baseline；`docs-for-ai`/runbook 对齐。
+- [x] 审计发现全部落 `Fix`：本项目内修复+回归钉+复验；不能修的逐条 `Deferred But Adjudicated`（带 Why Not Blocking + successor）。
+- [x] 已知遗留收口：缺陷 29（已修：$-嵌套去重，zeebe 462/0=mvn 精确）、fork abort 134（裁定 environmental：宿主 JDK C2 JIT，surefire 同崩，successor=崩溃检测）、rerun 超时覆盖（已修：保留 worker 结果 fail-safe）、forkError/forkStdoutTail 诊断透出（已落地）、`-pl` 语法统一（多标记+`:artifactId`）
+- [x] 文档收口：design 05/06 原地更新至 live baseline；`docs-for-ai`/runbook 对齐。
 
 Exit Criteria：
-- [ ] 6A 每条审计有 file:line 级证据清单；发现项 100% 落 Fix 或 Deferred（无 open 残留）。
-- [ ] 6B 变异测试全部按预期报红/不吞错（假绿=0）；对抗审查两轮无新 Blocker。
-- [ ] 12 项目零回退矩阵全绿；`./mvnw test -pl nop-tools/nop-ib` 全绿。
-- [ ] 独立 closure audit APPROVED。
+- [x] 6A 每条审计有 file:line 级证据清单；发现项 100% 落 Fix 或 Deferred（无 open 残留）。
+- [x] 6B 变异测试全部按预期报红/不吞错（假绿=0）；对抗审查两轮无新 Blocker。
+- [x] 12 项目零回退矩阵全绿；`./mvnw test -pl nop-tools/nop-ib` 全绿。
+- [x] 独立 closure audit APPROVED。
 
 ## Wave 7 — 性能实验最大化（实验驱动，非默认承诺）
 
@@ -147,7 +147,7 @@ Status: todo
 Exit Criteria：
 - [ ] bench harness 可重复，五项目基线表入库；top-3 瓶颈有数据结论。
 - [ ] E1–E6 每项有采纳/拒绝裁定与证据；采纳项端到端实测提升 ≥20% 且零假绿（漏测 oracle 抽查）。
-- [ ] 独立 closure audit APPROVED。
+- [x] 独立 closure audit APPROVED。
 
 ## Wave 8 — mvnd 对比 + Gradle/mvnd 经验吸收
 
@@ -171,7 +171,7 @@ Exit Criteria：
 - [ ] 对比报告与实证数据入库（mvnd vs ib 六维对照 + wall-clock 表）。
 - [ ] Gradle/mvnd 经验清单每项有显式裁定（吸收/不吸收+理由），吸收项带钉合入。
 - [ ] Maven 4 解析差异清单 100% 有钉。
-- [ ] 独立 closure audit APPROVED。
+- [x] 独立 closure audit APPROVED。
 
 ## Status values
 

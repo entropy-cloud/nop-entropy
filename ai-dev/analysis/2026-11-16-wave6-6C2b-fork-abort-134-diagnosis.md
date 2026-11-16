@@ -1,6 +1,6 @@
 # 6C-2b: flink-agents-runtime fork JVM abort（exit 134）根因诊断
 
-- Status: open
+- Status: adjudicated（发现已修复或裁定，见 plan wave6-audit-and-fixes.md Closure 段）
 - Date: 2026-11-16
 - Scope: read-only diagnosis（无代码修改）
 - Inputs: campaign 记录 `ai-dev/plans/nop-ib/external-project-support-campaign.md` "Deferred But Adjudicated"、wave6 计划 6C-2b、`~/sources/flink-agents/runtime/hs_err_pid*.log`（18 份）

@@ -1,7 +1,7 @@
 # Wave 6 / 6B-3 零回退矩阵（外部项目重测 vs recorded baseline）
 
 - Date: 2026-11-16
-- Status: open
+- Status: adjudicated（发现已修复或裁定，见 plan wave6-audit-and-fixes.md Closure 段）
 - Agent: 6B-3 runtime verification (subagent)
 - Machine data: `_tmp/6b3/<project>.json` + `_tmp/6b3/<project>.log`（逐模块 ib 输出）
 

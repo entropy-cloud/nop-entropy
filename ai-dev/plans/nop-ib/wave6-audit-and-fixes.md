@@ -1,6 +1,6 @@
 # Wave 6 — nop-ib 深度审计 + 开放式审计 + 全量问题修复
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-16
 > Source: [nop-ib-roadmap.md](../../backlog/nop-ib-roadmap.md) Wave 6（2026-11-16 立项）；方法论: `ai-dev/skills/invariant-loop-audit-prompt.md`
 > Related: [external-project-support-campaign.md](external-project-support-campaign.md)（缺陷 23–31 来源）、[05-nop-ib-engine-design.md](../../design/nop-incremental-build/05-nop-ib-engine-design.md)、[06-junit-worker-reuse.md](../../design/nop-incremental-build/06-junit-worker-reuse.md)
@@ -9,7 +9,9 @@
 
 对 nop-ib 引擎做一轮系统化深度审计（6A）+ 对抗性开放式审计（6B），把全部发现收口为修复或显式裁定（6C），使 roadmap Wave 6 的 Exit Criteria 全部成立。
 
-## Current Baseline（2026-11-16，live repo 核对）
+## Current Baseline
+
+> 2026-11-16 live repo 核对
 
 - 引擎主源码 ~34 文件于 `nop-tools/nop-ib/src/main/java/io/nop/ib/`：CLI 入口 `NopIbMain.java`（model/status/plan/compile/test/check/serve/bench/explain/cache）；`model/EffectivePomParser.parseSurefire` 消费 argLine/skipTests/includes/excludedGroups/excludes/environmentVariables/systemPropertyVariables（:236-296）——**未解析** forkCount/reuseForks/parallel/threadCount/groups/additionalClasspathElements/workingDirectory/runOrder。
 - 派发与 worker：`cli/TestCommand.java`（rerun-gate :511-533，moduleRerunTimeoutSeconds 默认 1800）、`junit/JUnitWorkerPool.java`（per-class watchdog :355-383，debugPerClass :142）、`junit/JUnitForkExecutor.java`（batch watchdog :59,211,236；forkError/forkStdoutTail :281-285 已采集未透出为 warnings）。
@@ -68,85 +70,111 @@ Exit Criteria:
 
 - [x] 每条审计有 file:line 级证据清单文件（`ai-dev/analysis/2026-11-*-wave6-audit-*.md`）
 - [x] 发现项台账 100% 分流：Fix（进 Phase 3）或 Deferred（带 Why Not Blocking + successor）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — 6B 开放式对抗审计
 
-Status: planned
+Status: completed
 Targets: `~/sources` 已测项目、`nop-tools/nop-ib` 回归钉
 
 Item Types: `Proof | Fix`
 
-- [ ] 6B-1 独立审计 agent（fresh session，≥2 轮迭代）以"证明 nop-ib 会假绿/漏测/错判"为目标开放式探索；变异测试：对已知绿项目注入变更验证 ib 报红，对已知红项目验证 ib 不吞错
-- [ ] 6B-2 surefire 配置维度组合变异 fuzz（变异→钉→复验纪律），每个差异一个回归钉
-- [ ] 6B-3 跨项目不变式：12 已测项目全量重跑（每个 ≥1 模块），产出零回退矩阵
+- [x] 6B-1 独立审计 agent（fresh session，≥2 轮迭代）以"证明 nop-ib 会假绿/漏测/错判"为目标开放式探索；变异测试：对已知绿项目注入变更验证 ib 报红，对已知红项目验证 ib 不吞错
+- [x] 6B-2 surefire 配置维度组合变异 fuzz（变异→钉→复验纪律），每个差异一个回归钉
+- [x] 6B-3 跨项目不变式：12 已测项目全量重跑（每个 ≥1 模块），产出零回退矩阵
 
 Exit Criteria:
 
-- [ ] 变异测试全部按预期报红/不吞错（假绿=0），记录在 analysis 文档
-- [ ] fuzz 差异钉入 `src/test/java/io/nop/ib/`（每差异一钉）
-- [ ] 零回退矩阵（12 项目 × ≥1 模块）结果表入库
-- [ ] 对抗审查两轮无新 Blocker
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 变异测试全部按预期报红/不吞错（假绿=0），记录在 analysis 文档
+- [x] fuzz 差异钉入 `src/test/java/io/nop/ib/`（每差异一钉）
+- [x] 零回退矩阵（12 项目 × ≥1 模块）结果表入库
+- [x] 对抗审查两轮无新 Blocker
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 — 6C 修复收口
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/**`、`src/test/java/io/nop/ib/**`
 
 Item Types: `Fix`
 
-- [ ] 6C-1 缺陷 29：vintage Enclosed/Parameterized 容器双跑去重（zeebe-gateway-grpc 派发面=mvn 执行面）
-- [ ] 6C-2 forkError/forkStdoutTail 诊断透出到 run warnings（fork abort 134 可定位）
-- [ ] 6C-2b fork abort 134（flink-agents-runtime）根因诊断：修复或 Deferred-Adjudicated（带 root cause 证据 + successor），不得仅凭诊断透出收口
-- [ ] 6C-3 engine 大模块 rerun 超时覆盖修复：rerun-gate 超时不得覆盖/丢弃已有结果，超时必须显式出现在结果与退出语义
-- [ ] 6C-4 `-pl` 多模块语法统一（`a,b` / `-pl a -pl b` / `:artifactId`）
-- [ ] 6C-5 Phase 1/2 审计发现的全部 Fix 项修复 + 回归钉
-- [ ] 6C-6 不能修项逐条 `Deferred But Adjudicated`（本 plan Deferred 节）
-- [ ] 6C-7 零回退矩阵复核：Phase 3 行为性修复（缺陷 29/rerun-gate/-pl）落地后，重跑受影响项目（至少 zeebe-gateway-grpc + flink-agents + spring-batch）确认矩阵不回退；全矩阵以 Phase 2 结果 + Phase 3 增量复核合并为收口证据（时间盒：单项目复核超 2h 即冻结为 watch-only 登记）
+- [x] 6C-1 缺陷 29：vintage Enclosed/Parameterized 容器双跑去重（zeebe-gateway-grpc 派发面=mvn 执行面）
+- [x] 6C-2 forkError/forkStdoutTail 诊断透出到 run warnings（fork abort 134 可定位）
+- [x] 6C-2b fork abort 134（flink-agents-runtime）根因诊断：修复或 Deferred-Adjudicated（带 root cause 证据 + successor），不得仅凭诊断透出收口
+- [x] 6C-3 engine 大模块 rerun 超时覆盖修复：rerun-gate 超时不得覆盖/丢弃已有结果，超时必须显式出现在结果与退出语义
+- [x] 6C-4 `-pl` 多模块语法统一（`a,b` / `-pl a -pl b` / `:artifactId`）
+- [x] 6C-5 Phase 1/2 审计发现的全部 Fix 项修复 + 回归钉
+- [x] 6C-6 不能修项逐条 `Deferred But Adjudicated`（本 plan Deferred 节）
+- [x] 6C-7 零回退矩阵复核：Phase 3 行为性修复（缺陷 29/rerun-gate/-pl）落地后，重跑受影响项目（至少 zeebe-gateway-grpc + flink-agents + spring-batch）确认矩阵不回退；全矩阵以 Phase 2 结果 + Phase 3 增量复核合并为收口证据（时间盒：单项目复核超 2h 即冻结为 watch-only 登记）
 
 Exit Criteria:
 
-- [ ] 每个 Fix 有对应回归钉（JUnit 5 测试），钉先红后绿（或变异探针验证）
-- [ ] zeebe-gateway-grpc 类级差分复验：IB 派发=mvn 执行面（缺陷 29 归零或裁定）
-- [ ] Phase 2 的 fuzz 回归钉在 Phase 3 修复后复验（由 `./mvnw test -pl nop-tools/nop-ib` 全绿覆盖）
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 每个 Fix 有对应回归钉（JUnit 5 测试），钉先红后绿（或变异探针验证）
+- [x] zeebe-gateway-grpc 类级差分复验：IB 派发=mvn 执行面（缺陷 29 归零或裁定）
+- [x] Phase 2 的 fuzz 回归钉在 Phase 3 修复后复验（由 `./mvnw test -pl nop-tools/nop-ib` 全绿覆盖）
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 — 文档收口 + closure
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/nop-incremental-build/05、06`、roadmap Wave 6 状态块
 
 Item Types: `Follow-up`
 
-- [ ] design 05/06 原地更新至 live baseline（解析面、失败语义、诊断字段）
-- [ ] roadmap Wave 6 checklist 全勾、Status 置 done；`docs-for-ai`/runbook 对齐
-- [ ] 文档链接检查 `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
-- [ ] 独立子 agent closure audit APPROVED，Evidence 写入本 plan Closure 节
+- [x] design 05/06 原地更新至 live baseline（解析面、失败语义、诊断字段）
+- [x] roadmap Wave 6 checklist 全勾、Status 置 done；`docs-for-ai`/runbook 对齐
+- [x] 文档链接检查 `node ai-dev/tools/check-doc-links.mjs --strict` 退出 0
+- [x] 独立子 agent closure audit APPROVED，Evidence 写入本 plan Closure 节
 
 Exit Criteria:
 
-- [ ] design 05/06 与 live code 无矛盾（抽查 3 处）
-- [ ] roadmap Wave 6 Exit Criteria 四条全部可对应本 plan 证据
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出 0
-- [ ] closure audit evidence 落 plan Closure 节 + daily log
-- [ ] 提交一次（git commit）
+- [x] design 05/06 与 live code 无矛盾（抽查 3 处）
+- [x] roadmap Wave 6 Exit Criteria 四条全部可对应本 plan 证据
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出 0
+- [x] closure audit evidence 落 plan Closure 节 + daily log
+- [x] 提交一次（git commit）
 
 ## Closure Gates
 
-- [ ] 6A 每条审计有 file:line 证据；发现 100% 落 Fix 或 Deferred（无 open 残留）
-- [ ] 6B 变异测试假绿=0；对抗审查两轮无新 Blocker
-- [ ] 12 项目零回退矩阵全绿
-- [ ] 已知遗留（缺陷 29/fork134/超时覆盖/诊断透出/-pl 语法）逐项修复或裁定
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿
-- [ ] 受影响 owner docs（design 05/06、roadmap）同步
-- [ ] 独立子 agent closure audit APPROVED，evidence 落 plan
-- [ ] Anti-Hollow 检查：修复路径运行时连通（每 Fix 有钉）
+- [x] 6A 每条审计有 file:line 证据；发现 100% 落 Fix 或 Deferred（无 open 残留）
+- [x] 6B 变异测试假绿=0；对抗审查两轮无新 Blocker
+- [x] 12 项目零回退矩阵全绿
+- [x] 已知遗留（缺陷 29/fork134/超时覆盖/诊断透出/-pl 语法）逐项修复或裁定
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿
+- [x] 受影响 owner docs（design 05/06、roadmap）同步
+- [x] 独立子 agent closure audit APPROVED，evidence 落 plan
+- [x] Anti-Hollow 检查：修复路径运行时连通（每 Fix 有钉）
 
 ## Deferred But Adjudicated
 
-（执行中按发现填充；每条须 Classification + Why Not Blocking + Successor）
+### fork JVM abort（exit 134, flink-agents-runtime）
+
+- Classification: `watch-only residual`（environmental 裁定：hs_err 18 份 = 宿主 Zulu26 C2 JIT SIGSEGV，surefire booter 同帧同崩——非引擎缺陷）
+- Why Not Blocking Closure: 双侧同崩 ⇒ ib 派发语义无罪；ib 行为 fail-safe（abort 记失败不吞错）
+- Successor Required: yes
+- Successor Path: JIT 崩溃检测（exit 134 + hs_err 探测 → run warnings），登记于 6C2b analysis §3
+
+### exit-2 收紧后的抽象基类派发面（fail-safe 红方向）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 方向 fail-safe（多报红不假绿）；spring-batch-core 5 个抽象基类场景实际模块已有真失败；未发现仅含抽象基类的派发面实例
+- Successor Required: no
+- Successor Path: 无（出现实例再裁）
+
+### parity 口径残差（OpenPDF skip 7vs3 / liquibase selected 440v438）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: run 数双侧精确一致；口径差已登记于 6B3/6A3 文档
+- Successor Required: no
+- Successor Path: 无
+
+### MAVEN_ARGS 透传 runbook 建议（-DskipTests=false 场景）
+
+- Classification: `out-of-scope improvement`
+- Why Not Blocking Closure: operator 级覆盖属于 CLI 能力扩展，非契约缺口；honest skip 与 mvn 默认语义一致
+- Successor Required: no
+- Successor Path: 记录于 6B1 §1 建议
 
 ## Non-Blocking Follow-ups
 
@@ -154,7 +182,19 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: Wave 6 全部收口：6A 五条审计（file:line 证据落 analysis）、6B 变异/矩阵/钉（初测假绿 Blocker 修复后 mutation-red PASS）、6C 已知遗留五项全落（缺陷 29 修复 zeebe 462/0 精确；fork-134 environmental 裁定；rerun 超时保留结果；诊断透出；-pl 语法）。nop-ib 测试套 71/71 绿；12 项目零回退矩阵全绿（6B-3 10 项目 + 6A-3 同日 liteflow/spring-batch + 6C-7 增量复核）。design 05/06 + roadmap 原地更新。
+Completed: 2026-11-16
 
-Closure Audit Evidence: （收口时填写）
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent closure audit（fresh session, read-only）
+- Evidence:
+  - G1 plan 证据: 7 份 analysis 文档在档含 file:line；PASS
+  - G2 代码抽查 5 处: staleness gate(TestCommand:146-152,234-240)/sourcepath 过滤(IncrementalCompileExecutor:172-189)/$-嵌套守卫(UnitIndex:204-222)/rerun 超时合并(TestCommand:595-611)/groups 解析(EffectivePomParser:298-300)；PASS
+  - G3 `./mvnw test -pl nop-tools/nop-ib`: 71/71 绿 exit 0；PASS
+  - G3b check-plan-checklist --strict exit 0；scan-hollow-implementations exit 0（唯一 high=注释误报）；PASS
+  - G4 Anti-Hollow: groups 链路 parser→IbModule→fork/worker -D→INCLUDED_TAGS→TagFilter.includeTags 全连通；reset-hook 差分重跑在派发路径实调（JUnitWorkerPool run :134-163）；PASS
+  - G5 roadmap Wave 6 勾选逐条可溯；PASS
+  - G6 Deferred 分类诚实（无 live defect 降级）；PASS
+  - G7 文本一致（本轮 closure 修订后）；PASS
+  - Audit findings 1/2/3 已在本轮修复：Deferred 节填充、analysis Status 翻转、Closure 段落账

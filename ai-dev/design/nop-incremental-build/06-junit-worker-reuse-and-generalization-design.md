@@ -83,7 +83,7 @@ flowchart TB
 ## 六、正确性门（不变式）
 
 1. 失败判定只信**权威执行环境**的结果：worker 内失败必须差分重跑定责，fresh fork 通过 ⇒ 污染告警 + fresh 结果为准；
-2. 未执行的测试不得计为通过；重置钩子失败 ⇒ 该类不产出任何"通过"结论（worker 退役 + fresh 重跑）；
+2. 未执行的测试不得计为通过；重置钩子失败 ⇒ 该类不产出任何"通过"结论（worker 退役 + fresh 重跑，结果以 fresh fork 为准；fresh fork 不可用时计为失败——wave6 6A-1 F1 已落地：reset-hook-failed 类在污染 worker 中曾计绿）；
 3. cwd / classpath 定序 / 禁跨模块合并 / 快照开关强制 / 看门狗等 02 契约逐条保持；
 4. 与 surefire 的对照门（IB-G3 同语料双跑）在复用模型上**逐模块**重跑通过后才作为默认；对照差异即降级该模块并登记。
 
@@ -110,3 +110,11 @@ flowchart TB
 - [02-test-execution.md](02-test-execution.md)：底座契约（cwd/classpath/快照/超时），本文是其上的复用层；
 - [05-nop-ib-engine-design.md](05-nop-ib-engine-design.md)：IB-D8 两阶段路线——本文是"阶段二自研启动器"的完成形态；
 - `nop-autotest`（Nop 侧 resetter 实现的宿主模块）：提供 `reinitialize()` 钩子实现，nop-ib 不依赖。
+
+## wave6 失败语义修订（2026-11-16，live baseline）
+
+- **模块级差分重跑超时不覆盖结果**（6A-4 A-1，spring-batch-core 先例）：重跑 fresh fork 超时（`nop.ib.moduleRerunTimeoutSeconds`）时保留 worker 收集的逐类结果、标记 `timedOut`、verdict 保持 FAILED（fail-safe）；旧实现用 fresh 的 `{tests:0,failures:1}` 占位覆盖 906 个已执行测试并使 `--rerun-failed` 丢类清单。
+- **缺陷 29 已修**：Enclosed/嵌套去重守卫覆盖二进制名 `$` 嵌套（原仅 jupiter `@Nested`）；zeebe-gateway-grpc 462/0=mvn 精确。
+- **fork JVM abort（exit 134，flink-agents）裁定 environmental**：hs_err 证据 = 宿主 Zulu26 C2 JIT 编译帧 SIGSEGV，surefire booter 同帧同崩——"仅 ib fork 崩"前提不成立；成功者 successor 降级为 JIT 崩溃检测（exit 134 + hs_err 探测 → run warnings）。
+- **forkError/forkStdoutTail/poolAborted/crashed 摘要字段全部透出到 run warnings**（6C-2）。
+- **exit-2 missing-class 重试语义收紧**（6A-4 A-3/F2）：重试 fork 的退出语义为准——再次 exit 2 = FAILED + missing 清单；-3 = surefire 回退；exit 0 且执行测试数为 0 = FAILED（假绿方向封死）；编译重试本身失败 = FAILED。
