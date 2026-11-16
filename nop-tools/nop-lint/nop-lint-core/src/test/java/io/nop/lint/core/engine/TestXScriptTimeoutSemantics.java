@@ -192,10 +192,28 @@ public class TestXScriptTimeoutSemantics {
         RuleDslModel rule = xscriptRule("demo/timeout-fast", 100, DEADLOOP);
         LintResult result = engine(LintProfile.FAST).lint(List.of(rule), "Java", HITTING_SRC);
 
-        // fast scales the 100ms rule budget to 20ms; the deadloop cannot
-        // finish, so the run must still end in a counted timeout
-        assertEquals(1, result.stats().getXscriptTimedOutMatches());
-        assertEquals(0, result.stats().getXscriptFailedMatches());
+        // fast scales the 100ms rule budget down to its 20ms cap AND shares a
+        // 10ms xscript slice across the file's matches (design 11 §5). Whichever
+        // fires first aborts the deadloop, and the two outcomes are counted in
+        // separate counters (timeout vs budget-exceeded skip) — both are correct
+        // enforcement, so the assertion is the disjunction. What must never happen
+        // is the deadloop running to completion: that needs ~2^31 iterations
+        // (seconds), never the ~36ms this test takes.
+        //
+        // The slice branch is not hypothetical: it is a wall-clock deadline, so a
+        // >10ms pause between FileBudget.start() and the match (scheduling/GC under
+        // a saturated -T 1C build) skips the script before its deadline ever starts.
+        LintStats stats = result.stats();
+        assertEquals(1, stats.getXscriptTimedOutMatches() + stats.getXscriptBudgetExceededMatches(),
+                "the deadloop must be aborted exactly once — either the scaled 20ms deadline "
+                        + "fires (counted timeout) or the shared 10ms slice expires first "
+                        + "(counted budget-exceeded skip); timedOut="
+                        + stats.getXscriptTimedOutMatches() + ", budgetExceeded="
+                        + stats.getXscriptBudgetExceededMatches());
+        assertEquals(stats.getXscriptMatchesExecuted(), stats.getXscriptTimedOutMatches(),
+                "every match that actually ran must have hit its deadline — a match that ran "
+                        + "to completion means deadline enforcement is broken");
+        assertEquals(0, stats.getXscriptFailedMatches());
     }
 
     // ==================== helpers ====================

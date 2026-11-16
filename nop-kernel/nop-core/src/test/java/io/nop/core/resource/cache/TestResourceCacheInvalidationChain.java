@@ -32,9 +32,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestResourceCacheInvalidationChain extends BaseTestCase {
     static final File CHAIN_DIR = new File(new File(new File("target"), "test-classes"), "_vfs/test/chain");
 
+    /**
+     * fixture文件必须在CoreInitialization（VFS classpath _vfs 扫描快照）之前落盘：
+     * 扫描只登记当时已存在的文件，测试方法内才创建的文件不会进入VFS索引，
+     * 导致resolveResource回退UnknownResource(-1)——判据恒等、窗口二双mtime恒等，失效链静默失效。
+     * 预置后测试方法内的写入经已登记的FileResource实时可见（mtime/内容均读真实文件）。
+     */
     @BeforeAll
     public static void init() {
         CHAIN_DIR.mkdirs();
+        for (String name : new String[]{"smoke-model.txt", "smoke-dep.txt",
+                "win1-model.txt", "win1-dep.txt", "win2-model.txt", "win2-dep.txt", "ttl-object.txt"}) {
+            writeFile(file(name), "");
+        }
         CoreInitialization.initialize();
     }
 

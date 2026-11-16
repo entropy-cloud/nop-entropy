@@ -94,20 +94,33 @@ public class TestExecutorTaskStepWrapperAsyncBranch {
         };
 
         ExecutorTaskStepWrapper wrapper = new ExecutorTaskStepWrapper(subStep, "nop-global-timer");
-        TaskStepReturn ret = wrapper.execute(new FakeTaskStepRuntime(new TaskStepStateBean()));
 
+        // 交付通道由时序决定（两条都是合法契约，不能只测其中一条）：
+        //   1) 子步骤的 future 在 TaskStepReturn.ASYNC 构造时已完成 → ASYNC 走内联解析
+        //      （FutureHelper.syncGet），异常从 wrapper.execute() 同步抛出；
+        //   2) future 尚未完成 → execute() 返回 promise，异常经 promise 异步送达。
+        // 10ms 定时器在满载下先于 whenComplete 注册时走通道 1。
         try {
+            TaskStepReturn ret = wrapper.execute(new FakeTaskStepRuntime(new TaskStepStateBean()));
             TaskStepReturn done = syncGet(ret);
             fail("executor-wrapped async sub-step failure must propagate the exception, not complete. "
                     + "Got result: " + done.getOutputs());
         } catch (Exception e) {
-            Throwable cause = unwrapCause(e);
-            assertTrue(cause instanceof NopException,
-                    "propagated failure must be the original NopException, got: " + cause);
-            assertEquals(ERR_TEST_ASYNC_FAIL.getErrorCode(), ((NopException) cause).getErrorCode(),
-                    "executor-wrapped async sub-step failure must surface the original error code. "
-                            + "Pre-fix: ret.complete(null) swallowed the failure and returned null as success.");
+            assertOriginalAsyncFailure(e);
         }
+    }
+
+    /**
+     * 两条交付通道共用的断言：原始 {@link NopException} 与其 errorCode 必须原样浮现，
+     * 绝不允许被吞成 null 结果（修复前的缺陷）。
+     */
+    private static void assertOriginalAsyncFailure(Exception e) {
+        Throwable cause = unwrapCause(e);
+        assertTrue(cause instanceof NopException,
+                "propagated failure must be the original NopException, got: " + cause);
+        assertEquals(ERR_TEST_ASYNC_FAIL.getErrorCode(), ((NopException) cause).getErrorCode(),
+                "executor-wrapped async sub-step failure must surface the original error code. "
+                        + "Pre-fix: ret.complete(null) swallowed the failure and returned null as success.");
     }
 
     private static TaskStepReturn syncGet(TaskStepReturn ret) {

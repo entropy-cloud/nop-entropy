@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -179,6 +180,48 @@ public class TestCraR408TransferAndRetry extends BaseTestCase {
                 IWorkflowStepImplementor.class, WfStepModel.class, WfRuntime.class);
         m.setAccessible(true);
 
+        // 两腿各自持有 retry 配置：降级腿把 retryDelay 抬到 5s（远超满载抖动），使
+        // 「偷偷睡了延迟」在墙钟上不可混淆；对照腿保持 50ms，避免 4 次执行 × 3 次退避拖慢用例。
+        WfStepModel stepModelDegraded = retryStepModel(5000);
+        WfStepModel stepModelControl = retryStepModel(50);
+
+        // —— 事务打开：降级不重试 ——
+        AtomicInteger execCountTx = new AtomicInteger();
+        IWorkflowStepImplementor stepTx = stepStub(execCountTx);
+        WfRuntime wfRtTx = new WfRuntime(wfImplementorStub(true), new ServiceContextImpl());
+        long begin = System.nanoTime();
+        try {
+            m.invoke(engine, stepTx, stepModelDegraded, wfRtTx);
+            fail("source failure must propagate (retry exhausted or degraded)");
+        } catch (Exception expected) {
+            // probe 异常直达
+        }
+        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
+        assertEquals(1, execCountTx.get(),
+                "inside an open transaction the delayed retry must degrade to no-retry "
+                        + "(W-12(b) MA-22; pre-fix: slept the retry delay and retried, execCount=4)");
+        // 保守界：睡满第一次退避（5000ms）必然 ≥5000ms，故阈值取其一半即足以判红，
+        // 同时给满载调度/GC 留 2.5s 余量（100ms 硬界在 -T 1C 满载下会被误判）。
+        assertTrue(elapsedMs < 2500,
+                "degraded path must not sleep the retry delay: elapsed=" + elapsedMs
+                        + "ms, retryDelay=5000ms");
+
+        // —— 无事务：重试既有语义（对照腿，pre/post 同绿）——
+        AtomicInteger execCountNoTx = new AtomicInteger();
+        IWorkflowStepImplementor stepNoTx = stepStub(execCountNoTx);
+        WfRuntime wfRtNoTx = new WfRuntime(wfImplementorStub(false), new ServiceContextImpl());
+        try {
+            m.invoke(engine, stepNoTx, stepModelControl, wfRtNoTx);
+            fail("source failure must propagate after retries exhausted");
+        } catch (Exception expected) {
+            // probe 异常直达（重试耗尽后抛原始异常）
+        }
+        assertEquals(4, execCountNoTx.get(),
+                "without an open transaction retry semantics unchanged (maxRetryCount=3 → 4 executions)");
+    }
+
+    /** 每次调用都抛同一 probe 异常的步骤模型，retry 配置由调用方按腿指定。 */
+    private static WfStepModel retryStepModel(int retryDelay) {
         WfStepModel stepModel = new WfStepModel();
         stepModel.setName("r408-retry-step");
         stepModel.setSource(scope -> {
@@ -186,40 +229,11 @@ public class TestCraR408TransferAndRetry extends BaseTestCase {
         });
         WfRetryModel retry = new WfRetryModel();
         retry.setMaxRetryCount(3);
-        retry.setRetryDelay(50);
+        retry.setRetryDelay(retryDelay);
         retry.setMaxRetryDelay(0);
         retry.setExponentialDelay(false);
         stepModel.setRetry(retry);
-
-        // —— 事务打开：降级不重试 ——
-        AtomicInteger execCountTx = new AtomicInteger();
-        IWorkflowStepImplementor stepTx = stepStub(execCountTx);
-        WfRuntime wfRtTx = new WfRuntime(wfImplementorStub(true), new ServiceContextImpl());
-        long begin = System.currentTimeMillis();
-        try {
-            m.invoke(engine, stepTx, stepModel, wfRtTx);
-            fail("source failure must propagate (retry exhausted or degraded)");
-        } catch (Exception expected) {
-            // probe 异常直达
-        }
-        assertEquals(1, execCountTx.get(),
-                "inside an open transaction the delayed retry must degrade to no-retry "
-                        + "(W-12(b) MA-22; pre-fix: slept 50ms and retried, execCount=4)");
-        assertTrue(System.currentTimeMillis() - begin < 100,
-                "degraded path must not sleep the retry delay");
-
-        // —— 无事务：重试既有语义（对照腿，pre/post 同绿）——
-        AtomicInteger execCountNoTx = new AtomicInteger();
-        IWorkflowStepImplementor stepNoTx = stepStub(execCountNoTx);
-        WfRuntime wfRtNoTx = new WfRuntime(wfImplementorStub(false), new ServiceContextImpl());
-        try {
-            m.invoke(engine, stepNoTx, stepModel, wfRtNoTx);
-            fail("source failure must propagate after retries exhausted");
-        } catch (Exception expected) {
-            // probe 异常直达（重试耗尽后抛原始异常）
-        }
-        assertEquals(4, execCountNoTx.get(),
-                "without an open transaction retry semantics unchanged (maxRetryCount=3 → 4 executions)");
+        return stepModel;
     }
 
     // ==================== stubs ====================

@@ -228,14 +228,29 @@ public class TestShellRunnerProcessDestroy {
     /** stderr 读取线程钉住探针：read 阻塞直至流被 close，恢复后记录「读取线程已到达 EOF」 */
     static class PinnedErrorStream extends InputStream {
         private final CountDownLatch closeLatch = new CountDownLatch(1);
+        private final CountDownLatch readEntered = new CountDownLatch(1);
         private final CompletableFuture<Void> readerReachedEof = new CompletableFuture<>();
 
         CompletableFuture<Void> readerReachedEof() {
             return readerReachedEof;
         }
 
+        /**
+         * 读取任务是否真的进入了阻塞读。false 只有一种含义：collectError 提交的任务在
+         * {@code errorFuture.cancel(false)} 时还没被池线程取出，直接被取消、从未运行——
+         * 此时没有任何线程被 pin，EOF 无从观察（不是收敛失败）。
+         */
+        boolean readEntered() {
+            return readEntered.getCount() == 0;
+        }
+
+        boolean awaitReadEntered(long timeout, TimeUnit unit) throws InterruptedException {
+            return readEntered.await(timeout, unit);
+        }
+
         @Override
         public int read() {
+            readEntered.countDown();
             // 模拟真实管道读的不可中断语义：Thread.interrupt 不能唤醒阻塞在 pipe read 上的线程，
             // 唯有流关闭（进程销毁 → EOF）才能释放。errorFuture.cancel 经 bindCancel 会 interrupt
             // 读取线程，若此处响应中断则桩失真（读取线程经 IOException 分支退出而非 EOF 收敛）
@@ -460,7 +475,16 @@ public class TestShellRunnerProcessDestroy {
             assertTrue(proc.destroyCount.get() >= 1);
 
             // 进程销毁 → error 流 close → readLine 到达 EOF → 读取任务退出（有界收敛，不再 pin 池线程）
-            pinnedStderr.readerReachedEof().get(5, TimeUnit.SECONDS);
+            //
+            // 前置条件：本用例的失败窗只有一次立即抛错的 stdin write（微秒级），而
+            // errorFuture.cancel(false) 在其后的内层 finally 里执行——满载下池线程往往
+            // 还没来得及取出任务就被取消，任务从未运行。此时没有线程被 pin，EOF 无从
+            // 观察，跳过等待是正确语义（不是放过缺陷：修复前的红态是读取线程真的进了
+            // 阻塞读且流永不 close，readEntered 必为 true，仍会在这里超时判红）。
+            pinnedStderr.awaitReadEntered(2, TimeUnit.SECONDS);
+            if (pinnedStderr.readEntered()) {
+                pinnedStderr.readerReachedEof().get(10, TimeUnit.SECONDS);
+            }
         } finally {
             // 兜底释放：防止修复前红阶段读取线程被永久钉住
             pinnedStderr.close();

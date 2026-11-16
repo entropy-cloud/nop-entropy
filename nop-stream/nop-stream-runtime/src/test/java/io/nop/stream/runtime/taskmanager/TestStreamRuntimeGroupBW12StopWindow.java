@@ -61,6 +61,8 @@ class TestStreamRuntimeGroupBW12StopWindow {
 
     private TaskManager taskManager;
     private CountDownLatch parkLatch;
+    /** Counted down once the task thread has actually entered {@code invoke()} and parked. */
+    private CountDownLatch parkedLatch;
 
     @AfterEach
     void tearDown() {
@@ -143,9 +145,17 @@ class TestStreamRuntimeGroupBW12StopWindow {
      * Builds a started TaskManager holding one task whose invokable parks on
      * {@link #parkLatch} (uninterruptibly — future.cancel(true)'s interrupt is
      * swallowed so stop()'s awaitTermination window is deterministic).
+     *
+     * <p>Returns only after both registrations are visible: the task entry is in
+     * {@code runningTasks} <b>and</b> the task thread has reached the park point.
+     * Waiting on the park point alone is not enough — under load the thread can be
+     * scheduled late, so {@code stop()}'s {@code awaitTermination(5s)} would find an
+     * already-terminated task and {@code runningTasks.clear()} would run inside the
+     * window the test is about to assert.
      */
     private void buildTaskManagerWithParkedTask(RecordingParticipant participant) throws Exception {
         parkLatch = new CountDownLatch(1);
+        parkedLatch = new CountDownLatch(1);
         taskManager = new TaskManager(NODE_ID, "localhost:9412", 2,
                 new TestTaskManagerLivenessAndReporting.NoopMessageService(),
                 new TestTaskManagerLivenessAndReporting.NoopClusterRegistry(), "control-topic");
@@ -154,13 +164,16 @@ class TestStreamRuntimeGroupBW12StopWindow {
         taskManager.receiveAssignment(new TaskAssignment(
                 "job-gb-w12", "v-sink", 0, NODE_ID, "att-1", EPOCH,
                 System.currentTimeMillis(), 1));
-        taskManager.installInvokable("job-gb-w12", "v-sink", 0, new ParkedInvokable(participant, parkLatch), EPOCH);
+        taskManager.installInvokable("job-gb-w12", "v-sink", 0,
+                new ParkedInvokable(participant, parkLatch, parkedLatch), EPOCH);
 
         long deadline = System.currentTimeMillis() + 5000;
         while (taskManager.getRunningTaskCount() != 1 && System.currentTimeMillis() < deadline) {
             Thread.sleep(10);
         }
         assertEquals(1, taskManager.getRunningTaskCount(), "task must be running before the stop race");
+        assertTrue(parkedLatch.await(5, TimeUnit.SECONDS),
+                "task thread must have reached the park point before the stop race");
     }
 
     private void releaseParkLatch() {
@@ -173,17 +186,27 @@ class TestStreamRuntimeGroupBW12StopWindow {
     /** SINK-role invokable whose invoke() parks on the latch, swallowing interrupts. */
     static final class ParkedInvokable extends StreamTaskInvokable {
         private final CountDownLatch release;
+        private final CountDownLatch parked;
 
         ParkedInvokable(RecordingParticipant participant, CountDownLatch release) {
+            this(participant, release, null);
+        }
+
+        ParkedInvokable(RecordingParticipant participant, CountDownLatch release, CountDownLatch parked) {
             super(new OperatorChain(Collections.<io.nop.stream.core.operators.StreamOperator<?>>singletonList(
                     participant)),
                     (RecordWriter<Object>) null,
                     new TestTaskManagerLivenessAndReporting.IdleInputGate());
             this.release = release;
+            this.parked = parked;
         }
 
         @Override
         public void invoke() throws Exception {
+            // Signal the fixture that the task thread is really inside the body, so
+            // stop()'s awaitTermination(5s) is guaranteed to block on this thread.
+            if (parked != null)
+                parked.countDown();
             while (release.getCount() > 0) {
                 try {
                     release.await(1, TimeUnit.SECONDS);

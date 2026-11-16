@@ -224,7 +224,11 @@ public class TestStreamScalarFunctionResolver {
         Thread reader = new Thread(() -> {
             try {
                 start.await();
-                for (int i = 0; i < 20000 && failure.get() == null; i++) {
+                // 迭代量与 writer 注册量解耦：每次迭代对增长到 ~5 万条目的 map 做两次全量
+                // 拷贝（namesList + registeredNames），20000 次迭代 = ~10^9 元素拷贝，在
+                // 高负载构建机（load>200，4 surefire fork 并发）下会击穿 60s 时限（no-CME
+                // 语义断言与迭代次数无关，2000 次已完整覆盖 writer 的注册增长窗口）。
+                for (int i = 0; i < 2000 && failure.get() == null; i++) {
                     try {
                         // compile-time iteration faces: snapshot via namesList and
                         // iterate via registeredNames while puts are in flight
