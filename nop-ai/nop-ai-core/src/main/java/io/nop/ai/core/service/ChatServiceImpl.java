@@ -51,7 +51,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Future;
-import java.util.concurrent.SubmissionPublisher;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -233,11 +232,16 @@ public class ChatServiceImpl implements IChatService {
         HttpRequest httpRequest = buildHttpRequest(config, provider, model, request, true, dialect);
         httpRequest.setHeader("accept", "text/event-stream");
 
-        // 3.1-C3-001 ③（plan 2505）：显式平台受管承载（GlobalExecutors 治理面，daemon cached 池）——
-        // 消除缺省 ForkJoinPool.commonPool 承载（聚合/日志 I/O/AiCommand 延续链全部落共享池的缺陷形态）；
-        // 阻塞日志 I/O 不指向 globalTimer（MA-16 收窄后约束）。有界缓冲 + 满载 fail-loud（②）。
-        SubmissionPublisher<ChatStreamChunk> publisher =
-                new SubmissionPublisher<>(GlobalExecutors.cachedThreadPool(), STREAM_PUBLISHER_BUFFER_SIZE);
+        // 3.1-C3-001 ③（plan 2505）：投递线程仍为显式平台受管承载（GlobalExecutors 治理面，
+        // daemon cached 池），但载体由 SubmissionPublisher（best-effort 语义）换为
+        // BoundedStreamPublisher（同步 onSubscribe + 自有 FIFO 缓冲 + demand 门控异步投递）：
+        // SubmissionPublisher 的 onSubscribe 经 executor 异步投递，subscribe() 同步注册后
+        // 与异步 onSubscribe 落地之间的窗口内 offer 的元素被静默丢弃（满载下流式首包全丢、
+        // 窗口内失败误分类重订阅的实测根因）。同步 onSubscribe 消除该窗口；offer 仅入缓冲 +
+        // 触发投递任务，读线程永不阻塞（C3-001 慢下游 fail-loud 语义保留）。
+        BoundedStreamPublisher<ChatStreamChunk> publisher =
+                new BoundedStreamPublisher<>(GlobalExecutors.cachedThreadPool(),
+                        STREAM_PUBLISHER_BUFFER_SIZE);
 
         Flow.Publisher<IServerEventResponse> eventPublisher = httpClient.fetchServerEventFlow(httpRequest, cancelToken);
         eventPublisher.subscribe(new Flow.Subscriber<>() {
