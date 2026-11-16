@@ -1,5 +1,13 @@
 # 更新日志
 
+## 修复 2026-11-16
+* 修复 nop-ai-core 流式桥接首包静默丢失——SubmissionPublisher 的 onSubscribe 经 executor 异步投递，`subscribe()` 同步注册后与 onSubscribe 落地之间的窗口内 offer 元素被 best-effort 语义静默丢弃 (commit: 本次)
+  - 满载下流式首包全部丢失，gRPC/WS/消息/文件入口的流式请求 100% 返回零交付（单元测试实测 `texts=[] completed=true`）
+  - 修复：新增 `BoundedStreamPublisher`（同步 onSubscribe + 自有 FIFO 缓冲 + 受管 executor 异步 demand 门控投递），`ChatServiceImpl` 换用；缓冲满 onDrop fail-loud、异常终态立即交付、成功终态等缓冲清空等既有契约保持
+* 修复 GraphQL 五入口（gRPC/quarkus WS/spring WS/消息/文件）自建 context 时任何 `executeRpcAsync`/`executeGraphQLAsync` 抛 `nop.err.api.context-already-closed` 替换业务响应 (commit: 本次)
+  - `newRpcContext` 自建分支未绑定 service context，`invokeWithBindingCtx` 的 restoreCtx 落在请求终态关闭钩子之后抛错；修复 = 自建 context 创建即 `bindToContext`（无可回退绑定）
+  - HTTP 入口（复用分支）不受影响；回归钉 2 条（自建 context 上 RPC 成功路/失败路）
+
 ## 修复 2026-10-18
 * 修复 MDX 查询（`io.nop.orm.mdx`）主子表维度对齐的静默失效与结果污染 (commit: c58753ea78)
   - **行为变更**：显式 JOIN 未声明 `dimFields` 时不再抛 `nop.err.orm.dim-fields-mismatch`；主/子表字段 label 冲突、`expression`/`formula`/`aggregates` 由静默忽略改为抛异常（`nop.err.orm.query-duplicate-field-label` / `nop.err.orm.query-unsupported-field-attr`）；`distinct` 恢复生效后，依赖 `SELECT DISTINCT` 的查询结果行数会变化（去重正确）
