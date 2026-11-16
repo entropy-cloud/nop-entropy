@@ -13,9 +13,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Wave6 6A-1 pins F5/F8: staleness must fire for poms ADDED after the refresh
- * (the old hash-map-only check never saw a brand-new module) and for a JDK
- * toolchain change (recorded but never compared).
+ * Wave6 6A-1 pins F5(revised)/F8: staleness fires for a JDK toolchain change
+ * (recorded but never compared). The pom-ADDED walk check was REVISED in wave6:
+ * poms on disk outside the recorded reactor are legitimately unrecorded
+ * (profile-gated/aggregator poms — plain mvn does not build them either), so
+ * new-module coverage is enforced at plan time instead (ScopePlanner forces
+ * the Maven fallback for source changes outside reactor modules).
  */
 class TestModelStoreStaleness {
 
@@ -42,18 +45,6 @@ class TestModelStoreStaleness {
     void freshModelPasses() throws Exception {
         setup();
         assertNull(store.stalenessReason(model));
-    }
-
-    /** F5 pin: a pom added after the refresh must invalidate the model. */
-    @Test
-    void addedPomIsStale() throws Exception {
-        setup();
-        Path pomB = repo.resolve("b/pom.xml");
-        Files.createDirectories(pomB.getParent());
-        Files.writeString(pomB, "<project/>", StandardCharsets.UTF_8);
-        String reason = store.stalenessReason(model);
-        assertNotNull(reason, "a pom added after refresh must trigger staleness");
-        assertTrue(reason.contains("pom added"));
     }
 
     @Test

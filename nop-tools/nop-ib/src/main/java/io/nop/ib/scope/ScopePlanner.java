@@ -91,9 +91,18 @@ public final class ScopePlanner {
         }
 
         ModuleChanges changes = classifyAll(changedPaths);
+        // wave6 audit F5 (revised): a source change OUTSIDE any reactor module
+        // means the model cannot see that code (brand-new module, or non-reactor
+        // tree). Warn-only let a new module's tests silently drop out of the
+        // selection — the exact fake-green shape. Java/aspect sources force the
+        // Maven fallback (mvn's reactor is the only authority for unseen code);
+        // non-source files (docs, scripts) stay warn-only.
         for (String outside : changes.outsideModules()) {
-            if (outside.endsWith(".java"))
+            if (outside.endsWith(".java")) {
+                plan.setFallbackReason("source change outside reactor modules: " + outside
+                        + " (possible new module — model has no facts for it)");
                 plan.warn("change outside reactor modules: " + outside);
+            }
         }
 
         Set<String> changedModuleIds = new TreeSet<>();

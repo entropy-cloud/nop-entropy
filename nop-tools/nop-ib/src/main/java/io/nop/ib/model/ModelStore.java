@@ -60,9 +60,13 @@ public final class ModelStore {
 
     /**
      * Staleness check: re-hash every recorded pom, detect poms ADDED after the
-     * refresh (wave6 audit F5 — a brand-new module was invisible to the hash map
-     * and never triggered staleness), and detect a JDK toolchain change (wave6
-     * audit F8 — recorded but never compared). Returns null when fresh, else a
+     * and detect a JDK toolchain change (wave6 audit F8 — recorded but never
+     * compared). New-module coverage is enforced at PLAN time instead (wave6
+     * revision: a pom on disk outside the recorded reactor is NOT staleness —
+     * profile-gated/aggregator poms are legitimately unrecorded and plain mvn
+     * does not build them either; ScopePlanner routes changed sources outside
+     * reactor modules to the Maven fallback, which covers the new-module case
+     * without false positives). Returns null when fresh, else a
      * reason string. Also stale when the recorded repo root differs from this
      * one. Maven-version and dumpSha256 revalidation stay at explicit
      * {@code model refresh} / {@code cache verify} only: an {@code mvn -v}
@@ -86,50 +90,9 @@ public final class ModelStore {
             if (!now.equals(e.getValue()))
                 return "pom changed: " + e.getKey();
         }
-        String added = findUnrecordedPom(model);
-        if (added != null)
-            return "pom added after refresh: " + added;
         return null;
     }
 
-    /**
-     * First pom.xml on disk that the model does not record, or null. The walk
-     * prunes generated/build/dependency trees (target, node_modules, hidden
-     * dirs) so a reactor-size repo stays in the sub-second budget.
-     */
-    private String findUnrecordedPom(IbModel model) {
-        Map<String, String> recorded = model.getPomHashes();
-        final String[] result = {null};
-        try {
-            java.nio.file.Files.walkFileTree(repoRoot, new java.nio.file.SimpleFileVisitor<>() {
-                @Override
-                public java.nio.file.FileVisitResult preVisitDirectory(Path dir, java.nio.file.attribute.BasicFileAttributes attrs) {
-                    String name = dir.getFileName() != null ? dir.getFileName().toString() : "";
-                    // prune build outputs, dependency checkouts and VCS state
-                    if (dir.equals(repoRoot))
-                        return java.nio.file.FileVisitResult.CONTINUE;
-                    if (name.equals("target") || name.equals("node_modules") || name.startsWith("."))
-                        return java.nio.file.FileVisitResult.SKIP_SUBTREE;
-                    return java.nio.file.FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public java.nio.file.FileVisitResult visitFile(Path file, java.nio.file.attribute.BasicFileAttributes attrs) {
-                    if (result[0] == null && file.getFileName().toString().equals("pom.xml")) {
-                        String rel = repoRoot.relativize(file).toString();
-                        if (!recorded.containsKey(rel))
-                            result[0] = rel;
-                    }
-                    return result[0] != null ? java.nio.file.FileVisitResult.TERMINATE
-                            : java.nio.file.FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            // a failed walk cannot prove freshness: fail loud per zero-fake-green
-            return "<pom scan failed: " + e + ">";
-        }
-        return result[0];
-    }
 
     public static String sha256(Path file) {
         try {

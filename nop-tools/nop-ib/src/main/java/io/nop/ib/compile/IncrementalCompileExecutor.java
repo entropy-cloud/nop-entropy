@@ -170,9 +170,18 @@ public final class IncrementalCompileExecutor {
         }
 
         List<File> sourcePath = new ArrayList<>();
-        if (module.getSourceDir() != null)
+        // wave6 6B-1 finding: effective-pom ALWAYS declares the default
+        // sourceDirectory/testSourceDirectory even when the directory does not
+        // exist on disk; nop-javac validates -sourcepath entries for existence
+        // and hard-fails (javac itself ignores missing paths silently, returning
+        // success with zero output — validator is the honest guard). Only pass
+        // directories that actually exist so modules without a test tree
+        // (liteflow-core precedent) compile on the fast path.
+        if (module.getSourceDir() != null
+                && Files.isDirectory(model.resolve(module.getSourceDir()).toPath()))
             sourcePath.add(model.resolve(module.getSourceDir()));
-        if (module.getTestSourceDir() != null)
+        if (module.getTestSourceDir() != null
+                && Files.isDirectory(model.resolve(module.getTestSourceDir()).toPath()))
             sourcePath.add(model.resolve(module.getTestSourceDir()));
 
         JavaCompilerFacade.CompileResult result = JavaCompilerFacade.compile(
