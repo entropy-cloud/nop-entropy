@@ -253,6 +253,14 @@ public final class EffectivePomParser {
         String excludedGroups = text(first(cfg, "excludedGroups"));
         if (excludedGroups != null && !excludedGroups.isBlank())
             mod.setSurefireExcludedGroups(excludedGroups.trim());
+        Element excludes = first(cfg, "excludes");
+        if (excludes != null) {
+            for (Element exc : children(excludes, "exclude")) {
+                String v = text(exc);
+                if (v != null && !v.isBlank())
+                    mod.getSurefireExcludes().add(v.trim());
+            }
+        }
         Element props = first(cfg, "systemPropertyVariables");
         if (props != null) {
             Map<String, String> map = new LinkedHashMap<>();

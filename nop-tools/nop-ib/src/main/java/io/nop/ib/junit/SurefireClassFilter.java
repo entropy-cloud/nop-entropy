@@ -27,9 +27,16 @@ public final class SurefireClassFilter {
     /** classes of the module that surefire would execute. */
     public static List<String> filter(List<String> classNames, IbModule module) {
         List<String> includes = module.getSurefireIncludes();
+        List<String> excludes = module.getSurefireExcludes();
         List<String> out = new ArrayList<>();
         for (String cls : classNames) {
             String simple = simpleName(cls);
+            // surefire <excludes> parity (defect 30, spring-batch observation):
+            // mvn's test phase drops excluded classes (**/*IntegrationTests.java
+            // runs via failsafe at the integration-test phase instead); dispatching
+            // them over-ran mvn by 75 classes / 249 tests
+            if (excludes != null && !excludes.isEmpty() && matchesAnyPattern(simple, excludes))
+                continue;
             if (matchesDefault(simple) && (includes == null || includes.isEmpty()))
                 out.add(cls);
             else if (includes != null && !includes.isEmpty() && matchesAnyPattern(simple, includes))
