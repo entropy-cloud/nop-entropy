@@ -52,22 +52,22 @@
 
 ### Phase 1 — 6A 深度审计（定向，静态+运行时）
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/**`、`ai-dev/analysis/`
 
 Item Types: `Proof | Fix`
 
-- [ ] 6A-1 引擎全路径 invariant 审计：`model refresh → plan → compile → index → dispatch → fork/worker → differential rerun → fallback` 逐环节 invariant 核对，每条 invariant 给 file:line 证据或缺陷登记（invariant-loop 方法论）
-- [ ] 6A-2 模型事实完备性审计：EffectivePomParser 解析面 vs surefire 实际消费面差异清单，系统性枚举 `runOrder/groups/parallel/reuseForks/systemPropertyVariables ${...} 引用/additionalClasspathElements/additionalClasspathDependencies/profile 条件激活`，每项裁定（解析/回退/不等价登记）
-- [ ] 6A-3 派发面三向审计：UNDER/OVER/IB-ONLY 在 ≥3 个已测项目类级差分复算（复用 nop.ib.debugPerClass + surefire-reports 口径），全量差异登记表归零
-- [ ] 6A-4 失败语义审计：watchdog/rerun-gate/worker-crash/firstError 剪枝行为矩阵（每格：发生条件→可见输出→oracle 影响），消灭"结果被覆盖/丢弃"路径（spring-batch-core 1800s 覆盖、jsr352 firstError 剪枝先例）
-- [ ] 6A-5 锁与并发审计：`.mvn/build.lock` 与 worker 池/fallback/多模块 sweep 交互矩阵；-pl 多模块并行 sweep 输出互斥证明
-- [ ] 审计发现全部落 `ai-dev/analysis/`（时效性，带 Status）并逐条分流 Fix / Deferred-Adjudicated
+- [x] 6A-1 引擎全路径 invariant 审计：`model refresh → plan → compile → index → dispatch → fork/worker → differential rerun → fallback` 逐环节 invariant 核对，每条 invariant 给 file:line 证据或缺陷登记（invariant-loop 方法论）
+- [x] 6A-2 模型事实完备性审计：EffectivePomParser 解析面 vs surefire 实际消费面差异清单，系统性枚举 `runOrder/groups/parallel/reuseForks/systemPropertyVariables ${...} 引用/additionalClasspathElements/additionalClasspathDependencies/profile 条件激活`，每项裁定（解析/回退/不等价登记）
+- [x] 6A-3 派发面三向审计：UNDER/OVER/IB-ONLY 在 ≥3 个已测项目类级差分复算（复用 nop.ib.debugPerClass + surefire-reports 口径），全量差异登记表归零
+- [x] 6A-4 失败语义审计：watchdog/rerun-gate/worker-crash/firstError 剪枝行为矩阵（每格：发生条件→可见输出→oracle 影响），消灭"结果被覆盖/丢弃"路径（spring-batch-core 1800s 覆盖、jsr352 firstError 剪枝先例）
+- [x] 6A-5 锁与并发审计：`.mvn/build.lock` 与 worker 池/fallback/多模块 sweep 交互矩阵；-pl 多模块并行 sweep 输出互斥证明
+- [x] 审计发现全部落 `ai-dev/analysis/`（时效性，带 Status）并逐条分流 Fix / Deferred-Adjudicated
 
 Exit Criteria:
 
-- [ ] 每条审计有 file:line 级证据清单文件（`ai-dev/analysis/2026-11-*-wave6-audit-*.md`）
-- [ ] 发现项台账 100% 分流：Fix（进 Phase 3）或 Deferred（带 Why Not Blocking + successor）
+- [x] 每条审计有 file:line 级证据清单文件（`ai-dev/analysis/2026-11-*-wave6-audit-*.md`）
+- [x] 发现项台账 100% 分流：Fix（进 Phase 3）或 Deferred（带 Why Not Blocking + successor）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 — 6B 开放式对抗审计
