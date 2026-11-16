@@ -127,6 +127,8 @@ public final class EffectivePomParser {
                 String v = text(first(props, "skipTests"));
                 if (v == null)
                     v = text(first(props, "skip"));
+                if (v == null)
+                    v = text(first(props, "maven.test.skip"));
                 if (v != null)
                     mod.setSurefireSkipTests(v);
             }
@@ -152,7 +154,45 @@ public final class EffectivePomParser {
         } else if (mod.getSourceDir() != null && mod.getSourceDir().contains("/src/")) {
             mod.setBasedir(mod.getSourceDir().substring(0, mod.getSourceDir().lastIndexOf("/src/")));
         }
+        resolveSurefireExtras(mod);
         return mod;
+    }
+
+    /**
+     * Post-basedir resolution of surefire extras that need the module location
+     * (wave6 6A-2): repo-internal additionalClasspathElements and a non-default
+     * workingDirectory both route the module to real surefire — the fork engine
+     * cannot mirror them without breaking I1 (no intra-project artifacts) or the
+     * cwd=module-basedir contract.
+     */
+    private void resolveSurefireExtras(IbModule mod) {
+        String basedir = mod.getBasedir();
+        for (int i = mod.getSurefireAdditionalClasspathElements().size() - 1; i >= 0; i--) {
+            String raw = mod.getSurefireAdditionalClasspathElements().get(i);
+            String rel = rel(raw);
+            boolean internal = rel.startsWith(repoRoot) || !raw.startsWith("/")
+                    || (basedir != null && (rel.equals(basedir) || rel.startsWith(basedir + "/")));
+            if (internal) {
+                mod.getSurefireAdditionalClasspathElements().remove(i);
+                mod.setSurefireUnsupportedReason("additionalClasspathElements (repo-internal: "
+                        + raw + ")" + suffixReason(mod));
+            }
+        }
+        String workDir = mod.getPendingSurefireWorkingDirectory();
+        if (workDir != null) {
+            mod.setPendingSurefireWorkingDirectory(null);
+            String rel = rel(workDir);
+            boolean defaultCwd = basedir != null
+                    && (rel.equals(basedir) || rel.equals(basedir + "/") || rel.startsWith(basedir + "/"));
+            if (!defaultCwd)
+                mod.setSurefireUnsupportedReason("workingDirectory (non-default: " + workDir + ")"
+                        + suffixReason(mod));
+        }
+    }
+
+    private String suffixReason(IbModule mod) {
+        String prev = mod.getSurefireUnsupportedReason();
+        return prev == null ? "" : "; also: " + prev;
     }
 
     private void parseCompilerPlugin(Element plugin, IbModule mod) {
@@ -253,6 +293,34 @@ public final class EffectivePomParser {
         String excludedGroups = text(first(cfg, "excludedGroups"));
         if (excludedGroups != null && !excludedGroups.isBlank())
             mod.setSurefireExcludedGroups(excludedGroups.trim());
+        // positive tag filter parity (wave6 6A-2; mirror of defect 27's
+        // excludedGroups): surefire runs ONLY the tag-matched subset
+        String groups = text(first(cfg, "groups"));
+        if (groups != null && !groups.isBlank())
+            mod.setSurefireGroups(groups.trim());
+        // additionalClasspathElements (wave6 6A-2): external (repo-external)
+        // entries are appended to the fork classpath; repo-internal ones are
+        // resolved after basedir computation in parseProject (they route the
+        // module to surefire — no-intra-project-jar invariant I1)
+        Element acles = first(cfg, "additionalClasspathElements");
+        if (acles != null) {
+            for (Element el : children(acles, "additionalClasspathElement")) {
+                String v = text(el);
+                if (v != null && !v.isBlank())
+                    mod.getSurefireAdditionalClasspathElements().add(v.trim());
+            }
+        }
+        // additionalClasspathDependencies (wave6 6A-2): resolving Maven
+        // coordinates to jars is dependency-resolution machinery the fork
+        // engine does not replicate — route the module to surefire
+        if (first(cfg, "additionalClasspathDependencies") != null)
+            mod.setSurefireUnsupportedReason("additionalClasspathDependencies");
+        // non-default workingDirectory (wave6 6A-2): fork cwd is a hard contract
+        // (module basedir); a surefire-configured cwd change cannot be mirrored
+        // without re-verifying every test's relative-path assumptions
+        String workDir = text(first(cfg, "workingDirectory"));
+        if (workDir != null && !workDir.isBlank())
+            mod.setPendingSurefireWorkingDirectory(workDir.trim());
         Element excludes = first(cfg, "excludes");
         if (excludes != null) {
             for (Element exc : children(excludes, "exclude")) {
@@ -283,8 +351,16 @@ public final class EffectivePomParser {
         if (props != null) {
             Map<String, String> map = new LinkedHashMap<>();
             for (Element prop : children(props, null)) {
-                if (prop.getNodeName().equals("property"))
+                // <property><name>k</name><value>v</value></property> form (wave6
+                // 6A-2): silently dropping it lost facts — ingest like the
+                // element-name form
+                if (prop.getNodeName().equals("property")) {
+                    String k = text(first(prop, "name"));
+                    String v = text(first(prop, "value"));
+                    if (k != null && v != null)
+                        map.put(k, v);
                     continue;
+                }
                 map.put(prop.getNodeName(), text(prop));
             }
             mod.getSurefireSystemProperties().putAll(map);

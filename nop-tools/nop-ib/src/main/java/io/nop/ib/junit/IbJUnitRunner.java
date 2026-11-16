@@ -54,6 +54,18 @@ public class IbJUnitRunner {
             .collect(Collectors.toUnmodifiableSet());
 
     /**
+     * JUnit tags INCLUDED at discovery (wave6 6A-2): mirrors surefire's
+     * &lt;groups&gt; — surefire runs only the tag-matched subset, so an unparsed
+     * {@code groups} would dispatch the full set (deterministic over-dispatch).
+     * Populated through {@code nop.ib.includeTags} (comma-separated), forwarded
+     * by the fork command like the excluded counterpart.
+     */
+    static final Set<String> INCLUDED_TAGS = Stream.of(
+            System.getProperty("nop.ib.includeTags", "").split("[,\\s]+"))
+            .filter(s -> !s.isBlank())
+            .collect(Collectors.toUnmodifiableSet());
+
+    /**
      * Worker-lifetime Launcher singleton: LauncherFactory.create() runs a full
      * classpath ServiceLoader engine scan; doing it per class turned every class
      * into a classpath-wide disk sweep across all workers (surefire creates one
@@ -312,6 +324,9 @@ public class IbJUnitRunner {
     private static void applyExcludedTagFilter(LauncherDiscoveryRequestBuilder builder) {
         if (!EXCLUDED_TAGS.isEmpty())
             builder.filters(TagFilter.excludeTags(List.copyOf(EXCLUDED_TAGS)));
+        // mirrors surefire groups (wave6 6A-2): only tag-matched tests run
+        if (!INCLUDED_TAGS.isEmpty())
+            builder.filters(TagFilter.includeTags(List.copyOf(INCLUDED_TAGS)));
     }
 
     /** Single-class execution shared by single-run and worker modes. */

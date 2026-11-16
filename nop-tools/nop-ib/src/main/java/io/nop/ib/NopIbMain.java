@@ -82,7 +82,9 @@ public class NopIbMain {
             } else if (arg.startsWith("--on-fallback=")) {
                 onFallback = arg.substring("--on-fallback=".length());
             } else if ("-pl".equals(arg) && i + 1 < args.length) {
-                plModules = args[++i];
+                // repeated -pl flags accumulate (wave6 6C-4): `test -pl a -pl b`
+                // now equals `-pl a,b` — matching mvn's multi-flag semantics
+                plModules = plModules == null ? args[++i] : plModules + "," + args[++i];
             } else if ("--class".equals(arg) && i + 1 < args.length) {
                 explicitClasses.add(args[++i]);
             } else if ("--affected".equals(arg)) {
@@ -91,8 +93,12 @@ public class NopIbMain {
                 rerunFailed = true;
             } else if ("--runner".equals(arg) && i + 1 < args.length) {
                 runner = args[++i];
-            } else if ("--fork-parallelism".equals(arg) && i + 1 < args.length) {
-                io.nop.ib.cli.TestCommand.setForkParallelism(Integer.parseInt(args[++i]));
+            } else if ("--fork-parallelism".equals(arg)) {
+                // legacy flag: one-fork-per-class execution was replaced by the
+                // persistent worker pool (design 06) — reject loudly instead of
+                // silently ignoring
+                err.println("usage error: --fork-parallelism removed (worker pool replaced per-class forks; use nop.ib.workerBudget)");
+                return 3;
             } else if ("--paths".equals(arg)) {
                 // --paths <comma-separated> or remaining positional args
                 if (i + 1 < args.length && !args[i + 1].startsWith("--")) {

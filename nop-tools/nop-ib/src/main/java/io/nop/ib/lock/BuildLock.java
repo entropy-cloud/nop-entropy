@@ -15,8 +15,12 @@ import java.time.Instant;
 /**
  * Exclusive build lock on {@code .mvn/build.lock} — the same file and the same
  * FileChannel semantics as mvnq's {@code MvnqLock} helper (IB-D9/IB-G5). Held
- * for product writes and test runs; never for read-only commands. The lock file
- * is never deleted (deleting it would fork the inode).
+ * for product writes (fast-path compile) and commands that delegate to Maven
+ * (which must not nest the lock — mvnq takes the same one); never for read-only
+ * commands, and not for the junit-fork test path, which only reads
+ * target/classes and writes per-process temp files (wave6 6A-5 audit B-1 — the
+ * old "test runs" wording was wrong and would serialize the parallel module
+ * sweep). The lock file is never deleted (deleting it would fork the inode).
  */
 public final class BuildLock implements AutoCloseable {
     public static final int EXIT_LOCK_TIMEOUT = 75;

@@ -32,9 +32,18 @@ import java.util.regex.Pattern;
  * {@code nop-ib test} / {@code nop-ib check}: test selection + Surefire delegation
  * (design 05 §7.2 phase 1 / IB-D8). The Maven fallback delegates to the {@code test}
  * lifecycle phase (defect 20) so phase bindings and the default-test execution's
- * configuration stay faithful; the selection set is nop-ib's. Run tests take the
- * shared build lock; `mvnq` applies
- * the same lock, so one protocol governs both.
+ * configuration stay faithful; the selection set is nop-ib's.
+ *
+ * <p>Lock protocol (wave6 6A-5 audit B-1 adjudication): the junit-fork path
+ * TAKES NO BUILD LOCK — it only reads target/classes and writes per-process
+ * temp result files (verified non-overlapping), so it is not a shared-resource
+ * writer; acquiring the exclusive lock here would serialize the parallel module
+ * sweep (-pl a,b, design 06 WR-D6) against itself. All WRITE paths share
+ * .mvn/build.lock: fast-path compile (CompileCommand) and Maven delegations
+ * (mvnq takes the same lock itself, so the fallback must not nest it — the
+ * outer lock would self-deadlock the child). A concurrent compile-vs-test race
+ * on target/classes can only produce a false RED (missing class file), never a
+ * false green — fail-safe direction (hard constraint 4 rationale).
  *
  * <p>Selection re-runs after a Maven fallback compile (design 01 §13.3: a fallback
  * compile invalidates the pre-fallback selection).
@@ -129,6 +138,20 @@ public final class TestCommand {
         List<String> changed = paths != null && !paths.isEmpty() ? paths
                 : (plModules != null ? List.of() : GitChanges.changedPaths(engine.getRepoRoot()));
 
+        // model-staleness gate for ALL dispatch branches (wave6 audit F3): the
+        // plan-scope branch applied it via engine.stalenessReason(); the -pl and
+        // --rerun-failed branches consumed model facts (fork classpath, index
+        // dispatch) without checking — stale poms must never sharpen a fast-path
+        // conclusion (hard constraint 2: model expired = full fallback)
+        String staleReason = engine.stalenessReason();
+        if (staleReason != null) {
+            String notice = "model stale (" + staleReason + "): fast-path dispatch disabled, "
+                    + "delegating to Maven (authoritative)";
+            out.println(json ? JsonOut.write(Map.of("plan", Map.of("stale", staleReason)))
+                    : "[nop-ib] " + notice);
+            log.line(notice);
+        }
+
         // --rerun-failed: rerun the classes recorded by the previous failed run
         if (rerunFailed) {
             Map<String, List<String>> failed = readLastFailed(engine);
@@ -156,11 +179,16 @@ public final class TestCommand {
             // in parallel (design 06 WR-D6 — closes the parallelism gap vs mvn -T 1C)
             List<String> moduleIds = new ArrayList<>();
             for (String artifactId : plModules.split(",")) {
-                if (model.module(artifactId.trim()) == null) {
+                // `-pl :artifactId` coordinate form (wave6 6C-4): same meaning as
+                // the bare artifactId in a single-module reactor
+                String id = artifactId.trim();
+                if (id.startsWith(":"))
+                    id = id.substring(1);
+                if (model.module(id) == null) {
                     err.println("usage error: -pl module not in reactor: " + artifactId);
                     return Commands.EXIT_USAGE;
                 }
-                moduleIds.add(artifactId.trim());
+                moduleIds.add(id);
             }
             int cores = Math.max(2, Runtime.getRuntime().availableProcessors() - 1);
             // fair worker shares (see MODULE_SLOTS): full sweep -> ~4/module like
@@ -203,8 +231,14 @@ public final class TestCommand {
                     workerPermits.acquireUninterruptibly(want);
                     try {
                         long t0 = System.currentTimeMillis();
-                        TestRun run = runModuleTests(engine, module, null, runner, json,
-                                out, err, want);
+                        // stale model (wave6 audit F3): never fork from stale facts —
+                        // Maven re-reads the live poms and is the only valid executor
+                        TestRun run = staleReason != null
+                                ? runMavenModuleTest(engine, module, json, out, err)
+                                : runModuleTests(engine, module, null, runner, json,
+                                        out, err, want);
+                        if (staleReason != null)
+                            run.kind = "maven-module(model-stale)";
                         run.durationMs = System.currentTimeMillis() - t0;
                         runByModule.put(moduleId, run);
                         report(engine, run, json, out, log);
@@ -263,7 +297,7 @@ public final class TestCommand {
         }
 
         // plan scope: compile (optional) + affected tests
-        PlanResult plan = engine.planner().plan(changed, engine.stalenessReason(), allowPartial);
+        PlanResult plan = engine.planner().plan(changed, staleReason, allowPartial);
 
         if (includeCompile) {
             int compileExit = CompileCommand.runCompile(engine, changed, null, onFallback,
@@ -271,10 +305,25 @@ public final class TestCommand {
             if (compileExit != Commands.EXIT_OK)
                 return compileExit;
             // re-judge the selection after compilation (unit indexes refreshed)
-            plan = engine.planner().plan(changed, engine.stalenessReason(), allowPartial);
+            plan = engine.planner().plan(changed, staleReason, allowPartial);
         }
 
+        // hard gate 1 (design 05 §十, wave6 audit F4): partial / wideImpact /
+        // fallback reasons / plan warnings MUST be visible in the output, not
+        // silently dropped with the plan object
+        emitPlanSurface(plan, json, out, log);
+
         if (plan.requiresMavenFallback()) {
+            // guard (wave6 audit F7): an empty change set with a fallback
+            // requirement used to crash on changed.get(0) — with nothing changed
+            // there is nothing to select, so report the honest empty verdict
+            if (changed.isEmpty()) {
+                out.println(json ? JsonOut.write(Map.of("ok", true, "tests",
+                        Map.of("selected", 0, "run", 0, "failed", 0,
+                                "note", "fallback required but no changed paths")))
+                        : "fallback required but no changed paths — nothing selected");
+                return Commands.EXIT_OK;
+            }
             // fallback: module full tests via Maven (delegate compile+test to Maven)
             MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
             StringBuilder mout = new StringBuilder();
@@ -435,6 +484,15 @@ public final class TestCommand {
         List<String> warnings = new ArrayList<>();
         if (!"junit".equals(runner))
             return runSurefire(engine, module, classes, json, out, err);
+        // model-facts gate (wave6 6A-2): surefire config dimensions the fork
+        // engine cannot faithfully replicate (non-default workingDirectory,
+        // additionalClasspathDependencies, repo-internal classpath elements)
+        // route to real surefire — zero-fake-green beats speed
+        if (module.getSurefireUnsupportedReason() != null) {
+            TestRun run = runSurefire(engine, module, classes, json, out, err);
+            run.kind = "surefire(model-facts: " + module.getSurefireUnsupportedReason() + ")";
+            return run;
+        }
         if (classes == null) {
             // full-module fork: enumerate test classes from the unit index
             var index = engine.index(module.getArtifactId());
@@ -475,6 +533,20 @@ public final class TestCommand {
         ClasspathMaterializer materializer = new ClasspathMaterializer(engine.model());
         ClasspathMaterializer.Materialized cp = materializer.testClasspath(module);
         cp.assertNoIntraProjectJars(engine.model());
+        // surefire <additionalClasspathElements> parity (wave6 6A-2): repo-external
+        // entries are appended verbatim (the parser routes repo-internal ones to
+        // the surefire fallback above)
+        if (!module.getSurefireAdditionalClasspathElements().isEmpty()) {
+            List<String> entries = new ArrayList<>(cp.entries());
+            Path repoRootPath = engine.getRepoRoot();
+            for (String element : module.getSurefireAdditionalClasspathElements()) {
+                Path p = Path.of(element);
+                entries.add(p.isAbsolute() ? element : repoRootPath.resolve(element).toString());
+            }
+            cp = new ClasspathMaterializer.Materialized(entries, cp.missing());
+            warnings.add("additionalClasspathElements appended: "
+                    + module.getSurefireAdditionalClasspathElements());
+        }
         // dispatch-surface ruling (candidate defect 26, zeebe-gateway-grpc): Maven
         // surefire puts test-jar dependencies on the classpath but does NOT discover
         // their test classes — the dispatch surface is the module's OWN test classes
@@ -525,15 +597,28 @@ public final class TestCommand {
             JUnitForkExecutor.ForkResult fresh = executor.execute(
                     module, cp, classes, java.time.Duration.ofSeconds(rerunCap));
             System.err.println("nop-ib debug: rerun DONE freshExit=" + fresh.exitCode());
-            if (fresh.exitCode() == 0) {
+            // wave6 audit A-1: a rerun-gate TIMEOUT must not overwrite the worker
+            // run's collected results (spring-batch-core precedent — the fresh
+            // {tests:0, failures:1} placeholder replaced 906 executed tests and
+            // starved --rerun-failed of the class list). Fail-safe merge: keep the
+            // worker results, mark timedOut, verdict stays FAILED.
+            if (fresh.summary().get("timedOut") != null) {
+                forkWarnings.add("module differential rerun timed out (cap=" + rerunCap
+                        + "s): worker-run results retained, module stays FAILED (fail-safe)");
+                Map<String, Object> merged = new LinkedHashMap<>(fork.summary());
+                merged.put("timedOut", true);
+                fork = new JUnitForkExecutor.ForkResult(1, merged, fork.warnings());
+            } else if (fresh.exitCode() == 0) {
                 forkWarnings.add("module differential rerun: PASSES in fresh single-fork "
                         + "(worker-model pollution/order divergence) -> fresh result authoritative");
+                forkWarnings.addAll(fresh.warnings());
+                fork = fresh;
             } else {
                 forkWarnings.add("module differential rerun: fails identically in fresh "
                         + "single-fork -> genuine failures confirmed");
+                forkWarnings.addAll(fresh.warnings());
+                fork = fresh;
             }
-            forkWarnings.addAll(fresh.warnings());
-            fork = fresh;
         }
         if (fork.exitCode() == -3) {
             // junit setup unsatisfiable -> explicit fallback
@@ -543,6 +628,10 @@ public final class TestCommand {
         }
         TestRun run = new TestRun(module.getArtifactId(), classes);
         run.kind = "junit-fork";
+        // forkWarnings carries the recovery warnings (index-missing recovery,
+        // ACLE append, differential rerun verdicts) — they were assembled but
+        // never surfaced before (wave6 audit F4 family)
+        run.warnings.addAll(forkWarnings);
         run.warnings.addAll(fork.warnings());
         Map<String, Object> summary = fork.summary();
         int tests = numOf(summary.get("tests"));
@@ -553,6 +642,18 @@ public final class TestCommand {
             for (Object o : iter)
                 run.warnings.add("slow: " + o);
         }
+        // fork-crash diagnostics surfacing (wave6 6C-2, flink-agents abort-134
+        // precedent): a fork that died without a result document carries its
+        // stderr/stdout tails in the summary — they must reach the run warnings,
+        // not stay buried in a map the caller never prints
+        if (summary.get("forkError") != null)
+            run.warnings.add("forkError: " + summary.get("forkError"));
+        if (summary.get("forkStdoutTail") != null)
+            run.warnings.add("forkStdoutTail: " + summary.get("forkStdoutTail"));
+        if (summary.get("crashed") != null)
+            run.warnings.add("fork crashed without result document (exit " + fork.exitCode() + ")");
+        if (Boolean.TRUE.equals(summary.get("poolAborted")))
+            run.warnings.add("worker pool aborted: see earlier pool warning; module verdict FAILED");
         Object failedList = summary.get("failed");
         if (failedList instanceof Iterable<?> iter) {
             StringBuilder sb = new StringBuilder();
@@ -569,49 +670,44 @@ public final class TestCommand {
                     mout, new StringBuilder());
             if (code == 0) {
                 fork = executor.execute(module, cp, classes == null ? List.of() : classes);
+                Map<String, Object> s2 = fork.summary();
+                // wave6 audits F2/A-3: the retry fork's own exit semantics govern —
+                // the old `f2 > 0 ? FAILED : OK` reported EXIT_OK for a retry that
+                // executed ZERO tests (still-missing classes, crashed fork) — a
+                // fake green. exit 2 again = classes still missing -> FAILED with
+                // the missing list; -3 = setup unusable -> surefire fallback.
+                if (fork.exitCode() == -3 || s2.isEmpty()) {
+                    TestRun fb = runSurefire(engine, module, classes, json, out, err);
+                    fb.kind = "surefire(missing-class-retry-unusable)";
+                    fb.warnings.addAll(warnings);
+                    return fb;
+                }
                 run.summary.clear();
-                int t2 = numOf(fork.summary().get("tests"));
-                int f2 = numOf(fork.summary().get("failures"));
-                int s2 = numOf(fork.summary().get("skipped"));
-                run.summary.add(new int[]{t2, f2, 0, s2});
-                run.exitCode = f2 > 0 ? Commands.EXIT_FAILED : Commands.EXIT_OK;
+                int t2 = numOf(s2.get("tests"));
+                int f2 = numOf(s2.get("failures"));
+                int sk2 = numOf(s2.get("skipped"));
+                run.summary.add(new int[]{t2, f2, 0, sk2});
+                if (fork.exitCode() == 2) {
+                    run.warnings.addAll(warnings);
+                    run.warnings.add("missing classes persist after Maven test-compile retry: "
+                            + (s2.get("missingClasses") != null ? s2.get("missingClasses") : "unknown"));
+                    run.exitCode = Commands.EXIT_FAILED;
+                    return run;
+                }
+                run.warnings.addAll(warnings);
+                run.exitCode = fork.exitCode() == 0 && t2 > 0
+                        ? Commands.EXIT_OK : Commands.EXIT_FAILED;
                 return run;
             }
+            // compile retry itself failed: the selected classes cannot be built —
+            // the run is FAILED, not silently green (wave6 audit A-3)
+            run.warnings.addAll(warnings);
+            run.warnings.add("missing-class Maven test-compile retry failed (exit " + code + ")");
+            run.exitCode = Commands.EXIT_FAILED;
+            return run;
         }
         run.exitCode = fork.exitCode() == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         return run;
-    }
-
-    private static Map<String, Object> remapSummary(Map<String, Object> old,
-                                                    List<Map<String, String>> stillFailed) {
-        Map<String, Object> m = new LinkedHashMap<>(old);
-        m.put("failed", stillFailed);
-        m.put("failures", stillFailed.size());
-        return m;
-    }
-
-    /**
-     * Differential-retry timeout from the worker-measured class time: 4x with a
-     * 120s floor and the 300s batch cap. The floor must exceed a fresh fork's
-     * full cost — JVM boot plus first-class platform bootstrap (the worker's
-     * timeMs is a warm measurement and excludes both), multiplied by sweep-load
-     * contention: a 60s floor killed legitimate retries and recorded pollution
-     * victims as stillFailed. No measurement (worker hang/abort) also gets the
-     * short budget — a genuine hang must fail fast instead of burning a second
-     * watchdog period.
-     */
-    static java.time.Duration retryTimeout(String workerTimeMs) {
-        long timeMs = -1;
-        if (workerTimeMs != null) {
-            try {
-                timeMs = Long.parseLong(workerTimeMs);
-            } catch (NumberFormatException ignored) {
-                // "null" or unparseable: no measurement
-            }
-        }
-        if (timeMs < 0)
-            return java.time.Duration.ofSeconds(120);
-        return java.time.Duration.ofMillis(Math.max(120_000, Math.min(4 * timeMs, 300_000)));
     }
 
     private static int workerMaxClasses(IbEngine engine) {
@@ -632,111 +728,6 @@ public final class TestCommand {
 
     private static int numOf(Object v) {
         return v instanceof Number n ? n.intValue() : 0;
-    }
-
-    /**
-     * Per-class forks with bounded parallelism (mirrors surefire forkCount=4 /
-     * parallel=classes): isolation across classes avoids cross-class pollution in
-     * a single shared JVM, and the batch watchdog applies per fork.
-     */
-    /**
-     * Process-level isolation (one fork per class) means parallelism is bounded by
-     * CPU/memory, not by JUnit statics. Default: cores-1; override via
-     * --fork-parallelism or system property nop.ib.forkParallelism. Heavy
-     * TestContainers-style classes still serialize themselves on external
-     * resources; a hung class is killed by the per-fork watchdog and cannot block
-     * the rest of the module.
-     */
-    private static final int FORK_PARALLELISM =
-            Math.max(1, Integer.getInteger("nop.ib.forkParallelism",
-                    Runtime.getRuntime().availableProcessors() - 1));
-    private static int forkParallelismOverride = Integer.getInteger("nop.ib.forkParallelism", 0);
-
-    public static void setForkParallelism(int n) {
-        if (n > 0)
-            forkParallelismOverride = n;
-    }
-
-    private static JUnitForkExecutor.ForkResult executeForks(JUnitForkExecutor executor,
-                                                             IbModule module,
-                                                             ClasspathMaterializer.Materialized cp,
-                                                             List<String> classes,
-                                                             List<String> warnings) {
-        List<String> list = classes == null ? List.of() : classes;
-        if (list.size() <= 1)
-            return executor.execute(module, cp, list);
-        int parallelism = forkParallelismOverride > 0 ? forkParallelismOverride : FORK_PARALLELISM;
-        java.util.concurrent.ExecutorService pool =
-                java.util.concurrent.Executors.newFixedThreadPool(parallelism);
-        java.util.List<java.util.concurrent.Future<JUnitForkExecutor.ForkResult>> futures = new ArrayList<>();
-        for (String cls : list) {
-            futures.add(pool.submit(() -> executor.execute(module, cp, List.of(cls))));
-        }
-        pool.shutdown();
-        int failures = 0;
-        int tests = 0;
-        int skipped = 0;
-        boolean setupFailed = false;
-        boolean timedOut = false;
-        List<String> timedOutClasses = new ArrayList<>();
-        List<Map<String, String>> failedDetails = new ArrayList<>();
-        List<String> missingClasses = new ArrayList<>();
-        try {
-            for (int fi = 0; fi < futures.size(); fi++) {
-                var f = futures.get(fi);
-                JUnitForkExecutor.ForkResult r = f.get();
-                for (String w : r.warnings())
-                    if (!warnings.contains(w))
-                        warnings.add(w);
-                if (r.exitCode() == -3)
-                    setupFailed = true;
-                Object t = r.summary().get("tests");
-                Object fl = r.summary().get("failures");
-                Object sk = r.summary().get("skipped");
-                if (t instanceof Number n)
-                    tests += n.intValue();
-                if (sk instanceof Number n)
-                    skipped += n.intValue();
-                if (fl instanceof Number n)
-                    failures += n.intValue();
-                if (r.summary().get("timedOut") != null) {
-                    timedOut = true;
-                    timedOutClasses.add(fi < list.size() ? list.get(fi) : "?");
-                }
-                if (r.summary().get("missingClasses") instanceof Iterable<?> iter) {
-                    for (Object o : iter)
-                        missingClasses.add(String.valueOf(o));
-                }
-                if (r.summary().get("failed") instanceof Iterable<?> iter) {
-                    for (Object o : iter) {
-                        if (o instanceof Map<?, ?> m) {
-                            Map<String, String> d = new java.util.LinkedHashMap<>();
-                            d.put("class", String.valueOf(m.get("class")));
-                            d.put("method", String.valueOf(m.get("method")));
-                            d.put("type", String.valueOf(m.get("type")));
-                            d.put("message", String.valueOf(m.get("message")));
-                            failedDetails.add(d);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            warnings.add("fork aggregation error: " + e);
-            failures++;
-        }
-        Map<String, Object> summary = new java.util.LinkedHashMap<>();
-        summary.put("tests", tests);
-        summary.put("failures", failures);
-        summary.put("skipped", skipped);
-        summary.put("failed", failedDetails);
-        if (!missingClasses.isEmpty())
-            summary.put("missingClasses", missingClasses);
-        if (timedOut) {
-            summary.put("timedOut", true);
-            summary.put("timedOutClasses", timedOutClasses);
-        }
-        int exit = setupFailed ? -3 : (failures > 0 ? 1 : 0);
-        return new JUnitForkExecutor.ForkResult(exit, summary, warnings);
     }
 
     /** Module-scoped Maven build+test for widened modules lacking test products. */
@@ -913,6 +904,32 @@ public final class TestCommand {
                     Integer.parseInt(m.group(3)), Integer.parseInt(m.group(4))});
         }
         return out;
+    }
+
+    /**
+     * Plan-scope visibility (design 05 §十 hard gate 1, wave6 audit F4):
+     * partial / wideImpact / fallbackReason / plan warnings must appear in the
+     * command output and the run log — a quiet narrowing of the selection set is
+     * the fake-green shape this engine exists to prevent.
+     */
+    private static void emitPlanSurface(PlanResult plan, boolean json, PrintWriter out, RunLog log) {
+        boolean hasScope = plan.isPartial() || plan.isWideImpact()
+                || plan.getFallbackReason() != null || !plan.getWarnings().isEmpty();
+        if (!hasScope)
+            return;
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("partial", plan.isPartial());
+        m.put("wideImpact", plan.isWideImpact());
+        if (plan.getFallbackReason() != null)
+            m.put("fallbackReason", plan.getFallbackReason());
+        if (!plan.getWarnings().isEmpty())
+            m.put("warnings", plan.getWarnings());
+        String line = json ? JsonOut.write(Map.of("plan", m))
+                : "[nop-ib] plan: partial=" + plan.isPartial() + " wideImpact=" + plan.isWideImpact()
+                        + (plan.getFallbackReason() != null ? " fallback=" + plan.getFallbackReason() : "")
+                        + (plan.getWarnings().isEmpty() ? "" : " warnings=" + plan.getWarnings());
+        out.println(line);
+        log.line(json ? line : JsonOut.write(Map.of("plan", m)));
     }
 
     private static void report(IbEngine engine, TestRun run, boolean json, PrintWriter out, RunLog log) {

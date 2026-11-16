@@ -34,6 +34,26 @@ public class IbModule {
     private List<String> surefireIncludes = new ArrayList<>();
     /** surefire <excludedGroups> (comma-separated JUnit tags); null = unset */
     private String surefireExcludedGroups;
+    /** surefire <groups> (comma-separated JUnit tags); null = unset (wave6 6A-2) */
+    private String surefireGroups;
+    /**
+     * surefire <additionalClasspathElements>: entries that live OUTSIDE the repo
+     * (external jars/dirs) are appended verbatim to the fork classpath. Entries
+     * inside the repo would violate the no-intra-project-jar invariant (I1), so
+     * the module is routed to surefire via {@link #surefireUnsupportedReason}
+     * instead (wave6 6A-2).
+     */
+    private List<String> surefireAdditionalClasspathElements = new ArrayList<>();
+    /**
+     * non-null when the module's surefire config uses a dimension the fork
+     * engine cannot faithfully replicate (non-default workingDirectory,
+     * additionalClasspathDependencies with repo-internal resolution targets,
+     * repo-internal additionalClasspathElements): dispatch falls back to real
+     * surefire with this reason (wave6 6A-2; zero-fake-green > speed).
+     */
+    private String surefireUnsupportedReason;
+    /** transient parse state: raw surefire workingDirectory, resolved post-basedir */
+    private transient String pendingSurefireWorkingDirectory;
     /** explicit surefire <excludes> patterns (basename stems); empty = none */
     private List<String> surefireExcludes = new ArrayList<>();
     private Map<String, String> surefireSystemProperties = new LinkedHashMap<>();
@@ -73,6 +93,11 @@ public class IbModule {
         if (!surefireIncludes.isEmpty())
             surefire.put("includes", surefireIncludes);
         surefire.put("excludedGroups", surefireExcludedGroups);
+        surefire.put("groups", surefireGroups);
+        if (!surefireAdditionalClasspathElements.isEmpty())
+            surefire.put("additionalClasspathElements", surefireAdditionalClasspathElements);
+        if (surefireUnsupportedReason != null)
+            surefire.put("unsupportedReason", surefireUnsupportedReason);
         if (!surefireExcludes.isEmpty())
             surefire.put("excludes", surefireExcludes);
         surefire.put("systemPropertyVariables", surefireSystemProperties);
@@ -112,6 +137,13 @@ public class IbModule {
                     mod.surefireIncludes.add(String.valueOf(o));
             }
             mod.surefireExcludedGroups = (String) sf.get("excludedGroups");
+            mod.surefireGroups = (String) sf.get("groups");
+            Object acle = sf.get("additionalClasspathElements");
+            if (acle instanceof Iterable<?> iter3) {
+                for (Object o : iter3)
+                    mod.surefireAdditionalClasspathElements.add(String.valueOf(o));
+            }
+            mod.surefireUnsupportedReason = (String) sf.get("unsupportedReason");
             Object exc = sf.get("excludes");
             if (exc instanceof Iterable<?> iter2) {
                 for (Object o : iter2)
@@ -278,6 +310,34 @@ public class IbModule {
         this.surefireExcludedGroups = surefireExcludedGroups;
     }
 
+    public String getSurefireGroups() {
+        return surefireGroups;
+    }
+
+    public void setSurefireGroups(String surefireGroups) {
+        this.surefireGroups = surefireGroups;
+    }
+
+    public List<String> getSurefireAdditionalClasspathElements() {
+        return surefireAdditionalClasspathElements;
+    }
+
+    public String getSurefireUnsupportedReason() {
+        return surefireUnsupportedReason;
+    }
+
+    public void setSurefireUnsupportedReason(String surefireUnsupportedReason) {
+        this.surefireUnsupportedReason = surefireUnsupportedReason;
+    }
+
+    public String getPendingSurefireWorkingDirectory() {
+        return pendingSurefireWorkingDirectory;
+    }
+
+    public void setPendingSurefireWorkingDirectory(String pending) {
+        this.pendingSurefireWorkingDirectory = pending;
+    }
+
     public Map<String, String> getSurefireSystemProperties() {
         return surefireSystemProperties;
     }
@@ -402,6 +462,11 @@ public class IbModule {
 
         public String getGa() {
             return ga;
+        }
+
+        /** public for model builders (scope-layer tests, synthetic reactors). */
+        public void setGa(String ga) {
+            this.ga = ga;
         }
 
         public String getScope() {

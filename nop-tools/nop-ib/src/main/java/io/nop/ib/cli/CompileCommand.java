@@ -60,7 +60,11 @@ public final class CompileCommand {
             // modules (v1 semantics: explicit module scope = module-compile request)
             changed = new ArrayList<>();
             for (String artifactId : plModules.split(",")) {
-                IbModule module = model.module(artifactId.trim());
+                // `-pl :artifactId` coordinate form (wave6 6C-4)
+                String id = artifactId.trim();
+                if (id.startsWith(":"))
+                    id = id.substring(1);
+                IbModule module = model.module(id);
                 if (module == null) {
                     err.println("usage error: -pl module not in reactor: " + artifactId);
                     return Commands.EXIT_USAGE;

@@ -119,6 +119,10 @@ public final class JUnitForkExecutor {
         // system property (worker protocol unchanged)
         if (module.getSurefireExcludedGroups() != null)
             cmd.add("-Dnop.ib.excludeTags=" + module.getSurefireExcludedGroups());
+        // groups tag parity (wave6 6A-2): forwarded to the runner like the
+        // excluded counterpart (defect 27 mechanism)
+        if (module.getSurefireGroups() != null)
+            cmd.add("-Dnop.ib.includeTags=" + module.getSurefireGroups());
         cmd.add("-cp");
         // fork cwd = module basedir; classpath entries are repo-relative -> absolutize
         Path repoRoot = Path.of(model.getRepoRoot());

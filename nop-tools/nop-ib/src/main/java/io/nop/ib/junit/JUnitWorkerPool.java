@@ -131,7 +131,37 @@ public final class JUnitWorkerPool {
                         }
                         Map<String, Object> r = w.runClass(cls);
                         w.classesRun++;
-                        boolean retire = Boolean.TRUE.equals(r.get("resetFailed"))
+                        boolean resetFailed = Boolean.TRUE.equals(r.get("resetFailed"));
+                        if (resetFailed) {
+                            // design 06 §六.2 (wave6 audit F1): a class that ran in a
+                            // worker whose reset hook failed cannot be trusted green —
+                            // the worker's statics are polluted by the previous class.
+                            // Differential rerun in a fresh single-class fork is
+                            // authoritative; an unusable fresh fork (-3) counts as
+                            // failure (zero-fake-green, fail-safe direction).
+                            JUnitForkExecutor.ForkResult fresh = differentialRerunExecutor()
+                                    .execute(module, classpath, List.of(cls), defaultForkTimeout());
+                            if (fresh.exitCode() == -3) {
+                                Map<String, Object> fr = new LinkedHashMap<>(r);
+                                fr.put("failures", Math.max(1, numOf(fr.get("failures"))));
+                                Object failed = fr.get("failed");
+                                if (failed == null || (failed instanceof List<?> l && l.isEmpty())) {
+                                    Map<String, String> d = new LinkedHashMap<>();
+                                    d.put("class", cls);
+                                    d.put("method", "differential-rerun");
+                                    d.put("type", "io.nop.ib.ResetHookRerunUnavailable");
+                                    d.put("message", "fresh fork unusable: "
+                                            + String.join("; ", fresh.warnings()));
+                                    fr.put("failed", List.of(d));
+                                }
+                                r = fr;
+                            } else {
+                                r = new LinkedHashMap<>(fresh.summary());
+                            }
+                            warnings.add("reset hook failed for " + cls
+                                    + ": differential rerun in fresh fork is authoritative");
+                        }
+                        boolean retire = resetFailed
                                 || w.classesRun >= maxClassesPerWorker;
                         synchronized (lock) {
                             if (Boolean.TRUE.equals(r.get("resetFailed")))
@@ -486,6 +516,9 @@ public final class JUnitWorkerPool {
         // system property (worker protocol unchanged)
         if (module.getSurefireExcludedGroups() != null)
             cmd.add("-Dnop.ib.excludeTags=" + module.getSurefireExcludedGroups());
+        // groups tag parity (wave6 6A-2), same mechanism as the fork executor
+        if (module.getSurefireGroups() != null)
+            cmd.add("-Dnop.ib.includeTags=" + module.getSurefireGroups());
         cmd.add("-cp");
         cmd.add(String.join(":", cp));
         cmd.add(IbJUnitRunner.class.getName());
@@ -497,6 +530,19 @@ public final class JUnitWorkerPool {
 
     private Worker spawn() {
         return new Worker();
+    }
+
+    /** shared executor for reset-hook differential reruns (per-call timeout API). */
+    private JUnitForkExecutor differentialRerunExecutor() {
+        if (rerunExecutor == null)
+            rerunExecutor = new JUnitForkExecutor(model);
+        return rerunExecutor;
+    }
+
+    private JUnitForkExecutor rerunExecutor;
+
+    private static java.time.Duration defaultForkTimeout() {
+        return java.time.Duration.ofSeconds(Long.getLong("nop.ib.forkTimeoutSeconds", 300));
     }
 
     private static long forkTimeoutMs =
