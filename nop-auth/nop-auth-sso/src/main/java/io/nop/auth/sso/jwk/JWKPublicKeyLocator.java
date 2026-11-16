@@ -130,9 +130,10 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
                         ? fetch.get(timeout, TimeUnit.MILLISECONDS)
                         : fetch.get();
                 if (keys != null) {
-                    // 成功：推进速率窗基准（TTL 内查缓存）+ 清零失败退避（A1）
-                    lastRequestTime = CoreMetrics.currentTimeMillis();
-                    lastFailureTime = 0L;
+                    // 成功：速率窗基准与失败退避清零已由 sendRequest 成功路径在拉取本体
+                    // （发起侧）承载——等待方不在此推进（原推进点存在单飞竞态：在飞拉取
+                    // 快速完成到等待方续延执行之间，并发未命中读到 lastRequestTime 未
+                    // 推进而误判 allowed，发起第二次拉取使单飞失效）
                     PublicKey key = keys.get(kid);
                     if (key != null) {
                         return key;
@@ -213,6 +214,11 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
             }
 
             this.currentKeys = new ConcurrentHashMap<>(publicKeys);
+            // 成功推进速率窗基准（TTL 内查缓存）+ 清零失败退避（A1）——锚点在拉取本体
+            // （发起侧异步任务）而非等待方续延：单飞并发未命中在判定时读到的
+            // lastRequestTime 即已推进，不会再发起第二次拉取（fetches=2 竞态根因）
+            lastRequestTime = CoreMetrics.currentTimeMillis();
+            lastFailureTime = 0L;
             return publicKeys;
         } catch (Exception e) {
             // 2.3-C4-008：失败 WARN（原 log.error 后静默返回旧值且占速率窗）——grace 语义见调用方。
