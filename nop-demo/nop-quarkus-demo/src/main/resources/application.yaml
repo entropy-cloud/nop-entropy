@@ -62,7 +62,10 @@ nop:
     tenant-resource:
       enabled: true
   web:
-    page-validation-thread-count: 4
+    # 并行验证（>1）会并发编译同一 xlib 标签（web:GenPage），XplLibTagCompiler
+    # LazyCompiledFunction 单飞在同线程重入路径返回 null → LazyCompiledExecutableFunction
+    # NPE → 启动失败（e2e nop-web-e2e 阻塞）。xlang 竞态修复前保持与平台缺省一致的串行。
+    page-validation-thread-count: 1
     render-mode: flux
     validate-page-model: true
 
