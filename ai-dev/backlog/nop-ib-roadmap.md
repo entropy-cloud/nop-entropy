@@ -173,6 +173,41 @@ Exit Criteria：
 - [x] Maven 4 解析差异清单 100% 有钉（TestMaven4FlavorPins 3 tests）。
 - [x] 独立 closure audit APPROVED
 
+## Wave 9 — 测试结果缓存（opt-in `--cache`）
+
+Status: done（2026-11-16 收口；见 wave9-test-cache plan Closure）
+
+- Item Types: `Feature | Proof`
+
+- [x] 1. **[Feature]** `--cache` 命令行开关：启用后，`test -pl`（显式模块）在"输入指纹未变 且 上次该模块 exit=0"时跳过 JUnit 执行，输出 `cached-up-to-date`（显式区分 cached 与 executed，不冒充执行结果）；`--force` 逃逸；模型过期/索引缺失/指纹缺失一律不命中（fail-safe）；绿结果才入缓存（预存红天然不入）。输入指纹 = 单元索引类内容哈希 + 主代码 ABI digest + classpath 材料 + surefire facts（argLine/sysprops/env/groups/excludes/includes）+ externalArtifacts: `done`（2026-11-16，TestCacheStore + TestCommand 接线，钉 8 个，liteflow 实测二跑 cached 42.6s→~2s） — deps: none
+- [x] 2. **[Proof]** 实测对照：真实项目（liteflow nospring 53 类/233 tests）双跑——首跑 executed、二跑 cached-up-to-date，结果一致、JSON 显式 cached 标记；`--force` 二跑重新执行: `done`（实测 `~/sources/liteflow/_tmp/nop-ib/test-20261116-*.log` + `.nop-ib/test-cache.json`，JSON kind 字段核验） — deps: 1
+- [x] 3. **[Follow-up]** 文档收口：design 05 §八 增补缓存契约（命中条件/不可见输入披露：外部 DB/容器环境与依赖模块缺索引的 ABI 面不在指纹内，cached 绿的环境失效由 `--force` 兜底），roadmap 勾选: `done`（2026-11-17 audit M2 修复时落地） — deps: 1
+
+Exit Criteria：
+- [x] 零假绿：cached 输出必须显式（kind=cached-up-to-date + cached 字段），`--force` 可逃逸，红结果永不入缓存
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿
+- [x] 独立 closure audit APPROVED
+
+## Wave 10 — 无状态常驻服务（多项目 HTTP 接入 + 同项目排队 + 全局并行预算）
+
+> Owner 指令（2026-11-17）：nop-ib 作为无状态服务启动；任何程序发送项目地址 + 指令即可编译/测试；同项目一次只执行一个构建、自动排队；按机器情况自适应并行（默认 CPU 个数的一半）。设计权威：[design/nop-incremental-build/07-service-mode-design.md](../design/nop-incremental-build/07-service-mode-design.md)（IB-S1..S6）。
+
+Status: planned
+
+- Item Types: `Feature | Proof`
+
+- [ ] 1. **[Feature]** 服务内核：`ServiceCore`（engine cache LRU + per-project FIFO 队列 + 全局 worker 信号量 `max(2, cores/2)`，`nop.ib.serviceWorkerBudget` 覆盖）；job registry（queued/running/done/failed，排队可取消、运行中不可取消）；队列有界（默认 32，满则显式拒绝）；状态全部落盘于各项目 `.nop-ib/`（IB-S1/S3/S6）: `planned` — deps: none
+- [ ] 2. **[Feature]** HTTP 接入：JDK HttpServer loopback；`POST /v1/run`（wait 同步 / 异步 job id）、`GET /v1/job/{id}`、`GET /v1/queue`、`GET /v1/health`、`DELETE /v1/job/{id}`；payload 与 CLI `--json` 同构（IB-S2/S5）；stdio JSONL serve 模式保留不变: `planned` — deps: 1
+- [ ] 3. **[Proof]** 端到端验证：同项目并发 3 请求 → 串行排队且全部得到显式结果；两个不同项目并发 → 总 worker 预算封顶不超载；`--cache` 命中路径经服务可得 `cached-up-to-date`；服务 kill -9 后重启 → 同请求重放幂等（状态在磁盘）: `planned` — deps: 2
+- [ ] 4. **[Follow-up]** 文档收口：design 07 若有契约偏差原地修订；runbook/使用示例；roadmap 勾选 + daily log: `planned` — deps: 3
+
+Exit Criteria：
+- [ ] 同项目串行：并发请求全部完成且执行期互斥（无 target/ 踩踏证据）
+- [ ] 全局预算封顶：多项目并发时运行 worker 数 ≤ `max(2, cores/2)`（可观测断言）
+- [ ] 端到端：HTTP 入口 → 引擎 → 结果 JSON 与 CLI 同构；崩溃重启幂等验证在档
+- [ ] 零假绿透传：fallback/partial/cached 标记经服务原样到达调用方
+- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿；独立 closure audit APPROVED
+
 ## Status values
 
 | Status | Meaning |
