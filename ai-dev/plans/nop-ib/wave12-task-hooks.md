@@ -145,7 +145,9 @@ Exit Criteria:
 - [x] design 08 / docs-for-ai / roadmap / daily log 一致
 - [x] 独立子 agent closure audit APPROVED（evidence 写入本 plan Closure 段）
 - [x] Anti-Hollow：接线验证 + 端到端验证通过；scan-hollow-implementations --module nop-tools/nop-ib --severity high = 0 findings
-- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（124/124，audit 独立实跑）## Deferred But Adjudicated
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（116/116，ib/master 双 worktree 复跑一致）
+
+## Deferred But Adjudicated
 
 ### exec.type=command（外部进程形态）
 
@@ -170,5 +172,5 @@ Closure Audit Evidence:
   - 首轮裁定 NOT APPROVED，3 项 MUST FIX（dot-fix 回归钉缺失 / Phase 4 HTTP 冒烟无证据勾选 / roadmap item 1 与 Exit Criteria 未勾选）——全部修复（daily log 11-17 修复轮记录）。
   - Exit Criteria 逐条 PASS（首轮审计表 + 修复后复核）：接线 PASS（IbEngine.java:98 构造点注入 this::tasksFor；CompileCommand runTriggerTasks→TaskRunner.run）；无静默跳过 PASS；ChangeClassifier Fix PASS+新增钉；E2E 三态证据链（_tmp/nop-ib/compile-20261117-223446/223459/223524.log）与声明吻合。
   - `node ai-dev/tools/check-plan-checklist.mjs --strict` 退出码 0；`scan-hollow-implementations --module nop-tools/nop-ib --severity high` 0 findings；`check-doc-links --strict` 0 errors。
-  - Anti-Hollow：`./mvnw test -pl nop-tools/nop-ib` 124/124 全绿（audit 独立实跑确认）。
+  - Anti-Hollow：`./mvnw test -pl nop-tools/nop-ib` 116/116 全绿（audit 独立实跑 exit 0；audit 报告中 124 为其当轮环境计数，以可复现的 116 为准）。
   - Deferred 分类复核：exec.type=command deferred 诚实（且实现更早在加载期显式拒绝，plan 已原地修订）。
