@@ -231,6 +231,26 @@ Exit Criteria：
 - [ ] mvn 透传有裁定且落地或显式否决（理由在档）
 - [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿；独立 closure audit APPROVED
 
+## Wave 12 — 声明式代码生成任务钩子（design 08）
+
+> Owner 指令（2026-11-17）：exec-maven-plugin 不直接支持（任意执行面 + 绑 Maven 生态）；改为通用任务钩子机制——项目自声明 `nop-ib.tasks.json`（根/模块分层可选、同名模块覆盖）、classpathScope 对齐 exec 插件、java+xscript 执行体（ib 不内嵌 XLang）、before/after-compile 触发、任务临时文件落模块 target 目录的 nop-ib/tasks/ 下（mvn clean 自动清）。设计权威：[design/nop-incremental-build/08-codegen-task-hooks-design.md](../design/nop-incremental-build/08-codegen-task-hooks-design.md)（IB-T1..T6）。
+
+Status: done（2026-11-17 收口：20+2 钉、真实 xgen E2E（CLI+HTTP 双通道）、独立 closure audit 复审 APPROVED；plan wave12-task-hooks Closure 在档）
+
+- Item Types: `Feature | Proof | Follow-up`
+
+- [x] 1. **[Feature]** 任务配置加载：`nop-ib.tasks.json` 发现（root→模块路径链）、分层合并（同名模块覆盖根级）、fail-loud 校验（未知字段/未知 exec.type/glob 编译失败 = exit 3 usage error）、glob 展开: `done`（2026-11-17，TestTaskConfig 8 钉） — deps: none
+- [ ] 2. **[Feature]** 任务执行器 TaskRunner：inputs 指纹 + outputs 存在态增量跳过（指纹落 `<module>/target/nop-ib/tasks/<name>.fp.json`）；`java` 执行体（ClasspathMaterializer 按 classpathScope 物化 + fork JVM，external artifact 缺失 fail-loud）；`xscript` 执行体（项目 classpath 上的 XLang runner）；失败 → 显式 fallback reason（IB-T6）: `done`（2026-11-17，TestTaskRunner 8 钉：增量三态/失败三类/target 位置） — deps: 1
+- [ ] 3. **[Feature]** planner 接入：compile/check 流程按 trigger 在快路径编译前/后执行任务；任务模块运行时 L1 叠加（IB-T5）；产物走 `_gen` 排除通道: `done`（2026-11-17，TestTaskHookIntegration 2 钉：抑制双钉 + 接线/端到端；顺手修复 ChangeClassifier.isGenOrModel name-dot 索引误用于全路径的潜伏缺陷——XLANG 扩展名规则此前对真实路径永不命中） — deps: 2
+- [ ] 4. **[Proof]** 端到端验证：nop 平台真实 `-meta` 模块声明 xgen 任务 → 改 xgen 模板触发 before-compile 任务 → 生成 → 编译 → 测试全链路留在快路径；指纹命中二跑跳过；失败注入回退 Maven 且 reason 在档；`mvn clean` 后任务可重建且指纹随 target 清理: `done`（2026-11-17 实测 nop-wf-meta 真实 xgen：改 gen-meta.xgen → ib compile 任务 executed 1.9s 零 Maven（mvn 同模块 generate-sources 7.8s）；二跑 skipped 0.24s；`mvn clean` 后三跑重建 executed 2.2s + 指纹随 target 重建；`ib test -pl :nop-wf-core` 9 类 fork 全绿 3.5s；声明=nop-wf-meta/nop-ib.tasks.json（CodeGenTask "." precompile） — deps: 3
+- [ ] 5. **[Follow-up]** 文档收口：design 08 与实现偏差原地修订；`docs-for-ai/02-core-guides/incremental-build.md` 增任务声明节；roadmap 勾选 + daily log: `done`（2026-11-17；incremental-build.md 增「代码生成任务声明」节） — deps: 4
+
+Exit Criteria：
+- [x] 配置错误全部显式失败（无静默忽略路径，钉）
+- [x] 增量跳过与失效正确：inputs 变化重跑、outputs 删除重跑、指纹命中跳过（钉）
+- [x] 端到端：xgen 模板变更 → 任务生成 → 编译 → 测试，全程零 Maven 骨架（对照数据在档；1.9s/0.24s vs mvn generate-sources 7.8s；test 腿 nop-wf-core 9 类 fork 全绿）
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（124/124；独立 closure audit 复审 APPROVED）
+
 ## Status values
 
 | Status | Meaning |

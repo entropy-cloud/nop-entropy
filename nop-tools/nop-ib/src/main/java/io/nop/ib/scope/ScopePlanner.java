@@ -36,11 +36,35 @@ public final class ScopePlanner {
     private final IbModel model;
     private final ModuleGraph graph;
     private final Function<String, UnitIndex> indexLoader;
+    /** wave 12 (design 08 IB-T5): per-module declared task set; null in legacy direct construction */
+    private final Function<String, java.util.List<io.nop.ib.tasks.TaskConfig>> taskLoader;
 
     public ScopePlanner(IbModel model, ModuleGraph graph, Function<String, UnitIndex> indexLoader) {
+        this(model, graph, indexLoader, null);
+    }
+
+    public ScopePlanner(IbModel model, ModuleGraph graph, Function<String, UnitIndex> indexLoader,
+                        Function<String, java.util.List<io.nop.ib.tasks.TaskConfig>> taskLoader) {
         this.model = model;
         this.graph = graph;
         this.indexLoader = indexLoader;
+        this.taskLoader = taskLoader;
+    }
+
+    /** the module declares a before-compile task (wave 12 fallback suppression gate) */
+    private boolean ownsBeforeCompileTask(String moduleId) {
+        if (taskLoader == null)
+            return false;
+        for (io.nop.ib.tasks.TaskConfig t : taskLoader.apply(moduleId))
+            if ("before-compile".equals(t.trigger))
+                return true;
+        return false;
+    }
+
+    private boolean ownsDeclaredTasks(IbModule module) {
+        if (taskLoader == null || module == null)
+            return false;
+        return !taskLoader.apply(module.getArtifactId()).isEmpty();
     }
 
     public ModuleChanges classifyAll(List<String> changedPaths) {
@@ -124,8 +148,12 @@ public final class ScopePlanner {
                 continue;
             }
             if (changes.hasAny(moduleId, ChangeClassifier.Kind.GEN_OR_MODEL)
-                    && !"L0".equals(level)) {
-                // L1 generated-product/model change, L2/L3 any model change -> Maven
+                    && !"L0".equals(level)
+                    && !ownsBeforeCompileTask(moduleId)) {
+                // L1 generated-product/model change, L2/L3 any model change -> Maven.
+                // wave 12 (design 08): a module that declares a before-compile task
+                // owns its generation — the change is handled by the task execution
+                // path in compile, NOT by a whole-build Maven fallback.
                 plan.setFallbackReason("fallback-maven module " + moduleId
                         + ": xlang model/template change in " + level + " module (design 01 §七)");
             }
@@ -301,7 +329,10 @@ public final class ScopePlanner {
                 && hasAopProducts(model.resolve(module.getOutputDir()).toPath());
         boolean ownsTemplates = module.getBasedir() != null
                 && Files.isDirectory(model.resolve(module.getBasedir()).toPath())
-                && hasXgenTemplates(model.resolve(module.getBasedir()).toPath());
+                && hasXgenTemplates(model.resolve(module.getBasedir()).toPath())
+                // wave 12 (design 08 IB-T5): a declared task set is authoritative
+                // codegen ownership — declaration beats the file-scan heuristic
+                || ownsDeclaredTasks(module);
         // check-only processors (error-prone et al.) do NOT escalate to L2 anymore:
         // their annotation-processing ROUNDS have a product side effect (javac
         // writes package-info.class for annotated package-info sources only during
