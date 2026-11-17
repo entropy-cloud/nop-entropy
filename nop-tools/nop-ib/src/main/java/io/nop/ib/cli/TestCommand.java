@@ -41,6 +41,15 @@ import java.util.regex.Pattern;
  * CLI single invocation). Maven fallback runs plain mvnw/mvn without mvnq.
 re-runs after a Maven fallback compile (design 01 §13.3: a fallback
  * compile invalidates the pre-fallback selection).
+ *
+ * <p>Wave 11 (owner directive 2026-11-18): {@code nop-ib test} defaults to a
+ * pre-compile through {@link CompileCommand#runCompile} (the exact check
+ * channel) over a scope mirroring the test scope, before ANY dispatch branch
+ * (--rerun-failed, -pl, --class, plan scope) and before any --cache fingerprint
+ * is computed; {@code --no-compile} is the explicit opt-out (JSON
+ * {@code compiled:false}, never silent). JSON contract: {@code compiled} is
+ * {@code true} (ran), {@code false} (--no-compile), or {@code "skipped"}
+ * (nothing changed in scope).
  */
 public final class TestCommand {
     /**
@@ -108,6 +117,18 @@ public final class TestCommand {
     private static final Pattern FAILED_CLASS_LINE =
             Pattern.compile("\\{class=([^,}]+),");
 
+    /**
+     * Test seam for the wave 11 pre-compile: production points at
+     * {@link CompileCommand#runCompile} (the exact check channel); tests swap in a
+     * counting/stubbed delegate to pin compile-before-dispatch semantics.
+     */
+    interface CompileFn {
+        int run(IbEngine engine, List<String> paths, String plModules, String onFallback,
+                boolean allowPartial, boolean json, PrintWriter out, PrintWriter err, RunLog log);
+    }
+
+    static CompileFn compileFn = CompileCommand::runCompile;
+
     /** repo-root nop-ib.config.json -> test.resetters (reflection-contract class names). */
     static List<String> configuredResetters(IbEngine engine) {
         Path cfg = engine.getRepoRoot().resolve("nop-ib.config.json");
@@ -135,13 +156,13 @@ public final class TestCommand {
     public static int test(IbEngine engine, List<String> paths, String plModules,
                            List<String> explicitClasses, boolean allowPartial, boolean json,
                            boolean includeCompile, String onFallback, boolean rerunFailed,
-                           String runner, boolean useCache, boolean forceRun,
+                           String runner, boolean useCache, boolean forceRun, boolean noCompile,
                            PrintWriter out, PrintWriter err) {
         RunLog log = RunLog.start(engine.getRepoRoot(), includeCompile ? "check" : "test");
         TestCacheStore cache = useCache ? new TestCacheStore(engine) : null;
         try {
             int code = runTest(engine, paths, plModules, explicitClasses, allowPartial, json,
-                    includeCompile, onFallback, rerunFailed, runner, cache, forceRun,
+                    includeCompile, onFallback, rerunFailed, runner, cache, forceRun, noCompile,
                     out, err, log);
             if (cache != null)
                 cache.save();
@@ -156,7 +177,7 @@ public final class TestCommand {
     static int runTest(IbEngine engine, List<String> paths, String plModules,
                        List<String> explicitClasses, boolean allowPartial, boolean json,
                        boolean includeCompile, String onFallback, boolean rerunFailed,
-                       String runner, TestCacheStore cache, boolean forceRun,
+                       String runner, TestCacheStore cache, boolean forceRun, boolean noCompile,
                        PrintWriter out, PrintWriter err, RunLog log) {
         IbModel model = engine.model();
         List<String> changed = paths != null && !paths.isEmpty() ? paths
@@ -174,6 +195,58 @@ public final class TestCommand {
             out.println(json ? JsonOut.write(Map.of("plan", Map.of("stale", staleReason)))
                     : "[nop-ib] " + notice);
             log.line(notice);
+        }
+
+        // wave 11 (owner directive 2026-11-18, daily log 2026-11-17 defect): a bare
+        // `test` used to dispatch on possibly stale target/classes (fake green: 114
+        // old-bytecode tests vs the real 118). test now runs the SAME incremental
+        // compile as check (CompileCommand.runCompile — codegen task hooks + Maven
+        // fallback semantics) BEFORE any dispatch, over a scope mirroring the test
+        // scope (-pl modules / affected changed set / --class owning modules). A red
+        // compile ends the run with the compile exit code — no test dispatch (zero
+        // fake green). `--no-compile` restores the v1 behavior explicitly
+        // (compiled=false, never silent). Ordering vs wave 9: the compile happens
+        // BEFORE any --cache fingerprint is computed, so fingerprints see the fresh
+        // compile-product hashes.
+        boolean preCompile = includeCompile || !noCompile; // check always compiles
+        if (preCompile) {
+            String compilePl = plModules;
+            if (compilePl == null && !explicitClasses.isEmpty()) {
+                // --class scope: compile the owning modules of the requested classes
+                java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+                for (String spec : explicitClasses) {
+                    int colon = spec.indexOf(':');
+                    if (colon > 0) {
+                        ids.add(spec.substring(0, colon));
+                    } else {
+                        IbModule owner = findModuleForClass(engine, spec);
+                        if (owner != null)
+                            ids.add(owner.getArtifactId());
+                    }
+                }
+                if (!ids.isEmpty())
+                    compilePl = String.join(",", ids);
+            }
+            if (compilePl == null && changed.isEmpty() && explicitClasses.isEmpty()) {
+                String line = json ? JsonOut.write(Map.of("compiled", "skipped"))
+                        : "[nop-ib] compile skipped: nothing changed in scope";
+                out.println(line);
+                log.line(line);
+            } else {
+                int compileExit = compileFn.run(engine, compilePl != null ? null : changed,
+                        compilePl, onFallback, allowPartial, json, out, err, log);
+                if (compileExit != Commands.EXIT_OK)
+                    return compileExit; // zero fake green: a red compile blocks dispatch
+                String line = json ? JsonOut.write(Map.of("compiled", true))
+                        : "[nop-ib] pre-compile ok";
+                out.println(line);
+                log.line(line);
+            }
+        } else {
+            String line = json ? JsonOut.write(Map.of("compiled", false))
+                    : "[nop-ib] compile skipped (--no-compile): testing possibly stale classes";
+            out.println(line);
+            log.line(line);
         }
 
         // --rerun-failed: rerun the classes recorded by the previous failed run
@@ -319,17 +392,9 @@ public final class TestCommand {
             return failures == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
 
-        // plan scope: compile (optional) + affected tests
+        // plan scope: affected tests (the pre-compile above already ran for check
+        // and default test — plan once over the refreshed unit indexes)
         PlanResult plan = engine.planner().plan(changed, staleReason, allowPartial);
-
-        if (includeCompile) {
-            int compileExit = CompileCommand.runCompile(engine, changed, null, onFallback,
-                    allowPartial, json, out, err, log);
-            if (compileExit != Commands.EXIT_OK)
-                return compileExit;
-            // re-judge the selection after compilation (unit indexes refreshed)
-            plan = engine.planner().plan(changed, staleReason, allowPartial);
-        }
 
         // hard gate 1 (design 05 §十, wave6 audit F4): partial / wideImpact /
         // fallback reasons / plan warnings MUST be visible in the output, not

@@ -30,8 +30,8 @@
 | `ib status [--json]` | 模型/索引健康、当前变更集 |
 | `ib plan --paths <files...> [--json]` | 只算不做: 编译集/测试集/回退原因/下游候选 |
 | `ib compile --paths <file...>` / `ib compile -pl <module>` | 选择性编译 |
-| `ib test --affected` / `ib test -pl <module>` / `ib test --class [mod:]Class` / `--rerun-failed` | 自研 JUnit Platform fork 启动器执行（每类隔离 fork+4 并行;launcher 版本自模块 classpath 推导;快照录制显式禁用;批超时看门狗）。`--runner surefire` 可退出到 Maven Surefire 委托（setup 不满足时也自动显式回退） |
-| `ib check --paths <file...>` | **AI 日常主入口**: 编译 + 受影响测试 |
+| `ib test --affected` / `ib test -pl <module>` / `ib test --class [mod:]Class` / `--rerun-failed` | **默认先增量编译**（与 `check` 同通道，编译范围镜像测试作用域），再自研 JUnit Platform fork 启动器执行（每类隔离 fork+4 并行;launcher 版本自模块 classpath 推导;快照录制显式禁用;批超时看门狗）。`--no-compile` 显式关闭预编译（JSON `compiled:false`，不静默）; 编译失败以编译退出码结束、不派发测试（零假绿）; JSON 契约 `compiled: true\|false\|"skipped"`。`--runner surefire` 可退出到 Maven Surefire 委托（setup 不满足时也自动显式回退） |
+| `ib check --paths <file...>` | **AI 日常主入口**: 编译 + 受影响测试（`--no-compile` 对 `check` 无效，编译恒开） |
 | `ib explain <file\|module>` | 解释归属/能力分级/依赖者 |
 | `ib model refresh\|show\|index` | 模型与索引维护 |
 | `ib bench <module> [--json]` | 四类成本基线实测 |
