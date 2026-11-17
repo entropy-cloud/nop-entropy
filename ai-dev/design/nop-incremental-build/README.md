@@ -26,6 +26,7 @@
 | 6 | [05-nop-ib-engine-design.md](05-nop-ib-engine-design.md) | Architecture Baseline（nop-ib 落地细化） | 引擎形态（一次性 CLI + `serve`，非 Maven 扩展）/ 构建事实只由 Maven 导出（`model.json`）/ 两级依赖分析（reactor 图粗筛 + 字节码类图细选）/ 编译与测试的传播判据差异 / `nop-javac` + `nop-bytecode` 复用 / classpath 目录物化与 `.mvn/build.lock` / 状态与对拍 / 命令面与 JSON 契约 / 正确性门与待裁决策（IB-G1..G6）；实施分期见 `ai-dev/backlog/nop-ib-roadmap.md` |
 | 7 | [06-junit-worker-reuse-and-generalization-design.md](06-junit-worker-reuse-and-generalization-design.md) | Architecture Baseline（nop-ib JUnit worker 复用与执行模型通用化（复用层设计，含 TestEnvironmentResetter SPI）） | 引擎形态（一次性 CLI + `serve`，非 Maven 扩展）/ 构建事实只由 Maven 导出（`model.json`）/ 两级依赖分析（reactor 图粗筛 + 字节码类图细选）/ 编译与测试的传播判据差异 / `nop-javac` + `nop-bytecode` 复用 / classpath 目录物化与 `.mvn/build.lock` / 状态与对拍 / 命令面与 JSON 契约 / 正确性门与待裁决策（IB-G1..G6）；实施分期见 `ai-dev/backlog/nop-ib-roadmap.md` |
 | 8 | [07-service-mode-design.md](07-service-mode-design.md) | Architecture Baseline（nop-ib 服务化模式） | 无状态常驻构建服务：多项目 HTTP 接入（loopback）/ 同项目串行排队 / 跨项目全局 worker 预算（cores/2）/ 异步 job 模型；不改变 05 的正确性门与锁纪律 |
+| 9 | [08-codegen-task-hooks-design.md](08-codegen-task-hooks-design.md) | Architecture Baseline（声明式代码生成任务钩子） | 项目自声明 `nop-ib.tasks.json`（根/模块分层可选）/ classpathScope 对齐 exec-maven-plugin / java+xscript 执行体（ib 不内嵌 XLang）/ before/after-compile 触发与输入输出指纹增量 / 临时文件落 target/ | 无状态常驻构建服务：多项目 HTTP 接入（loopback）/ 同项目串行排队 / 跨项目全局 worker 预算（cores/2）/ 异步 job 模型；不改变 05 的正确性门与锁纪律 |
 
 **只想看结论**：ROI 高 + 适用面 63.4% + 代价约 5,000 行与 6 条不变量 + 预设收缩退路 → 直接读 [03 §一 与 §八](03-alternatives-and-roi.md)。
 

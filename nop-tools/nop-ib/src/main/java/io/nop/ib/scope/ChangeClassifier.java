@@ -51,7 +51,11 @@ public final class ChangeClassifier {
             return true;
         if (name.startsWith("_") && !name.startsWith("__"))
             return true; // reserved retention file (normative for XLang parse trees)
-        int dot = name.lastIndexOf('.');
+        // wave 12 fix (latent defect): the dot index used to come from the file
+        // NAME but substring from the FULL lower path — for any real repo-relative
+        // path the computed "extension" was a garbage suffix, so the XLANG_MODEL_EXT
+        // rule never fired outside name-prefix/_-retention matches
+        int dot = lower.lastIndexOf('.');
         if (dot >= 0) {
             String ext = lower.substring(dot + 1);
             if (XLANG_MODEL_EXT.contains(ext))

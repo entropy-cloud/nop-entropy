@@ -3,6 +3,7 @@ package io.nop.ib.engine;
 import io.nop.ib.index.UnitIndex;
 import io.nop.ib.index.UnitIndexStore;
 import io.nop.ib.model.IbModel;
+import io.nop.ib.model.IbModule;
 import io.nop.ib.model.ModelStore;
 import io.nop.ib.scope.ModuleGraph;
 import io.nop.ib.scope.ScopePlanner;
@@ -23,6 +24,8 @@ public final class IbEngine {
     private final UnitIndexStore unitStore;
     private IbModel model;
     private final Map<String, UnitIndex> indexCache = new ConcurrentHashMap<>();
+    private final Map<String, java.util.List<io.nop.ib.tasks.TaskConfig>> taskCache =
+            new ConcurrentHashMap<>();
 
     public IbEngine(Path startDir) {
         this.repoRoot = discoverRepoRoot(startDir);
@@ -92,7 +95,21 @@ public final class IbEngine {
     }
 
     public ScopePlanner planner() {
-        return new ScopePlanner(model(), graph(), this::index);
+        return new ScopePlanner(model(), graph(), this::index, this::tasksFor);
+    }
+
+    /**
+     * wave 12 (design 08 IB-T1): the merged {@code nop-ib.tasks.json} task set of
+     * a module — root-level and module-level files along the root→basedir chain,
+     * cached per engine. No config file = empty set (fast path untouched).
+     */
+    public java.util.List<io.nop.ib.tasks.TaskConfig> tasksFor(String moduleArtifactId) {
+        IbModule m = model().module(moduleArtifactId);
+        if (m == null)
+            return java.util.List.of();
+        return taskCache.computeIfAbsent(moduleArtifactId, id -> java.util.List.copyOf(
+                io.nop.ib.tasks.TaskConfigLoader.loadForModule(repoRoot,
+                        m.getBasedir() == null ? "" : m.getBasedir())));
     }
 
     /** Loads and caches a module's unit index; null when absent. */

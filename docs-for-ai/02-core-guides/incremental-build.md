@@ -40,6 +40,30 @@
 
 退出码: `0` 成功; `1` 编译/测试失败; `2` 回退被 `--on-fallback=fail` 拒绝; `3` 用法错误; `6` partial; `75` fallback Maven 进程超时。
 
+## 代码生成任务声明（nop-ib.tasks.json）
+
+模块可在自己目录（或仓库根）放一个 `nop-ib.tasks.json`，声明**代码生成任务**——ib 在快路径编译前/后增量执行它，模板变更不再整体回退 Maven（设计权威见 AI 开发记录区的 nop-incremental-build 设计目录 08 号文档；按边界规则此页不直接链接 ai-dev 路径）：
+
+```json
+[
+  {
+    "name": "nop-precompile",
+    "trigger": "before-compile",
+    "inputs": ["precompile/*.xgen"],
+    "outputs": ["src/main/java/**/_gen/**"],
+    "exec": { "type": "java", "mainClass": "io.nop.codegen.task.CodeGenTask",
+              "arguments": [".", "precompile"], "classpathScope": "test" }
+  }
+]
+```
+
+- **分层可选**：根级文件对全 reactor 生效；模块级同名任务覆盖根级（非 exec 字段整体替换、exec 逐字段合并）。
+- **classpathScope**：`compile|runtime|test`（默认 `test`），语义对齐 exec-maven-plugin——由 ib 用模块依赖闭包自建 classpath。
+- **执行体**：`java`（项目 classpath 上的 mainClass）或 `xscript`（runner mainClass + `.xscript` 脚本，ib 不内嵌 XLang）。
+- **增量**：inputs 内容指纹 + outputs 存在态未变 → 跳过（`compile/check` JSON 的 `tasks` 数组显式区分 `skipped/executed/failed`）；指纹与任务中间产物落各模块 target 目录的 nop-ib/tasks/ 下（`mvn clean` 自动清）。
+- **失败显式回退**：任务失败/无产物/classpath 不完整 → 该轮构建自动委托 Maven 并给出来自任务的 reason；配置错误是 exit 3 用法错误。
+- 参考声明：`nop-wf/nop-wf-meta/nop-ib.tasks.json`。
+
 ## 运行记录（mvn 输出等价物）
 
 每次 `ib compile/test/check` 自动生成两个持久记录（进程退出后仍可读，AI 会话与事后审计的证据面）:

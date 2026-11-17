@@ -127,12 +127,23 @@ public final class CompileCommand {
             return code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
 
-        if (plan.getCompileFiles().isEmpty() && plan.getDownstreamCandidates().isEmpty()) {
+        if (plan.getCompileFiles().isEmpty() && plan.getDownstreamCandidates().isEmpty()
+                && plan.getCompileModules().isEmpty()) {
             String line = json ? JsonOut.write(feedback) : "nothing to compile";
             out.println(line);
             log.line(line);
             return Commands.EXIT_OK;
         }
+
+        // wave 12 (design 08): declared codegen tasks run in the fast path —
+        // before-compile before javac, after-compile after; any failure delegates
+        // the whole build to Maven with the task failure as the explicit reason.
+        io.nop.ib.tasks.TaskRunner taskRunner =
+                new io.nop.ib.tasks.TaskRunner(model, engine.getRepoRoot());
+        int taskExit = runTriggerTasks(engine, model, plan.getCompileModules(),
+                "before-compile", taskRunner, feedback, json, out, err);
+        if (taskExit != Commands.EXIT_OK)
+            return taskExit;
 
         IncrementalCompileExecutor executor = new IncrementalCompileExecutor(
                 model, engine.getUnitStore());
@@ -147,6 +158,18 @@ public final class CompileCommand {
         feedback.put("diagnostics", diags);
         String human = json ? JsonOut.write(feedback)
                 : "compiled: " + outcome.getCompiledModules();
+        if (!outcome.isSuccess()) {
+            // after-compile tasks are pointless on a red compile; report and fail
+            feedback.put("tasks", taskRunner.getRecord());
+            out.println(human);
+            log.line(human);
+            return Commands.EXIT_FAILED;
+        }
+        taskExit = runTriggerTasks(engine, model, plan.getCompileModules(),
+                "after-compile", taskRunner, feedback, json, out, err);
+        if (taskExit != Commands.EXIT_OK)
+            return taskExit;
+        feedback.put("tasks", taskRunner.getRecord());
         out.println(human);
         if (!json && !outcome.getDeletedFiles().isEmpty())
             out.println("deleted stale products: " + outcome.getDeletedFiles().size());
@@ -162,5 +185,63 @@ public final class CompileCommand {
             }
         });
         return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+    }
+
+    /**
+     * Runs the declared tasks of {@code trigger} for the modules in scope (design
+     * 08 §三). First failure delegates the whole build to Maven with the task
+     * failure as the explicit reason (IB-T6) — the record (executed/skipped/failed
+     * entries) stays visible in the feedback JSON either way.
+     */
+    private static int runTriggerTasks(IbEngine engine, IbModel model, List<String> moduleIds,
+                                       String trigger, io.nop.ib.tasks.TaskRunner runner,
+                                       Map<String, Object> feedback, boolean json,
+                                       PrintWriter out, PrintWriter err) {
+        boolean any = false;
+        int failedExit = Commands.EXIT_OK;
+        for (String moduleId : moduleIds) {
+            for (io.nop.ib.tasks.TaskConfig task : engine.tasksFor(moduleId)) {
+                if (!trigger.equals(task.trigger))
+                    continue;
+                any = true;
+                IbModule module = model.module(moduleId);
+                io.nop.ib.tasks.TaskRunner.TaskResult result = runner.run(module, task);
+                if (!result.ok() && failedExit == Commands.EXIT_OK) {
+                    err.println("task failed: " + result.reason()
+                            + (result.stderrTail() != null ? "\n" + result.stderrTail() : ""));
+                    logTaskFallback(feedback, result.reason());
+                    failedExit = delegateToMaven(engine, model, moduleIds, feedback, json, out, err,
+                            result.reason());
+                }
+            }
+        }
+        if (any || !runner.getRecord().isEmpty())
+            feedback.put("tasks", runner.getRecord());
+        return failedExit;
+    }
+
+    private static void logTaskFallback(Map<String, Object> feedback, String reason) {
+        Map<String, Object> fallback = new LinkedHashMap<>();
+        fallback.put("required", true);
+        fallback.put("reason", reason);
+        fallback.put("delegated", true);
+        feedback.put("fallback", fallback);
+    }
+
+    /** shared Maven delegation used by the task-failure path (mirrors the plan fallback block) */
+    private static int delegateToMaven(IbEngine engine, IbModel model, List<String> moduleIds,
+                                       Map<String, Object> feedback, boolean json, PrintWriter out,
+                                       PrintWriter err, String reason) {
+        MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
+        StringBuilder mout = new StringBuilder();
+        StringBuilder merr = new StringBuilder();
+        int code = fallback.compileModules(moduleIds, mout, merr);
+        logTaskFallback(feedback, reason);
+        feedback.put("tasks", new ArrayList<>());
+        feedback.put("timings", Map.of("totalMs", 0));
+        String line = json ? JsonOut.write(feedback)
+                : "delegated to Maven after task failure: " + reason + "\n" + mout;
+        out.println(line);
+        return code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
     }
 }

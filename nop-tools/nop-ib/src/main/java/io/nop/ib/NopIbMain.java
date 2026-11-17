@@ -180,6 +180,11 @@ public class NopIbMain {
         } catch (IllegalArgumentException e) {
             err.println("usage/config error: " + String.valueOf(e));
             return 3;
+        } catch (NopIbException e) {
+            // wave 12: task-config and other fail-loud internals map to explicit
+            // usage/config error, never an uncaught stack (design 08 §二)
+            err.println("usage/config error: " + String.valueOf(e));
+            return 3;
         }
     }
 

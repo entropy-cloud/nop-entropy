@@ -1,0 +1,21 @@
+[
+  {
+    "name": "nop-precompile",
+    "trigger": "before-compile",
+    "inputs": [
+      "precompile/*.xgen"
+    ],
+    "outputs": [
+      "src/main/resources/_vfs/**"
+    ],
+    "exec": {
+      "type": "java",
+      "mainClass": "io.nop.codegen.task.CodeGenTask",
+      "arguments": [
+        ".",
+        "precompile"
+      ],
+      "classpathScope": "test"
+    }
+  }
+]
