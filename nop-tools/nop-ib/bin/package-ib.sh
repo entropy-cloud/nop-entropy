@@ -22,8 +22,14 @@ echo "== building nop-tools/nop-ib (skip tests) =="
 
 echo "== staging $DEST =="
 mkdir -p "$DEST/bin" "$DEST/lib"
-JAR=$(ls "$MOD_DIR"/target/nop-ib-*.jar | grep -v sources | head -1)
-cp "$JAR" "$DEST/nop-ib.jar"
+# shade produces target/nop-ib.jar (uber, main-class); the plain versioned jar
+# has NO main-class manifest — prefer the shaded one explicitly
+if [ -f "$MOD_DIR/target/nop-ib.jar" ]; then
+    cp "$MOD_DIR/target/nop-ib.jar" "$DEST/nop-ib.jar"
+else
+    echo "ERROR: shaded target/nop-ib.jar missing (shade plugin did not run)" >&2
+    exit 1
+fi
 rm -f "$DEST"/lib/*.jar
 (cd "$ROOT" && ./mvnw -q -pl nop-tools/nop-ib dependency:copy-dependencies \
     -DoutputDirectory="$DEST/lib" -DincludeScope=runtime)
