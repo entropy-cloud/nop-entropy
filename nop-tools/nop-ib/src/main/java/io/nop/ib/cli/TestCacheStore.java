@@ -95,6 +95,15 @@ public final class TestCacheStore {
         return e;
     }
 
+    /** wave 11 clean: drop entries for cleaned modules; returns how many. */
+    public int dropModules(List<String> artifactIds) {
+        int n = 0;
+        for (String id : artifactIds)
+            if (entries.remove(id) != null)
+                n++;
+        return n;
+    }
+
     /** record a run; only GREEN results are stored (red → previous entry dropped). */
     public synchronized void record(String artifactId, String fingerprint, int exitCode,
                                     int tests, int failed, int errors, int skipped) {

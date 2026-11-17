@@ -251,6 +251,7 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 | `nop-ib model refresh\|show` | 重建/查看 `model.json` | `--json` |
 | `nop-ib serve` | 常驻 JSONL 协议 | `--stdio` |
 | `nop-ib cache verify\|prune\|size` | 对拍/清理/占用 | — |
+| `nop-ib clean` | 快路径产物失效（mvn-clean 同义面）：删选中模块 target 输出目录 + 单元索引 + 测试缓存条目；取 `.mvn/build.lock`；模型过期显式拒绝（禁部分清理） | `-pl`、`--json` |
 | `nop-ib bench` | 成本基线（骨架/编译/测试三段） | `--out` |
 
 反馈契约（`--json`）：

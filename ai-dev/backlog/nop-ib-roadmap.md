@@ -220,7 +220,8 @@ Status: in progress（身份归一已落地：连续 pom 链爬顶 + 服务 toRe
 - [ ] 2. **[Decision]** mvn 透传裁定：是否增 `mvn` passthrough cmd（install/package/clean/dependency:* 经同一 per-project lane + mvnq 锁委托真 mvn）——"不替换构建系统"约束执行语义不约束接入面；透传使 AI 全部构建操作统一排队（消除绕过服务的践踏面）。倾向允许白名单 goal 集: `planned` — deps: 1
 - [ ] 3. **[Feature]** 资源回收：engine 空闲 TTL 回收（LRU=8 只封条数；空闲 N 分钟的 root 主动释放 model/index 缓存，下次冷装载无损）；health 暴露 engines 数/heap/uptime；job registry prune 已有: `planned` — deps: 1
 - [ ] 4. **[Analysis]** classloader/fork 复用评估：JUnit worker pool 为 per-job（job 结束进程退）——跨 job 常驻 fork 池省启动秒数 vs 陈旧 classpath 假绿风险对比，先 bench 后裁定（预期倾向否决常驻，正确性优先）: `planned` — deps: none
-- [ ] 5. **[Feature]** 可观测性：`GET /v1/jobs`（最近 N job 的 exit/时长/cmd）、/v1/queue 增 lane 深度与正在执行的 cmd: `planned` — deps: 1
+- [x] 5. **[Feature]** `clean` 能力（mvn-clean 同义面）：`CleanCommand` 删选中模块 target 输出目录 + 单元索引 + 测试缓存条目；取 `.mvn/build.lock`；模型过期显式拒绝；`-pl`/全 reactor/`--json`；服务白名单同步: `done`（2026-11-17，钉 3 颗 + liteflow 真实项目实证：选中删净/未选不动/索引缓存失效） — deps: 1
+- [ ] 6. **[Feature]** 可观测性：`GET /v1/jobs`（最近 N job 的 exit/时长/cmd）、/v1/queue 增 lane 深度与正在执行的 cmd: `planned` — deps: 1
 - [ ] 6. **[Proof]** 多 AI 并发实战：双客户端脚本对同一项目（含子目录路径交替）交叉提交 20 请求，验证零踩踏、零 lane 分裂、结果全部显式: `planned` — deps: 1, 2
 
 Exit Criteria：
