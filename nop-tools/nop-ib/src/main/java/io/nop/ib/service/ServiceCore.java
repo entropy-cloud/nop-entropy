@@ -9,10 +9,16 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 /**
  * Stateless service core (design 07 IB-S1): all build state lives in each
@@ -26,13 +32,27 @@ public final class ServiceCore {
     public static final int MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
     public static final int DEFAULT_JOBS_LIMIT = 50;
     public static final int MAX_JOBS_LIMIT = 500;
+    /** wave 11 item 3: idle engines are reaped after this TTL (30 minutes). */
+    public static final long DEFAULT_ENGINE_IDLE_TTL_MILLIS = 30 * 60 * 1000L;
+    /** reap cadence for the background sweeper. */
+    static final long REAP_PERIOD_MILLIS = 60_000L;
     public static final Set<String> ALLOWED_CMDS =
-            Set.of("status", "plan", "compile", "test", "check", "model", "clean");
+            Set.of("status", "plan", "compile", "test", "check", "model", "clean",
+                    // wave 11 item 2: whitelisted real-Maven passthrough —
+                    // same lane, so mvn jobs serialize against test/check jobs
+                    "mvn");
 
     private final JobRegistry registry = new JobRegistry();
     private final ProjectQueue queue;
     private final JobBudget budget;
     private final int cores;
+    /** injectable clock for the TTL pins; millis since epoch. */
+    private final LongSupplier clock;
+    private final long engineIdleTtlMillis;
+    private final long startedAtMillis;
+    /** last access time per cached root (millis, per {@code clock}). */
+    private final Map<Path, Long> lastAccess = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService reaper;
 
     /** engine cache (IB-S6): LRU, eviction only for roots not currently running. */
     private final Map<Path, IbEngine> engines = new LinkedHashMap<>(16, 0.75f, true) {
@@ -60,9 +80,35 @@ public final class ServiceCore {
 
     /** Package-private: pins inject a lane with pre-seeded pending jobs. */
     ServiceCore(int cores, ProjectQueue queue) {
+        this(cores, queue, System::currentTimeMillis);
+    }
+
+    /**
+     * wave 11 item 3: pins inject a clock so TTL expiry is deterministic.
+     * The TTL itself comes from {@code nop.ib.engineIdleTtlMillis} (default
+     * 30 minutes). A daemon sweeper runs the reap every
+     * {@link #REAP_PERIOD_MILLIS}; every engine touch and every health read
+     * reaps too, so TTL is enforced even when the sweeper is starved.
+     */
+    ServiceCore(int cores, ProjectQueue queue, LongSupplier clock) {
         this.cores = cores;
         this.queue = queue;
+        this.clock = clock;
         this.budget = JobBudget.fromSystem(cores);
+        this.engineIdleTtlMillis = ttlFromSystem();
+        this.startedAtMillis = clock.getAsLong();
+        this.reaper = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "nop-ib-engine-reaper");
+            t.setDaemon(true);
+            return t;
+        });
+        this.reaper.scheduleWithFixedDelay(this::reapIdleEngines,
+                REAP_PERIOD_MILLIS, REAP_PERIOD_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    private static long ttlFromSystem() {
+        long v = Long.getLong("nop.ib.engineIdleTtlMillis", DEFAULT_ENGINE_IDLE_TTL_MILLIS);
+        return v > 0 ? v : DEFAULT_ENGINE_IDLE_TTL_MILLIS;
     }
 
     /**
@@ -244,8 +290,13 @@ public final class ServiceCore {
         return out;
     }
 
-    /** LRU access is guarded — the eviction callback reads queue depth. Package-private for pins. */
+    /**
+     * LRU access is guarded — the eviction callback reads queue depth; each hit
+     * refreshes the idle clock used by {@link #reapIdleEngines()}.
+     * Package-private for pins.
+     */
     synchronized IbEngine engineFor(Path root) {
+        lastAccess.put(root, clock.getAsLong());
         IbEngine e = engines.get(root);
         if (e == null) {
             e = new IbEngine(root);
@@ -254,13 +305,44 @@ public final class ServiceCore {
         return e;
     }
 
+    /**
+     * wave 11 item 3 (resource recycling): drop engines idle beyond
+     * {@code nop.ib.engineIdleTtlMillis} (default 30 minutes). Guarded by the
+     * same {@link #isEvictable} rule as LRU eviction — a root with queued or
+     * running jobs keeps its engine (a second instance would fork its own
+     * caches). Removal is lossless: all build state lives in the project's
+     * {@code .nop-ib/} directory, so the next request cold-loads an identical
+     * engine. @return the number of engines reaped. Package-private for pins.
+     */
+    synchronized int reapIdleEngines() {
+        long now = clock.getAsLong();
+        int removed = 0;
+        Iterator<Map.Entry<Path, IbEngine>> it = engines.entrySet().iterator();
+        while (it.hasNext()) {
+            Path root = it.next().getKey();
+            Long last = lastAccess.get(root);
+            if (last != null && now - last >= engineIdleTtlMillis && isEvictable(root)) {
+                it.remove();
+                lastAccess.remove(root);
+                removed++;
+            }
+        }
+        return removed;
+    }
+
     public Map<String, Object> health() {
+        reapIdleEngines();
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("version", NopIbMain.VERSION);
         m.put("cores", cores);
         m.put("workerBudget", budget.permits);
         m.put("activeJobs", budget.activeJobs());
         m.put("pendingTotal", queue.pendingTotal());
+        // wave 11 item 3 observability
+        m.put("engines", engines.size());
+        Runtime rt = Runtime.getRuntime();
+        m.put("heapUsedMb", (rt.totalMemory() - rt.freeMemory()) / (1024.0 * 1024.0));
+        m.put("uptimeMs", clock.getAsLong() - startedAtMillis);
         return m;
     }
 }

@@ -68,24 +68,31 @@ public final class CompileCommand {
                     err.println("usage error: -pl module not in reactor: " + artifactId);
                     return Commands.EXIT_USAGE;
                 }
-                Path src = engine.getRepoRoot().resolve(module.getSourceDir());
-                if (Files.isDirectory(src)) {
-                    try (var stream = Files.walk(src)) {
-                        stream.filter(p -> p.toString().endsWith(".java"))
-                                .forEach(p -> {
-                                    String rel = engine.getRepoRoot().relativize(p).toString();
-                                    // generated sources (src/main/java/**/_gen) are codegen
-                                    // products: never on the fast path (design 01 §七 L1)
-                                    if (!rel.contains("/_gen/"))
-                                        changed.add(rel);
-                                });
-                    } catch (Exception e) {
-                        err.println("failed to enumerate sources of " + artifactId);
-                        return Commands.EXIT_USAGE;
+                List<Path> sourceDirs = new ArrayList<>();
+                sourceDirs.add(engine.getRepoRoot().resolve(module.getSourceDir()));
+                // wave 11 audit fix: test sources must be in scope too — a stale
+                // target/test-classes silently served old bytecode (fake green)
+                if (module.getTestSourceDir() != null)
+                    sourceDirs.add(engine.getRepoRoot().resolve(module.getTestSourceDir()));
+                for (Path src : sourceDirs) {
+                    if (Files.isDirectory(src)) {
+                        try (var stream = Files.walk(src)) {
+                            stream.filter(p -> p.toString().endsWith(".java"))
+                                    .forEach(p -> {
+                                        String rel = engine.getRepoRoot().relativize(p).toString();
+                                        // generated sources (src/main/java/**/_gen) are codegen
+                                        // products: never on the fast path (design 01 §七 L1)
+                                        if (!rel.contains("/_gen/"))
+                                            changed.add(rel);
+                                    });
+                        } catch (Exception e) {
+                            err.println("failed to enumerate sources of " + artifactId);
+                            return Commands.EXIT_USAGE;
+                        }
                     }
                 }
                 if (changed.isEmpty()) {
-                    // module with no main sources: nothing to fast-path compile
+                    // module with no main/test sources: nothing to fast-path compile
                     return Commands.EXIT_OK;
                 }
             }

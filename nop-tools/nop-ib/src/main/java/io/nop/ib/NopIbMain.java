@@ -4,6 +4,7 @@ import io.nop.ib.cli.BenchCommand;
 import io.nop.ib.cli.CleanCommand;
 import io.nop.ib.cli.CompileCommand;
 import io.nop.ib.cli.Commands;
+import io.nop.ib.cli.MvnCommand;
 import io.nop.ib.cli.ServeCommand;
 import io.nop.ib.cli.TestCommand;
 import io.nop.ib.engine.IbEngine;
@@ -26,7 +27,7 @@ public class NopIbMain {
 
     public static final String[] COMMANDS = {
             "status", "plan", "compile", "test", "check",
-            "explain", "model", "serve", "cache", "bench", "clean"
+            "explain", "model", "serve", "cache", "bench", "clean", "mvn"
     };
 
     private static final List<String> IMPLEMENTED =
@@ -74,6 +75,20 @@ public class NopIbMain {
             usage(out);
             return 0;
         }
+        if ("mvn".equals(cmd)) {
+            // wave 11 item 2: whitelisted real-Maven passthrough. Dispatched
+            // BEFORE the common flag parser — mvn owns its own flag syntax
+            // (`mvn -pl :mod install` would otherwise be eaten by the ib parser).
+            List<String> mvnArgs = new ArrayList<>();
+            boolean json = false;
+            for (int i = 1; i < args.length; i++) {
+                if ("--json".equals(args[i]))
+                    json = true;
+                else
+                    mvnArgs.add(args[i]);
+            }
+            return MvnCommand.mvn(repoRoot, mvnArgs, json, out, err);
+        }
         if (!List.of(COMMANDS).contains(cmd)) {
             err.println("usage error: unknown command '" + cmd + "'");
             return 3;
@@ -93,6 +108,9 @@ public class NopIbMain {
         String runner = "junit";
         boolean useCache = false;
         boolean forceRun = false;
+        // wave 11: test defaults to a pre-compile (same channel as check);
+        // --no-compile restores the v1 dispatch-without-compile behavior
+        boolean noCompile = false;
         List<String> explicitClasses = new ArrayList<>();
         List<String> positional = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
@@ -122,6 +140,8 @@ public class NopIbMain {
                 useCache = true;
             } else if ("--force".equals(arg)) {
                 forceRun = true;
+            } else if ("--no-compile".equals(arg)) {
+                noCompile = true;
             } else if ("--fork-parallelism".equals(arg)) {
                 // legacy flag: one-fork-per-class execution was replaced by the
                 // persistent worker pool (design 06) — reject loudly instead of
@@ -157,7 +177,7 @@ public class NopIbMain {
                 case "check":
                     return TestCommand.test(engine, positional, plModules, explicitClasses,
                             allowPartial, json, "check".equals(cmd), onFallback, rerunFailed, runner,
-                            useCache, forceRun,
+                            useCache, forceRun, noCompile,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "serve":
                     return ServeCommand.serve(engine, positional, out, err);
@@ -191,7 +211,7 @@ public class NopIbMain {
     private static void usage(PrintStream out) {
         out.println("usage: nop-ib <command> [options]");
         out.println("commands: " + String.join(" | ", COMMANDS));
-        out.println("common options: --json, --allow-partial, --paths <paths>");
+        out.println("common options: --json, --allow-partial, --paths <paths>, --no-compile (test only)");
         out.println("implemented (wave 1): status plan explain model cache");
         out.println("try 'nop-ib --version'");
     }

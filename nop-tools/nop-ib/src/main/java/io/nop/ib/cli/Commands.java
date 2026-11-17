@@ -48,16 +48,14 @@ public final class Commands {
                 IbModel model = new ModelRefresher(engine.getRepoRoot()).refresh();
                 engine.getModelStore().save(model);
                 refreshUnitIndexes(engine, model);
+                Map<String, Object> m = refreshReport(model);
                 if (json) {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("ok", true);
-                    m.put("modules", model.getModules().size());
-                    m.put("mavenVersion", model.getMavenVersion());
-                    m.put("dumpSha256", model.getDumpSha256());
                     out.println(JsonOut.write(m));
                 } else {
                     out.println("model refreshed: " + model.getModules().size() + " modules, maven "
                             + model.getMavenVersion() + ", dump " + model.getDumpSha256());
+                    for (Object w : (List<?>) m.get("warnings"))
+                        out.println("warning: " + w);
                 }
                 return EXIT_OK;
             }
@@ -78,6 +76,32 @@ public final class Commands {
                 throw new NopIbException("usage error: unknown 'model' subcommand '" + sub
                         + "' (refresh|show)");
         }
+    }
+
+    /**
+     * wave 11 item 8: the refresh result contract. Refresh exits 0 even when
+     * some modules' {@code dependency:list} failed — those are listed in
+     * {@code unresolvedModules} and paired with explicit warnings (both JSON
+     * and human output); the planner routes plans touching them to Maven.
+     */
+    public static Map<String, Object> refreshReport(IbModel model) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ok", true);
+        m.put("modules", model.getModules().size());
+        m.put("mavenVersion", model.getMavenVersion());
+        m.put("dumpSha256", model.getDumpSha256());
+        List<String> unresolved = model.getUnresolvedModules();
+        m.put("unresolvedModules", unresolved);
+        List<String> warnings = new ArrayList<>();
+        if (!unresolved.isEmpty()) {
+            warnings.add("dependency resolution failed for " + unresolved.size()
+                    + " module(s): " + unresolved + " — plans touching them fall back to Maven");
+            for (String artifactId : unresolved)
+                warnings.add("module " + artifactId
+                        + " marked depsUnresolved: dependency facts unresolved at refresh");
+        }
+        m.put("warnings", warnings);
+        return m;
     }
 
     /** (Re)build unit indexes for every module whose products exist. */

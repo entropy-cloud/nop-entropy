@@ -80,10 +80,22 @@ public final class ModelRefresher {
         Path dump = tmp.resolve("ib-effective.xml");
         runMaven("-q", "help:effective-pom", "-Doutput=" + dump.toAbsolutePath());
 
-        // 4. per-module resolved artifacts (one reactor invocation)
-        String depListOut = runMaven("dependency:list", "-DincludeScope=test",
-                "-Dsort=false");
-        Map<String, List<String>> artifactsByModule = parseDependencyList(depListOut);
+        // 4. per-module resolved artifacts (one reactor invocation).
+        // wave 11 item 8: a reactor-wide resolution failure (e.g. an uninstalled
+        // reactor SNAPSHOT sibling, observed on nop-spring-gateway → demo-service)
+        // no longer hard-fails the whole refresh — the reactor pass degrades to
+        // per-module resolution below.
+        Map<String, List<String>> artifactsByModule;
+        // wave 11 item 8: artifactIds whose dependency facts could not be
+        // resolved — refresh still exits 0, the planner must fall back for them
+        List<String> unresolved = new ArrayList<>();
+        try {
+            String depListOut = runMaven("dependency:list", "-DincludeScope=test",
+                    "-Dsort=false");
+            artifactsByModule = parseDependencyList(depListOut);
+        } catch (NopIbException e) {
+            artifactsByModule = new LinkedHashMap<>();
+        }
 
         // 5. parse dump into modules
         EffectivePomParser parser = new EffectivePomParser(repoRoot.toString());
@@ -98,7 +110,31 @@ public final class ModelRefresher {
         // and keeps the fast single-invocation path.
         Set<String> suspect = coverageSuspects(modules, artifactsByModule);
         if (!suspect.isEmpty()) {
-            artifactsByModule = resolvePerModule(suspect, artifactsByModule);
+            List<String> suspectFailures = new ArrayList<>();
+            artifactsByModule = resolvePerModule(suspect, artifactsByModule, suspectFailures);
+            for (String f : suspectFailures)
+                if (!unresolved.contains(f))
+                    unresolved.add(f);
+        }
+
+        // 4c. wave 11 item 8: every module still without resolved artifacts gets
+        // one individual -pl attempt (this covers both the degraded reactor pass
+        // and reactor passes that skipped anchors). Modules that STILL fail are
+        // marked depsUnresolved — refresh exits 0, but the planner must route
+        // any plan touching them to the Maven fallback (fail-safe: the closure
+        // is not trustworthy).
+        for (IbModule mod : modules) {
+            if (mod.getBasedir() != null && !artifactsByModule.containsKey(mod.getArtifactId())) {
+                try {
+                    Map<String, List<String>> one = parseDependencyList(runMaven(
+                            "dependency:list", "-DincludeScope=test", "-Dsort=false",
+                            "-pl", ":" + mod.getArtifactId()));
+                    artifactsByModule.put(mod.getArtifactId(),
+                            one.getOrDefault(mod.getArtifactId(), new ArrayList<>()));
+                } catch (NopIbException e) {
+                    unresolved.add(mod.getArtifactId());
+                }
+            }
         }
 
         IbModel model = new IbModel();
@@ -108,6 +144,7 @@ public final class ModelRefresher {
         model.setLocalRepo(localRepo);
         model.setDumpSha256(ModelStore.sha256(dump));
         model.setRefreshedAt(System.currentTimeMillis());
+        model.setUnresolvedModules(unresolved);
 
         for (IbModule mod : modules) {
             if (mod.getBasedir() == null)
@@ -115,6 +152,8 @@ public final class ModelRefresher {
             List<String> ext = artifactsByModule.get(mod.getArtifactId());
             if (ext != null)
                 mod.setExternalArtifacts(ext);
+            if (unresolved.contains(mod.getArtifactId()))
+                mod.setDepsUnresolved(true);
             Path pom = repoRoot.resolve(mod.getBasedir()).resolve("pom.xml");
             mod.setPomHash(Files.isRegularFile(pom) ? ModelStore.sha256(pom) : null);
             model.addModule(mod);
@@ -147,14 +186,26 @@ public final class ModelRefresher {
         return suspects;
     }
 
-    /** re-resolve suspect modules one -pl invocation each (unambiguous output). */
+    /**
+     * re-resolve suspect modules one -pl invocation each (unambiguous output).
+     * wave 11 item 8: a per-module failure is tolerated — the module degrades
+     * (empty EA, recorded in {@code failures} so the caller marks
+     * {@code depsUnresolved}) instead of failing the whole refresh.
+     */
     private Map<String, List<String>> resolvePerModule(Set<String> suspects,
-                                                       Map<String, List<String>> artifactsByModule) {
+                                                       Map<String, List<String>> artifactsByModule,
+                                                       List<String> failures) {
         Map<String, List<String>> fixed = new LinkedHashMap<>(artifactsByModule);
         for (String artifactId : suspects) {
-            String out = runMaven("dependency:list", "-DincludeScope=test",
-                    "-Dsort=false", "-pl", ":" + artifactId);
-            Map<String, List<String>> one = parseDependencyList(out);
+            Map<String, List<String>> one;
+            try {
+                String out = runMaven("dependency:list", "-DincludeScope=test",
+                        "-Dsort=false", "-pl", ":" + artifactId);
+                one = parseDependencyList(out);
+            } catch (NopIbException e) {
+                failures.add(artifactId);
+                continue;
+            }
             // single-module invocation: one anchor, one block — take it verbatim
             List<String> ea = one.getOrDefault(artifactId, new ArrayList<>());
             fixed.put(artifactId, ea);

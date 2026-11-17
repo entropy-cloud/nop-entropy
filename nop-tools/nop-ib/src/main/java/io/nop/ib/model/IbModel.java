@@ -29,6 +29,12 @@ public class IbModel {
     private Map<String, IbModule> modulesByArtifactId = new LinkedHashMap<>();
     /** reactor order preserved */
     private List<IbModule> modules = new ArrayList<>();
+    /**
+     * wave 11 item 8: artifactIds whose {@code dependency:list} failed at
+     * refresh time (marked {@code depsUnresolved}) — refresh still succeeds,
+     * but plans touching these modules must fall back to Maven (fail-safe).
+     */
+    private List<String> unresolvedModules = new ArrayList<>();
 
     public String getRepoRoot() {
         return repoRoot;
@@ -82,6 +88,25 @@ public class IbModel {
         return pomHashes;
     }
 
+    /** wave 11 item 8: artifactIds with unresolved dependency facts. */
+    public List<String> getUnresolvedModules() {
+        return unresolvedModules;
+    }
+
+    public void setUnresolvedModules(List<String> unresolvedModules) {
+        this.unresolvedModules = unresolvedModules == null
+                ? new ArrayList<>() : new ArrayList<>(unresolvedModules);
+    }
+
+    private static List<String> fromStringList(Object value) {
+        List<String> out = new ArrayList<>();
+        if (value instanceof Iterable<?> iter) {
+            for (Object o : iter)
+                out.add(String.valueOf(o));
+        }
+        return out;
+    }
+
     public List<IbModule> getModules() {
         return modules;
     }
@@ -114,6 +139,8 @@ public class IbModel {
         m.put("dumpSha256", dumpSha256);
         m.put("refreshedAt", refreshedAt);
         m.put("pomHashes", pomHashes);
+        if (!unresolvedModules.isEmpty())
+            m.put("unresolvedModules", new ArrayList<>(unresolvedModules));
         List<Object> mods = new ArrayList<>();
         for (IbModule mod : modules)
             mods.add(mod.toMap());
@@ -136,6 +163,7 @@ public class IbModel {
             for (Map.Entry<?, ?> e : hm.entrySet())
                 model.pomHashes.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
         }
+        model.unresolvedModules = fromStringList(m.get("unresolvedModules"));
         Object mods = m.get("modules");
         if (mods instanceof Iterable<?> iter) {
             for (Object o : iter) {

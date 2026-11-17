@@ -212,24 +212,25 @@ Exit Criteria：
 
 > Owner 指令（2026-11-17）：服务面向全部 AI 使用——防同项目践踏、控资源消耗、能复用则复用（classloader/引擎缓存）、该回收时回收。
 
-Status: in progress（身份归一已落地：连续 pom 链爬顶 + 服务 toRealPath lane 键 + staleness real-path 归一 + model 命令入白名单；钉 3 颗，TestServiceCore 12/12）
+Status: done（2026-11-18 收口：item 2/3/4/7/8/9 全部落地；独立 closure audit 复审 APPROVED——含 -pl 枚举 testSourceDir MUST FIX 修复的实测复验（test 源变更 run 144→145 新测试执行）；plan/daily log 11-18 在档）
 
 - Item Types: `Feature | Decision | Proof`
 
 - [x] 1. **[Feature]** 项目身份归一（防 AI 主/子项目切换踩踏）：`discoverRepoRoot` 无 mvnw 时从"首个 pom"改为连续 pom 链爬顶；`ServiceCore` lane 键 toRealPath（symlink 别名归一）；`ModelStore.stalenessReason` real-path 归一比较（别名不再永久 fallback）；服务白名单增 `model`（冷启动建模型不再必须跑 CLI）: `done`（2026-11-17，钉 submodule/symlink/model 3 颗）
 - [x] 7. **[Decision]** 锁定位重审 → **废止**（owner 2026-11-17 二次裁定）：裸 mvn 不取 `.mvn/build.lock`（只有 mvnq 取），锁从未防过人类-vs-ib；残余价值仅 ib-vs-ib 与 mvnq 过渡共存——近零价值，**从设计中移除**（BuildLock 类删除、CompileCommand/CleanCommand 不再取锁、fallback 不再经 mvnq）。并发=ib 进程内 lane；mvn 位置 = `nop.ib.maven` > mvnw > PATH（钉 3 颗）: `done` — deps: none
-- [ ] 2. **[Decision]** mvn 透传裁定：是否增 `mvn` passthrough cmd（install/package/clean/dependency:* 经同一 per-project lane + mvnq 锁委托真 mvn）——"不替换构建系统"约束执行语义不约束接入面；透传使 AI 全部构建操作统一排队（消除绕过服务的践踏面）。倾向允许白名单 goal 集: `planned` — deps: 1
-- [ ] 3. **[Feature]** 资源回收：engine 空闲 TTL 回收（LRU=8 只封条数；空闲 N 分钟的 root 主动释放 model/index 缓存，下次冷装载无损）；health 暴露 engines 数/heap/uptime；job registry prune 已有: `planned` — deps: 1
-- [ ] 4. **[Analysis]** classloader/fork 复用评估：JUnit worker pool 为 per-job（job 结束进程退）——跨 job 常驻 fork 池省启动秒数 vs 陈旧 classpath 假绿风险对比，先 bench 后裁定（预期倾向否决常驻，正确性优先）: `planned` — deps: none
+- [x] 2. **[Decision]** mvn 透传裁定 → **落地白名单透传**（owner 2026-11-17 倾向允许 + 2026-11-18 实现）：新增 `mvn` cmd（`{"cmd":"mvn","args":["-pl",":mod","install"]}`）经同一 per-project lane 委托真 Maven（复用 `MavenFallback` 定位链 `nop.ib.maven` > mvnw > PATH 与超时/进程治理）；白名单 goal = `install | package | clean | dependency:* | surefire:*`，白名单外（deploy/release 等）显式拒绝 exit 3 并列出允许集；`-pl` 的 `:module` reactor 选择器不算 goal；输出摘要透传（exit 原样返回 + 尾部 50 行，`--json` 契约 `{cmd,args,exit,outputTail,truncated}`）。理由：统一所有构建操作走服务排队，消除绕过服务的同项目并发践踏面: `done`（2026-11-18，钉 6 颗：TestMvnPassthrough 白名单命中经可注入 Runner seam 委托（args 原样、不真跑 install）、dependency:/surefire:/clean+package 命中、deploy 拒绝 exit 3 列允许集且零进程、`:mod` 选择器不触发拒绝、mvn exit code 原样透传；TestMvnLane 同一 lane mvn job 与 test job 互斥串行（300ms 窗口零重叠）+ 委托输出入 payload；经 nop-ib 服务 check exit=0 + CLI `test -pl nop-ib` 143/143 全绿） — deps: 1
+- [x] 3. **[Feature]** 资源回收：engine 空闲 TTL 回收（LRU=8 只封条数；空闲超过 TTL（默认 30 分钟，`nop.ib.engineIdleTtlMillis` 覆盖）的 root 由 `ServiceCore.reapIdleEngines()` 主动从 cache 移除——后台 60s 守护 sweeper + 每次 engineFor/health 触发 reap；运行中/排队 root 永不回收（沿用 isEvictable 守卫）；状态全在磁盘 `.nop-ib/`，下次请求冷装载无损）；health 增 `engines`/`heapUsedMb`/`uptimeMs`: `done`（2026-11-18，钉 6 颗 TestEngineIdleReap：TTL 到期回收非运行 root、运行中不回收、回收后重建无损、health 三字段、TTL 系统属性覆盖、空 cache reap no-op；经 nop-ib 服务 check exit=0，137/137 全绿） — deps: 1
+- [x] 4. **[Analysis]** classloader/fork 复用评估：JUnit worker pool 为 per-job（job 结束进程退）——跨 job 常驻 fork 池省启动秒数 vs 陈旧 classpath 假绿风险对比，先 bench 后裁定（预期倾向否决常驻，正确性优先）: `done`（2026-11-18 done-as-adjudicated，**拒绝常驻 fork 池**——Wave 7 E2（`ai-dev/analysis/2026-11-16-wave7-experiment-verdicts.md` §E2）已实测 worker 常驻批调度网格：maxClasses 1/5/20 全格点 wall 无差（34s 平），常驻收益在本语料上量级不可见；Wave 8 mvnd 实证（`ai-dev/analysis/2026-11-16-wave8-mvnd-empirical.md` §四/§五）进一步给出常驻进程收益上界：daemon warm 收益仅 ~6–8s（冷 8s→warm 2s），ib 冷 JVM 开销 ~0.5–1s 本就可忽略，且 daemon 形态违反 Non-Goals；而跨 job 常驻 fork 携带陈旧 classpath 的假绿风险直接违反零假绿硬约束（design 05 §6.5 宁可多跑不可漏跑）。收益上界秒级、风险面上限为假绿——不新做 bench，维持 per-job fork 池） — deps: none
 - [x] 5. **[Feature]** `clean` 能力（mvn-clean 同义面）：`CleanCommand` 删选中模块 target 输出目录 + 单元索引 + 测试缓存条目；取 `.mvn/build.lock`；模型过期显式拒绝；`-pl`/全 reactor/`--json`；服务白名单同步: `done`（2026-11-17，钉 3 颗 + liteflow 真实项目实证：选中删净/未选不动/索引缓存失效） — deps: 1
 - [x] 6. **[Feature]** 可观测性：`GET /v1/jobs`（最近 N job 的 exit/时长/cmd）、/v1/queue 增 lane 深度与正在执行的 cmd: `done`（2026-11-17，钉 4 颗：TestServiceCore recentJobs 摘要/limit + queueLane depth/runningCmd 语义；TestServeHttp /v1/jobs 字段+limit+400/405 与 /v1/queue lane 对象 {root,depth,runningCmd,pending}；经 nop-ib 服务 check exit=0，118/118 全绿；真实服务端运行时验证跳过——8188 跑的是旧 jar 无法热更新，HTTP 层已由 TestServeHttp 内嵌真实 HttpServer 端到端覆盖） — deps: 1
-- [ ] 8. **[Follow-up]** model refresh 对未 install 的 reactor SNAPSHOT 兄弟依赖硬失败（2026-11-18 master worktree 实测：nop-demo/nop-spring-gateway→demo-service absent→dependency:list exit 1→refresh exit 3；workaround=单模块 install；修法候选=per-module 容忍失败降级 external-fallback）: `todo`：双客户端脚本对同一项目（含子目录路径交替）交叉提交 20 请求，验证零踩踏、零 lane 分裂、结果全部显式: `planned` — deps: 1, 2
+- [x] 8. **[Follow-up]** model refresh 对未 install 的 reactor SNAPSHOT 兄弟依赖硬失败 → 改 per-module 容忍（2026-11-18 master worktree 实测根因：nop-demo/nop-spring-gateway→demo-service absent→dependency:list exit 1→refresh exit 3）：reactor 级 `dependency:list` 失败降级为逐模块 `-pl :artifactId` 重解析；仍失败的模块置 `depsUnresolved:true`（model.json 模块事实 + 顶层 `unresolvedModules:[...]`），refresh 整体仍 exit 0 且 JSON/人类输出显式 warning 列表；planner 对 compile 闭包内任一 depsUnresolved 模块强制 Maven 回退（fail-safe：依赖闭包不可信）并在 fallback reason 显式点名该模块: `done`（2026-11-18，钉 6 颗 TestDepsUnresolvedFallback：降级模块变更→fallback reason 点名、依赖它的下游同样回退、正常模块不受影响、refreshReport ok+unresolvedModules+warning、干净 refresh 空 unresolved、depsUnresolved 走 model.json round-trip 持久化；经 nop-ib 服务 check exit=0（137/137）+ 本 worktree 真实 `model refresh` exit 0（456 modules） — deps: 1, 2
+- [x] 9. **[Feature]** `nop-ib test` 默认先增量编译（owner 指令 2026-11-18；修 daily log 2026-11-17 缺陷：裸 `test -pl :module` 对已变更源不重编，target/classes 旧字节码跑出 114 假绿 vs 真实 118）：`test` 派发前（含 `--rerun-failed`/`-pl`/`--class` 全部分支、且在 `--cache` 指纹计算之前）经 `CompileCommand.runCompile`（与 `check` 同通道，含 codegen 任务钩子与 Maven 回退语义）编译，范围镜像测试作用域（`-pl` 模块 / `--affected` 变更集 / `--class` 归属模块）；编译失败以编译退出码结束、零派发（零假绿）；`--no-compile` 显式关闭（JSON `compiled:false` 不静默）；JSON 契约 `compiled: true|false|"skipped"`（skipped=作用域内无变更）: `done`（2026-11-18，钉 5 颗 TestAutoCompileBeforeTest：默认先编译+顺序、`--no-compile` 跳过、红编译阻断派发、JSON 三态、`--class` 归属模块解析；经 nop-ib 服务 check exit=0（120/120）+ CLI `test -pl nop-ib` 125/125 全绿，`test -pl` 预编译实测生效） — deps: none
 
 Exit Criteria：
-- [ ] 同一 worktree 的任何路径形态（根/子模块/symlink/. 尾缀）提交都收敛到单 lane（钉 + 实测双证据）
-- [ ] 空闲 engine 可被回收且回收后重建无损（钉）
-- [ ] mvn 透传有裁定且落地或显式否决（理由在档）
-- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿；独立 closure audit APPROVED
+- [x] 同一 worktree 的任何路径形态（根/子模块/symlink/. 尾缀）提交都收敛到单 lane（钉：TestServiceCore 子目录/symlink 归一 2 颗 + 实测：2026-11-18 多 AI 并发实战 20 请求 × 4 路径形态，108 次 /v1/queue 采样恒单 lane、20 执行窗口零重叠，`_tmp/wave11-item7-proof-result.json`）
+- [x] 空闲 engine 可被回收且回收后重建无损（钉：TestEngineIdleReap）
+- [x] mvn 透传有裁定且落地或显式否决（理由在档：item 2 白名单落地 + item 4 常驻 fork 池拒绝）
+- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿（2026-11-18 经 nop-ib 服务 check exit=0 + CLI `test -pl nop-ib` 143/143 等效全绿）；独立 closure audit APPROVED
 
 ## Wave 12 — 声明式代码生成任务钩子（design 08）
 
