@@ -47,10 +47,22 @@ public final class IbEngine {
                 firstPom = current;
             current = current.getParent();
         }
-        if (firstPom != null)
-            return firstPom;
-        throw new IllegalArgumentException(
-                "not inside a Maven project (no mvnw/.mvn or pom.xml): " + start);
+        if (firstPom == null)
+            throw new IllegalArgumentException(
+                    "not inside a Maven project (no mvnw/.mvn or pom.xml): " + start);
+        // wave 11 fix (subdir identity): without the mvnw marker the FIRST pom
+        // used to win, so a submission from <root>/moduleA made moduleA itself
+        // the "repo root" — a second queue lane and a second .nop-ib state for
+        // the SAME worktree, defeating per-project serialization. Climb the
+        // contiguous pom chain instead: every ancestor that still has a pom.xml
+        // is the same reactor (aggregator tops out where the chain breaks).
+        Path top = firstPom;
+        Path parent = top.getParent();
+        while (parent != null && Files.isRegularFile(parent.resolve("pom.xml"))) {
+            top = parent;
+            parent = parent.getParent();
+        }
+        return top;
     }
 
     public Path getRepoRoot() {

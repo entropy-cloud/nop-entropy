@@ -73,7 +73,8 @@ public final class ModelStore {
      * subprocess per command would triple the noop cost (design 05 §5.3 note).
      */
     public String stalenessReason(IbModel model) {
-        if (!repoRoot.toString().equals(model.getRepoRoot()))
+        if (!repoRoot.toString().equals(model.getRepoRoot())
+                && !sameRealRoot(model.getRepoRoot()))
             return "model was built for a different repo root: " + model.getRepoRoot();
         String modelJdk = model.getJdkVersion();
         if (modelJdk != null && !modelJdk.isBlank()) {
@@ -93,6 +94,21 @@ public final class ModelStore {
         return null;
     }
 
+
+    /**
+     * wave 11 fix (alias staleness): a symlinked submission path (e.g.
+     * ~/sources/x vs /Volumes/data/sources/x) used to string-compare unequal
+     * and force a permanent Maven fallback even though the model was built for
+     * the very same worktree. Compare the real (resolved) paths instead —
+     * falls back to plain string compare when either side cannot be resolved.
+     */
+    private boolean sameRealRoot(String modelRoot) {
+        try {
+            return repoRoot.toRealPath().equals(Path.of(modelRoot).toRealPath());
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public static String sha256(Path file) {
         try {

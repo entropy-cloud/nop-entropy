@@ -24,7 +24,8 @@ import java.util.Set;
  */
 public final class ServiceCore {
     public static final int MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
-    public static final Set<String> ALLOWED_CMDS = Set.of("status", "plan", "compile", "test", "check");
+    public static final Set<String> ALLOWED_CMDS =
+            Set.of("status", "plan", "compile", "test", "check", "model");
 
     private final JobRegistry registry = new JobRegistry();
     private final ProjectQueue queue;
@@ -75,7 +76,13 @@ public final class ServiceCore {
                     + " (allowed: " + ALLOWED_CMDS + ")");
         Path root;
         try {
-            root = IbEngine.discoverRepoRoot(Path.of(projectDir));
+            // wave 11 fix (alias identity): resolve to the REAL path so symlink
+            // aliases of one worktree (~/sources/x vs /Volumes/data/sources/x)
+            // share one queue lane and one engine cache entry — a string-keyed
+            // identity would let the same project run twice concurrently
+            root = IbEngine.discoverRepoRoot(Path.of(projectDir)).toRealPath();
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("not a Maven project: " + projectDir, e);
         }

@@ -208,6 +208,27 @@ Exit Criteria：
 - [x] 零假绿透传：fallback/partial/cached 标记经服务原样到达调用方
 - [x] `./mvnw test -pl nop-tools/nop-ib` 全绿；独立 closure audit APPROVED
 
+## Wave 11 — 服务化治理：项目身份归一 + 资源回收 + mvn 透传裁定
+
+> Owner 指令（2026-11-17）：服务面向全部 AI 使用——防同项目践踏、控资源消耗、能复用则复用（classloader/引擎缓存）、该回收时回收。
+
+Status: in progress（身份归一已落地：连续 pom 链爬顶 + 服务 toRealPath lane 键 + staleness real-path 归一 + model 命令入白名单；钉 3 颗，TestServiceCore 12/12）
+
+- Item Types: `Feature | Decision | Proof`
+
+- [x] 1. **[Feature]** 项目身份归一（防 AI 主/子项目切换踩踏）：`discoverRepoRoot` 无 mvnw 时从"首个 pom"改为连续 pom 链爬顶；`ServiceCore` lane 键 toRealPath（symlink 别名归一）；`ModelStore.stalenessReason` real-path 归一比较（别名不再永久 fallback）；服务白名单增 `model`（冷启动建模型不再必须跑 CLI）: `done`（2026-11-17，钉 submodule/symlink/model 3 颗）
+- [ ] 2. **[Decision]** mvn 透传裁定：是否增 `mvn` passthrough cmd（install/package/clean/dependency:* 经同一 per-project lane + mvnq 锁委托真 mvn）——"不替换构建系统"约束执行语义不约束接入面；透传使 AI 全部构建操作统一排队（消除绕过服务的践踏面）。倾向允许白名单 goal 集: `planned` — deps: 1
+- [ ] 3. **[Feature]** 资源回收：engine 空闲 TTL 回收（LRU=8 只封条数；空闲 N 分钟的 root 主动释放 model/index 缓存，下次冷装载无损）；health 暴露 engines 数/heap/uptime；job registry prune 已有: `planned` — deps: 1
+- [ ] 4. **[Analysis]** classloader/fork 复用评估：JUnit worker pool 为 per-job（job 结束进程退）——跨 job 常驻 fork 池省启动秒数 vs 陈旧 classpath 假绿风险对比，先 bench 后裁定（预期倾向否决常驻，正确性优先）: `planned` — deps: none
+- [ ] 5. **[Feature]** 可观测性：`GET /v1/jobs`（最近 N job 的 exit/时长/cmd）、/v1/queue 增 lane 深度与正在执行的 cmd: `planned` — deps: 1
+- [ ] 6. **[Proof]** 多 AI 并发实战：双客户端脚本对同一项目（含子目录路径交替）交叉提交 20 请求，验证零踩踏、零 lane 分裂、结果全部显式: `planned` — deps: 1, 2
+
+Exit Criteria：
+- [ ] 同一 worktree 的任何路径形态（根/子模块/symlink/. 尾缀）提交都收敛到单 lane（钉 + 实测双证据）
+- [ ] 空闲 engine 可被回收且回收后重建无损（钉）
+- [ ] mvn 透传有裁定且落地或显式否决（理由在档）
+- [ ] `./mvnw test -pl nop-tools/nop-ib` 全绿；独立 closure audit APPROVED
+
 ## Status values
 
 | Status | Meaning |
