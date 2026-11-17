@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Cold-path delegation (design 05 §三/§7.3): always through the worktree's mvnq
- * wrapper so concurrency governance and the worktree local repo are respected.
- * Delegation itself takes the build lock via MvnqLock (the same file nop-ib's
- * {@link io.nop.ib.lock.BuildLock} uses), so lock discipline is one protocol.
+ * Cold-path delegation: runs real Maven for routes the fast path cannot own
+ * (AOP/codegen modules, stale model). Wave 11: mvnq is no longer invoked —
+ * ib owns concurrency in-process. Maven location: system property
+ * {@code nop.ib.maven} > project mvnw > mvn from PATH.
  */
 public final class MavenFallback {
     public static final int EXIT_LOCK_TIMEOUT = 75;
@@ -32,15 +32,15 @@ public final class MavenFallback {
     }
 
     public int delegate(String mavenArgs, Appendable out, Appendable err) {
-        Path mvnq = repoRoot.resolve("ai-dev/tools/mvnq");
+        // wave 11 owner adjudication: the mvnq wrapper (and its build.lock) is
+        // no longer invoked — ib controls concurrency in-process (design 07 §三).
+        // Maven location: explicit system property nop.ib.maven wins, then the
+        // project's mvnw wrapper, then plain mvn from PATH (defect 24 pin).
         Path mvnw = repoRoot.resolve("mvnw");
         List<String> cmd = new ArrayList<>();
-        if (Files.isRegularFile(mvnq)) {
-            // Nop worktree: the mvnq wrapper applies concurrency governance and
-            // takes the worktree build lock itself
-            cmd.add("bash");
-            cmd.add(mvnq.toAbsolutePath().toString());
-            cmd.add("--lock-timeout=" + timeout.toSeconds());
+        String configured = System.getProperty("nop.ib.maven");
+        if (configured != null && !configured.isBlank()) {
+            cmd.add(configured);
         } else if (Files.isRegularFile(mvnw)) {
             // external project with its own wrapper
             cmd.add("bash");

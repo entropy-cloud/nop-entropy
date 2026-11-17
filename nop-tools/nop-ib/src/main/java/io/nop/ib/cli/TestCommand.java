@@ -9,7 +9,6 @@ import io.nop.ib.engine.GitChanges;
 import io.nop.ib.engine.IbEngine;
 import io.nop.ib.json.JsonIn;
 import io.nop.ib.json.JsonOut;
-import io.nop.ib.lock.BuildLock;
 import io.nop.ib.model.IbModel;
 import io.nop.ib.model.IbModule;
 import io.nop.ib.scope.PlanResult;
@@ -38,14 +37,9 @@ import java.util.regex.Pattern;
  * TAKES NO BUILD LOCK — it only reads target/classes and writes per-process
  * temp result files (verified non-overlapping), so it is not a shared-resource
  * writer; acquiring the exclusive lock here would serialize the parallel module
- * sweep (-pl a,b, design 06 WR-D6) against itself. All WRITE paths share
- * .mvn/build.lock: fast-path compile (CompileCommand) and Maven delegations
- * (mvnq takes the same lock itself, so the fallback must not nest it — the
- * outer lock would self-deadlock the child). A concurrent compile-vs-test race
- * on target/classes can only produce a false RED (missing class file), never a
- * false green — fail-safe direction (hard constraint 4 rationale).
- *
- * <p>Selection re-runs after a Maven fallback compile (design 01 §13.3: a fallback
+ * sweep (-pl a,b, design 06 WR-D6) against itself. All WRITE paths  * wave 11: no file lock — concurrency is controlled in-process (service lane /
+ * CLI single invocation). Maven fallback runs plain mvnw/mvn without mvnq.
+re-runs after a Maven fallback compile (design 01 §13.3: a fallback
  * compile invalidates the pre-fallback selection).
  */
 public final class TestCommand {
@@ -922,7 +916,7 @@ public final class TestCommand {
                                       PrintWriter out, PrintWriter err) {
         TestRun run = new TestRun(module.getArtifactId(), null);
         run.kind = "maven-module";
-        // no outer BuildLock: the mvnq wrapper takes the same .mvn/build.lock itself;
+        // no outer lock (wave 11: ib controls concurrency in-process); the
         // acquiring it here (JVM-scoped FileChannel lock) would self-deadlock the child
         MavenFallback fallback = new MavenFallback(engine.getRepoRoot(),
                 java.time.Duration.ofMinutes(30));
@@ -963,7 +957,7 @@ public final class TestCommand {
                                boolean json, PrintWriter out, PrintWriter err) {
         TestRun run = new TestRun(module.getArtifactId(), testClasses);
         String args = surefireFallbackArgs(module, testClasses);
-        // no outer BuildLock: mvnq takes .mvn/build.lock itself (see runMavenModuleTest)
+        // no outer lock (wave 11: in-process control; see runMavenModuleTest)
         MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
         StringBuilder mout = new StringBuilder();
         int code = fallback.delegate(args, mout, new StringBuilder());
