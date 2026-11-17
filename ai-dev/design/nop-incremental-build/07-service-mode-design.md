@@ -65,7 +65,7 @@ on run(projectDir, cmd, args):
 
 ## 三、约束与边界
 
-1. **锁纪律不变**：服务内执行与 CLI 完全同一代码路径，写产物仍取 `.mvn/build.lock`；服务层的 per-project 串行是进程内的第一道闸，跨进程冲突仍由文件锁兜底。
+1. **锁的定位（owner 2026-11-17 重审修正）**：`.mvn/build.lock` 只有 mvnq 包装器取——裸 mvn/mvnw/人类终端**不取锁，锁从未保护过人类-vs-ib 场景**（该风险与人类-vs-人类踩踏同现状，不归 ib 管）。锁的真实价值仅剩：ib-vs-ib 跨进程互斥（双 CLI 并发、换端口双实例、stdio 混用——HTTP 同端口由 bind 独占天然防重）+ mvnq 过渡期共存。成本近零（无竞争 flock），保留但不再宣称"防外部 mvn"；ib 内部（含 Maven fallback 子进程）已由 lane 串行化覆盖。
 2. **正确性门不变**：fallback / partial / wideImpact / cached 标记全部原样透传给调用方；服务不吞并、不改写任何结果语义。
 3. **不做**：远程（非 loopback）服务、多机分布式构建、构建结果的全局内容寻址缓存（`--cache` 仍是每项目 opt-in）、鉴权体系（loopback 即边界）。
 4. **资源**：HTTP 线程池固定小尺寸（IO 等待为主）；服务进程 `-Xmx` 由启动方决定，引擎不自行设堆。
