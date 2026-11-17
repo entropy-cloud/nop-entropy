@@ -184,6 +184,19 @@ public final class ScopePlanner {
         }
         plan.setCompileModules(compileModules);
 
+        // ---- wave 11 item 8: modules with unresolved dependency facts never
+        // take the fast path (fail-safe: their dependency closure is not
+        // trustworthy) — Maven fallback with a reason naming each such module.
+        // A changed degraded module is in its own closure, so this covers both
+        // "changed degraded module" and "degraded module pulled into scope".
+        for (String moduleId : compileModules) {
+            IbModule module = model.module(moduleId);
+            if (module != null && module.isDepsUnresolved())
+                plan.setFallbackReason("fallback-maven module " + moduleId
+                        + ": dependency facts unresolved at refresh (depsUnresolved)"
+                        + " — dependency closure not trustworthy, Maven fallback");
+        }
+
         // ---- per-module compile files (changed handwritten sources)
         for (String moduleId : changedModuleIds) {
             IbModule module = model.module(moduleId);

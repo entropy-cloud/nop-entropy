@@ -61,6 +61,13 @@ public class IbModule {
     private Map<String, String> surefireEnvironmentVariables = new LinkedHashMap<>();
     /** resolved external artifacts in dependency order, "ga:version:scope" */
     private List<String> externalArtifacts = new ArrayList<>();
+    /**
+     * wave 11 item 8: {@code dependency:list} failed for this module at refresh
+     * time (e.g. an uninstalled reactor SNAPSHOT sibling) — the external
+     * classpath facts are UNRESOLVED, so the dependency closure is not
+     * trustworthy and any plan touching this module must fall back to Maven.
+     */
+    private boolean depsUnresolved;
     /** sha256 of the module's raw pom.xml at model build time */
     private String pomHash;
 
@@ -104,6 +111,8 @@ public class IbModule {
         surefire.put("environmentVariables", surefireEnvironmentVariables);
         m.put("surefire", surefire);
         m.put("externalArtifacts", externalArtifacts);
+        if (depsUnresolved)
+            m.put("depsUnresolved", true);
         m.put("pomHash", pomHash);
         return m;
     }
@@ -161,6 +170,8 @@ public class IbModule {
             }
         }
         mod.externalArtifacts = fromStringList(m.get("externalArtifacts"));
+        mod.depsUnresolved = Boolean.TRUE.equals(m.get("depsUnresolved"))
+                || "true".equals(m.get("depsUnresolved"));
         mod.pomHash = (String) m.get("pomHash");
         return mod;
     }
@@ -360,6 +371,15 @@ public class IbModule {
 
     public void setPomHash(String pomHash) {
         this.pomHash = pomHash;
+    }
+
+    /** wave 11 item 8: true when the module's dependency facts failed to resolve at refresh. */
+    public boolean isDepsUnresolved() {
+        return depsUnresolved;
+    }
+
+    public void setDepsUnresolved(boolean depsUnresolved) {
+        this.depsUnresolved = depsUnresolved;
     }
 
     /** Capability level per design 01 §六 (evidence-based adjudication, Wave 0). */
