@@ -229,23 +229,33 @@ These rules exist because agents routinely skip plan maintenance when focused on
 
 ## Commands
 
-**日常编译/测试一律走 nop-ib 服务（默认入口）；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像/CI/全量冷构建）。详见 `docs-for-ai/02-core-guides/incremental-build.md`。
+**日常编译/测试一律走 nop-ib 服务（默认入口，AI/子代理不得直接跑 mvn 编译测试）；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像/CI/全量冷构建）。详见 `docs-for-ai/02-core-guides/incremental-build.md`。
 
 ```bash
 # 服务（推荐，多 AI/多项目共享，同项目自动串行排队）
 ~/nop-ib/bin/start.sh                                                    # 启动（幂等，端口 8188）
+curl -s http://127.0.0.1:8188/v1/health                                  # 健康检查
 curl -s -X POST http://127.0.0.1:8188/v1/run -d \
-  '{"projectDir":"<项目根>","cmd":"check","args":["--paths","<变更文件>"],"wait":true}'
+  '{"projectDir":"<仓库根>","cmd":"check","args":["--paths","<变更文件>","--json"],"wait":true}'
 ~/nop-ib/bin/stop.sh                                                     # 停止
 
 # CLI 直用（项目根下）
 nop-tools/nop-ib/bin/ib check --paths <file...>     # 编译 + 受影响测试（AI 主入口）
 nop-tools/nop-ib/bin/ib test -pl :module            # 单模块测试
-nop-tools/nop-ib/bin/ib model refresh               # pom 变更后刷新构建事实
+nop-tools/nop-ib/bin/ib compile --paths <file...>   # 仅编译
+nop-tools/nop-ib/bin/ib clean -pl :module           # mvn-clean 同义面
+nop-tools/nop-ib/bin/ib model refresh               # pom 变更后刷新构建事实（一次性 ~50s）
 
 # 最终打包（唯一保留 mvn 的场景）
 ./mvnw clean install -T 1C
 ```
+
+使用要点：
+
+- **调用契约**：`cmd` 白名单 `status|plan|compile|test|check|model|clean`；`projectDir` 可为仓库根/子模块目录/symlink（服务自动归一到同一 reactor 队列）；回复 `exit` 字段即构建结果（0 成功 / 1 失败 / 3 用法错误 / 6 partial / 75 回退 Maven 超时）；`fallback.reason` 非 null 表示该轮走了 Maven 回退及其原因。
+- **代码生成**：模块目录可放 `nop-ib.tasks.json` 声明 codegen 任务（如 nop-wf-meta 的 xgen precompile）——改模板后 `ib compile --paths <模板>` 会自动执行生成任务，不再整体回退 Maven；契约见 `ai-dev/design/nop-incremental-build/08-codegen-task-hooks-design.md`。
+- **模型过期**（改了 pom）时服务会自动回退真 Maven 并给出原因；跑一次 `model refresh` 即恢复快路径。
+- **分布重建**：`nop-tools/nop-ib/bin/package-ib.sh` 重新打包到 `~/nop-ib`（改了 nop-ib 本身之后必须重打包再重启服务）。
 
 Always run build and tests after making **CODE** changes — via nop-ib（见上）, not raw mvn.
 
