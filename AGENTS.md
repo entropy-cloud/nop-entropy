@@ -229,14 +229,25 @@ These rules exist because agents routinely skip plan maintenance when focused on
 
 ## Commands
 
+**日常编译/测试一律走 nop-ib 服务（默认入口）；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像/CI/全量冷构建）。详见 `docs-for-ai/02-core-guides/incremental-build.md`。
+
 ```bash
-./mvnw clean install -T 1C          # full build (recommended)
-./mvnw clean install -DskipTests -T 1C  # quick build without tests
-./mvnw test                          # run tests
-./mvnw test -pl nop-stream -am      # test single module with dependencies
+# 服务（推荐，多 AI/多项目共享，同项目自动串行排队）
+~/nop-ib/bin/start.sh                                                    # 启动（幂等，端口 8188）
+curl -s -X POST http://127.0.0.1:8188/v1/run -d \
+  '{"projectDir":"<项目根>","cmd":"check","args":["--paths","<变更文件>"],"wait":true}'
+~/nop-ib/bin/stop.sh                                                     # 停止
+
+# CLI 直用（项目根下）
+nop-tools/nop-ib/bin/ib check --paths <file...>     # 编译 + 受影响测试（AI 主入口）
+nop-tools/nop-ib/bin/ib test -pl :module            # 单模块测试
+nop-tools/nop-ib/bin/ib model refresh               # pom 变更后刷新构建事实
+
+# 最终打包（唯一保留 mvn 的场景）
+./mvnw clean install -T 1C
 ```
 
-Always run build and tests after making **CODE** changes.
+Always run build and tests after making **CODE** changes — via nop-ib（见上）, not raw mvn.
 
 ### Java setup (Windows)
 

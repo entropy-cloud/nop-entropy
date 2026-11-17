@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# ib — run the nop-ib CLI from source in this worktree (dev entry).
+#
+# Uses ./mvnw directly (not mvnq): nop-ib read-only commands must not queue on
+# the build lock; any cold-path delegation that nop-ib itself performs goes
+# through mvnq internally.
+#
+# The module classpath is cached in target/ib-classpath.txt and rebuilt only
+# when missing (run './mvnw -pl nop-tools/nop-ib install' after dependency
+# changes).
+set -euo pipefail
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MOD_DIR="$(cd "$BIN_DIR/.." && pwd)"
+ROOT="$(cd "$MOD_DIR/../.." && pwd)"
+CP_FILE="$MOD_DIR/target/ib-classpath.txt"
+
+if [ ! -f "$CP_FILE" ]; then
+    (cd "$ROOT" && ./mvnw -q -pl nop-tools/nop-ib dependency:build-classpath \
+        -Dmdep.outputFile="$CP_FILE")
+fi
+
+exec java -cp "$MOD_DIR/target/classes:$(cat "$CP_FILE")" io.nop.ib.NopIbMain "$@"
