@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * Wave 1 read-only command surface (design 05 §九): model refresh/show, status,
  * plan, explain, cache size. `model refresh` writes .nop-ib state only — never
- * build products — so it does not take the build lock.
+ * build products — read-only by nature.
  */
 public final class Commands {
     private Commands() {

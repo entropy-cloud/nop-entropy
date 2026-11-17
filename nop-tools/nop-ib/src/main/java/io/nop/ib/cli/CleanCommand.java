@@ -2,7 +2,6 @@ package io.nop.ib.cli;
 
 import io.nop.ib.engine.IbEngine;
 import io.nop.ib.json.JsonOut;
-import io.nop.ib.lock.BuildLock;
 import io.nop.ib.model.IbModel;
 import io.nop.ib.model.IbModule;
 
@@ -24,9 +23,8 @@ import java.util.Set;
  * a cleaned module must not serve a cached green or an index-derived selection
  * afterwards (I2: products missing → state invalid).
  *
- * <p>Lock discipline: deleting shared products takes {@link BuildLock} (same
- * file as mvnq) — this command is exactly the writer the lock exists for.
- * Requires a fresh model (modules are enumerated from it); a stale model is an
+ * <p>Wave 11: concurrency is controlled in-process (service lane / CLI single
+ * invocation); no file lock. Requires a fresh model (modules are enumerated from it); a stale model is an
  * explicit usage error pointing at {@code nop-ib model refresh}, never a
  * partial clean.</p>
  */
@@ -64,7 +62,7 @@ public final class CleanCommand {
         long freed = 0;
         List<String> cleaned = new ArrayList<>();
         List<String> failed = new ArrayList<>();
-        try (BuildLock lock = BuildLock.acquire(engine.getRepoRoot())) {
+        try {
             for (String moduleId : moduleIds) {
                 IbModule module = model.module(moduleId);
                 try {

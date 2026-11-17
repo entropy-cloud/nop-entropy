@@ -16,7 +16,7 @@
 | IB-D6 | 字节码底座复用 `nop-tools/nop-bytecode`（ASM） | 仓内已有零 nop 运行时依赖的 class 文件采集与 ASM 栈，不新增第二套字节码技术栈 |
 | IB-D7 | classpath 只用 **reactor 目录**（`<module>/target/classes`、`<module>/target/test-classes`）与外部 jar；**禁止**任何 intra-project jar 条目 | intra-project jar 是冻结快照，会把增量结论锁死在旧产物（I1/§11.3） |
 | IB-D8 | 测试执行**两阶段**：先委托 Maven Surefire（语义保真），再自研 JUnit Platform 启动器（去骨架成本） | 首版最大的风险是复刻错 Surefire 的 cwd/argLine/系统属性语义；先委托可在不引入假绿的前提下拿到编译收益 |
-| IB-D9 | 与 Maven 共用 `.mvn/build.lock`（mvnq 同一把锁）：**写产物取排他锁**，只读命令不取锁 | 同一 worktree 内 `nop-ib` 与 `mvn` 并发写 `target/` 必然互相破坏 |
+| IB-D9 | **（2026-11-17 owner 裁定废止）**不再使用 `.mvn/build.lock`——并发完全由 ib 进程内控制（service lane / CLI 单次调用）；裸 mvn 本就不取该锁（只有 mvnq 取），锁从未防过人类-vs-ib；残余价值仅 ib-vs-ib 与 mvnq 过渡共存，近零价值故移除 | 同一 worktree 内 `nop-ib` 与 `mvn` 并发写 `target/` 必然互相破坏 |
 | IB-D10 | 回退是**显式状态**而不是异常：模块能力分级 L0–L3，回退原因写入状态与 JSON；`partial` / `wideImpact` 必须显式 | 静默回退或静默截断都会产生假绿；调用方必须能编程决策 |
 | IB-D11 | 动态覆盖（JaCoCo 等）只能做**收窄的减法**，且映射必须与当前版本一致；缺失/过期即回退静态图 | 动态覆盖会漏掉反射/DI/数据驱动路径，单独使用不安全 |
 | IB-D12 | 命令面固定为 `status/plan/compile/test/check/explain/model/serve/cache/bench`，统一 `--json` 与固定退出码 | AI 需要"先看 plan、再执行、可解释"的稳定协议，而不是自由拼接 `mvn` 参数 |

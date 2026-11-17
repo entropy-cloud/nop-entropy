@@ -217,7 +217,7 @@ Status: in progress（身份归一已落地：连续 pom 链爬顶 + 服务 toRe
 - Item Types: `Feature | Decision | Proof`
 
 - [x] 1. **[Feature]** 项目身份归一（防 AI 主/子项目切换踩踏）：`discoverRepoRoot` 无 mvnw 时从"首个 pom"改为连续 pom 链爬顶；`ServiceCore` lane 键 toRealPath（symlink 别名归一）；`ModelStore.stalenessReason` real-path 归一比较（别名不再永久 fallback）；服务白名单增 `model`（冷启动建模型不再必须跑 CLI）: `done`（2026-11-17，钉 submodule/symlink/model 3 颗）
-- [x] 7. **[Decision]** 锁定位重审（owner 质询 2026-11-17）：裸 mvn 不取 `.mvn/build.lock`（只有 mvnq 取），锁从未防过人类-vs-ib；真实价值=ib-vs-ib 跨进程互斥 + mvnq 过渡共存，成本近零故保留不动。mvn 透传（item 2）落地后 fallback 也走统一 lane，mvnq 依赖进一步收敛: `done`（design 07 §三.1 已原地修正） — deps: none
+- [x] 7. **[Decision]** 锁定位重审 → **废止**（owner 2026-11-17 二次裁定）：裸 mvn 不取 `.mvn/build.lock`（只有 mvnq 取），锁从未防过人类-vs-ib；残余价值仅 ib-vs-ib 与 mvnq 过渡共存——近零价值，**从设计中移除**（BuildLock 类删除、CompileCommand/CleanCommand 不再取锁、fallback 不再经 mvnq）。并发=ib 进程内 lane；mvn 位置 = `nop.ib.maven` > mvnw > PATH（钉 3 颗）: `done` — deps: none
 - [ ] 2. **[Decision]** mvn 透传裁定：是否增 `mvn` passthrough cmd（install/package/clean/dependency:* 经同一 per-project lane + mvnq 锁委托真 mvn）——"不替换构建系统"约束执行语义不约束接入面；透传使 AI 全部构建操作统一排队（消除绕过服务的践踏面）。倾向允许白名单 goal 集: `planned` — deps: 1
 - [ ] 3. **[Feature]** 资源回收：engine 空闲 TTL 回收（LRU=8 只封条数；空闲 N 分钟的 root 主动释放 model/index 缓存，下次冷装载无损）；health 暴露 engines 数/heap/uptime；job registry prune 已有: `planned` — deps: 1
 - [ ] 4. **[Analysis]** classloader/fork 复用评估：JUnit worker pool 为 per-job（job 结束进程退）——跨 job 常驻 fork 池省启动秒数 vs 陈旧 classpath 假绿风险对比，先 bench 后裁定（预期倾向否决常驻，正确性优先）: `planned` — deps: none
@@ -244,7 +244,7 @@ Exit Criteria：
 1. **零假绿**：未执行的测试不得计为通过；`partial` / `wideImpact` / `fallback` 必须显式出现在人类输出与 JSON；`--max-tests` 默认拒绝。
 2. **模型权威**：构建事实只来自 Maven 自身；模型过期即全量，不得"继续但不校验"。
 3. **产物语义**：禁止 intra-project jar 进入 fast-path classpath；`-implicit:none`；注解处理器/AOP/生成模块按 L1–L3 回退。
-4. **锁纪律**：写产物与测试必须共用 `.mvn/build.lock`；不得绕开 `mvnq` 的并发治理；锁超时退出码与 mvnq 对齐（75）。
+4. **（2026-11-17 owner 裁定废止）锁纪律已移除**：并发由 ib 进程内完全控制（design 07 §三）；`75` 退出码保留给 fallback Maven 进程超时；冷路径 Maven 定位 = `nop.ib.maven` > mvnw > PATH（mvnq 不再被调用）。
 5. **不替换构建系统**：CI/发布/`install`/`deploy`/全量冷构建仍由 Maven 承担；`nop-ib` 不得写 `~/.m2`。
 6. **证据纪律**：每一波的验收必须有对照数据（对拍/复算/漏测 oracle）；禁止无对照的能力宣称。
 7. **文档纪律**：设计变化改 `05` 原地更新；执行状态只在本 roadmap 维护；收口必须走独立 closure audit。

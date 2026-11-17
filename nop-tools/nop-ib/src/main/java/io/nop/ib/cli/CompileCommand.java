@@ -5,7 +5,6 @@ import io.nop.ib.compile.MavenFallback;
 import io.nop.ib.engine.GitChanges;
 import io.nop.ib.engine.IbEngine;
 import io.nop.ib.json.JsonOut;
-import io.nop.ib.lock.BuildLock;
 import io.nop.ib.model.IbModel;
 import io.nop.ib.model.IbModule;
 import io.nop.ib.scope.PlanResult;
@@ -25,7 +24,7 @@ import java.util.Map;
  *   <li>plan first; a required fallback delegates to Maven via mvnq when
  *       {@code --on-fallback=maven} (default), refuses with exit 2 when
  *       {@code --on-fallback=fail};</li>
- *   <li>product writes take the shared {@code .mvn/build.lock}; lock timeout is
+ *   <li>concurrency is controlled in-process (service lane / CLI single
  *       exit 75;</li>
  *   <li>never writes ~/.m2, never enters package phases.</li>
  * </ul>
@@ -135,40 +134,33 @@ public final class CompileCommand {
             return Commands.EXIT_OK;
         }
 
-        try (BuildLock lock = BuildLock.acquire(engine.getRepoRoot())) {
-            if (lock == null) {
-                out.println(json ? JsonOut.write(Map.of("ok", false, "error", "build lock timeout"))
-                        : "build lock timeout (exit 75)");
-                return Commands.EXIT_LOCK_TIMEOUT;
+        IncrementalCompileExecutor executor = new IncrementalCompileExecutor(
+                model, engine.getUnitStore());
+        IncrementalCompileExecutor.CompileOutcome outcome = executor.compile(plan);
+        Map<String, Object> fallbackInfo = new LinkedHashMap<>();
+        fallbackInfo.put("required", false);
+        fallbackInfo.put("reason", null);
+        feedback.put("fallback", fallbackInfo);
+        feedback.put("compile", outcome.toMap());
+        Map<String, Object> diags = new LinkedHashMap<>();
+        executor.getDiagnostics().forEach(diags::put);
+        feedback.put("diagnostics", diags);
+        String human = json ? JsonOut.write(feedback)
+                : "compiled: " + outcome.getCompiledModules();
+        out.println(human);
+        if (!json && !outcome.getDeletedFiles().isEmpty())
+            out.println("deleted stale products: " + outcome.getDeletedFiles().size());
+        // javac diagnostics + the run summary go to the run log in BOTH modes:
+        // a compile failure must be fully readable after the process is gone
+        log.line(human);
+        executor.getDiagnostics().forEach((m, d) -> {
+            if (!d.isEmpty()) {
+                String block = "--- " + m + " ---\n" + String.join("\n", d);
+                if (!json)
+                    err.println(block);
+                log.line(block);
             }
-            IncrementalCompileExecutor executor = new IncrementalCompileExecutor(
-                    model, engine.getUnitStore());
-            IncrementalCompileExecutor.CompileOutcome outcome = executor.compile(plan);
-            Map<String, Object> fallbackInfo = new LinkedHashMap<>();
-            fallbackInfo.put("required", false);
-            fallbackInfo.put("reason", null);
-            feedback.put("fallback", fallbackInfo);
-            feedback.put("compile", outcome.toMap());
-            Map<String, Object> diags = new LinkedHashMap<>();
-            executor.getDiagnostics().forEach(diags::put);
-            feedback.put("diagnostics", diags);
-            String human = json ? JsonOut.write(feedback)
-                    : "compiled: " + outcome.getCompiledModules();
-            out.println(human);
-            if (!json && !outcome.getDeletedFiles().isEmpty())
-                out.println("deleted stale products: " + outcome.getDeletedFiles().size());
-            // javac diagnostics + the run summary go to the run log in BOTH modes:
-            // a compile failure must be fully readable after the process is gone
-            log.line(human);
-            executor.getDiagnostics().forEach((m, d) -> {
-                if (!d.isEmpty()) {
-                    String block = "--- " + m + " ---\n" + String.join("\n", d);
-                    if (!json)
-                        err.println(block);
-                    log.line(block);
-                }
-            });
-            return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
-        }
+        });
+        return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
     }
 }
