@@ -32,7 +32,17 @@ DELETE /v1/job/{id}   → 取消排队中的 job（running 的 job 不中断，�
 - 回复 payload 与 CLI `--json` 输出同构（同一 RunLog 契约）：CLI stdout 是 NDJSON 序列且字符串可含换行——服务端按 JSON 序列解析（单文档 → 对象，多文档 → 数组），`[nop-ib]` 进度行过滤，stderr 诊断单独放 `stderr` 字段（不混入 payload）；解析失败回退原始字符串并如实标注；payload 超 8MB 截断并附 `truncated:true`；
 - HTTP 状态码只表达传输层结果（队列满 = 429）；构建成败看 `exit` 字段（与 CLI 退出码同表：0 成功 / 1 失败 / 6 partial / 75 锁超时）。
 
-### 2.2 排队语义
+### 2.2 项目身份与排队语义
+
+**lane 键 = canonical repo root**，推导规则（缺一不可，任何别名不得产生第二条 lane）：
+
+1. 优先 `mvnw + .mvn` 标记目录（nop-entropy worktree 形态）；
+2. 无标记时沿**连续 pom 链**爬到 reactor 聚合顶（父目录还有 pom.xml 即同 reactor）——从 `<root>/moduleA` 提交与从 `<root>` 提交是同一项目；
+3. 服务入口对该结果做 `toRealPath()`——symlink 别名（`~/sources/x` vs 真实挂载路径）解析为同一 lane；引擎内部的 model 过期判定同样做 real-path 归一比较（别名不再制造永久 Maven fallback）。
+
+违反即后果：同 worktree 双 lane = 并发写同一 `target/` 且 `.mvn/build.lock` 随 lane 分裂失去互斥——这正是服务要消灭的践踏面。
+
+排队语义原文：
 
 ```
 on run(projectDir, cmd, args):

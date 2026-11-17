@@ -69,7 +69,8 @@ class TestServiceCore {
         ServiceCore core = new ServiceCore(4);
         BuildJob job = core.submit(repo.toString(), "status", List.of(), true);
         core.await(job);
-        assertEquals(repo.toAbsolutePath().normalize(), job.repoRoot);
+        // wave 11: the service keys lanes by the REAL path (symlinks resolved)
+        assertEquals(repo.toRealPath(), job.repoRoot);
         assertEquals(Commands.EXIT_OK, job.exit);
         assertNotNull(job.payload, "job captures the CLI --json output as payload");
         assertFalse(job.truncated);
@@ -212,5 +213,46 @@ class TestServiceCore {
         synchronized (gate) {
             gate.notifyAll();
         }
+    }
+
+    /** wave 11: a submission from a submodule dir maps to the reactor root lane. */
+    @Test
+    void submoduleSubmissionSharesTheRootLane() throws Exception {
+        Path repo = fixtureProject(); // has root pom.xml, no mvnw
+        Files.createDirectories(repo.resolve("modA"));
+        Files.writeString(repo.resolve("modA/pom.xml"), "<project/>");
+        ServiceCore core = new ServiceCore(4);
+        BuildJob fromRoot = core.submit(repo.toString(), "status", List.of(), true);
+        BuildJob fromSubdir = core.submit(repo.resolve("modA").toString(), "status", List.of(), true);
+        assertEquals(fromRoot.repoRoot, fromSubdir.repoRoot,
+                "subdir submission must join the reactor-root lane (no second lane per worktree)");
+        core.await(fromRoot);
+        core.await(fromSubdir);
+        assertTrue(fromSubdir.startedAt >= fromRoot.finishedAt,
+                "same-lane jobs serialize even when submitted via different dirs");
+    }
+
+    /** wave 11: symlink aliases of one worktree resolve to one lane key. */
+    @Test
+    void symlinkAliasSharesOneLane() throws Exception {
+        Path repo = fixtureProject().toRealPath();
+        Path alias = repo.getParent().resolve(repo.getFileName() + "-alias");
+        Files.deleteIfExists(alias);
+        java.nio.file.Files.createSymbolicLink(alias, repo);
+        ServiceCore core = new ServiceCore(4);
+        BuildJob viaReal = core.submit(repo.toString(), "status", List.of(), true);
+        BuildJob viaAlias = core.submit(alias.toString(), "status", List.of(), true);
+        assertEquals(viaReal.repoRoot, viaAlias.repoRoot,
+                "symlink alias must resolve to the same canonical lane");
+        Files.deleteIfExists(alias);
+    }
+
+    /** wave 11: the service accepts the model command (cold-start model refresh). */
+    @Test
+    void modelCommandIsServiceable() throws Exception {
+        Path repo = fixtureProject();
+        ServiceCore core = new ServiceCore(4);
+        BuildJob job = core.submit(repo.toString(), "model", List.of("show"), true);
+        assertEquals(repo.toRealPath(), job.repoRoot);
     }
 }
