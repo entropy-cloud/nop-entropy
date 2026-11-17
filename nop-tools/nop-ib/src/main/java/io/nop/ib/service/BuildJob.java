@@ -61,4 +61,28 @@ public final class BuildJob {
         }
         return m;
     }
+
+    /**
+     * Compact summary for GET /v1/jobs (wave 11 observability): facts only, no
+     * payload. projectDir is the canonical repo root (the queue lane identity).
+     */
+    public Map<String, Object> summary() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", id);
+        m.put("cmd", cmd);
+        m.put("projectDir", repoRoot.toString());
+        m.put("state", state.name().toLowerCase(java.util.Locale.ROOT));
+        m.put("exit", exit);
+        m.put("queuedAt", queuedAt);
+        m.put("startedAt", startedAt > 0 ? startedAt : null);
+        m.put("finishedAt", finishedAt > 0 ? finishedAt : null);
+        long now = System.currentTimeMillis();
+        if (finishedAt > 0)
+            m.put("durationMs", finishedAt - startedAt);
+        else if (startedAt > 0)
+            m.put("durationMs", now - startedAt);
+        else
+            m.put("durationMs", null);
+        return m;
+    }
 }

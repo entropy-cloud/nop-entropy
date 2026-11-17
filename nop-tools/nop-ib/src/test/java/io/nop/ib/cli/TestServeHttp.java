@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -148,5 +150,62 @@ class TestServeHttp {
         assertEquals(2, ((Number) health.get("workerBudget")).intValue(), "max(2, cores/2)");
         assertNotNull(health.get("activeJobs"));
         assertTrue(((Number) health.get("pendingTotal")).intValue() >= 0);
+    }
+
+    /** wave 11: GET /v1/jobs returns recent job summaries, limit honored, 400 on bad limit. */
+    @Test
+    void jobsEndpointReturnsSummariesWithLimit() throws Exception {
+        // ensure at least one finished job exists (earlier tests submitted some)
+        post("/v1/run", "{\"projectDir\":\"" + repo + "\",\"cmd\":\"status\",\"wait\":true}");
+        HttpResponse<String> res = get("/v1/jobs");
+        assertEquals(200, res.statusCode());
+        Map<String, Object> body = io.nop.ib.json.JsonIn.readAsMap(res.body());
+        List<Map<String, Object>> jobs = (List<Map<String, Object>>) body.get("jobs");
+        assertNotNull(jobs, "jobs array present");
+        assertFalse(jobs.isEmpty(), "at least the just-finished job is listed");
+        Map<String, Object> s = jobs.get(0);
+        for (String field : List.of("id", "cmd", "projectDir", "state", "exit",
+                "queuedAt", "startedAt", "finishedAt", "durationMs"))
+            assertTrue(s.containsKey(field), "summary carries " + field);
+        assertEquals("status", s.get("cmd"));
+        assertEquals("done", s.get("state"));
+        assertTrue(((Number) s.get("durationMs")).longValue() >= 0);
+        // limit truncates; most recent first
+        List<Map<String, Object>> capped =
+                (List<Map<String, Object>>) io.nop.ib.json.JsonIn.readAsMap(get("/v1/jobs?limit=1").body()).get("jobs");
+        assertEquals(1, capped.size());
+        assertEquals(s.get("id"), capped.get(0).get("id"), "limit keeps the newest job");
+        assertEquals(400, get("/v1/jobs?limit=abc").statusCode(), "bad limit is a 400");
+        assertEquals(405, HTTP.send(HttpRequest.newBuilder()
+                .uri(URI.create("http://127.0.0.1:" + port + "/v1/jobs"))
+                .POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode(), "POST /v1/jobs is 405");
+    }
+
+    /** wave 11: /v1/queue lanes expose root, depth, runningCmd (null when idle). */
+    @Test
+    void queueEndpointExposesLaneDepthAndRunningCmd() throws Exception {
+        HttpResponse<String> res = get("/v1/queue");
+        assertEquals(200, res.statusCode());
+        Map<String, Object> body = io.nop.ib.json.JsonIn.readAsMap(res.body());
+        List<Map<String, Object>> lanes = (List<Map<String, Object>>) body.get("lanes");
+        assertNotNull(lanes, "lanes list present");
+        // after prior sync runs the fixture lane exists and must be idle
+        assertFalse(lanes.isEmpty(), "fixture root appears as a lane");
+        boolean fixtureLaneSeen = false;
+        for (Map<String, Object> lane : lanes) {
+            assertTrue(lane.containsKey("root"));
+            assertTrue(lane.containsKey("depth"), "lane exposes depth");
+            assertTrue(lane.containsKey("runningCmd"), "lane exposes runningCmd");
+            assertTrue(lane.containsKey("pending"));
+            assertTrue(((Number) lane.get("depth")).intValue() >= 0);
+            if (((String) lane.get("root")).equals(repo.toRealPath().toString())) {
+                fixtureLaneSeen = true;
+                assertEquals(0, ((Number) lane.get("depth")).intValue(),
+                        "idle lane depth is 0");
+                assertNull(lane.get("runningCmd"), "idle lane runningCmd is null");
+            }
+        }
+        assertTrue(fixtureLaneSeen, "fixture root lane present");
     }
 }
