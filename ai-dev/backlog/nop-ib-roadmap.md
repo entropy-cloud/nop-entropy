@@ -212,7 +212,7 @@ Exit Criteria：
 
 > Owner 指令（2026-11-17）：服务面向全部 AI 使用——防同项目践踏、控资源消耗、能复用则复用（classloader/引擎缓存）、该回收时回收。
 
-Status: in progress（身份归一已落地：连续 pom 链爬顶 + 服务 toRealPath lane 键 + staleness real-path 归一 + model 命令入白名单，钉 3 颗；2026-11-18：item 3 资源回收（engine 空闲 TTL 30min，钉 6 颗）、item 8 model refresh per-module 容忍（depsUnresolved + planner fail-safe 回退，钉 6 颗）、item 2 mvn 白名单透传（钉 6 颗）、item 4 fork 常驻裁定（done-as-adjudicated，引用 Wave 7 E2 + Wave 8 证据）、多 AI 并发实战 Proof（20 请求/4 路径形态/单 lane/零重叠，`_tmp/wave11-item7-proof-result.json`）落地；余收口 audit）
+Status: done（2026-11-18 收口：item 2/3/4/7/8/9 全部落地；独立 closure audit 复审 APPROVED——含 -pl 枚举 testSourceDir MUST FIX 修复的实测复验（test 源变更 run 144→145 新测试执行）；plan/daily log 11-18 在档）
 
 - Item Types: `Feature | Decision | Proof`
 
