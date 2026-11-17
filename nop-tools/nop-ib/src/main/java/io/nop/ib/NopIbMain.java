@@ -1,6 +1,7 @@
 package io.nop.ib;
 
 import io.nop.ib.cli.BenchCommand;
+import io.nop.ib.cli.CleanCommand;
 import io.nop.ib.cli.CompileCommand;
 import io.nop.ib.cli.Commands;
 import io.nop.ib.cli.ServeCommand;
@@ -25,12 +26,12 @@ public class NopIbMain {
 
     public static final String[] COMMANDS = {
             "status", "plan", "compile", "test", "check",
-            "explain", "model", "serve", "cache", "bench"
+            "explain", "model", "serve", "cache", "bench", "clean"
     };
 
     private static final List<String> IMPLEMENTED =
             List.of("status", "plan", "explain", "model", "cache", "compile", "test", "check",
-                    "serve", "bench");
+                    "serve", "bench", "clean");
 
     public static void main(String[] args) {
         int code = run(args, System.out, System.err);
@@ -170,6 +171,8 @@ public class NopIbMain {
                     return Commands.explain(engine, positional.get(0), out, json);
                 case "cache":
                     return Commands.cache(engine, positional, out, json);
+                case "clean":
+                    return CleanCommand.clean(engine, plModules, json, out, err);
                 default:
                     err.println("not yet implemented: command '" + cmd + "'");
                     return 3;

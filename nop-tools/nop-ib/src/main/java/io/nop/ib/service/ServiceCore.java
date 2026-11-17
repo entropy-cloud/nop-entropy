@@ -25,7 +25,7 @@ import java.util.Set;
 public final class ServiceCore {
     public static final int MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
     public static final Set<String> ALLOWED_CMDS =
-            Set.of("status", "plan", "compile", "test", "check", "model");
+            Set.of("status", "plan", "compile", "test", "check", "model", "clean");
 
     private final JobRegistry registry = new JobRegistry();
     private final ProjectQueue queue;

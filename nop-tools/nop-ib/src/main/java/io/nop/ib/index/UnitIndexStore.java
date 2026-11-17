@@ -42,6 +42,16 @@ public final class UnitIndexStore {
         }
     }
 
+    /** wave 11 clean: drop a module's persisted index (missing file = no-op). */
+    public void delete(String moduleArtifactId) {
+        try {
+            Files.deleteIfExists(fileFor(moduleArtifactId));
+        } catch (java.io.IOException e) {
+            throw new io.nop.ib.NopIbException(
+                    "cannot delete unit index for " + moduleArtifactId, e);
+        }
+    }
+
     public UnitIndex load(String moduleArtifactId) {
         Path file = fileFor(moduleArtifactId);
         if (!Files.isRegularFile(file))
