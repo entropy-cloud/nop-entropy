@@ -249,7 +249,7 @@ Exit Criteria：
 - [x] 配置错误全部显式失败（无静默忽略路径，钉）
 - [x] 增量跳过与失效正确：inputs 变化重跑、outputs 删除重跑、指纹命中跳过（钉）
 - [x] 端到端：xgen 模板变更 → 任务生成 → 编译 → 测试，全程零 Maven 骨架（对照数据在档；1.9s/0.24s vs mvn generate-sources 7.8s；test 腿 nop-wf-core 9 类 fork 全绿）
-- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（124/124；独立 closure audit 复审 APPROVED）
+- [x] `./mvnw test -pl nop-tools/nop-ib` 全绿（116/116 双 worktree 复跑一致；独立 closure audit 复审 APPROVED）
 
 ## Status values
 
