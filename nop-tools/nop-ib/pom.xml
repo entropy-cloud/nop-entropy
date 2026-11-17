@@ -16,13 +16,13 @@
     <description>
         Incremental build engine for AI-assisted development: replaces the daily mvn build / mvn test
         feedback loop with nop-javac file compilation + bytecode dependency closure (compile) and
-        module coarse filter + class graph fine selection (test). Cold path stays on ./mvnw via mvnq.
+        module coarse filter + class graph fine selection (test). Cold path delegates to mvnw/PATH mvn
+        (configurable via nop.ib.maven). Packaged as a shaded single-jar CLI (nop-cli parity, wave 11).
         Design authority: ai-dev/design/nop-incremental-build/05-nop-ib-engine-design.md;
         roadmap: ai-dev/backlog/nop-ib-roadmap.md.
 
         Adjudicated invariants (IB-G1/IB-G5): no -api module; no nop-code-service dependency; never on a
-        release module's runtime classpath; product writes and test runs share .mvn/build.lock (exit 75 on
-        lock timeout, aligned with mvnq); read-only commands take no lock.
+        release module's runtime classpath. Concurrency is controlled in-process (wave 11: no file lock).
     </description>
 
     <dependencies>
@@ -54,4 +54,42 @@
             <artifactId>junit-platform-engine</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- single-jar CLI (nop-cli parity: uber-jar, java -jar directly) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <finalName>nop-ib</finalName>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>io.nop.ib.NopIbMain</mainClass>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

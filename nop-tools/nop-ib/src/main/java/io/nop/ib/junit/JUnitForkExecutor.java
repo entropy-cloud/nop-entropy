@@ -377,10 +377,12 @@ public final class JUnitForkExecutor {
     /** the runner must live on the fork classpath; nop-ib's own classes dir is it. */
     private Path locateRunnerClasses() {
         // IbJUnitRunner.class protection domain = nop-tools/nop-ib/target/classes
+        // (dev CLI) or the shaded nop-ib.jar (wave 11 packaged CLI) — both work:
+        // the fork cp gets the directory or the jar as-is
         var pd = IbJUnitRunner.class.getProtectionDomain();
         if (pd.getCodeSource() != null && pd.getCodeSource().getLocation() != null) {
             Path p = Path.of(pd.getCodeSource().getLocation().getPath());
-            if (Files.isDirectory(p))
+            if (Files.isDirectory(p) || Files.isRegularFile(p))
                 return p;
         }
         return null;

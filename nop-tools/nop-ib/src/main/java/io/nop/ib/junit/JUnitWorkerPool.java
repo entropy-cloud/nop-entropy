@@ -207,6 +207,12 @@ public final class JUnitWorkerPool {
         // TestingServer binds 2181) must not race a dying worker still holding
         // the port. Bounded per process so a wedged worker cannot stall teardown.
         for (Worker w : created) {
+            // a spawn-failed worker registered itself via the instance
+            // initializer but has no process — its NopIbException already
+            // carries the diagnostics (stderr tail); waitFor would NPE here and
+            // MASK that error (packaged-jar acceptance run, wave 11)
+            if (w.process == null)
+                continue;
             try {
                 w.process.waitFor(2, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -607,10 +613,12 @@ public final class JUnitWorkerPool {
     }
 
     Path locateRunnerClasses() {
+        // dev CLI: target/classes directory; packaged CLI (wave 11 shade): the
+        // nop-ib.jar file itself — the runner lives in either container
         var pd = IbJUnitRunner.class.getProtectionDomain();
         if (pd.getCodeSource() != null && pd.getCodeSource().getLocation() != null) {
             Path p = Path.of(pd.getCodeSource().getLocation().getPath());
-            if (Files.isDirectory(p))
+            if (Files.isDirectory(p) || Files.isRegularFile(p))
                 return p;
         }
         return null;
