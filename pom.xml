@@ -192,6 +192,14 @@
                          30s 默认值，触发 surefire "timeout in the fork" 假失败；放宽到 120s -->
                     <forkedProcessExitTimeoutInSeconds>120</forkedProcessExitTimeoutInSeconds>
 
+                    <!-- fork 生命周期硬上界（默认 0=无限等待）：2026-11-17 全仓构建实测
+                         orm-migration 一个测试全绿、报告全部写出的 fork 卡死不退（挂 1h20m
+                         需人工 kill，maven 停在 ForkStarter.awaitResultsDone）。exitTimeout
+                         只覆盖"发了 stop 后 fork 不退"路径，管不住"fork 永不回报结果"；
+                         此参数把整条路径变成有界——超时杀 fork、构建显式失败而非无限挂起。
+                         3600s 远大于最大正常模块测试时长，只截真死锁。 -->
+                    <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
+
                     <!--
                        forkCount: 这是关键！它定义了要启动多少个JVM进程来运行测试。
                        你可以使用一个固定的数字，比如 '4'。

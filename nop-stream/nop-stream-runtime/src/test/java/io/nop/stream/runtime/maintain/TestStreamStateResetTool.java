@@ -117,7 +117,12 @@ class TestStreamStateResetTool {
      */
     private void awaitDurableCheckpointState() throws InterruptedException {
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
-        long deadline = System.nanoTime() + 10_000_000_000L;
+        // 60s budget: the 10s window was too tight under full-reactor -T1C load
+        // (2026-11-17 full-build failure — the checkpoint did persist, just
+        // later than 10s under 16-way contention). This is a wait budget, not
+        // an assertion: the pass condition remains the deterministic
+        // artifacts, only the ceiling moves.
+        long deadline = System.nanoTime() + 60_000_000_000L;
         while (System.nanoTime() < deadline) {
             if (storage.getLatestCheckpoint(JOB_ID, "1") != null
                     && Files.exists(tempDir.resolve(JOB_ID))) {
@@ -128,7 +133,8 @@ class TestStreamStateResetTool {
             // 节拍，判定条件是确定性产物（manifest + 目录），超时即失败——非 sleep 断言。
             Thread.sleep(10);
         }
-        throw new AssertionError("durable checkpoint state did not appear within 10s after runJob()");
+        throw new AssertionError("durable checkpoint state did not appear within 60s after runJob()"
+                + " (durable persistence lag even under load — investigate the persist executor)");
     }
 
     @Test
