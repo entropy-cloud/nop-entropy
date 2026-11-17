@@ -37,7 +37,10 @@ public final class ServiceCore {
     /** reap cadence for the background sweeper. */
     static final long REAP_PERIOD_MILLIS = 60_000L;
     public static final Set<String> ALLOWED_CMDS =
-            Set.of("status", "plan", "compile", "test", "check", "model", "clean");
+            Set.of("status", "plan", "compile", "test", "check", "model", "clean",
+                    // wave 11 item 2: whitelisted real-Maven passthrough —
+                    // same lane, so mvn jobs serialize against test/check jobs
+                    "mvn");
 
     private final JobRegistry registry = new JobRegistry();
     private final ProjectQueue queue;

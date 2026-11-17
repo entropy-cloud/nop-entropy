@@ -37,6 +37,7 @@
 | `ib bench <module> [--json]` | 四类成本基线实测 |
 | `ib serve` | JSONL 常驻协议；`serve --http [--port N]` = 多项目 HTTP 服务（见 `~/nop-ib/README.md`） |
 | `ib clean [-pl <module>] [--json]` | mvn-clean 同义面：删选中模块 target 输出 + 单元索引 + 测试缓存条目（模型过期显式拒绝） |
+| `ib mvn <args...> [--json]` / 服务 `{"cmd":"mvn","args":[...]}` | 白名单真 Maven 透传（Wave 11）：goal 仅 `install \| package \| clean \| dependency:* \| surefire:*`，经同一 per-project lane 委托真 mvn（`nop.ib.maven` > mvnw > PATH）；白名单外 goal（deploy/release 等）拒绝 exit 3；mvn 退出码原样透传，`--json` 输出 `{cmd,args,exit,outputTail}` |
 
 退出码: `0` 成功; `1` 编译/测试失败; `2` 回退被 `--on-fallback=fail` 拒绝; `3` 用法错误; `6` partial; `75` fallback Maven 进程超时。
 

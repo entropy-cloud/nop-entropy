@@ -4,6 +4,7 @@ import io.nop.ib.cli.BenchCommand;
 import io.nop.ib.cli.CleanCommand;
 import io.nop.ib.cli.CompileCommand;
 import io.nop.ib.cli.Commands;
+import io.nop.ib.cli.MvnCommand;
 import io.nop.ib.cli.ServeCommand;
 import io.nop.ib.cli.TestCommand;
 import io.nop.ib.engine.IbEngine;
@@ -26,7 +27,7 @@ public class NopIbMain {
 
     public static final String[] COMMANDS = {
             "status", "plan", "compile", "test", "check",
-            "explain", "model", "serve", "cache", "bench", "clean"
+            "explain", "model", "serve", "cache", "bench", "clean", "mvn"
     };
 
     private static final List<String> IMPLEMENTED =
@@ -73,6 +74,20 @@ public class NopIbMain {
         if ("--help".equals(cmd) || "-h".equals(cmd)) {
             usage(out);
             return 0;
+        }
+        if ("mvn".equals(cmd)) {
+            // wave 11 item 2: whitelisted real-Maven passthrough. Dispatched
+            // BEFORE the common flag parser — mvn owns its own flag syntax
+            // (`mvn -pl :mod install` would otherwise be eaten by the ib parser).
+            List<String> mvnArgs = new ArrayList<>();
+            boolean json = false;
+            for (int i = 1; i < args.length; i++) {
+                if ("--json".equals(args[i]))
+                    json = true;
+                else
+                    mvnArgs.add(args[i]);
+            }
+            return MvnCommand.mvn(repoRoot, mvnArgs, json, out, err);
         }
         if (!List.of(COMMANDS).contains(cmd)) {
             err.println("usage error: unknown command '" + cmd + "'");

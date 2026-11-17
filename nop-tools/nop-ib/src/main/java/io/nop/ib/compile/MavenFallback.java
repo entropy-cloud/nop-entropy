@@ -31,6 +31,15 @@ public final class MavenFallback {
         this.timeout = timeout;
     }
 
+    /**
+     * wave 11 item 2: list form used by the {@code mvn} passthrough. Args are
+     * whitespace-joined into the same delegate path — fine for goals, flags
+     * and {@code -pl :module}; values containing spaces are not a mvn CLI case.
+     */
+    public int delegate(List<String> mavenArgs, Appendable out, Appendable err) {
+        return delegate(String.join(" ", mavenArgs), out, err);
+    }
+
     public int delegate(String mavenArgs, Appendable out, Appendable err) {
         // wave 11 owner adjudication: the mvnq wrapper (and its build.lock) is
         // no longer invoked — ib controls concurrency in-process (design 07 §三).
