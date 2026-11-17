@@ -255,4 +255,102 @@ class TestServiceCore {
         BuildJob job = core.submit(repo.toString(), "model", List.of("show"), true);
         assertEquals(repo.toRealPath(), job.repoRoot);
     }
+
+    /** wave 11 observability: /v1/jobs summaries — newest first, limit honored. */
+    @Test
+    void recentJobsReturnsCompactSummariesWithLimit() throws Exception {
+        Path repo = fixtureProject();
+        ServiceCore core = new ServiceCore(4);
+        JobRegistry registry = core.registry();
+        Path root = repo.toRealPath();
+        BuildJob done = registry.create("p", "compile", root, List.of(), false);
+        done.state = BuildJob.State.RUNNING;
+        done.startedAt = done.queuedAt + 10;
+        done.finishedAt = done.startedAt + 250;
+        done.exit = 0;
+        done.state = BuildJob.State.DONE;
+        BuildJob queued = registry.create("p", "test", root, List.of(), false);
+        BuildJob running = registry.create("p", "status", root, List.of(), false);
+        running.state = BuildJob.State.RUNNING;
+        running.startedAt = running.queuedAt - 50; // started 50ms ago, still running
+
+        List<Map<String, Object>> all = core.recentJobs(0); // 0 -> default limit
+        assertEquals(3, all.size(), "all three jobs listed, newest first");
+        assertEquals("status", all.get(0).get("cmd"));
+        assertEquals("test", all.get(1).get("cmd"));
+        assertEquals("compile", all.get(2).get("cmd"));
+
+        Map<String, Object> s = all.get(2);
+        assertEquals(done.id, s.get("id"));
+        assertEquals(root.toString(), s.get("projectDir"), "projectDir is the repo root");
+        assertEquals("done", s.get("state"));
+        assertEquals(0, ((Number) s.get("exit")).intValue());
+        assertEquals(250L, ((Number) s.get("durationMs")).longValue(),
+                "finished job reports finishedAt-startedAt");
+        assertEquals(done.queuedAt, ((Number) s.get("queuedAt")).longValue());
+        assertEquals(done.startedAt, ((Number) s.get("startedAt")).longValue());
+        assertEquals(done.finishedAt, ((Number) s.get("finishedAt")).longValue());
+
+        Map<String, Object> r = all.get(0);
+        assertEquals("running", r.get("state"));
+        assertEquals(-1, ((Number) r.get("exit")).intValue(), "unfinished job has no exit yet");
+        assertTrue(((Number) r.get("durationMs")).longValue() >= 0,
+                "running job reports elapsed time");
+
+        Map<String, Object> q = all.get(1);
+        assertEquals("queued", q.get("state"));
+        assertNull(q.get("startedAt"), "queued job never started");
+        assertNull(q.get("durationMs"), "queued job has no duration yet");
+
+        List<Map<String, Object>> capped = core.recentJobs(2);
+        assertEquals(2, capped.size(), "limit truncates to the newest N");
+        assertEquals("status", capped.get(0).get("cmd"));
+    }
+
+    /** wave 11 observability: lane depth excludes the running job; runningCmd nulls when idle. */
+    @Test
+    void queueLaneExposesDepthAndRunningCmd() throws Exception {
+        Path root = Path.of("/fake/lane-obs");
+        ProjectQueue queue = new ProjectQueue();
+        ServiceCore core = new ServiceCore(4, queue);
+        JobRegistry registry = core.registry();
+        Object gate = new Object();
+        BuildJob first = registry.create("p", "compile", root, List.of(), false);
+        assertTrue(queue.submit(first, () -> {
+            try {
+                synchronized (gate) {
+                    gate.wait();
+                }
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }));
+        BuildJob second = registry.create("p", "test", root, List.of(), false);
+        assertTrue(queue.submit(second, () -> { }));
+
+        for (int i = 0; i < 100 && queue.runningCmd(root) == null; i++)
+            Thread.sleep(10);
+        assertEquals("compile", queue.runningCmd(root), "executing job's cmd is visible");
+        assertEquals(1, queue.queuedDepth(root),
+                "depth counts only jobs still waiting (running excluded)");
+        assertEquals(2, queue.pending(root), "pending stays active+queued");
+
+        List<Map<String, Object>> lanes = core.queueLanes();
+        assertEquals(1, lanes.size());
+        Map<String, Object> lane = lanes.get(0);
+        assertEquals(root.toString(), lane.get("root"));
+        assertEquals(1, ((Number) lane.get("depth")).intValue());
+        assertEquals("compile", lane.get("runningCmd"));
+
+        synchronized (gate) {
+            gate.notifyAll();
+        }
+        for (int i = 0; i < 100 && queue.pending(root) > 0; i++)
+            Thread.sleep(10);
+        assertNull(queue.runningCmd(root), "idle lane reports null runningCmd");
+        assertEquals(0, queue.queuedDepth(root), "drained lane has depth 0");
+        Map<String, Object> idle = core.queueLanes().get(0);
+        assertEquals(0, ((Number) idle.get("depth")).intValue());
+        assertNull(idle.get("runningCmd"));
+    }
 }

@@ -19,6 +19,8 @@ public final class ProjectQueue {
 
     private final Map<Path, ExecutorService> lanes = new ConcurrentHashMap<>();
     private final Map<Path, Integer> depth = new ConcurrentHashMap<>();
+    /** cmd of the job currently executing on the lane (wave 11 observability). */
+    private final Map<Path, String> runningCmd = new ConcurrentHashMap<>();
 
     /** @return false when the lane is full (caller must reject explicitly). */
     public boolean submit(BuildJob job, Runnable execution) {
@@ -37,8 +39,10 @@ public final class ProjectQueue {
             try {
                 if (job.state == BuildJob.State.CANCELLED)
                     return;
+                runningCmd.put(job.repoRoot, job.cmd);
                 execution.run();
             } finally {
+                runningCmd.remove(job.repoRoot, job.cmd);
                 depth.compute(job.repoRoot, (k, v) -> v == null ? 0 : v - 1);
             }
         });
@@ -49,6 +53,24 @@ public final class ProjectQueue {
     public int pending(Path root) {
         Integer d = depth.get(root);
         return d == null ? 0 : d;
+    }
+
+    /** Queued-only depth for one root: pending minus the job currently running (0 when idle). */
+    public int queuedDepth(Path root) {
+        int p = pending(root);
+        return runningCmd.containsKey(root) ? Math.max(0, p - 1) : p;
+    }
+
+    /** @return cmd of the job executing on this lane, null when idle. */
+    public String runningCmd(Path root) {
+        return runningCmd.get(root);
+    }
+
+    /** All lane roots ever submitted (lanes are never removed). */
+    public java.util.Set<Path> laneRoots() {
+        java.util.Set<Path> out = new java.util.LinkedHashSet<>(lanes.keySet());
+        out.addAll(depth.keySet());
+        return out;
     }
 
     public int pendingTotal() {

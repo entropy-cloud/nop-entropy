@@ -44,6 +44,7 @@ public final class ServeHttp {
             });
             server.setExecutor(pool);
             server.createContext("/v1/run", ex -> safe(ex, err, () -> handleRun(core, ex)));
+            server.createContext("/v1/jobs", ex -> safe(ex, err, () -> handleJobs(core, ex)));
             server.createContext("/v1/queue", ex -> safe(ex, err, () -> handleQueue(core, ex)));
             server.createContext("/v1/health", ex -> safe(ex, err, () -> handleHealth(core, ex)));
             server.createContext("/v1/job", ex -> safe(ex, err, () -> handleJob(core, ex)));
@@ -146,10 +147,29 @@ public final class ServeHttp {
             reply(ex, 405, Map.of("error", "GET only"));
             return;
         }
-        Map<String, Object> m = new LinkedHashMap<>();
-        for (Map.Entry<String, Integer> e : core.queueSnapshot())
-            m.put(e.getKey(), e.getValue());
-        reply(ex, 200, Map.of("lanes", m));
+        // wave 11: each lane is an object {root, depth, runningCmd, pending}
+        reply(ex, 200, Map.of("lanes", core.queueLanes()));
+    }
+
+    /** wave 11 observability: GET /v1/jobs?limit=N — recent job summaries. */
+    static void handleJobs(ServiceCore core, HttpExchange ex) throws IOException {
+        if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
+            reply(ex, 405, Map.of("error", "GET only"));
+            return;
+        }
+        int limit = ServiceCore.DEFAULT_JOBS_LIMIT;
+        String query = ex.getRequestURI().getRawQuery();
+        if (query != null)
+            for (String pair : query.split("&"))
+                if (pair.startsWith("limit=")) {
+                    try {
+                        limit = Integer.parseInt(pair.substring("limit=".length()));
+                    } catch (NumberFormatException e) {
+                        reply(ex, 400, Map.of("error", "limit must be an integer"));
+                        return;
+                    }
+                }
+        reply(ex, 200, Map.of("jobs", core.recentJobs(limit)));
     }
 
     static void handleHealth(ServiceCore core, HttpExchange ex) throws IOException {

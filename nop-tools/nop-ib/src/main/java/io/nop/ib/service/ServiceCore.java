@@ -24,6 +24,8 @@ import java.util.Set;
  */
 public final class ServiceCore {
     public static final int MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
+    public static final int DEFAULT_JOBS_LIMIT = 50;
+    public static final int MAX_JOBS_LIMIT = 500;
     public static final Set<String> ALLOWED_CMDS =
             Set.of("status", "plan", "compile", "test", "check", "model", "clean");
 
@@ -169,6 +171,11 @@ public final class ServiceCore {
         return registry.get(id);
     }
 
+    /** Package-private: pins seed the registry directly. */
+    JobRegistry registry() {
+        return registry;
+    }
+
     /** @return null on cancel, JobRegistry.CANNOT_CANCEL_RUNNING otherwise. */
     public String cancel(String id) {
         BuildJob job = registry.get(id);
@@ -185,6 +192,55 @@ public final class ServiceCore {
         }
         for (Map.Entry<Path, Integer> e : seen.entrySet())
             out.add(Map.entry(e.getKey().toString(), e.getValue()));
+        return out;
+    }
+
+    /**
+     * wave 11 observability: per-lane queue facts. depth counts jobs still
+     * WAITING (the running one excluded), runningCmd is the cmd executing now
+     * or null when the lane is idle. Roots union registry history with live
+     * lanes so finished-work roots still show as idle lanes.
+     */
+    public List<Map<String, Object>> queueLanes() {
+        Map<Path, Boolean> roots = new LinkedHashMap<>();
+        for (BuildJob j : registry.all())
+            roots.put(j.repoRoot, Boolean.TRUE);
+        for (Path p : queue.laneRoots())
+            roots.putIfAbsent(p, Boolean.TRUE);
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Path root : roots.keySet()) {
+            Map<String, Object> lane = new LinkedHashMap<>();
+            lane.put("root", root.toString());
+            lane.put("depth", queue.queuedDepth(root));
+            lane.put("runningCmd", queue.runningCmd(root));
+            lane.put("pending", queue.pending(root));
+            out.add(lane);
+        }
+        return out;
+    }
+
+    /**
+     * wave 11 observability: the most recent {@code limit} jobs (default
+     * {@link #DEFAULT_JOBS_LIMIT}), newest submission first, as compact
+     * summaries — no payloads.
+     */
+    public List<Map<String, Object>> recentJobs(int limit) {
+        if (limit <= 0)
+            limit = DEFAULT_JOBS_LIMIT;
+        limit = Math.min(limit, MAX_JOBS_LIMIT);
+        List<BuildJob> all = new ArrayList<>(registry.all());
+        // queuedAt can tie within one millisecond — break ties by id sequence so
+        // "newest first" is total (registry.values() order is arbitrary)
+        all.sort((a, b) -> {
+            int byTime = Long.compare(b.queuedAt, a.queuedAt);
+            return byTime != 0 ? byTime : b.id.compareTo(a.id);
+        });
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (BuildJob j : all) {
+            if (out.size() >= limit)
+                break;
+            out.add(j.summary());
+        }
         return out;
     }
 
