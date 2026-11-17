@@ -1,11 +1,18 @@
 # nop-ib 增量编译与测试（AI 日常入口）
 
-> 状态: 规范性文档（Wave 0–5 已落地）。
-> 设计权威与执行状态见 AI 开发记录区的设计文档 05 与单文件 roadmap（按边界规则此页不直接链接 ai-dev 路径）。
+> 状态: 规范性文档（Wave 0–11 已落地；Wave 10 服务化 / Wave 11 治理）。
+> 设计权威与执行状态见 AI 开发记录区的设计文档 05/06/07 与单文件 roadmap（按边界规则此页不直接链接 ai-dev 路径）。
 
 ## 何时用
 
-AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，不是构建系统**: CI/发布/codegen/全量冷构建/`install`/`deploy` 仍必须走 `./mvnw`（经 `mvnq`）。**回滚开关**: 任何时候直接用 `./mvnw` / `mvnq` 即可，`nop-ib` 不占用任何排他资源（锁与 mvnq 共用同一把）。
+**平台开发期的日常编译与测试一律走 nop-ib；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像/CI/全量冷构建）。
+
+两种使用形态：
+
+1. **服务形态（默认，多 AI/多项目共享）**：`~/nop-ib/bin/start.sh` 启动后，任何程序向 `http://127.0.0.1:8188/v1/run` 发送 `{projectDir, cmd, args, wait}` 即可；同项目自动串行排队、跨项目按机器预算并行。安装/使用说明见 `~/nop-ib/README.md`（由 `nop-tools/nop-ib/bin/package-ib.sh` 打包生成）。
+2. **CLI 形态（单次调用）**：`nop-tools/nop-ib/bin/ib <cmd>`（worktree 内）或 `~/nop-ib/bin/ib <cmd>`（任意项目）。
+
+**回滚开关**: 任何时候直接用 `./mvnw` 即可（mvnq 已于 Wave 11 移除出依赖链，裸 mvn 可直接使用），`nop-ib` 不占用任何排他资源（无文件锁，并发由进程内 lane 控制）。
 
 ## 前置（每个 worktree 一次性）
 
@@ -22,15 +29,16 @@ AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，�
 |---|---|
 | `ib status [--json]` | 模型/索引健康、当前变更集 |
 | `ib plan --paths <files...> [--json]` | 只算不做: 编译集/测试集/回退原因/下游候选 |
-| `ib compile --paths <file...>` / `ib compile -pl <module>` | 选择性编译（写产物取 `.mvn/build.lock`,锁超时退出 75） |
+| `ib compile --paths <file...>` / `ib compile -pl <module>` | 选择性编译 |
 | `ib test --affected` / `ib test -pl <module>` / `ib test --class [mod:]Class` / `--rerun-failed` | 自研 JUnit Platform fork 启动器执行（每类隔离 fork+4 并行;launcher 版本自模块 classpath 推导;快照录制显式禁用;批超时看门狗）。`--runner surefire` 可退出到 Maven Surefire 委托（setup 不满足时也自动显式回退） |
 | `ib check --paths <file...>` | **AI 日常主入口**: 编译 + 受影响测试 |
 | `ib explain <file\|module>` | 解释归属/能力分级/依赖者 |
 | `ib model refresh\|show\|index` | 模型与索引维护 |
 | `ib bench <module> [--json]` | 四类成本基线实测 |
-| `ib serve` | JSONL 常驻协议（`{"id","cmd","args"}`） |
+| `ib serve` | JSONL 常驻协议；`serve --http [--port N]` = 多项目 HTTP 服务（见 `~/nop-ib/README.md`） |
+| `ib clean [-pl <module>] [--json]` | mvn-clean 同义面：删选中模块 target 输出 + 单元索引 + 测试缓存条目（模型过期显式拒绝） |
 
-退出码: `0` 成功; `1` 编译/测试失败; `2` 回退被 `--on-fallback=fail` 拒绝; `3` 用法错误; `6` partial; `75` 锁超时。
+退出码: `0` 成功; `1` 编译/测试失败; `2` 回退被 `--on-fallback=fail` 拒绝; `3` 用法错误; `6` partial; `75` fallback Maven 进程超时。
 
 ## 运行记录（mvn 输出等价物）
 
@@ -44,10 +52,11 @@ AI 会话内的日常编译/测试反馈回路。**替换的是反馈回路，�
 ## 正确性语义（调用方须知）
 
 - **零假绿**: 回退、`partial`、`wideImpact` 全部显式出现在人类输出与 JSON；未执行的测试不会计为通过。
-- **回退是显式状态**: pom 变更 / XLang 模型或模板变更 / L2 注解处理器模块 / L3 AOP 模块 / 模型过期 → 自动委托 Maven（`mvnq`），并给出原因。
+- **回退是显式状态**: pom 变更 / XLang 模型或模板变更 / L2 注解处理器模块 / L3 AOP 模块 / 模型过期 → 自动委托 Maven（`nop.ib.maven` > mvnw > PATH mvn；不再经 mvnq），并给出原因。
 - **产物一致性**: 快路径编译与 `mvn compile` byte 级对拍零差异（-g/--release/-proc 通道对齐）；对拍 harness 在 `nop-tools/nop-ib/tools/ab_compare.py`。
 - **能力分级**（产物证据法）: L0 快路径 343 模块 / L1 xgen 模板 92（模板变更回退,手写源码快路径）/ L2 注解处理器 12（恒回退）/ L3 AOP 产物 10（恒回退）。
 - **模块串行 + 拓扑序**执行；产物目录与 Maven 共用，禁止 intra-project jar 进 fast-path classpath。
+- **并发模型（Wave 11）**: 无文件锁——服务 per-project lane（同项目 FIFO 串行，上限 32）+ 跨项目全局预算 `max(2, cores/2)` + 单 job worker 压制；项目身份以 reactor 根 real-path 归一（子模块目录/symlink 别名提交收敛到同一 lane）。
 - **仓库分层**: 本项目模块间依赖=reactor 输出目录（永远最新，永不 install）；第三方依赖=公共仓（`~/.m2/repository`，可用 `NOP_IB_COMMON_REPO` 覆盖）**只读解析**；worktree 私有仓（`.m2-repo`）仅作冷路径回退时的 fallback，且 nop-ib 从不写任何仓库。本项目编译产物只存在于各 worktree 的 `target/`，天然无跨 worktree 竞争。
 
 ## 实测基线（本机,勿外推）
