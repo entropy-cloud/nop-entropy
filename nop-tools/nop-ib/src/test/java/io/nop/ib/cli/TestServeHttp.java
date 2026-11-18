@@ -182,6 +182,28 @@ class TestServeHttp {
                 HttpResponse.BodyHandlers.ofString()).statusCode(), "POST /v1/jobs is 405");
     }
 
+    /** wave 11 doc surface: GET /v1/help self-describes the contract for zero-prior integrators. */
+    @Test
+    void helpEndpointSelfDescribesContract() throws Exception {
+        HttpResponse<String> res = get("/v1/help");
+        assertEquals(200, res.statusCode());
+        Map<String, Object> body = io.nop.ib.json.JsonIn.readAsMap(res.body());
+        assertEquals("nop-ib", body.get("service"));
+        Map<String, Object> run = (Map<String, Object>) body.get("run");
+        assertNotNull(run.get("body"), "run contract present");
+        Map<String, Object> endpoints = (Map<String, Object>) body.get("endpoints");
+        for (String ep : List.of("GET /v1/job/{id}", "GET /v1/jobs?limit=N", "GET /v1/queue",
+                "GET /v1/health", "DELETE /v1/job/{id}"))
+            assertTrue(endpoints.containsKey(ep), "endpoint documented: " + ep);
+        Map<String, Object> tasks = (Map<String, Object>) body.get("tasksDeclaration");
+        assertTrue(String.valueOf(tasks.get("file")).startsWith("nop-ib.tasks.json"),
+                "task declaration contract carries the branded file name");
+        assertEquals(405, HTTP.send(HttpRequest.newBuilder()
+                .uri(URI.create("http://127.0.0.1:" + port + "/v1/help"))
+                .POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.ofString()).statusCode(), "POST /v1/help is 405");
+    }
+
     /** wave 11: /v1/queue lanes expose root, depth, runningCmd (null when idle). */
     @Test
     void queueEndpointExposesLaneDepthAndRunningCmd() throws Exception {

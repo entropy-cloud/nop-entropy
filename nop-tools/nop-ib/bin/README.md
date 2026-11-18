@@ -1,13 +1,13 @@
 # nop-ib — 无状态增量编译与测试服务
 
-面向 AI（与开发者）的日常编译/测试反馈服务。**平台开发期的编译与测试一律走 nop-ib；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像）。
+面向 AI（与开发者）的日常编译/测试反馈服务。**平台开发期的编译与测试一律走 nop-ib；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像/CI/全量冷构建——或经 `ib mvn` 白名单透传排队）。
 
 ## 目录结构
 
 ```
 ~/nop-ib/
-├── nop-ib.jar      # CLI + 服务 jar
-├── lib/            # 运行时依赖
+├── nop-ib.jar      # CLI + 服务 jar（shade 单 jar，自包含）
+├── lib/            # 运行时依赖（自包含分发保留；shade jar 单独也可跑）
 ├── bin/
 │   ├── ib          # CLI 客户端（任意 cwd、任意 Maven 项目）
 │   ├── start.sh    # 启动 HTTP 服务（默认端口 8188，env NOP_IB_PORT 可换）
@@ -25,7 +25,9 @@
 NOP_IB_PORT=9000 ~/nop-ib/bin/start.sh   # 换端口
 ```
 
-健康检查：`curl http://127.0.0.1:8188/v1/health` → `{"version","cores","workerBudget","activeJobs","pendingTotal"}`。
+健康检查：`curl http://127.0.0.1:8188/v1/health` → `{"version","cores","workerBudget","activeJobs","pendingTotal","engines","heapUsedMb","uptimeMs"}`。
+
+服务自描述（AI 零先验接入入口）：`curl http://127.0.0.1:8188/v1/help` —— 返回命令白名单、端点、退出码、配置项与任务声明契约的机器可读摘要。
 
 > 只 loopback 监听（127.0.0.1），无鉴权——本机开发工具边界。
 
@@ -38,25 +40,29 @@ NOP_IB_PORT=9000 ~/nop-ib/bin/start.sh   # 换端口
 curl -s -X POST http://127.0.0.1:8188/v1/run -d '{
   "projectDir": "/path/to/project",
   "cmd": "check",
-  "args": ["--paths", "src/main/java/Foo.java"],
+  "args": ["--paths", "src/main/java/Foo.java", "--json"],
   "wait": true
 }'
 
 # 异步：wait=false 返回 job id，轮询 GET /v1/job/{id}
 curl -s -X POST http://127.0.0.1:8188/v1/run -d '{"projectDir":"...","cmd":"test","args":["-pl",":module"],"wait":false}'
 curl -s http://127.0.0.1:8188/v1/job/job-42
+curl -s "http://127.0.0.1:8188/v1/jobs?limit=20"     # 最近 job 摘要（exit/时长）
+curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/runningCmd/pending
 ```
 
-- `cmd` 白名单：`status | plan | compile | test | check | model | clean`
+- `cmd` 白名单：`status | plan | compile | test | check | model | clean | mvn`
 - `projectDir` 可以是仓库根、**子模块目录**或 **symlink 别名**——服务统一归一到 reactor 根（同项目只有一条构建队列，杜绝并发踩踏）
-- payload 与 CLI `--json` 同构；`exit` 字段即构建结果（0 成功 / 1 失败 / 6 partial / 75 超时）
+- payload 与 CLI `--json` 同构（NDJSON 序列）；`exit` 字段即构建结果：`0` 成功 / `1` 失败 / `3` 用法或配置错误 / `6` partial / `75` 回退 Maven 进程超时
+- `fallback.reason` 非 null 表示该轮走了 Maven 回退及其原因；JSON `cached:true` 表示测试缓存命中（未执行）、`compiled` 表示 test 前的预编译状态
 - **同项目串行 + 自动排队**：同一项目一次只跑一个构建，其余 FIFO 排队（上限 32，满则 429）
-- **跨项目自适应并行**：全局预算 = CPU 核数一半（本机 16 核 → 8），多项目并发不超载机器
+- **跨项目自适应并行**：全局预算 = CPU 核数一半（本机 16 核 → 8）
 
 ## 新项目接入（一次性）
 
 ```bash
 ~/nop-ib/bin/ib model refresh    # 在项目根目录执行：导出 Maven 构建事实（大项目 ~50s）
+~/nop-ib/bin/ib model index      # 扫描产物建单元索引（~4s）
 ```
 
 之后模型随 pom 变化自动检测过期；过期时服务自动回退真 Maven 并给出原因，重新 `model refresh` 即恢复快路径。
@@ -64,30 +70,62 @@ curl -s http://127.0.0.1:8188/v1/job/job-42
 ## CLI 直用（不经服务）
 
 ```bash
-~/nop-ib/bin/ib check --paths src/main/java/Foo.java   # 项目根目录下执行
-~/nop-ib/bin/ib test -pl :module-name
+~/nop-ib/bin/ib check --paths src/main/java/Foo.java   # 项目根目录下执行（编译 + 受影响测试）
+~/nop-ib/bin/ib test -pl :module-name                  # 单模块测试（默认先自动增量编译；--no-compile 关闭）
+~/nop-ib/bin/ib compile --paths <file...>              # 仅编译
 ~/nop-ib/bin/ib clean -pl :module-name                 # mvn-clean 同义面 + 索引/缓存失效
+~/nop-ib/bin/ib mvn -pl :module-name install           # 白名单透传：install/package/clean/dependency:*/surefire:*
 ```
+
+`test` 默认派发前先做增量编译（编译失败不派发测试，零假绿）；`--no-compile` 恢复 v1 不编译行为并在 JSON 显式 `compiled:false`。
+
+## 代码生成任务声明（nop-ib.tasks.json）
+
+模块目录（或仓库根）可放 `nop-ib.tasks.json` 声明代码生成任务，ib 在快路径编译前/后增量执行——模板变更不再整体回退 Maven：
+
+```json
+[
+  {
+    "name": "nop-precompile",
+    "trigger": "before-compile",
+    "inputs": ["precompile/*.xgen"],
+    "outputs": ["src/main/resources/_vfs/**"],
+    "exec": { "type": "java", "mainClass": "io.nop.codegen.task.CodeGenTask",
+              "arguments": [".", "precompile"], "classpathScope": "test" }
+  }
+]
+```
+
+- 分层可选：根级文件对全 reactor 生效，模块级同名任务覆盖（非 exec 字段整体替换、exec 逐字段合并）
+- `classpathScope`：`compile|runtime|test`（默认 test），语义对齐 exec-maven-plugin，由 ib 自建 classpath
+- 执行体：`java`（项目 classpath 上的 mainClass）或 `xscript`（runner mainClass + 脚本）
+- 增量：inputs/outputs 指纹未变 → 跳过（`tasks:[{name,kind:skipped|executed|failed}]` 显式区分）；指纹落 `target/nop-ib/tasks/`（`mvn clean` 自动清）
+- 失败显式回退 Maven；配置错误 exit 3
+- 平台参考声明：`nop-wf/nop-wf-meta/nop-ib.tasks.json`
 
 ## 缓存与状态（全在项目内，服务无状态）
 
-全部落在各项目自己的 `.nop-ib/` 目录：`model.json`（构建事实）、`units/`（类图/ABI 索引）、`test-cache.json`（opt-in `--cache` 的模块级绿结果缓存）。服务进程崩溃/重启零影响——重建连接重发请求即可（幂等）。
+全部落在各项目自己的 `.nop-ib/` 目录：`model.json`（构建事实）、`units/`（类图/ABI 索引）、`test-cache.json`（opt-in `--cache` 的模块级绿结果缓存）。服务进程崩溃/重启零影响——重建连接重发请求即可（幂等）。engine 缓存空闲 30 分钟（`nop.ib.engineIdleTtlMillis`）自动回收，重建冷装载无损。
 
 ## 配置
 
 | 属性 | 作用 | 默认 |
 |---|---|---|
 | `NOP_IB_PORT`（env） | 服务端口 | 8188 |
-| `nop.ib.maven`（-D） | fallback 用 Maven 可执行文件路径 | mvnw > PATH 全局 mvn |
+| `nop.ib.maven`（-D） | 回退/透传用 Maven 可执行文件路径 | mvnw > PATH 全局 mvn |
 | `nop.ib.serviceWorkerBudget` | 全局 job 并发上限 | max(2, cores/2) |
 | `nop.ib.workerBudget` | 单 job 测试 worker 上限 | 4×cores |
+| `nop.ib.engineIdleTtlMillis` | engine 空闲回收阈值 | 1800000（30 分钟） |
+| `nop.ib.taskTimeoutMillis` | codegen 任务看门狗 | 300000（5 分钟） |
 
 ## 何时仍然用 mvn
 
-**只在这些场景**：`mvn install` / `deploy` / 发布打包、CI 流水线、全量冷构建、代码生成链（xgen 模板变更/AOP 模块——ib 会显式回退 Maven 并给原因）。日常开发（改代码→编译→跑测试）**不碰 mvn**。
+**只在这些场景**：`deploy` / 发布镜像 / CI 流水线（`install`/`package`/`clean`/`dependency:*` 可经 `ib mvn` 白名单走服务排队）；代码生成链中无法声明为任务的部分（ib 显式回退并给原因）。日常开发（改代码→编译→跑测试）**不碰 mvn**。
 
 ## 重建分发
 
 ```bash
 cd <nop-entropy 源码>/nop-tools/nop-ib && ./bin/package-ib.sh   # 重新打包到 ~/nop-ib
 ```
+
+改了 nop-ib 本身之后必须重打包并重启服务（服务进程加载的是打包时的 jar）。

@@ -48,6 +48,7 @@ public final class ServeHttp {
             server.createContext("/v1/queue", ex -> safe(ex, err, () -> handleQueue(core, ex)));
             server.createContext("/v1/health", ex -> safe(ex, err, () -> handleHealth(core, ex)));
             server.createContext("/v1/job", ex -> safe(ex, err, () -> handleJob(core, ex)));
+            server.createContext("/v1/help", ex -> safe(ex, err, () -> handleHelp(ex)));
             server.start();
             Map<String, Object> hello = new LinkedHashMap<>();
             hello.put("event", "hello");
@@ -79,6 +80,51 @@ public final class ServeHttp {
     }
 
     // ---- endpoints -------------------------------------------------------
+
+    /**
+     * GET /v1/help — machine-readable self-description so any AI/program can
+     * integrate with zero prior knowledge (complements the packaged README).
+     */
+    static void handleHelp(HttpExchange ex) throws IOException {
+        if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
+            reply(ex, 405, Map.of("error", "GET only"));
+            return;
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("service", "nop-ib");
+        m.put("desc", "stateless incremental build & test service for Maven projects; "
+                + "per-project serial lane + cross-project CPU-budgeted parallelism");
+        m.put("run", Map.of(
+                "method", "POST /v1/run",
+                "body", Map.of("projectDir", "repo root | module dir | symlink (normalized to one lane)",
+                        "cmd", "status|plan|compile|test|check|model|clean|mvn",
+                        "args", "CLI arg list, e.g. [\"--paths\",\"src/Foo.java\",\"--json\"]",
+                        "wait", "true (blocking) | false (returns job id)")));
+        m.put("endpoints", Map.of(
+                "GET /v1/job/{id}", "job result: {state, exit, payload, stderr}",
+                "GET /v1/jobs?limit=N", "recent job summaries (exit/durationMs)",
+                "GET /v1/queue", "per-project lanes: {root, depth, runningCmd, pending}",
+                "GET /v1/health", "service vitals",
+                "DELETE /v1/job/{id}", "cancel a QUEUED job (running jobs cannot cancel)"));
+        m.put("exitCodes", Map.of("0", "ok", "1", "build/test failed", "3", "usage/config error",
+                "6", "partial", "75", "fallback Maven process timeout"));
+        m.put("semantics", List.of(
+                "fallback.reason non-null = this round ran real Maven (and why)",
+                "cached:true = test cache hit (tests did NOT execute); --force escapes",
+                "compiled:true|false|\"skipped\" = test pre-compile state (--no-compile disables)",
+                "tasks:[{name,kind:skipped|executed|failed}] = declared codegen task outcomes"));
+        m.put("tasksDeclaration", Map.of(
+                "file", "nop-ib.tasks.json (repo root or any module basedir; module-level same-name overrides root-level)",
+                "shape", "[{name, trigger: before-compile|after-compile, inputs:[glob], outputs:[glob], "
+                        + "exec:{type: java|xscript, mainClass, script?, arguments?, classpathScope: compile|runtime|test(default)}}]",
+                "note", "codegen runs on the ib fast path; fingerprints live under target/nop-ib/tasks (mvn clean removes)"));
+        m.put("onboarding", List.of(
+                "cd <project root> && <dist>/bin/ib model refresh && <dist>/bin/ib model index",
+                "then POST /v1/run with projectDir"));
+        m.put("mvnPassthrough", "cmd=mvn, whitelist goals: install|package|clean|dependency:*|surefire:* "
+                + "(same lane, exit code passthrough; others rejected with exit 3)");
+        reply(ex, 200, m);
+    }
 
     static void handleRun(ServiceCore core, HttpExchange ex) throws IOException {
         if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) {
