@@ -3,8 +3,7 @@
 # ~/nop-ib (owner directive 2026-11-17).
 #
 # Layout produced:
-#   ~/nop-ib/nop-ib.jar        the CLI/service jar
-#   ~/nop-ib/lib/*.jar         runtime dependencies
+#   ~/nop-ib/nop-ib.jar        the self-contained CLI/service jar (shaded)
 #   ~/nop-ib/bin/ib            client CLI wrapper (any project, any cwd)
 #   ~/nop-ib/bin/start.sh      start the HTTP service
 #   ~/nop-ib/bin/stop.sh       stop the HTTP service
@@ -21,18 +20,16 @@ echo "== building nop-tools/nop-ib (skip tests) =="
 (cd "$ROOT" && ./mvnw -q -pl nop-tools/nop-ib -am -DskipTests package)
 
 echo "== staging $DEST =="
-mkdir -p "$DEST/bin" "$DEST/lib"
-# shade produces target/nop-ib.jar (uber, main-class); the plain versioned jar
-# has NO main-class manifest — prefer the shaded one explicitly
+mkdir -p "$DEST/bin"
+# shade produces the self-contained uber jar (owner 2026-11-18: lib/ dropped —
+# the shaded nop-ib.jar needs no dependency dir; the plain versioned jar has NO
+# main-class manifest, so prefer the shaded one explicitly)
 if [ -f "$MOD_DIR/target/nop-ib.jar" ]; then
     cp "$MOD_DIR/target/nop-ib.jar" "$DEST/nop-ib.jar"
 else
     echo "ERROR: shaded target/nop-ib.jar missing (shade plugin did not run)" >&2
     exit 1
 fi
-rm -f "$DEST"/lib/*.jar
-(cd "$ROOT" && ./mvnw -q -pl nop-tools/nop-ib dependency:copy-dependencies \
-    -DoutputDirectory="$DEST/lib" -DincludeScope=runtime)
 
 echo "== writing scripts =="
 cat > "$DEST/bin/ib" <<'WRAPPER'
@@ -42,7 +39,7 @@ cat > "$DEST/bin/ib" <<'WRAPPER'
 # or use the HTTP service with projectDir).
 set -euo pipefail
 DIST="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CP="$DIST/nop-ib.jar:$DIST/lib/*"
+CP="$DIST/nop-ib.jar"
 exec java -Xmx2g -cp "$CP" io.nop.ib.NopIbMain "$@"
 WRAPPER
 
@@ -61,7 +58,7 @@ if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     curl -sf "http://127.0.0.1:$PORT/v1/health" && echo
     exit 0
 fi
-nohup java -Xmx4g -cp "$DIST/nop-ib.jar:$DIST/lib/*" \
+nohup java -Xmx4g -cp "$DIST/nop-ib.jar" \
     io.nop.ib.NopIbMain serve --http --port "$PORT" \
     >> "$LOG" 2>&1 &
 echo $! > "$PIDFILE"
