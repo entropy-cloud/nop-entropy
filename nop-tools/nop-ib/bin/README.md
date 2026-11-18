@@ -6,8 +6,7 @@
 
 ```
 ~/nop-ib/
-├── nop-ib.jar      # CLI + 服务 jar（shade 单 jar，自包含）
-├── lib/            # 运行时依赖（自包含分发保留；shade jar 单独也可跑）
+├── nop-ib.jar      # CLI + 服务 jar（shade 单 jar，自包含，无外部依赖目录）
 ├── bin/
 │   ├── ib          # CLI 客户端（任意 cwd、任意 Maven 项目）
 │   ├── start.sh    # 启动 HTTP 服务（默认端口 8188，env NOP_IB_PORT 可换）
