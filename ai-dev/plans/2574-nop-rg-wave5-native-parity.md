@@ -113,23 +113,23 @@ Exit Criteria:
 
 ### Phase D - Item 20: GlobSet 策略分类
 
-Status: planned
+Status: completed
 Targets: `nop-rg-core/src/main/java/io/nop/rg/core/glob/`
 
 - Item Types: `Feature`
 
-- [ ] `GlobMatcher` 编译期分类：`*.<ext>` 单段模式 → 扩展名 Set；无通配符模式 → 字面量 basename/path Set；其余 → 现有两指针匹配器。`accept()` 按扩展名/字面量快路径短路，未命中再走慢路径；include/exclude 语义与优先级完全不变
-- [ ] 新增测试：分类正确性（每类至少一例，含 `*.log`、字面量 `Makefile`、`**/*.java` 落慢路径）；分类 vs 全慢路径对拍 fuzz（随机 glob 集 × 随机路径，结果一致）；`GlobMatcherTest` 原有用例全绿
-- [ ] 验证：nop-ib check + `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
-- [ ] 提交
+- [x] `GlobMatcher` 编译期分类：`*.<ext>` 单段模式 → 扩展名 Set；无通配符模式 → 字面量 basename/path Set；其余 → 现有两指针匹配器。`accept()` 按扩展名/字面量快路径短路，未命中再走慢路径；include/exclude 语义与优先级完全不变
+- [x] 新增测试：分类正确性（每类至少一例，含 `*.log`、字面量 `Makefile`、`**/*.java` 落慢路径）；分类 vs 全慢路径对拍 fuzz（随机 glob 集 × 随机路径，结果一致）；`GlobMatcherTest` 原有用例全绿
+- [x] 验证：nop-ib check + `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
+- [x] 提交
 
 Exit Criteria:
 
-- [ ] 分类单测 + 对拍 fuzz 全绿
-- [ ] 原有 GlobMatcherTest 全绿
-- [ ] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/2026/11-20.md` 已更新
+- [x] 分类单测 + 对拍 fuzz 全绿
+- [x] 原有 GlobMatcherTest 全绿
+- [x] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/2026/11-20.md` 已更新
 
 ### Phase E - Item 21: Walker stat 削减 + macOS 读路径裁定
 
