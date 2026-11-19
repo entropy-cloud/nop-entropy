@@ -6,7 +6,9 @@ import io.nop.rg.core.NopRgException;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -139,26 +141,47 @@ public class ParallelFileWalker {
                 if (context.ignore != null && context.ignore.isIgnored(new FileResource(child.toFile()))) {
                     continue;
                 }
-                boolean isDir;
+                // Wave 5 item 21（roadmap，plan 2574 Phase E）：单次 NOFOLLOW readAttributes
+                // 取代 isDirectory/isSymbolicLink/isRegularFile 三连 stat（fd walk.rs 思路）
+                BasicFileAttributes attrs;
                 try {
-                    isDir = Files.isDirectory(child);
+                    attrs = Files.readAttributes(child, BasicFileAttributes.class,
+                            LinkOption.NOFOLLOW_LINKS);
                 } catch (AccessControlException e) {
                     context.recordError(e);
                     return;
-                }
-                // 符号链接目录不递归：目录环（a/b -> a）会无限递归；对齐 rg 默认不跟随目录链接。
-                // 文件符号链接保持现状（按普通文件读取内容）；悬空链接保持现状（isDirectory/isRegularFile
-                // 均为 false，静默跳过）
-                if (isDir && Files.isSymbolicLink(child)) {
+                } catch (IOException e) {
+                    // 旧语义：isDirectory/isRegularFile 对 stat 失败静默返回 false（跳过）
                     continue;
                 }
-                if (isDir) {
+                // 符号链接目录不递归：目录环（a/b -> a）会无限递归；对齐 rg 默认不跟随目录链接。
+                // 文件符号链接保持现状（按普通文件读取内容）；悬空链接保持现状（跟随 stat 失败，
+                // 静默跳过）
+                if (attrs.isSymbolicLink()) {
+                    BasicFileAttributes target;
+                    try {
+                        target = Files.readAttributes(child, BasicFileAttributes.class);
+                    } catch (IOException e) {
+                        continue; // 悬空/不可达链接：静默跳过（旧语义 isDirectory/isRegularFile 均 false）
+                    }
+                    if (target.isDirectory()) {
+                        continue; // 目录链接不递归
+                    }
+                    if (!target.isRegularFile()) {
+                        continue;
+                    }
+                    synchronized (context) {
+                        context.files.add(child);
+                    }
+                    continue;
+                }
+                if (attrs.isDirectory()) {
                     ScanAction action = new ScanAction(child, context);
                     if (subdirs == null) {
                         subdirs = new ArrayList<>();
                     }
                     subdirs.add(action);
-                } else if (Files.isRegularFile(child)) {
+                } else if (attrs.isRegularFile()) {
                     synchronized (context) {
                         context.files.add(child);
                     }

@@ -133,25 +133,25 @@ Exit Criteria:
 
 ### Phase E - Item 21: Walker stat 削减 + macOS 读路径裁定
 
-Status: planned
+Status: completed
 Targets: `nop-rg-core/src/main/java/io/nop/rg/core/walk/`、`ai-dev/analysis/`
 
 - Item Types: `Feature` + `Decision`
 
-- [ ] `ParallelFileWalker`：每 entry 单次 `Files.readAttributes(child, BasicFileAttributes.class, NOFOLLOW_LINKS)` 取代 isDirectory/isSymbolicLink/isRegularFile 三连 stat（先查 isSymbolicLink 再判 dir/regular，保持 symlink 语义）；symlink 目标类型用一次 `Files.readAttributes(..., FOLLOW_LINKS)` 判定；行为不变（hidden、gitignore、dir symlink 剪枝、fail-fast 语义逐条保持）；`ParallelFileWalkerTest` 增补显式用例：symlink→dir（剪枝）、symlink→file（当 regular file）、悬空 symlink，若已有则确认覆盖
-- [ ] （裁定 implement 时）macOS read 回退实现拆为独立 Phase E2 或 successor plan，不在本 Phase 内膨胀 scope
-- [ ] macOS 非 mmap 读路径**裁定**（`ai-dev/analysis/2026-11-20-nop-rg-macos-read-path.md`）：对比 mmap 与 FileChannel 顺序读在本机（macOS）的 512MB 吞吐 + madvise 缺失影响，给出 implement / not-implement 结论与理由（rg 在 macOS 因 VM 锁禁用 mmap 的证据核对）；结论为 implement 时落地 `ChunkedFileReader` 的 read 回退路径并补等价测试，not-implement 时该裁定即收口
-- [ ] 验证：`./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
-- [ ] 提交
+- [x] `ParallelFileWalker`：每 entry 单次 `Files.readAttributes(child, BasicFileAttributes.class, NOFOLLOW_LINKS)` 取代 isDirectory/isSymbolicLink/isRegularFile 三连 stat（先查 isSymbolicLink 再判 dir/regular，保持 symlink 语义）；symlink 目标类型用一次 `Files.readAttributes(..., FOLLOW_LINKS)` 判定；行为不变（hidden、gitignore、dir symlink 剪枝、fail-fast 语义逐条保持）；`ParallelFileWalkerTest` 增补显式用例：symlink→dir（剪枝）、symlink→file（当 regular file）、悬空 symlink，若已有则确认覆盖
+- [x] （裁定 implement 时）macOS read 回退实现拆为独立 Phase E2 或 successor plan，不在本 Phase 内膨胀 scope
+- [x] macOS 非 mmap 读路径**裁定**（`ai-dev/analysis/2026-11-20-nop-rg-macos-read-path.md`）：对比 mmap 与 FileChannel 顺序读在本机（macOS）的 512MB 吞吐 + madvise 缺失影响，给出 implement / not-implement 结论与理由（rg 在 macOS 因 VM 锁禁用 mmap 的证据核对）；结论为 implement 时落地 `ChunkedFileReader` 的 read 回退路径并补等价测试，not-implement 时该裁定即收口
+- [x] 验证：`./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
+- [x] 提交
 
 Exit Criteria:
 
-- [ ] Walker 每 entry 属性调用降为 readAttributes 单次（代码可查），`ParallelFileWalkerTest` 全绿
-- [ ] macOS 读路径裁定文档存在且含结论（implement 或 not-implement 均可接受，但必须二选一并给证据）
-- [ ] 若裁定 implement：read 回退路径有等价测试且全绿
-- [ ] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
-- [ ] No owner-doc update required（裁定文档落在 analysis/，非规范文档）
-- [ ] `ai-dev/logs/2026/11-20.md` 已更新
+- [x] Walker 每 entry 属性调用降为 readAttributes 单次（代码可查），`ParallelFileWalkerTest` 全绿
+- [x] macOS 读路径裁定文档存在且含结论（implement 或 not-implement 均可接受，但必须二选一并给证据）
+- [x] 若裁定 implement：read 回退路径有等价测试且全绿
+- [x] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
+- [x] No owner-doc update required（裁定文档落在 analysis/，非规范文档）
+- [x] `ai-dev/logs/2026/11-20.md` 已更新
 
 ### Phase F - Item 22: 吞吐比重定基线 + roadmap 收口
 
