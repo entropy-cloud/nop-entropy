@@ -178,4 +178,126 @@ public class VectorLiteralEquivalenceTest {
         assertEquals(-1, VectorByteSearcher.INSTANCE.findFirstByte(seg, 5, data.length, (byte) 'X'));
         assertEquals(-1, VectorByteSearcher.INSTANCE.findFirstByte(seg, 0, 0, (byte) 'a'));
     }
+
+    // ---- Wave 5 item 18（plan 2574 Phase B）：dual-pin 定距双锚点分支 ----
+
+    // 频率锚定字母表：'~'=1 < '|'=35 < 'a'=100（ScalarByteSearcher.buildFrequencyTable）
+    // pattern "a~|aaa..."：anchor='~'（idx1，最后出现的最罕见字节），pin='|'（idx2）→ pinDelta=1
+
+    private VectorPreparedLiteral vectorFinder(byte[] pattern, boolean ignoreCase) {
+        PreparedFinder f = new NopRgVectorLiteralFinderProvider().compile(pattern, ignoreCase);
+        assertTrue(f instanceof VectorPreparedLiteral, () -> "模式需 >= 16B 走 Vector 路径: " + new String(pattern));
+        return (VectorPreparedLiteral) f;
+    }
+
+    private void assertEquivalence(PreparedFinder vector, PreparedLiteral scalar,
+                                   byte[] data, int offset, int limit, String msg) {
+        MemorySegment seg = Arena.global().allocateFrom(ValueLayout.JAVA_BYTE, data);
+        assertEquals(scalar.find(seg, offset, limit), vector.find(seg, offset, limit), msg);
+    }
+
+    @Test
+    public void testDualPinActiveForCloseRarePair() {
+        // anchor='~'(1) idx1，pin='|'(35) idx2 → pinDelta=1 < SPECIES 宽度 → dual-pin 激活
+        byte[] pattern = "a~|aaaaaaaaaaaaa".getBytes();
+        assertEquals(16, pattern.length);
+        VectorPreparedLiteral finder = vectorFinder(pattern, false);
+        assertEquals(1, finder.pinDelta());
+        assertTrue(finder.dualPinActive(), "近距双罕见字节应激活 dual-pin 分支");
+
+        // 真实命中 + 候选无效路径（锚点与 pin 双命中但整体失配 → 坏字符推进后仍找到后续命中）
+        byte[] data = "a~b|aaa...a~|aaaaaaaaaaaaaXX".getBytes();
+        PreparedLiteral scalar = PreparedLiteral.compile(pattern, false);
+        assertEquivalence(finder, scalar, data, 0, data.length, "dual-pin 命中");
+        assertEquivalence(finder, scalar, data, 1, data.length, "子区间");
+        assertEquivalence(finder, scalar, data, 0, 20, "limit 裁剪");
+    }
+
+    @Test
+    public void testDualPinInactiveWhenPinDeltaExceedsSpeciesWidth() {
+        // anchor='~' idx1，pin='|' 位于远端 → pinDelta >= SPECIES 宽度 → 单锚路径
+        int width = jdk.incubator.vector.ByteVector.SPECIES_PREFERRED.length();
+        byte[] pattern = ("a~" + "a".repeat(width) + "|").getBytes();
+        VectorPreparedLiteral finder = vectorFinder(pattern, false);
+        assertEquals(width + 1, finder.pinDelta());
+        assertFalse(finder.dualPinActive(), "pinDelta >= SPECIES 宽度不得走 dual-pin");
+
+        byte[] data = ("zz" + new String(pattern) + "yy" + new String(pattern)).getBytes();
+        PreparedLiteral scalar = PreparedLiteral.compile(pattern, false);
+        assertEquivalence(finder, scalar, data, 0, data.length, "远距 pin 等价");
+        assertEquivalence(finder, scalar, data, 3, data.length, "子区间等价");
+    }
+
+    @Test
+    public void testAllSameBytePatternDegeneratesToSinglePin() {
+        // 全同字节：pinIdx2 取首个出现（0），pinDelta = -(len-1) < 0 → dual-pin 关闭
+        byte[] pattern = "aaaaaaaaaaaaaaaa".getBytes();
+        VectorPreparedLiteral finder = vectorFinder(pattern, false);
+        assertTrue(finder.pinDelta() < 0);
+        assertFalse(finder.dualPinActive());
+
+        byte[] data = "xxaaaaaaaayyaaaaaaaa".getBytes();
+        PreparedLiteral scalar = PreparedLiteral.compile(pattern, false);
+        assertEquivalence(finder, scalar, data, 0, data.length, "全同字节模式等价");
+        assertEquivalence(finder, scalar, data, 5, data.length, "子区间等价");
+    }
+
+    @Test
+    public void testDualPinIgnoreCasePinFlip() {
+        // anchor='~'（唯一 freq=1，位于 idx0）；pin=首个字母（freq 100 同频取首现 idx1）
+        // → pin 为字母，ignoreCase 下 flip(pinByte2) 分支激活（mask2 OR 大写变体）
+        byte[] pattern = "~Aaaaaaaaaaaaaaa".getBytes();
+        assertEquals(16, pattern.length);
+        VectorPreparedLiteral finder = vectorFinder(pattern, true);
+        assertEquals(1, finder.pinDelta());
+        assertTrue(finder.dualPinActive());
+        byte[] data = "~aAaaAaa~aaaaaaaaaa~AaaaaaaaaaaaaaZZ".getBytes();
+        PreparedLiteral scalar = PreparedLiteral.compile(pattern, true);
+        assertEquivalence(finder, scalar, data, 0, data.length, "ignoreCase dual-pin 等价");
+        assertEquivalence(finder, scalar, data, 10, data.length, "ignoreCase 子区间等价");
+    }
+
+    @Test
+    public void testDualPinFuzzEquivalence() {
+        NopRgVectorLiteralFinderProvider provider = new NopRgVectorLiteralFinderProvider();
+        java.util.Random random = new java.util.Random(777);
+        char[] alphabet = {'a', '~', '|'};
+        int dualPinCases = 0;
+        for (int iter = 0; iter < 800; iter++) {
+            int patternLen = NopRgVectorLiteralFinderProvider.SIMD_MIN_PATTERN_LENGTH + random.nextInt(10);
+            byte[] pattern = new byte[patternLen];
+            // 偶数迭代构造激活形态：唯一 '~'（freq1 → anchor）+ 唯一 '|'（freq35 → pin）在其后
+            if ((iter & 1) == 0) {
+                int anchorPos = random.nextInt(patternLen - 1);
+                int pinPos = anchorPos + 1 + random.nextInt(patternLen - anchorPos - 1);
+                java.util.Arrays.fill(pattern, (byte) 'a');
+                pattern[anchorPos] = '~';
+                pattern[pinPos] = '|';
+            } else {
+                for (int i = 0; i < patternLen; i++) {
+                    pattern[i] = (byte) alphabet[random.nextInt(alphabet.length)];
+                }
+            }
+            int dataLen = patternLen * 2 + random.nextInt(200);
+            byte[] data = new byte[dataLen];
+            for (int i = 0; i < dataLen; i++) {
+                data[i] = (byte) alphabet[random.nextInt(alphabet.length)];
+            }
+            if (dataLen > patternLen) {
+                System.arraycopy(pattern, 0, data, random.nextInt(dataLen - patternLen + 1), patternLen);
+            }
+            boolean ignoreCase = random.nextBoolean();
+            VectorPreparedLiteral vector = vectorFinder(pattern, ignoreCase);
+            PreparedLiteral scalar = PreparedLiteral.compile(pattern, ignoreCase);
+            int offset = random.nextInt(dataLen + 1);
+            int limit = offset + random.nextInt(dataLen - offset + 1);
+            if (vector.dualPinActive()) {
+                dualPinCases++;
+            }
+            assertEquivalence(vector, scalar, data, offset, limit,
+                    "data=" + new String(data) + " pattern=" + new String(pattern)
+                            + " ignoreCase=" + ignoreCase + " offset=" + offset + " limit=" + limit);
+        }
+        assertTrue(dualPinCases >= 50, "dual-pin 激活用例不足: " + dualPinCases);
+    }
 }

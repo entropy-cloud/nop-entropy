@@ -171,4 +171,13 @@ final class VectorPreparedLiteral implements PreparedFinder {
     public int patternLength() {
         return patternLength;
     }
+
+    // 测试接缝（同包可见，plan 2574 Phase B）：钉住 dual-pin 分支选择
+    int pinDelta() {
+        return pinDelta;
+    }
+
+    boolean dualPinActive() {
+        return pinDelta >= 1 && pinDelta < SPECIES.length();
+    }
 }

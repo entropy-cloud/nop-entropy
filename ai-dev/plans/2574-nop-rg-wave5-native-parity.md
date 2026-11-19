@@ -72,22 +72,22 @@ Exit Criteria:
 
 ### Phase B - Item 18: 双定点 vector prefilter 收口
 
-Status: planned
+Status: completed
 Targets: `nop-rg-vector/src/{main,test}/java/io/nop/rg/vector/`
 
 - Item Types: `Feature`
 
-- [ ] `VectorLiteralEquivalenceTest` 增补 dual-pin 钉子：模式含两个罕见字节且距离 < SPECIES.length()（走 dual-pin 分支）、距离 ≥ SPECIES.length()（不走）、全同字节模式（pinIdx2=-1 退化单锚）、ignoreCase 下 pinByte2 翻转分支；断言与 Scalar 结果逐项一致（含候选无效后坏字符推进路径）
-- [ ] 验证：`./mvnw test -pl nop-tools/nop-rg/nop-rg-vector` EXIT=0（nop-ib 不支持 incubator，见 Current Baseline）
-- [ ] 提交
+- [x] `VectorLiteralEquivalenceTest` 增补 dual-pin 钉子：模式含两个罕见字节且距离 < SPECIES.length()（走 dual-pin 分支）、距离 ≥ SPECIES.length()（不走）、全同字节模式（pinIdx2=-1 退化单锚）、ignoreCase 下 pinByte2 翻转分支；断言与 Scalar 结果逐项一致（含候选无效后坏字符推进路径）
+- [x] 验证：`./mvnw test -pl nop-tools/nop-rg/nop-rg-vector` EXIT=0（nop-ib 不支持 incubator，见 Current Baseline）
+- [x] 提交
 
 Exit Criteria:
 
-- [ ] dual-pin 专属路径被测试显式覆盖（非仅 fuzz 碰巧命中）
-- [ ] vector 与 scalar 等价断言全绿
-- [ ] `./mvnw test -pl nop-tools/nop-rg/nop-rg-vector` EXIT=0
-- [ ] No owner-doc update required
-- [ ] `ai-dev/logs/2026/11-20.md` 已更新
+- [x] dual-pin 专属路径被测试显式覆盖（非仅 fuzz 碰巧命中）
+- [x] vector 与 scalar 等价断言全绿
+- [x] `./mvnw test -pl nop-tools/nop-rg/nop-rg-vector` EXIT=0
+- [x] No owner-doc update required
+- [x] `ai-dev/logs/2026/11-20.md` 已更新
 
 ### Phase C - Item 19: 候选行两级 regex 路径
 
