@@ -1,9 +1,11 @@
 package io.nop.ib.cli;
 
 import io.nop.ib.compile.MavenFallback;
+import io.nop.ib.engine.IbEngine;
 import io.nop.ib.json.JsonOut;
 
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -45,6 +47,61 @@ public final class MvnCommand {
     public static Runner runner = (repoRoot, args, out, err) ->
             new MavenFallback(repoRoot).delegate(args, out, err);
 
+    /**
+     * Wave 12 defect fix (coblab-rpg observation 2026-11-19): {@code surefire:test}
+     * is a DIRECT goal invocation — it runs whatever target/test-classes already
+     * contain and never compiles, so a newly added or edited test source is
+     * silently absent from the run (fake green: the module reports exit 0 with a
+     * stale test count). The {@code test}/{@code check} commands close this with
+     * the wave-11 pre-compile (TestCommand wave 11, owner directive 2026-11-17);
+     * the passthrough must honor the same zero-fake-green rule. Before delegating
+     * any {@code surefire:*} goal, run the SAME incremental compile channel
+     * ({@link CompileCommand#runCompile}) over the -pl module scope (or the repo
+     * change set when no -pl is given). {@code install}/{@code package} compile
+     * themselves and {@code clean} deletes, so they need no pre-compile.
+     * A red pre-compile ends the passthrough with the compile exit code — no
+     * dispatch on stale classes.
+     */
+    public interface PreCompileFn {
+        int run(Path repoRoot, String plModules, PrintWriter out, PrintWriter err);
+    }
+
+    /** pin seam: swap the default incremental-compile pre-step (tests only). */
+    public static PreCompileFn preCompileFn = MvnCommand::defaultPreCompile;
+
+    static int defaultPreCompile(Path repoRoot, String plModules,
+                                 PrintWriter out, PrintWriter err) {
+        IbEngine engine = new IbEngine(repoRoot);
+        RunLog log = RunLog.start(repoRoot, "mvn");
+        try {
+            int code = CompileCommand.runCompile(engine, null, plModules,
+                    "maven", false, false, out, err, log);
+            log.exitCode(code);
+            return code;
+        } finally {
+            log.close();
+        }
+    }
+
+    /** -pl value from the passthrough args, or null when absent. */
+    static String plModulesOf(List<String> mvnArgs) {
+        for (int i = 0; i < mvnArgs.size(); i++) {
+            String arg = mvnArgs.get(i);
+            if (arg.equals("-pl") && i + 1 < mvnArgs.size())
+                return mvnArgs.get(i + 1);
+            if (arg.startsWith("-pl="))
+                return arg.substring(4);
+        }
+        return null;
+    }
+
+    static boolean hasSurefireGoal(List<String> mvnArgs) {
+        for (String arg : mvnArgs)
+            if (!arg.startsWith("-") && arg.startsWith("surefire:"))
+                return true;
+        return false;
+    }
+
     private MvnCommand() {
     }
 
@@ -70,6 +127,23 @@ public final class MvnCommand {
                 return Commands.EXIT_USAGE;
             }
             goals.add(arg);
+        }
+        if (hasSurefireGoal(mvnArgs)) {
+            java.io.StringWriter preOut = new java.io.StringWriter();
+            java.io.StringWriter preErr = new java.io.StringWriter();
+            int compileExit = preCompileFn.run(repoRoot, plModulesOf(mvnArgs),
+                    new PrintWriter(preOut, true), new PrintWriter(preErr, true));
+            for (String line : preOut.toString().split("\n"))
+                if (!line.isBlank())
+                    out.println(line);
+            String preErrText = preErr.toString().trim();
+            if (!preErrText.isEmpty())
+                err.println(preErrText);
+            if (compileExit != Commands.EXIT_OK) {
+                out.println("[nop-ib] surefire passthrough blocked: pre-compile failed (exit "
+                        + compileExit + ") — no dispatch on stale classes");
+                return compileExit;
+            }
         }
         StringBuilder buf = new StringBuilder();
         StringBuilder errBuf = new StringBuilder();
