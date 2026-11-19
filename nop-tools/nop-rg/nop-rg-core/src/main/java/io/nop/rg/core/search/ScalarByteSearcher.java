@@ -92,12 +92,8 @@ public class ScalarByteSearcher implements ByteSearchStrategy {
 
     @Override
     public long findFirstByte(MemorySegment seg, long offset, long limit, byte target) {
-        for (long i = offset; i < limit; i++) {
-            if (seg.get(JAVA_BYTE, i) == target) {
-                return i;
-            }
-        }
-        return -1;
+        // Wave 5 item 16：委托 SWAR 字长扫描（roadmap，2026-11-19）
+        return ByteScan.findFirstByte(seg, offset, limit, target);
     }
 
     /**
@@ -109,6 +105,29 @@ public class ScalarByteSearcher implements ByteSearchStrategy {
         for (int i = 0; i < pattern.length; i++) {
             int f = BYTE_FREQUENCY[pattern[i] & 0xFF];
             if (f <= bestFreq) {
+                bestFreq = f;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * 选第二锚点（Wave 5 item 18，ugrep 双定点思路）：在 first 锚点之外的其余位置中取
+     * 频率最低的字节；无可用位置（模式长度 &lt; 2）返回 -1。
+     */
+    public static int selectSecondAnchorIndex(byte[] pattern, int firstAnchorIdx) {
+        if (pattern.length < 2) {
+            return -1;
+        }
+        int best = -1;
+        int bestFreq = Integer.MAX_VALUE;
+        for (int i = 0; i < pattern.length; i++) {
+            if (i == firstAnchorIdx) {
+                continue;
+            }
+            int f = BYTE_FREQUENCY[pattern[i] & 0xFF];
+            if (f < bestFreq) {
                 bestFreq = f;
                 best = i;
             }

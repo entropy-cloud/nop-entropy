@@ -1,5 +1,7 @@
 package io.nop.rg.core.coordinator;
 
+import io.nop.rg.core.search.ByteScan;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
@@ -89,13 +91,8 @@ public final class LineCursor {
     }
 
     private long indexOf(byte target, long from, long to) {
-        // plan 2268 Phase 1：合并原 LF/非 LF 两个逐字符相同的死分支为单一循环
-        for (long i = from; i < to; i++) {
-            if (byteAt(i) == target) {
-                return i;
-            }
-        }
-        return -1;
+        // Wave 5 item 16：SWAR 字长扫描替代逐字节循环（roadmap，2026-11-19）
+        return ByteScan.findFirstByte(seg, from, to, target);
     }
 
     private byte byteAt(long pos) {

@@ -49,6 +49,22 @@ public class MappedFileReaderTest {
     }
 
     @Test
+    public void testAdviseSequentialSmoke() throws Exception {
+        // Wave 5 item 17（plan 2574 Phase A）：每次 open 都经过 adviseSequential；
+        // macOS 平台裁定（rg mmap.rs:73-79 同因）：madvise 仅 Linux 启用，本机 macOS
+        // 上该分支静默跳过——本用例钉住 best-effort advice 不改变 open/read/close 行为。
+        byte[] data = "advise smoke".getBytes(StandardCharsets.UTF_8);
+        Path file = write("advise.txt", data);
+        for (int i = 0; i < 3; i++) {
+            try (MappedFileReader reader = new MappedFileReader(file)) {
+                assertEquals(data.length, reader.getSize());
+                MemorySegment seg = reader.getSegment();
+                assertEquals(data[0], seg.get(ValueLayout.JAVA_BYTE, 0));
+            }
+        }
+    }
+
+    @Test
     public void testAccessAfterCloseThrows() throws Exception {
         Path file = write("closed.txt", "data".getBytes(StandardCharsets.UTF_8));
         MemorySegment seg;

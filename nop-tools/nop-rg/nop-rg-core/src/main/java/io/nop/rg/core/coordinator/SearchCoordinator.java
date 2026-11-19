@@ -3,6 +3,7 @@ package io.nop.rg.core.coordinator;
 import io.nop.rg.core.NopRgException;
 import io.nop.rg.core.glob.GlobMatcher;
 import io.nop.rg.core.io.ChunkedFileReader;
+import io.nop.rg.core.search.ByteScan;
 import io.nop.rg.core.io.MappedFileReader;
 import io.nop.rg.core.search.LiteralFinderProvider;
 import io.nop.rg.core.search.PreparedFinder;
@@ -324,12 +325,7 @@ public class SearchCoordinator {
     }
 
     private boolean isBinary(MemorySegment seg, long size) {
-        long limit = Math.min(size, BINARY_SNIFF_BYTES);
-        for (long i = 0; i < limit; i++) {
-            if (seg.get(ValueLayout.JAVA_BYTE, i) == 0) {
-                return true;
-            }
-        }
-        return false;
+        // Wave 5 item 16：NUL 探测走 SWAR 字长扫描（roadmap，2026-11-19）
+        return ByteScan.findFirstByte(seg, 0, Math.min(size, BINARY_SNIFF_BYTES), (byte) 0) >= 0;
     }
 }

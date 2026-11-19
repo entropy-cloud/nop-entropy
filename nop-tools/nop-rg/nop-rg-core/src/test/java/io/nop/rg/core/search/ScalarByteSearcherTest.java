@@ -119,6 +119,21 @@ public class ScalarByteSearcherTest {
     }
 
     @Test
+    public void testSelectSecondAnchorIndex() {
+        // 长度 < 2：无第二锚点
+        assertEquals(-1, ScalarByteSearcher.selectSecondAnchorIndex("a".getBytes(), 0));
+        // 频率更低的字节当选（'~' freq=1 < '9' freq=70 < 'a' freq=100）：
+        // "9~a" first=2（'a'）时第二锚取 '~'（下标 1）
+        assertEquals(1, ScalarByteSearcher.selectSecondAnchorIndex("9~a".getBytes(), 2));
+        // tie 规则：f < bestFreq 严格小于——同频取首个出现；"aab" first=2 时第二锚取 0
+        assertEquals(0, ScalarByteSearcher.selectSecondAnchorIndex("aab".getBytes(), 2));
+        // 全同字节："aaa"，first=2 → 第二锚取 0
+        assertEquals(0, ScalarByteSearcher.selectSecondAnchorIndex("aaa".getBytes(), 2));
+        // 跳过 first anchor："~9a" first=1（'9'）时在 '~'(0) 与 'a'(2) 中取 '~'
+        assertEquals(0, ScalarByteSearcher.selectSecondAnchorIndex("~9a".getBytes(), 1));
+    }
+
+    @Test
     public void testSkipTable() {
         // 模式 "abcab"，锚点 'c'（频率 1，唯一）位于下标 2
         long[] skip = ScalarByteSearcher.buildSkipTable("abcab".getBytes(), 2);

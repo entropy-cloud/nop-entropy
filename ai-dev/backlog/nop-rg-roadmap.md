@@ -44,6 +44,19 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 15. CLI --vector switch integration: `done`
 - ★ **Milestone: Vector加速可用** (unlocks when 14 + 15 done): `done`
 
+### Wave 5: Native-parity optimization (2026-11-19, study: ~/sources ripgrep/fd/ugrep)
+
+Evidence ledger: ripgrep `crates/searcher/src/searcher/{core.rs,mmap.rs,line_buffer.rs}`、`crates/ignore/src/walk.rs`、`crates/globset/src/lib.rs`；ugrep `lib/pattern.cpp:415-560`、`lib/matcher.cpp:874-1180`、`src/mmap.hpp`；fd `src/walk.rs`. Current baseline (plan 2276, quiet env): 512MB Coord/Rg ≈ 51.3%, 64MB ≈ 82.3%.
+
+- 16. SWAR word-at-a-time byte scan (LF/NUL/findFirstByte): `todo`
+- 17. madvise(MADV_SEQUENTIAL) on mapped segments (FFM downcall, silent fallback): `todo`
+- 18. Two-pin vector prefilter (fixed-distance dual rare-byte compare, ugrep-style): `todo`
+- 19. Candidate-line two-tier regex path (literal prefilter feeding regex engine, rg Confirmed/Candidate): `todo`
+- 20. GlobSet strategy classification (extension map → literal → regex remainder): `todo`
+- 21. macOS non-mmap read path evaluation + walker stat reduction (single readdir pass, cached metadata): `todo`
+- 22. Per-wave 512MB/64MB throughput-ratio re-baseline (RgCompareBenchmark, quiet env protocol): `todo`
+- ★ **Milestone: 吞吐比逼近 rg** (unlocks when 16..21 done and re-baselined): `todo`
+
 ## Status values
 
 | Status | Meaning |

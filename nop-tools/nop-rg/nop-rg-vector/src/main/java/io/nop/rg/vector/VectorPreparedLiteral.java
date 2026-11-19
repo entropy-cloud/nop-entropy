@@ -27,6 +27,9 @@ final class VectorPreparedLiteral implements PreparedFinder {
     private final int anchorIdx;
     private final byte anchorByte;
     private final byte anchorByte2; // ignoreCase 时的另一大小写变体（无差异时等于 anchorByte）
+    private final int pinIdx2;      // 第二锚点下标（<0 = 不可用：模式太短或全部字节相同）
+    private final int pinDelta;     // 两锚点距离（pinIdx2 - anchorIdx）
+    private final byte pinByte2;    // 第二锚点字节
     private final long[] skip;
     private final byte[] foldedPattern;
     private final boolean ignoreCase;
@@ -49,6 +52,11 @@ final class VectorPreparedLiteral implements PreparedFinder {
         this.anchorIdx = ScalarByteSearcher.selectAnchorIndex(foldedPattern);
         this.anchorByte = foldedPattern[anchorIdx];
         this.anchorByte2 = ignoreCase ? flipCase(anchorByte) : anchorByte;
+        // Wave 5 item 18（roadmap，2026-11-19，ugrep pattern.cpp:415-560 思路）：
+        // 选第二罕见字节作定点，两锚点同向量窗口内定距双比较，显著降低候选率
+        this.pinIdx2 = ScalarByteSearcher.selectSecondAnchorIndex(foldedPattern, anchorIdx);
+        this.pinDelta = pinIdx2 >= 0 ? pinIdx2 - anchorIdx : -1;
+        this.pinByte2 = pinIdx2 >= 0 ? foldedPattern[pinIdx2] : anchorByte;
         this.skip = new long[256];
         Arrays.fill(skip, anchorIdx + 1L);
         for (int p = 0; p < anchorIdx; p++) {
@@ -66,9 +74,43 @@ final class VectorPreparedLiteral implements PreparedFinder {
         // 向量化锚点扫描上界：锚点窗口 [s + anchorIdx] 需落在 [offset, limit) 内，
         // 且向量加载不得越过 limit - 1（lastValid = limit - 1 为最后一个可读字节）
         long vectorEnd = limit - SPECIES.length();
+        boolean dualPin = pinDelta >= 1 && pinDelta < SPECIES.length();
+        long dualEnd = vectorEnd - (dualPin ? pinDelta : 0);
         long s = offset;
         while (s < firstInvalid) {
             long probe = s + anchorIdx;
+            if (dualPin && probe <= dualEnd) {
+                // 双锚点定距比较（ugrep 思路）：两掩码 AND 后命中才产生候选
+                ByteVector word = ByteVector.fromMemorySegment(SPECIES, seg, probe, ByteOrder.nativeOrder());
+                ByteVector word2 = ByteVector.fromMemorySegment(SPECIES, seg, probe + pinDelta, ByteOrder.nativeOrder());
+                VectorMask<Byte> mask = word.compare(VectorOperators.EQ, anchorByte);
+                if (anchorByte2 != anchorByte) {
+                    mask = mask.or(word.compare(VectorOperators.EQ, anchorByte2));
+                }
+                VectorMask<Byte> mask2 = word2.compare(VectorOperators.EQ, pinByte2);
+                if (ignoreCase) {
+                    byte flip = flipCase(pinByte2);
+                    if (flip != pinByte2) {
+                        mask2 = mask2.or(word2.compare(VectorOperators.EQ, flip));
+                    }
+                }
+                mask = mask.and(mask2);
+                if (mask.anyTrue()) {
+                    int lane = mask.firstTrue();
+                    long candidate = probe + lane - anchorIdx;
+                    if (candidate >= s && candidate < firstInvalid && matchesAt(seg, candidate)) {
+                        return candidate;
+                    }
+                    // 候选无效：用坏字符表保守推进（从锚点位置起算，语义与标量一致）
+                    byte c = readByte(seg, probe + lane);
+                    long step = skip[c & 0xFF];
+                    s = Math.max(s + 1, probe + lane - anchorIdx + step);
+                    continue;
+                }
+                // 本向量窗口无双锚点同时命中：整窗口跳过
+                s = probe + SPECIES.length() - anchorIdx;
+                continue;
+            }
             if (probe <= vectorEnd) {
                 ByteVector word = ByteVector.fromMemorySegment(SPECIES, seg, probe, ByteOrder.nativeOrder());
                 VectorMask<Byte> mask = word.compare(VectorOperators.EQ, anchorByte);
