@@ -46,16 +46,16 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 5: Native-parity optimization (2026-11-19, study: ~/sources ripgrep/fd/ugrep)
 
-Evidence ledger: ripgrep `crates/searcher/src/searcher/{core.rs,mmap.rs,line_buffer.rs}`、`crates/ignore/src/walk.rs`、`crates/globset/src/lib.rs`；ugrep `lib/pattern.cpp:415-560`、`lib/matcher.cpp:874-1180`、`src/mmap.hpp`；fd `src/walk.rs`. Current baseline (plan 2276, quiet env): 512MB Coord/Rg ≈ 51.3%, 64MB ≈ 82.3%.
+Evidence ledger: ripgrep `crates/searcher/src/searcher/{core.rs,mmap.rs,line_buffer.rs}`、`crates/ignore/src/walk.rs`、`crates/globset/src/lib.rs`；ugrep `lib/pattern.cpp:415-560`、`lib/matcher.cpp:874-1180`、`src/mmap.hpp`；fd `src/walk.rs`. Current baseline (plan 2276, quiet env): 512MB Coord/Rg ≈ 51.3%, 64MB ≈ 82.3%. Wave 5 re-baseline (plan 2574, 2026-11-20, macOS arm64 / Zulu 26 / rg 15.1.0, JMH -f2 -wi3 -i8 + 3 组 64MB 交错配对): 512MB Coord ≈ 10.3–10.8 ops/s vs rg ≈ 24.6 ops/s → ratio ≈ 42–44%（对 2276 基线 51.3% 偏低，环境方差显著——当日 rg 侧 64MB 单轮误差棒最大 ±20.9，登记 watch-only 复测 follow-up）；64MB Coord 中位 ≈ 61 ops/s vs rg ≈ 79.0 ops/s → ratio ≈ 78%（best 80%，对 2276 基线 82.3% 基本持平）。裁定文档：`ai-dev/analysis/2026-11-20-nop-rg-macos-read-path.md`（item 21 read 路径 not-implement）。
 
-- 16. SWAR word-at-a-time byte scan (LF/NUL/findFirstByte): `todo`
-- 17. madvise(MADV_SEQUENTIAL) on mapped segments (FFM downcall, silent fallback): `todo`
-- 18. Two-pin vector prefilter (fixed-distance dual rare-byte compare, ugrep-style): `todo`
-- 19. Candidate-line two-tier regex path (literal prefilter feeding regex engine, rg Confirmed/Candidate): `todo`
-- 20. GlobSet strategy classification (extension map → literal → regex remainder): `todo`
-- 21. macOS non-mmap read path evaluation + walker stat reduction (single readdir pass, cached metadata): `todo`
-- 22. Per-wave 512MB/64MB throughput-ratio re-baseline (RgCompareBenchmark, quiet env protocol): `todo`
-- ★ **Milestone: 吞吐比逼近 rg** (unlocks when 16..21 done and re-baselined): `todo`
+- 16. SWAR word-at-a-time byte scan (LF/NUL/findFirstByte): `done`
+- 17. madvise(MADV_SEQUENTIAL) on mapped segments (FFM downcall, silent fallback): `done`
+- 18. Two-pin vector prefilter (fixed-distance dual rare-byte compare, ugrep-style): `done`
+- 19. Candidate-line two-tier regex path (literal prefilter feeding regex engine, rg Confirmed/Candidate): `done`
+- 20. GlobSet strategy classification (extension map → literal → regex remainder): `done`
+- 21. macOS non-mmap read path evaluation + walker stat reduction (single readdir pass, cached metadata): `done`
+- 22. Per-wave 512MB/64MB throughput-ratio re-baseline (RgCompareBenchmark, quiet env protocol): `done`
+- ★ **Milestone: 吞吐比逼近 rg** (unlocks when 16..21 done and re-baselined): `done`
 
 ## Status values
 

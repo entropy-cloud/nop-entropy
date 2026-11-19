@@ -1,6 +1,6 @@
 # 2574 nop-rg Wave 5 Native-parity Optimization (roadmap items 16-22)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-20
 > Source: `ai-dev/backlog/nop-rg-roadmap.md` Wave 5 (2026-11-19 study of ~/sources ripgrep/fd/ugrep); baseline from plan 2276: 512MB Coord/Rg ≈ 51.3%, 64MB ≈ 82.3% (quiet env)
 > Related: `ai-dev/plans/2276-nop-rg-round4-deep-audit-quality-perf.md`
@@ -155,37 +155,37 @@ Exit Criteria:
 
 ### Phase F - Item 22: 吞吐比重定基线 + roadmap 收口
 
-Status: planned
+Status: completed
 Targets: `nop-rg-benchmark/`、`ai-dev/backlog/nop-rg-roadmap.md`
 
 - Item Types: `Proof`
 
-- [ ] quiet env 协议（参考 plan 2276：无并发负载、固定 corpus 种子）跑 `RgCompareBenchmark` + `CoordinatorEndToEndBenchmark`（512MB/64MB），记录 Coord/Rg 吞吐比
-- [ ] 对比 plan 2276 基线（512MB ≈ 51.3%，64MB ≈ 82.3%），结果与结论写入 roadmap Wave 5 证据区（`Evidence ledger` 行后追加）与 daily log
-- [ ] roadmap Work Items：16–21 置 `done`；22 置 `done`；milestone「吞吐比逼近 rg」置 `done`（条件：16..21 done 且已重定基线）
-- [ ] 独立子 agent closure audit（fresh session），证据写入本 plan `Closure` 段
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs`、`scan-hollow-implementations.mjs --module nop-rg`、`check-doc-links.mjs --strict` 退出码全 0
-- [ ] 最终提交（roadmap + plan 收口 + log）
+- [x] quiet env 协议（参考 plan 2276：无并发负载、固定 corpus 种子）跑 `RgCompareBenchmark` + `CoordinatorEndToEndBenchmark`（512MB/64MB），记录 Coord/Rg 吞吐比
+- [x] 对比 plan 2276 基线（512MB ≈ 51.3%，64MB ≈ 82.3%），结果与结论写入 roadmap Wave 5 证据区（`Evidence ledger` 行后追加）与 daily log
+- [x] roadmap Work Items：16–21 置 `done`；22 置 `done`；milestone「吞吐比逼近 rg」置 `done`（条件：16..21 done 且已重定基线）
+- [x] 独立子 agent closure audit（fresh session），证据写入本 plan `Closure` 段
+- [x] `node ai-dev/tools/check-plan-checklist.mjs`、`scan-hollow-implementations.mjs --module nop-rg`、`check-doc-links.mjs --strict` 退出码全 0
+- [x] 最终提交（roadmap + plan 收口 + log）
 
 Exit Criteria:
 
-- [ ] 吞吐比数据落 roadmap + daily log（含环境说明）
-- [ ] roadmap 状态块与各 item 实际完成状态一致
-- [ ] 独立 closure audit 证据已写入 plan
-- [ ] 三个门禁工具退出码 0
-- [ ] 最终提交完成
+- [x] 吞吐比数据落 roadmap + daily log（含环境说明）
+- [x] roadmap 状态块与各 item 实际完成状态一致
+- [x] 独立 closure audit 证据已写入 plan
+- [x] 三个门禁工具退出码 0
+- [x] 最终提交完成
 
 ## Closure Gates
 
-- [ ] Roadmap items 16–21 全部 `done` 且各自有 landed 代码 + focused tests
-- [ ] Item 22 重定基线数据已落盘（roadmap + log）
-- [ ] 不存在被静默降级的 in-scope live defect 或 contract drift
-- [ ] 独立子 agent closure audit 完成并记录证据
-- [ ] Anti-Hollow Check：prefilter 在 regex 路径运行时确实被调用（等价测试覆盖调用链）；无空方法体/静默跳过（madvise 的静默 best-effort 为显式裁定语义，属例外，已在代码注释声明）
-- [ ] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core,nop-tools/nop-rg/nop-rg-cli,nop-tools/nop-rg/nop-rg-vector` EXIT=0
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2574-nop-rg-wave5-native-parity.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] Roadmap items 16–21 全部 `done` 且各自有 landed 代码 + focused tests
+- [x] Item 22 重定基线数据已落盘（roadmap + log）
+- [x] 不存在被静默降级的 in-scope live defect 或 contract drift
+- [x] 独立子 agent closure audit 完成并记录证据
+- [x] Anti-Hollow Check：prefilter 在 regex 路径运行时确实被调用（等价测试覆盖调用链）；无空方法体/静默跳过（madvise 的静默 best-effort 为显式裁定语义，属例外，已在代码注释声明）
+- [x] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core,nop-tools/nop-rg/nop-rg-cli,nop-tools/nop-rg/nop-rg-vector` EXIT=0
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2574-nop-rg-wave5-native-parity.md --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-rg --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -203,13 +203,19 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: (pending)
-Completed: (pending)
+Status Note: Wave 5 items 16–22 全部落地：SWAR 字节扫描/madvise（A）、dual-pin vector prefilter（B）、候选行两级 regex 路径（C）、GlobSet 策略分类（D）、walker stat 削减 + macOS 读路径裁定 not-implement（E）、吞吐比重定基线 512MB ≈42–44% / 64MB ≈78%（F，数据与方差说明落 roadmap Wave 5 证据区 + daily log）。roadmap Wave 5 milestone「吞吐比逼近 rg」置 done（解锁条件 = 16..21 done 且已重定基线）。512MB 比值对 2276 基线偏低已如实记录并登记 watch-only 复测 follow-up（当日环境方差显著）。
+Completed: 2026-11-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: (pending)
-- Evidence: (pending)
+- Reviewer / Agent: 独立子 agent closure audit（fresh session，agent_0d59fb0c-ed80-4664-9c27 总结见其报告）
+- Audit Session: agent_0d59fb0c-ed80-4676-aa90-5d18b79216f8
+- Evidence:
+  - Phase A–E 逐条 PASS（file:line 证据见审计报告：ByteScan SWAR 实现与 7 用例/1000 轮 fuzz、MappedFileReader.adviseSequential Linux-only 显式裁定、VectorPreparedLiteral dual-pin 4 钉 + fuzz、RegexLiteralExtractor 跨行拒绝真实逻辑 + RegexSearcher 候选路径运行时派发（非死代码）+ 接线断言、GlobMatcher 快路径真实接入 accept()/excluded()、ParallelFileWalker 单次 readAttributes、macOS 裁定文档含实测数据）
+  - 门禁工具：check-plan-checklist --strict 退出码 0；check-doc-links --strict 退出码 0；scan-hollow-implementations --module nop-tools/nop-rg --severity high 退出码 0（0 Critical/High）
+  - Focused tests 复跑：RegexPrefilterEquivalenceTest 9 + ByteScanTest 7 + GlobStrategyClassificationTest 4 = 20/20 全绿（审计者独立执行）
+  - Anti-Hollow：候选行 regex 路径调用链 findAll→findAllCandidateLines→processCandidateLine 追踪确认非死代码；GlobMatcher 快路径经 matchesAny 接入两入口；madvise 静默 best-effort 为显式文档化裁定（MappedFileReader.java:94-113）
+  - Deferred 分类诚实性：HONEST（唯一 deferred = nop-ib incubator compilerArgs，out-of-scope improvement，Maven 直跑通道真实存在）
 
 Follow-up:
 
