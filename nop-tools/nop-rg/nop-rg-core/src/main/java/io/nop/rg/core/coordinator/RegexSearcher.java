@@ -1,5 +1,8 @@
 package io.nop.rg.core.coordinator;
 
+import io.nop.rg.core.search.ByteScan;
+import io.nop.rg.core.search.PreparedLiteral;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
@@ -20,10 +23,23 @@ import java.util.regex.Pattern;
 public class RegexSearcher {
 
     private final Pattern pattern;
+    // Wave 5 item 19（plan 2574 Phase C）：候选行两级路径的必须字面量（null = 回退整文件路径）
+    private final PreparedLiteral requiredLiteral;
+
+    // 测试接缝（同包可见）：钉住路径选择（接线验证）
+    int fullScanCount;
+    int candidateScanCount;
 
     public RegexSearcher(String regex, boolean ignoreCase) {
         int flags = ignoreCase ? Pattern.CASE_INSENSITIVE : 0;
         this.pattern = Pattern.compile(regex, flags);
+        String literal = null;
+        if (!RegexLiteralExtractor.mayMatchAcrossLines(regex)) {
+            literal = RegexLiteralExtractor.extract(regex);
+        }
+        this.requiredLiteral = literal != null
+                ? PreparedLiteral.compile(literal.getBytes(StandardCharsets.UTF_8), ignoreCase)
+                : null;
     }
 
     /**
@@ -32,6 +48,18 @@ public class RegexSearcher {
      * @return 按起始偏移升序的字节域命中区间
      */
     public List<ByteSpan> findAll(MemorySegment seg, long size) {
+        if (requiredLiteral == null) {
+            fullScanCount++;
+            return findAllWholeFile(seg, size);
+        }
+        candidateScanCount++;
+        return findAllCandidateLines(seg, size);
+    }
+
+    /**
+     * 整文件解码路径（原始语义）。
+     */
+    private List<ByteSpan> findAllWholeFile(MemorySegment seg, long size) {
         String content = decode(seg, size);
         Utf8OffsetMap offsets = new Utf8OffsetMap(content);
         Matcher matcher = pattern.matcher(content);
@@ -42,6 +70,54 @@ public class RegexSearcher {
             spans.add(new ByteSpan(byteStart, byteEnd));
         }
         return spans;
+    }
+
+    /**
+     * 候选行两级路径（Wave 5 item 19，rg Confirmed/Candidate 思路）：先用必须字面量在映射段上
+     * 按行扫描出候选行，仅对候选行解码并跑 regex 确认。跨行构造已在构造期拒绝
+     * （{@link RegexLiteralExtractor}），匹配必落在单行内，逐行确认与整文件路径语义一致。
+     */
+    private List<ByteSpan> findAllCandidateLines(MemorySegment seg, long size) {
+        List<ByteSpan> spans = new ArrayList<>();
+        // 行游标：命中按字节升序，行也按升序处理；lineStart 为当前行起点（上一行 lineEnd+1）
+        long lineStart = 0;
+        long lineEnd = -1;
+        long cursor = 0;
+        while (true) {
+            long pos = requiredLiteral.find(seg, cursor, size);
+            if (pos < 0) {
+                break;
+            }
+            if (pos < lineEnd) {
+                // 同一行的后续命中：该行已确认，跳过
+                cursor = pos + 1;
+                continue;
+            }
+            long nl = ByteScan.findFirstByte(seg, pos, size, (byte) '\n');
+            lineEnd = nl < 0 ? size : nl;
+            processCandidateLine(seg, lineStart, lineEnd, spans);
+            cursor = pos + 1;
+            lineStart = lineEnd + 1;
+        }
+        return spans;
+    }
+
+    /**
+     * 单候选行解码 + regex 确认；命中区间经行内 UTF-16→字节映射平移回文件字节域。
+     */
+    private void processCandidateLine(MemorySegment seg, long lineStart, long lineEnd, List<ByteSpan> spans) {
+        if (lineEnd <= lineStart) {
+            return;
+        }
+        int len = (int) (lineEnd - lineStart);
+        byte[] bytes = seg.asSlice(lineStart, len).toArray(ValueLayout.JAVA_BYTE);
+        String line = new String(bytes, StandardCharsets.UTF_8);
+        Utf8OffsetMap offsets = new Utf8OffsetMap(line);
+        Matcher matcher = pattern.matcher(line);
+        while (matcher.find()) {
+            spans.add(new ByteSpan(lineStart + offsets.byteOffsetOf(matcher.start()),
+                    lineStart + offsets.byteOffsetOf(matcher.end())));
+        }
     }
 
     private String decode(MemorySegment seg, long size) {

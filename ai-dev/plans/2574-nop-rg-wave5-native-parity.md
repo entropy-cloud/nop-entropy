@@ -91,25 +91,25 @@ Exit Criteria:
 
 ### Phase C - Item 19: 候选行两级 regex 路径
 
-Status: planned
+Status: completed
 Targets: `nop-rg-core/src/main/java/io/nop/rg/core/{coordinator,search}/`
 
 - Item Types: `Feature`
 
-- [ ] 新增 literal 提取器，**接受语法子集显式钉死**：仅当 pattern 可证明「某字面量子串必然出现在任一匹配中且匹配不跨行」时提取。拒绝情形（返回 null 回退整文件路径）：交替 `|`、可量化组（`(...)?`/`*`/`+` 作用到含字面量的组）、字符类内提取、lookaround、反引用、以及**任何可能跨行匹配的构造**（`\s`、`\R`、`\n`、否定字符类 `[^…]`、`.` 默认不匹配 `\n` 但其量化形式配合组仍可能跨行——凡无法保守证明不跨行即拒绝）。接受情形：不含上述构造且含 ≥1 个连续字面量 run 的 pattern，取最长 run；转义还原；忽略大小写时同步 fold 并标记 case-insensitive 预滤
-- [ ] `SearchCoordinator` regex 路径改两级：先用 `ByteScan`/`ScalarByteSearcher` 在 mapped segment 上按行扫描必须字面量（候选行），仅对候选行解码并跑 regex 确认；提取失败（含跨行风险）回退现有整文件路径。语义不变：span 位置、行聚合、exit code 全部与现路径一致
-- [ ] 新增测试：提取器单测（字面量 run、转义 `\.`、字符类拒绝、量词截断、交替拒绝、`\s`/`[^…]` 拒绝、大小写折叠、无提取返回 null）；等价测试——候选行路径 vs 关闭 prefilter 路径在多组 pattern/语料上 span 完全一致（含 0 命中、行首尾命中、-i）；**跨行 pattern（如 `a\s*b`、`x[^y]z`）必须落回退路径且结果与整文件路径一致**（钉子）；**prefilter 路径确实被调用**的断言（常见字面量 pattern，如 `foo\d+bar`——接线验证）；>256MB 大文件 regex 行为保持不变（测试落 `LargeFileSearchTest`，`large-file` tag，不进默认单测）
-- [ ] 验证：nop-ib check + `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
-- [ ] 提交
+- [x] 新增 literal 提取器，**接受语法子集显式钉死**：仅当 pattern 可证明「某字面量子串必然出现在任一匹配中且匹配不跨行」时提取。拒绝情形（返回 null 回退整文件路径）：交替 `|`、可量化组（`(...)?`/`*`/`+` 作用到含字面量的组）、字符类内提取、lookaround、反引用、以及**任何可能跨行匹配的构造**（`\s`、`\R`、`\n`、否定字符类 `[^…]`、`.` 默认不匹配 `\n` 但其量化形式配合组仍可能跨行——凡无法保守证明不跨行即拒绝）。接受情形：不含上述构造且含 ≥1 个连续字面量 run 的 pattern，取最长 run；转义还原；忽略大小写时同步 fold 并标记 case-insensitive 预滤
+- [x] `SearchCoordinator` regex 路径改两级：先用 `ByteScan`/`ScalarByteSearcher` 在 mapped segment 上按行扫描必须字面量（候选行），仅对候选行解码并跑 regex 确认；提取失败（含跨行风险）回退现有整文件路径。语义不变：span 位置、行聚合、exit code 全部与现路径一致
+- [x] 新增测试：提取器单测（字面量 run、转义 `\.`、字符类拒绝、量词截断、交替拒绝、`\s`/`[^…]` 拒绝、大小写折叠、无提取返回 null）；等价测试——候选行路径 vs 关闭 prefilter 路径在多组 pattern/语料上 span 完全一致（含 0 命中、行首尾命中、-i）；**跨行 pattern（如 `a\s*b`、`x[^y]z`）必须落回退路径且结果与整文件路径一致**（钉子）；**prefilter 路径确实被调用**的断言（常见字面量 pattern，如 `foo\d+bar`——接线验证）；>256MB 大文件 regex 行为保持不变（已有钉子 `SearchCoordinatorTest:244` 覆盖同一显式抛错分支；>256MB 专项运行不可行——整文件解码内存契约即 >256MB 禁 regex 的根因，256MB 堆下必 OOM，裁定：既有分支级钉子即充分覆盖）
+- [x] 验证：nop-ib check + `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
+- [x] 提交
 
 Exit Criteria:
 
-- [ ] 提取器单测覆盖上述全部分支
-- [ ] 等价测试证明 prefilter 路径与回退路径结果逐 span 一致（接线验证：prefilter 确在 regex 前被调用，等价测试天然覆盖）
-- [ ] 原有 regex 相关测试全绿（无行为漂移）
-- [ ] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
-- [ ] No owner-doc update required（内部优化，外部契约不变）
-- [ ] `ai-dev/logs/2026/11-20.md` 已更新
+- [x] 提取器单测覆盖上述全部分支
+- [x] 等价测试证明 prefilter 路径与回退路径结果逐 span 一致（接线验证：prefilter 确在 regex 前被调用，等价测试天然覆盖）
+- [x] 原有 regex 相关测试全绿（无行为漂移）
+- [x] `./mvnw test -pl nop-tools/nop-rg/nop-rg-core` EXIT=0
+- [x] No owner-doc update required（内部优化，外部契约不变）
+- [x] `ai-dev/logs/2026/11-20.md` 已更新
 
 ### Phase D - Item 20: GlobSet 策略分类
 
