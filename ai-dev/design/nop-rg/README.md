@@ -10,6 +10,7 @@ nop-rg 是 Nop 平台的高性能文件搜索工具，提供内容搜索（grep�
 
 1. `00-vision.md` — Vision 层：产品定位、成功标准、非目标
 2. `01-architecture-baseline.md` — Architecture Baseline 层：分层、模块边界、核心契约、降级策略
+3. `02-globset-parity-design.md` — Glob 性能对齐 globset 的设计决策与语义保真约束
 
 ## 与 nop-search 的边界
 

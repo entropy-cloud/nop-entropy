@@ -57,6 +57,8 @@ Evidence ledger: ripgrep `crates/searcher/src/searcher/{core.rs,mmap.rs,line_buf
 - 22. Per-wave 512MB/64MB throughput-ratio re-baseline (RgCompareBenchmark, quiet env protocol): `done`
 - ★ **Milestone: 吞吐比逼近 rg** (unlocks when 16..21 done and re-baselined): `done`
 
+> Glob 侧的对标 globset 优化（实测 singleGlob 23.3k/s、globSet 1.65k/s，瓶颈为热路径重复 splitPath/substring 分配）已拆出独立 roadmap：`ai-dev/backlog/nop-rg-globset-parity-roadmap.md`（设计：`ai-dev/design/nop-rg/02-globset-parity-design.md`）。
+
 ## Status values
 
 | Status | Meaning |
