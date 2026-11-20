@@ -119,8 +119,49 @@ public final class IncrementalCompileExecutor {
         return new ArrayList<>(sources);
     }
 
+    /**
+     * 主/测试源根分区（plan 2575 follow-up）。repo 相对路径以 {@code /src/test/} 判定测试源；
+     * 其余（含 {@code /src/main/} 与非标准布局）视为主源。供 compileModule 分两路编译——
+     * 各路以自己的输出目录与 classpath 编译，杜绝主源写入 test-classes 的影子类。
+     */
+    static SourceSplit splitBySourceRoot(List<String> repoRelSources) {
+        List<String> main = new ArrayList<>();
+        List<String> test = new ArrayList<>();
+        for (String source : repoRelSources) {
+            if (source != null && source.contains("/src/test/"))
+                test.add(source);
+            else
+                main.add(source);
+        }
+        return new SourceSplit(List.copyOf(main), List.copyOf(test));
+    }
+
+    /** 主/测试源分区结果（不可变；调用方按 main → test 顺序消费）。 */
+    record SourceSplit(List<String> mainSources, List<String> testSources) {
+        boolean hasBoth() {
+            return !mainSources.isEmpty() && !testSources.isEmpty();
+        }
+
+        boolean hasTest() {
+            return !testSources.isEmpty();
+        }
+    }
+
     private void compileModule(IbModule module, List<String> moduleRelSources,
                                CompileOutcome outcome, Map<String, Set<String>> abiChangedByModule) {
+        // 主/测试源分离（plan 2575 follow-up，影子类缺陷修复）：混合集合曾以
+        // anyMatch("/src/test/") 整集合选择 testCompile=true——同一变更同时改主源+测试源时
+        // （最常见形态），主源被以 -d target/test-classes 编译出影子类；下游 ABI 扩散同样
+        // 会产出混合集合（模块索引含 main+test 源）。测试 fork 的 classpath 以 test-classes
+        // 优先，影子类遮蔽 target/classes 的正确字节码（实测造成"改了不生效"与探针假绿）。
+        SourceSplit split = splitBySourceRoot(moduleRelSources);
+        if (split.hasBoth()) {
+            // 先主后测试：测试编译的 classpath（testClasspath 含主输出目录）依赖主产物新鲜
+            compileModule(module, split.mainSources(), outcome, abiChangedByModule);
+            compileModule(module, split.testSources(), outcome, abiChangedByModule);
+            return;
+        }
+        boolean testCompile = split.hasTest();
         Path basedir = model.resolve(module.getBasedir()).toPath();
         List<File> files = new ArrayList<>();
         Set<String> deletedSources = new HashSet<>();
@@ -138,7 +179,6 @@ public final class IncrementalCompileExecutor {
             return;
 
         ClasspathMaterializer materializer = new ClasspathMaterializer(model);
-        boolean testCompile = moduleRelSources.stream().anyMatch(p -> p.contains("/src/test/"));
         ClasspathMaterializer.Materialized cp = testCompile
                 ? materializer.testClasspath(module)
                 : materializer.mainClasspath(module);
