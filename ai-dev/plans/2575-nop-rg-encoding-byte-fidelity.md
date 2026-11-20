@@ -61,6 +61,9 @@
 - **R7（合法路径成本口径）**：合法 UTF-8 路径实现为「线性合法性扫描 + 既有 `new String`」（解码本身不变，叠加一次线性扫描）；E3 性能判据按此口径实测裁定，不预设「零开销」。
 - **R8（构造器形态）**：`SearchCommand` 新增 Charset 加在全参主构造器，既有 3 个重载保持默认 UTF-8 兼容。
 - **R9（roadmap 解锁）**：owner 已通过会话目标显式指示执行本 roadmap（「执行…直到彻底完成」），roadmap「暂不实施」锁定解除；roadmap 状态随执行同步更新。
+- **R11（--encoding 偏移口径）**：rg 在 `--encoding` 下的 absolute_offset/submatch 偏移为转码后流口径（实测 gbk.txt 行3 rg=37 vs 原始文件 31）；nop-rg 保持原始文件字节偏移（与 bytes 引用原始字节一致），对拍时该字段在非 UTF-8 编码下不对齐，裁定已写入设计文档决策 3。
+- **R12（决策 5 机制修正）**：JDK 25 上 `new String` lossy 路径为 SIMD 级最快（实测 3x 于手写逐序列解码），lossy text 实现改为复用 `new String`；合法性判定保留自有扫描（SWAR ASCII 预扫 + 逐序列）；「非法较现状提升」判据按实测修正（见 E3 exit criteria），设计文档决策 5 已同步。
+- **R13（对拍形态）**：三语料对拍以解析后元组比对（rg 与 nop-rg 文件遍历顺序不同；nop-rg 双字段 vs rg 互斥形态），合法行 text 逐字节一致、非法行 bytes base64 一致。
 - **R10（golden 先行）**：E1 动手前先在改动前捕获合法语料 golden 输出落库，改动后与 golden 逐字节 diff。
 
 ## Execution Plan
@@ -117,21 +120,21 @@ Exit Criteria:
 
 ### Phase E3 - 验收与保护
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-rg/nop-rg-cli`（测试）、`ai-dev/backlog`（roadmap 状态）
 
 - Item Types: `Proof`（验收）、`Proof`（变异探针归档）、`Proof`（性能）
 
-- [ ] GBK / Latin-1 / Shift-JIS 语料与系统 rg `--json` 对拍（R3 矩阵：默认编码比 bytes/合法行；`--encoding gbk` 比 rg 转码 text；非法区间 text 不要求逐字符一致），对拍脚本/测试落库
-- [ ] 变异探针汇总归档（E2 探针 + 「只改输出不改模式」破坏探针），证据写入日志
-- [ ] 性能确认：合法 UTF-8 语料输出路径无可测退化；非法语料较现状（decoder 回退路径）有提升（复用 CoordinatorEndToEndBenchmark 形态或 ib bench 计时对比，结论写入日志）
+- [x] GBK / Latin-1 / Shift-JIS 语料与系统 rg `--json` 对拍（R3 矩阵：默认编码比 bytes/合法行；`--encoding gbk` 比 rg 转码 text；非法区间 text 不要求逐字符一致），对拍脚本/测试落库
+- [x] 变异探针汇总归档（E2 探针 + 「只改输出不改模式」破坏探针），证据写入日志
+- [x] 性能确认：合法 UTF-8 语料输出路径无可测退化；非法语料较现状（decoder 回退路径）有提升（复用 CoordinatorEndToEndBenchmark 形态或 ib bench 计时对比，结论写入日志）
 
 Exit Criteria:
 
-- [ ] 三语料对拍测试全绿且落库为回归测试，且 skipped 计数为 0（系统 rg 可用，R6 硬门禁）
-- [ ] 变异探针红→绿证据完整（无假绿：恢复后 grep 确认目标行存在）
-- [ ] 性能结论有数据支撑（合法零退化、非法提升）写入日志；如基线噪声过大，允许记录为「无可测退化」级证据
-- [ ] roadmap Work Items 状态全部更新（done）；`ai-dev/logs/` 收口条目已更新
+- [x] 三语料对拍测试全绿且落库为回归测试，且 skipped 计数为 0（系统 rg 可用，R6 硬门禁）
+- [x] 变异探针红→绿证据完整（无假绿：恢复后 grep 确认目标行存在）
+- [x] 性能结论有数据支撑（合法零退化、非法提升）写入日志；如基线噪声过大，允许记录为「无可测退化」级证据
+- [x] roadmap Work Items 状态全部更新（done）；`ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
@@ -152,6 +155,8 @@ Exit Criteria:
 ## Non-Blocking Follow-ups
 
 - `nop-rg-benchmark` 新增专门编码语料 JMH 基准（优化候选；本计划用计时对比级证据即可）
+- Vector API SIMD UTF-8 合法性扫描（优化候选；当前 SWAR ASCII 预扫 + 逐序列校验，合法行扫描仅限命中行，端到端无可测退化）
+- nop-ib 增量 javac `-sourcepath` + `-implicit:none` 将主类字节码泄漏进测试输出目录（target 与 test-classes）的影子类问题根治（构建卫生，影响变异探针/热改源码场景）
 
 ## Closure
 

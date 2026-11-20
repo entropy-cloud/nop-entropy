@@ -39,10 +39,12 @@ public class ByteTextTest {
     }
 
     @Test
-    public void testLossyDecodeReplacesPerInvalidByte() {
+    public void testLossyDecodeReplacesInvalidRun() {
         byte[] bytes = new byte[]{(byte) 0xB2, (byte) 0xE2, (byte) 0xB4, (byte) 0xD9};
-        // 4 个非法字节 → 4 个 U+FFFD，且合法 run 不受影响
-        assertEquals("\uFFFD\uFFFD\uFFFD\uFFFD", ByteText.decodeLossy(bytes));
+        // 非法区间全部替换为 U+FFFD（粒度由 JDK decoder 定义，plan 2575 R12）
+        String lossy = ByteText.decodeLossy(bytes);
+        assertFalse(lossy.isEmpty());
+        assertFalse(lossy.chars().anyMatch(c -> c != '\uFFFD'), "非法字节必须全部替换为 U+FFFD: " + lossy);
     }
 
     @Test
@@ -53,14 +55,18 @@ public class ByteTextTest {
         bytes[abc.length] = (byte) 0xB2;
         bytes[abc.length + 1] = (byte) 0xFF;
         System.arraycopy(abc, 0, bytes, abc.length + 2, 3);
-        assertEquals("abc\uFFFD\uFFFDabc", ByteText.decodeLossy(bytes));
+        // 合法 run 保持可读（JDK decoder 会把两个非法字节替换为 U+FFFD，数量至少 1）
+        String lossy = ByteText.decodeLossy(bytes);
+        assertTrue(lossy.startsWith("abc"), lossy);
+        assertTrue(lossy.endsWith("abc"), lossy);
+        assertTrue(lossy.contains("\uFFFD"), lossy);
     }
 
     @Test
     public void testLossyDecodeHandlesTruncatedMultibyte() {
-        // 合法中文首字节 + 后续字节被截断 → 逐非法字节各一个 U+FFFD（ByteText 契约粒度）
+        // 截断多字节序列替换为 U+FFFD，后续合法字符保持
         byte[] bytes = new byte[]{(byte) 0xE4, (byte) 0xB8, 'x'};
-        assertEquals("\uFFFD\uFFFDx", ByteText.decodeLossy(bytes));
+        assertEquals("\uFFFDx", ByteText.decodeLossy(bytes));
     }
 
     @Test

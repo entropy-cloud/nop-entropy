@@ -2,7 +2,7 @@
 
 > Last updated: 2026-11-20
 > Sources: `ai-dev/design/nop-rg/03-encoding-and-byte-fidelity-design.md`（设计决策）、`ai-dev/plans/2575-nop-rg-encoding-byte-fidelity.md`（执行计划）
-> Status: **in progress — owner 已于 2026-11-20 指示执行（plan 2575）**
+> Status: **completed — plan 2575 三波全部落地（2026-11-20）**
 
 ## Purpose
 
@@ -31,9 +31,9 @@
 
 ### Wave E3: 验收与保护
 
-- E3.1 GBK / Latin-1 / Shift-JIS 语料，与系统 rg `--json` 逐字段对拍: `todo`
-- E3.2 变异探针（只改模式不改 regex / 只改输出不改模式 → 用例必红）: `todo`
-- E3.3 性能确认（合法 UTF-8 无退化；非法场景较现状提升）: `todo`
+- E3.1 GBK / Latin-1 / Shift-JIS 语料，与系统 rg `--json` 逐字段对拍: `done`
+- E3.2 变异探针（只改模式不改 regex / 只改输出不改模式 → 用例必红）: `done`
+- E3.3 性能确认（合法 UTF-8 无退化；非法场景较现状提升）: `done`（R12 实测修正：合法无退化证实；「非法提升」在 JDK 25 机制不成立，设计决策 5 已按实测修正）
 
 ## Status values
 

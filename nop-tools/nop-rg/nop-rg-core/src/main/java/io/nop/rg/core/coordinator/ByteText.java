@@ -25,10 +25,14 @@ final class ByteText {
     }
 
     /**
-     * UTF-8 合法性线性扫描（无状态机回退，决策 5）。
+     * UTF-8 合法性线性扫描（决策 5，plan 2575 R12 实测修正）：先走 SWAR 8 字节 ASCII
+     * 预扫（多数行为纯 ASCII，零逐字节开销），含高位字节时才进入逐序列校验。
      * 拒绝：非法前导/后续字节、截断多字节序列、overlong 编码、代理区与越界码点。
      */
     static boolean isValidUtf8(byte[] b, int from, int to) {
+        if (isAscii(b, from, to)) {
+            return true;
+        }
         int i = from;
         while (i < to) {
             int c = b[i] & 0xFF;
@@ -81,40 +85,39 @@ final class ByteText {
     }
 
     /**
-     * 非法 UTF-8 区间的 lossy 文本：逐合法序列用 decoder 快路径解码，逐非法字节替换
-     * {@code U+FFFD}——合法 run 不落入 decoder 整体慢路径（决策 5：非法场景较现状变快）。
+     * SWAR 8 字长 ASCII 预扫：区间内全部字节 &lt; 0x80 时返回 true（8 字节一次判定）。
+     */
+    private static boolean isAscii(byte[] b, int from, int to) {
+        int i = from;
+        int limit = to - 8;
+        for (; i <= limit; i += 8) {
+            long w = ((long) (b[i] & 0xFF)) << 56
+                    | ((long) (b[i + 1] & 0xFF)) << 48
+                    | ((long) (b[i + 2] & 0xFF)) << 40
+                    | ((long) (b[i + 3] & 0xFF)) << 32
+                    | ((long) (b[i + 4] & 0xFF)) << 24
+                    | ((long) (b[i + 5] & 0xFF)) << 16
+                    | ((long) (b[i + 6] & 0xFF)) << 8
+                    | (b[i + 7] & 0xFF);
+            if ((w & 0x8080808080808080L) != 0) {
+                return false;
+            }
+        }
+        for (; i < to; i++) {
+            if (b[i] < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 非法 UTF-8 区间的 lossy 文本（plan 2575 R12 实测修正）：JDK 25 的
+     * {@code new String} lossy 路径自带 SIMD 级校验+替换（实测较手写逐序列解码快约 3 倍），
+     * 直接复用为 lossy 实现——替换粒度由 JDK decoder 定义（maximal subpart）。
      */
     static String decodeLossy(byte[] bytes) {
-        int length = bytes.length;
-        if (length <= 0) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder(length);
-        int runStart = 0;
-        int i = 0;
-        while (i < length) {
-            int lead = bytes[i] & 0xFF;
-            int seqLen = lead < 0x80 ? 1
-                    : (lead & 0xE0) == 0xC0 ? 2
-                    : (lead & 0xF0) == 0xE0 ? 3
-                    : (lead & 0xF8) == 0xF0 ? 4
-                    : 0;
-            boolean ok = seqLen > 0 && i + seqLen <= length && isValidUtf8(bytes, i, i + seqLen);
-            if (ok) {
-                i += seqLen;
-                continue;
-            }
-            if (i > runStart) {
-                sb.append(new String(bytes, runStart, i - runStart, StandardCharsets.UTF_8));
-            }
-            sb.append('\uFFFD');
-            i++;
-            runStart = i;
-        }
-        if (length > runStart) {
-            sb.append(new String(bytes, runStart, length - runStart, StandardCharsets.UTF_8));
-        }
-        return sb.toString();
+        return new String(bytes, 0, bytes.length, StandardCharsets.UTF_8);
     }
 
     /**
