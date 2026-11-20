@@ -1,6 +1,6 @@
 # 2580 nop-git Wave 5: 可选 HTTP Git 服务层
 
-> Plan Status: active（Phase 1-2 完成，待独立 closure audit）
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Source: `ai-dev/backlog/nop-git-roadmap.md` Wave 5 (items 26-28)；`ai-dev/design/nop-git/04-api-integration-design.md` §四
 > Related: plan 2576-2579 已完成
@@ -91,9 +91,17 @@ Exit Criteria:
 ## Closure
 
 Status Note: Wave 5（roadmap items 26-28）全部落地：nop-git-server 模块（Jetty ee11 嵌入 + GitServlet + RegistryResolver + incrementOpen + 显式 ReceivePackFactory 启用 push）+ ProtectedBranchPreReceiveHook 三类拒绝；HTTP 集成测试（真实 git clone/commit/push 往返 + 三类保护拒绝）绿；变异探针红→绿。
-Completed: （独立 audit 后回填）
+Completed: 2026-11-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立 closure audit 待执行）
-- Evidence: 本机执行期验证：clone→checkout dev→commit→push 往返 sha 到达服务端；master 直推/force/删除三类拒绝各含 'protected branch' 消息；变异探针（protected branch→guarded branch）parity 红（1 failure）→ 恢复绿
+- Reviewer / Agent: 独立 closure audit 子 agent（fresh session，agent_ec09beca-7e6d-425f-a0b3-4fa93af19fde）
+- Audit Session: agent_ec09beca-7e6d-425f-a0b3-4fa93af19fde
+- Evidence:
+  - 独立复跑 server 模块测试：2 run / 0 fail（真实 git 客户端集成）
+  - 独立端到端复验（Main 入口 + 随机端口 61586 + 真实 git）：clone 成功；dev push 成功且双端 sha 一致；master 直推/force/删除均 remote rejected 且消息逐类正确
+  - Anti-Hollow：显式 ReceivePackFactory、traversal 拒绝 + HEAD 校验 + incrementOpen、Hook fail-closed，无空壳
+  - 关键事实复核：core pom 已为 dependencyManagement import；dependency:list 实际解析 jgit 7.7.1；bom 唯一声明点成立（jetty 12.1.9 / servlet 6.1.0）
+  - 一致性：roadmap items 26-28 + Milestone done；daily log；check-plan-checklist --strict exit 0；check-doc-links exit 0
+  - 实现期变异探针：protected branch→guarded branch → 集成测试红（1F）→ 恢复绿
+  - Deferred 检查：无鉴权/HTTPS/自动创建均为 Non-Goals 明示，无降级
