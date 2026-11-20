@@ -970,7 +970,7 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             // paths (C:\out\epoch-1.txt) would silently corrupt on round-trip.
             StringBuilder sb = new StringBuilder();
             sb.append("# file-sink manifest").append(LINE_SEPARATOR);
-            for (TreeMap.Entry<String, String> entry : sorted.entrySet()) {
+            for (Map.Entry<String, String> entry : sorted.entrySet()) {
                 sb.append(entry.getKey()).append('=')
                         .append(escapeManifestValue(entry.getValue())).append(LINE_SEPARATOR);
             }

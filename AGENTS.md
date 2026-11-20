@@ -4,7 +4,7 @@
 
 `nop-entropy` 是一个可替代 Spring 的全栈 Java 框架（Nop 平台），采用可逆计算原理。
 
-**Tech Stack**: Java 25, Maven (wrapper 4.0.0-rc-5), JUnit 5, Nop AutoTest, XLang。
+**Tech Stack**: Java 21（运行基线；2026-11-21 起全仓 `maven.compiler.release=21`，例外 nop-rg/nop-find=22 FFM），Maven (wrapper 4.0.0-rc-5), JUnit 5, Nop AutoTest, XLang。
 
 模块分组和依赖关系见 `docs-for-ai/01-repo-map/module-groups.md`。
 
@@ -265,7 +265,7 @@ If `./mvnw` reports `JAVA_HOME not found`, auto-discover a local JDK from `javac
 
 ```powershell
 $javac = (Get-Command javac -ErrorAction SilentlyContinue).Source
-if (-not $javac) { throw "No javac found in PATH. Install JDK 25 first." }
+if (-not $javac) { throw "No javac found in PATH. Install JDK 21+ first." }
 $jdk = Split-Path (Split-Path $javac -Parent) -Parent
 $env:JAVA_HOME = $jdk
 if (-not ($env:Path -split ';' | Where-Object { $_ -eq "$jdk\bin" })) {

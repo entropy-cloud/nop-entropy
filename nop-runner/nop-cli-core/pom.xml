@@ -23,7 +23,7 @@
              与根 reactor 中 nop-rg 自身的 java22-modules 门控保持同一 JDK 基线(25,WI2 起 nop-rg 跟进)。 -->
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
-        <maven.compiler.release>25</maven.compiler.release>
+        <maven.compiler.release>21</maven.compiler.release>
         <java.version>25</java.version>
     </properties>
 

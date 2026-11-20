@@ -57,7 +57,7 @@ int port = server.start();
 
 ## 六、IoC 集成
 
-`nop-git-ioc` 的 beans 资源文件（git-ioc.beans.xml）暴露 `gitIocFactory`（配置键 `nop.git.default-branch` / `nop.git.policy-path`）；平台服务经工厂获得策略守卫的门面实例。仅此模块在平台 Java 基线（25）；裸 core/cli 保持 JDK 21。
+`nop-git-ioc` 的 beans 资源文件（git-ioc.beans.xml）暴露 `gitIocFactory`（配置键 `nop.git.default-branch` / `nop.git.policy-path`）；平台服务经工厂获得策略守卫的门面实例。2026-11-21 全仓基线降 21 后，本模块与其余模块同为 21。
 
 ## 七、测试体系（改动时的质量门）
 
@@ -68,4 +68,4 @@ int port = server.start();
 
 ## 八、与 legacy nop-utils/nop-git 的关系
 
-legacy `nop-utils/nop-git`（`IGitRepository`，单分支模型文件管理）已于 2026-11-21 删除（用户裁定；独立核查确认零外部引用，GAV `io.github.entropy-cloud:nop-git` 随之释放）。裁定过程见 AI 开发分析区 2026-11 的 nop-git-ai-shell 集成评估（时效性文档）。
+legacy nop-utils 下的 nop-git 模块（IGitRepository，单分支模型文件管理）已于 2026-11-21 删除（用户裁定；独立核查确认零外部引用，GAV `io.github.entropy-cloud:nop-git` 随之释放）。裁定过程见 AI 开发分析区 2026-11 的 nop-git-ai-shell 集成评估（时效性文档）。

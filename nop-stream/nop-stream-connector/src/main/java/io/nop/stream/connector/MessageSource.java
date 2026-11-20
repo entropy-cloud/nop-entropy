@@ -46,13 +46,25 @@ public class MessageSource<T> implements Source<T, MessageTopicSplit, MessageSou
 
     public MessageSource(io.nop.api.core.message.IMessageService messageService, String topic,
                          Class<?> typeClass) {
+        this(validateMessageService(messageService), validateTopic(topic), typeClass,
+                MessageSourceReader.DEFAULT_MAX_RECORD_BYTES);
+    }
+
+    // Java 21 has no flexible constructor bodies: validation runs as argument
+    // expressions so the this(...) call stays the first statement
+    private static io.nop.api.core.message.IMessageService validateMessageService(
+            io.nop.api.core.message.IMessageService messageService) {
         if (messageService == null) {
             throw new IllegalArgumentException("messageService is required");
         }
+        return messageService;
+    }
+
+    private static String validateTopic(String topic) {
         if (topic == null || topic.isEmpty()) {
             throw new IllegalArgumentException("topic must not be null or empty");
         }
-        this(messageService, topic, typeClass, MessageSourceReader.DEFAULT_MAX_RECORD_BYTES);
+        return topic;
     }
 
     /**

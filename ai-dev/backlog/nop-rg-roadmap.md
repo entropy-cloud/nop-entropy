@@ -129,7 +129,7 @@ Evidence ledger: ripgrep `crates/searcher/src/searcher/{core.rs,mmap.rs,line_buf
 **Goal:** 将 `GitIgnoreFile.java` 从 `nop-ai-code-analyzer` 抽取到 `nop-core`（新包 `io.nop.core.git`），使其成为可复用的公共库。保持 API 兼容，更新现有消费者的 import 路径。
 
 **Deliverables:**
-- GIT-01: 在 `nop-core` 中创建 `io.nop.core.git` 包，移入 `GitIgnoreFile` 及其内部类（该类实现 `Predicate<IResource>`，依赖 `io.nop.core.resource` 的 `IResource`/`VirtualFileSystem`/`ResourceHelper`，只能上移到 `nop-core`；不可放 `nop-commons` —— nop-core 依赖 nop-commons，反向依赖成环；也不可放 `nop-utils/nop-git` —— 该模块绑定 JGit）
+- GIT-01: 在 `nop-core` 中创建 `io.nop.core.git` 包，移入 `GitIgnoreFile` 及其内部类（该类实现 `Predicate<IResource>`，依赖 `io.nop.core.resource` 的 `IResource`/`VirtualFileSystem`/`ResourceHelper`，只能上移到 `nop-core`；不可放 `nop-commons` —— nop-core 依赖 nop-commons，反向依赖成环；也不可放 `nop-utils 下的 legacy nop-git（已删除）` —— 该模块绑定 JGit）
 - GIT-02: 更新 `nop-ai-code-analyzer` 的 `GitProject` 改为使用 `nop-core` 的 `GitIgnoreFile`
 - GIT-03: 更新 `nop-cli-core` 的 `CliFileCommand` 改为使用 `nop-core` 的 `GitIgnoreFile`
 - GIT-04: 为 `GitIgnoreFile` 补充单元测试（当前无测试）

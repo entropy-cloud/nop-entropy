@@ -22,12 +22,14 @@
     <properties>
         <revision>2.0.0-SNAPSHOT</revision>
 
-        <java.version>25</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
-        <maven.compiler.release>25</maven.compiler.release>
+        <!-- 2026-11-21 用户裁定：全仓运行基线降为 JDK 21（Quarkus 4 / Spring Boot 4 均支持 21+ 宿主；
+             代码无 Java 22+ 特性使用，独立调研确认零确定阻塞）。例外：nop-rg/nop-find 保持 22（FFM 正式 API，JDK 激活 profile 隔离） -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
 
         <main.basedir>${basedir}</main.basedir>
         <docs.main>${project.artifactId}</docs.main>

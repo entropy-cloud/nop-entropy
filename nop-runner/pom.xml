@@ -17,9 +17,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <modules>
+    <!-- 2026-11-21 全仓基线降 21：nop-runner 聚合 FFM 工具（nop-rg/nop-find，release=22），
+         整组由 JDK[22,) 激活 profile 门控——JDK 21 构建自动跳过；全功能 nop-cli 需 JDK 22+ 构建 -->
+    <profiles>
+        <profile>
+            <id>java22-modules</id>
+            <activation>
+                <jdk>[22,)</jdk>
+            </activation>
+            <modules>
         <module>nop-cli-core</module>
         <module>nop-cli</module>
         <module>nop-tool</module>
-    </modules>
+            </modules>
+        </profile>
+    </profiles>
 </project>

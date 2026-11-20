@@ -13,7 +13,7 @@
     <properties>
         <repackage.classifier/>
         <!-- 独立 pom(无 parent),编译级别须显式声明(plan 2427 执行期偏差:删 pin 后回落插件默认 1.8/major=52,已纠正) -->
-        <maven.compiler.release>25</maven.compiler.release>
+        <maven.compiler.release>21</maven.compiler.release>
 <!--        <spring-native.version>0.12.1</spring-native.version>-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

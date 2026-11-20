@@ -14,6 +14,8 @@
     <name>35-nop-find</name>
 
     <properties>
+        <!-- FFM API 22+ 正式版：显式钉 22，与 java22 激活 profile 配套（2026-11-21 全仓基线降 21） -->
+        <maven.compiler.release>22</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

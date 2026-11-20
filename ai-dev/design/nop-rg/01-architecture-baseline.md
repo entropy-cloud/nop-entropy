@@ -74,7 +74,7 @@ io.nop.rg.cli                   CLI 入口
 
 **拒绝了什么**：
 - 抽取到 `nop-commons`：需要反向依赖 nop-core，Maven 循环依赖
-- 抽取到 `nop-utils/nop-git`：该模块绑定 JGit，会拖入重量级传递依赖
+- 抽取到 `nop-utils 下的 legacy nop-git`：该模块绑定 JGit，会拖入重量级传递依赖
 - 自实现 gitignore 解析器：已有完整实现，重复造轮子
 - 引入 JGit 依赖：重量级（~15MB），对搜索工具不合理
 

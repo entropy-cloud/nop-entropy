@@ -16,7 +16,7 @@
 - 根 pom `maven.compiler.release=25`（pom.xml:30）；子 pom 可覆写 `maven.compiler.release` 属性。
 - 本地 ~/.m2 已有 `org.eclipse.jgit:org.eclipse.jgit:7.7.1.202607240634-r` 及其依赖（javaewah、slf4j）；本机 git 2.54.0 可用于后续 golden 录制（Wave 2 范围）。
 - nop-ib 服务（127.0.0.1:8188）健康，编译/测试走 nop-ib。
-- `io.nop.git` 包在 `nop-utils/nop-git`（**执行期发现，design 文档未覆盖**）已存在一个 legacy 小模块：「简化版 Git 仓库操作接口，仅支持单分支模型文件管理」（`IGitRepository`/`GitRepositoryImpl`，依赖 nop-core + JGit，artifact `nop-git` jar packaging）。裁决：(a) 新聚合 pom artifact 改名 `nop-git-parent`（目录仍 `nop-tools/nop-git`），避免 GAV 冲突；(b) legacy 模块原地保留不动，其包 `io.nop.git` 天然满足支柱规则（包内可 import JGit），Wave 6 item 30 评估时再决定是否迁移到新 core；(c) 新 API 类名 `IGitRepositoryService` 与 legacy `IGitRepository` 不同名，同包共存无冲突。
+- `io.nop.git` 包在 nop-utils 下的 legacy nop-git（执行期发现，后于 2026-11-21 删除）（**执行期发现，design 文档未覆盖**）已存在一个 legacy 小模块：「简化版 Git 仓库操作接口，仅支持单分支模型文件管理」（`IGitRepository`/`GitRepositoryImpl`，依赖 nop-core + JGit，artifact `nop-git` jar packaging）。裁决：(a) 新聚合 pom artifact 改名 `nop-git-parent`（目录仍 `nop-tools/nop-git`），避免 GAV 冲突；(b) legacy 模块原地保留不动，其包 `io.nop.git` 天然满足支柱规则（包内可 import JGit），Wave 6 item 30 评估时再决定是否迁移到新 core；(c) 新 API 类名 `IGitRepositoryService` 与 legacy `IGitRepository` 不同名，同包共存无冲突。
 - JGit 版本在仓库内此前无任何 dependencyManagement 声明（legacy 模块裸依赖，版本来自根 BOM 传递/未钉死）；`nop-git-bom` 的声明点地位不受影响。
 
 ## Goals

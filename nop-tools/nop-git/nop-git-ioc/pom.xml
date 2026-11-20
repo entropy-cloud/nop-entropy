@@ -15,10 +15,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- 平台集成面裁定（plan 2581 / 审查 Major-2）：不继承 nop-git 父 pom 的 release=21——
-             本模块依赖 nop-core（平台 Java 25 编译，class v69），保持平台 25 基线；
-             JDK 21 独立部署走裸 nop-git-core/cli，不受影响 -->
-        <maven.compiler.release>25</maven.compiler.release>
+        <!-- 2026-11-21 全仓基线降为 21 后，本模块随父 pom（21）；原先的 25 覆写因平台降基线撤销（plan 2581 裁定已由用户决策取代） -->
     </properties>
 
     <dependencyManagement>

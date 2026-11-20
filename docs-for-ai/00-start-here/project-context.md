@@ -9,7 +9,7 @@
 - **项目名**：nop-entropy
 - **定位**：可替代 Spring 的全栈 Java 框架（Nop 平台），基于可逆计算原理
 - **主要用户**：基于 Nop 构建应用的开发者
-- **Tech Stack**：Java（构建用 JDK 25，编译目标 `maven.compiler.release=25`，见根 `pom.xml`；2026-10-11 起 plan 2425/2427 统一），Maven，JUnit 5，XLang
+- **Tech Stack**：Java（运行基线 **JDK 21**：全仓 `maven.compiler.release=21`，见根 `pom.xml`；2026-11-21 用户裁定由 25 降 21，Quarkus 4 / Spring Boot 4 均支持 21+ 宿主；例外 nop-rg/nop-find=22 FFM，JDK 激活 profile 隔离），Maven，JUnit 5，XLang
 - **文档新鲜度**：`fresh`
 
 ## Active Work
