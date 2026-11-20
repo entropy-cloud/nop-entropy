@@ -13,6 +13,7 @@ nop-git 是 Nop 平台的纯 Java Git 工具模块：基于 JGit 提供 (1) 供�
 | [02-cli-compat-design.md](02-cli-compat-design.md) | 子系统专题 | git CLI 兼容契约：子命令优先级、输出格式对齐、AI 工具兼容性 |
 | [03-policy-engine-design.md](03-policy-engine-design.md) | 子系统专题 | 权限策略引擎：三态裁决、五维规则、observe/enforce、审计 |
 | [04-api-integration-design.md](04-api-integration-design.md) | 子系统专题 | Java API 集成契约 + 可选 HTTP Git 服务层 |
+| [05-worktree-design.md](05-worktree-design.md) | 子系统专题 | linked worktree 增删查（JGit 不支持写，自建元数据实现 + 双向兼容契约） |
 
 必读路径：`00-vision.md` → `01-architecture-baseline.md`；按需深入其余专题。
 

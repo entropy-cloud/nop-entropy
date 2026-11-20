@@ -14,6 +14,7 @@
 3. **AI Git 操作权限策略引擎（`IGitPolicyEngine`）是本模块与"JGit 简单封装"的本质差异**：在每次 Git 操作执行前，按声明式 YAML 配置从操作、选项、分支、路径、远程五个维度做 `allow / deny / review` 三态裁决，deny 永远优先；CLI 与 API 两条路径共用同一策略引擎实例，不可绕过。
 4. 配置放 `.nop-git/policy.yaml`（项目级 → 用户级 → 内置默认三层合并），支持 `observe`（只记录不阻断）与 `enforce` 两阶段渐进落地，审计日志 JSON Lines。
 5. HTTP Git 服务端（`GitServlet` + `PreReceiveHook`）是可选扩展面，排期靠后，仅在客户需要标准 Git 客户端经 HTTP 访问仓库时启用。
+6. **linked worktree 的创建与删除是一等能力**（API `addWorktree`/`removeWorktree`/`listWorktrees` + CLI `worktree add/list/remove`）：JGit 7.x 只能读不能写 worktree，add/remove 在适配层按 git 官方元数据格式自建（详见 [05-worktree-design.md](05-worktree-design.md)）。
 
 ## 二、背景与动机
 
@@ -26,7 +27,7 @@
 ## 三、成功标准
 
 - AI 兼容性：Claude Code 的只读命令探测、Aider 的 `add`+`commit -m` 自动提交、Codex `doctor` 的 `git --version` 解析均正常工作；`status --porcelain`、`diff`、`log --oneline` 输出与原生 git 纯文本格式一致（无 ANSI 颜色码）。
-- 集成可用性：平台内 Java 代码通过 `IGitRepositoryService` 完成开仓/状态/暂存/提交/分支/回滚全流程，不接触 JGit 类型。
+- 集成可用性：平台内 Java 代码通过 `IGitRepositoryService` 完成开仓/状态/暂存/提交/分支/回滚/worktree 增删全流程，不接触 JGit 类型。
 - 安全性：enforce 模式下，策略 deny 的操作返回非零退出码与 `fatal: policy denied: ...` 风格错误；review 提供确认通道并在无人值守超时后降级 deny；observe 模式审计日志可完整还原每条裁决。
 - 质量：所有子命令与策略裁决有 JUnit 5 测试覆盖；CLI 输出格式有与原生 git 的对照测试（本地有真实 git 时跑 parity 测试，无 git 时用 golden file）。
 
@@ -45,7 +46,7 @@
 - Git 的对象存储、packfile、智能传输协议是数十人年级别的工程，从零自建不具备性价比且无法保证与真实 git 仓库的比特级兼容；因此**拒绝"从零实现 git"**。
 - JGit 属于单一职责工具库，引用方式满足允许项：全部 JGit 调用收敛在 `JGitRepositoryService` 一个适配类内，模块其余部分（CLI 解析、策略引擎、输出格式化、审计）全部自建；对外 API（`IGitRepositoryService`）与 CLI 契约均为自有类型，替换底层实现（如未来换 native git 进程桥）不动使用方。
 - 架构支柱测试：禁止 `io.nop.git` 包以外的类 import `org.eclipse.jgit`（ArchUnit/包结构测试保证）。
-- 版本选型：JGit 7.x 稳定版（要求 JDK 17+）；本项目基线为 JDK 25，满足。启动时校验 `Runtime.version().feature() >= 17`，不满足时输出明确错误而非让 JGit 抛 `UnsupportedClassVersionError`。
+- 版本选型：JGit 7.x 稳定版（要求 JDK 17+）；**模块运行基线为 JDK 21**，启动时校验 `Runtime.version().feature() >= 21`，不满足时输出明确错误而非让 JGit 抛 `UnsupportedClassVersionError`。
 
 ## 六、与已有设计的关系
 

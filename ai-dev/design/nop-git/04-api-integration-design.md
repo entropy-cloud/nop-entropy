@@ -33,6 +33,11 @@ public interface IGitRepositoryService extends AutoCloseable {
     void reset(ResetMode mode, String rev);             // mode 枚举与 git --soft/--mixed/--hard 对齐
     void clean(CleanOptions options);
 
+    // linked worktree（自建实现，见 05-worktree-design.md）
+    List<NopGitWorktree> listWorktrees();
+    NopGitWorktree addWorktree(AddWorktreeOptions options);   // path、branch/-b、commitish、detached
+    void removeWorktree(String path, boolean force);
+
     // 远程（P3，需网络）
     void push(PushOptions options);
     FetchResult fetch(FetchOptions options);
@@ -42,7 +47,7 @@ public interface IGitRepositoryService extends AutoCloseable {
 契约要点：
 
 - **每个公开方法内部先经 `IGitPolicyEngine` 裁决**（architecture baseline §三硬约束 1）；deny 抛 `NopException`（`nop-git` ErrorCode），消息含命中规则原因。
-- 返回类型 `NopGitStatus` / `NopGitCommit` / `NopGitDiffEntry` / `NopGitRef` 为自有 record/POJO，字段覆盖 CLI 格式化所需全部信息（CLI 的 `GitOutputFormatter` 消费同一批类型——CLI 与 API 共享一条数据路径，格式化只在出口分叉）。
+- 返回类型 `NopGitStatus` / `NopGitCommit` / `NopGitDiffEntry` / `NopGitRef` / `NopGitWorktree` 为自有 record/POJO，字段覆盖 CLI 格式化所需全部信息（CLI 的 `GitOutputFormatter` 消费同一批类型——CLI 与 API 共享一条数据路径，格式化只在出口分叉）。
 - `AutoCloseable`：实例持有底层 Repository，必须关闭；每次 open 一个实例，不共享。
 - 身份（user.name/email）缺省从 git config 链读取，未配置时 commit 报原生风格错误。
 

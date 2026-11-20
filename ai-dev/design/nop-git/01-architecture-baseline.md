@@ -44,7 +44,7 @@ flowchart TD
 |---|---|---|
 | `IGitOperationRequest` | 一次 Git 操作的归一化描述：子命令名、归一化选项集合、目标分支、涉及路径、远程名/URL、原始命令行 | 执行、裁决 |
 | `IGitPolicyEngine` | 加载分层 YAML 策略；对 `IGitOperationRequest` 做 allow/deny/review 裁决；输出命中规则 ID | 执行 Git 操作、格式化输出 |
-| `IGitRepositoryService` | 语义化 Git 操作门面：open/init/status/add/commit/log/branch/checkout/reset/clean/push…；每个公开方法先经 `IGitPolicyEngine` 裁决再执行；`AutoCloseable` | 参数解析、CLI 输出格式 |
+| `IGitRepositoryService` | 语义化 Git 操作门面：open/init/status/add/commit/log/branch/checkout/reset/clean/worktree 增删查/push…；每个公开方法先经 `IGitPolicyEngine` 裁决再执行；`AutoCloseable` | 参数解析、CLI 输出格式 |
 | `GitCompatCli` | 解析 git 风格 argv → `IGitOperationRequest`；调用策略引擎与门面；按原生 git 纯文本格式输出；映射退出码 | 策略逻辑、JGit 调用细节 |
 | `GitOutputFormatter` | 将门面结果格式化为原生 git 兼容文本（porcelain、unified diff、oneline 等），无 ANSI 色码 | 任何执行逻辑 |
 | `GitAuditLogger` | JSON Lines 审计：时间戳、原始命令、归一化操作、命中规则、裁决、实际结果 | 裁决决策 |

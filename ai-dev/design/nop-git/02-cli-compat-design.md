@@ -36,7 +36,7 @@
 | P2 | `clean` | `-f`、`-fd`、`-n` | 受策略约束执行 |
 | P2 | `restore` / `rm` / `mv` | 常用子集 | 对齐原生行为 |
 | P2 | `stash` | `push` / `list` / `pop`（子集） | 对齐原生行为 |
-| P3 | `worktree` | `add` / `list` / `remove` | 供 Cursor 等工具 |
+| P2 | `worktree` | `add`（含 `-b`）、`list`（含 `--porcelain`）、`remove`（含 `--force`） | linked worktree 增删查；add/remove 适配层自建（见 05-worktree-design），输出与真实 git 双向兼容 |
 | P3 | `remote` | `-v`、`add`、`set-url` | 远程管理 |
 | P3 | `push` / `fetch` / `pull` | refspec 子集 | 需网络；受策略与远程规则约束 |
 | P3 | `clone` / `init` | — | init 本地必需；clone 需网络 |
