@@ -407,6 +407,17 @@ public class IbModule {
         return false;
     }
 
+    /** any compile execution requests compilerArgs the fast path cannot mirror
+     *  (--add-modules / --enable-preview etc.): silent omission would produce wrong
+     *  products — planner routes the module to Maven with an explicit reason. */
+    public boolean hasUnsupportedCompilerArgs() {
+        for (CompilerExec e : compilerExecs) {
+            if (e.unsupportedCompilerArgs)
+                return true;
+        }
+        return false;
+    }
+
     /** module runs check-only processors via annotationProcessorPaths. */
     public boolean hasCheckOnlyProcessors() {
         for (CompilerExec e : compilerExecs) {
@@ -513,6 +524,9 @@ public class IbModule {
         boolean checkOnlyProcessors;
         /** -parameters debug metadata requested (config element or compilerArg) */
         boolean parameters;
+        /** free-form compilerArgs the fast path cannot mirror (--add-modules, --enable-preview
+         *  etc.): routing fail-safe, mirrors depsUnresolved (2026-11-20 nop-rg-vector defect) */
+        boolean unsupportedCompilerArgs;
         String source;
         String target;
 
@@ -526,6 +540,8 @@ public class IbModule {
                 m.put("checkOnlyProcessors", 1);
             if (parameters)
                 m.put("parameters", 1);
+            if (unsupportedCompilerArgs)
+                m.put("unsupportedCompilerArgs", 1);
             m.put("source", source);
             m.put("target", target);
             return m;
@@ -546,6 +562,10 @@ public class IbModule {
             e.parameters = Boolean.TRUE.equals(prm)
                     || (prm instanceof Number n && n.intValue() != 0)
                     || "1".equals(prm) || "true".equals(prm);
+            Object uca = m.get("unsupportedCompilerArgs");
+            e.unsupportedCompilerArgs = Boolean.TRUE.equals(uca)
+                    || (uca instanceof Number n && n.intValue() != 0)
+                    || "1".equals(uca) || "true".equals(uca);
             e.source = (String) m.get("source");
             e.target = (String) m.get("target");
             return e;
@@ -565,6 +585,14 @@ public class IbModule {
 
         public boolean isAnnotationProcessorPaths() {
             return annotationProcessorPaths;
+        }
+
+        public boolean isUnsupportedCompilerArgs() {
+            return unsupportedCompilerArgs;
+        }
+
+        public boolean isParameters() {
+            return parameters;
         }
     }
 

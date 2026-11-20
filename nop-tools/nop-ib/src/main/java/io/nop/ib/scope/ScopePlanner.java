@@ -195,6 +195,14 @@ public final class ScopePlanner {
                 plan.setFallbackReason("fallback-maven module " + moduleId
                         + ": dependency facts unresolved at refresh (depsUnresolved)"
                         + " — dependency closure not trustworthy, Maven fallback");
+            // 2026-11-20 (nop-rg-vector defect): compilerArgs the fast path cannot
+            // mirror (--add-modules jdk.incubator.vector etc.) — silently omitting
+            // them makes packages invisible and the compile goes red; fail-safe to
+            // Maven instead, reason names the module.
+            if (module != null && module.hasUnsupportedCompilerArgs())
+                plan.setFallbackReason("fallback-maven module " + moduleId
+                        + ": compilerArgs not mirrorable by fast path (--add-modules etc.)"
+                        + " — Maven fallback");
         }
 
         // ---- per-module compile files (changed handwritten sources)

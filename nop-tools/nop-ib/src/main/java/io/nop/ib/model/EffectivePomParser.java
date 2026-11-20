@@ -232,6 +232,8 @@ public final class EffectivePomParser {
         // is byte-equivalent for them — they must not force an L2 fallback
         exec.checkOnlyProcessors = app != null && allPathsCheckOnly(app);
         exec.parameters = parametersRequested(cfg) || (defaults != null && parametersRequested(defaults));
+        exec.unsupportedCompilerArgs = hasUnsupportedCompilerArgs(cfg)
+                || (defaults != null && hasUnsupportedCompilerArgs(defaults));
         exec.source = firstNonEmpty(text(first(cfg, "source")), text(first(defaults, "source")));
         exec.target = firstNonEmpty(text(first(cfg, "target")), text(first(defaults, "target")));
         return exec;
@@ -258,13 +260,44 @@ public final class EffectivePomParser {
         Element p = first(cfg, "parameters");
         if (p != null && "true".equalsIgnoreCase(text(p)))
             return true;
-        Element args = first(cfg, "compilerArgs");
-        if (args != null) {
+        return compilerArgTokens(cfg).contains("-parameters");
+    }
+
+    /** compilerArgs entries: both child element names are accepted — <arg> is the
+     *  current form (nop-rg-vector uses --add-modules via <arg>), <compilerArg> the
+     *  deprecated alias still emitted by some poms. */
+    private static final Set<String> MIRRORABLE_COMPILER_ARGS = Set.of("-parameters", "-g");
+
+    private List<String> compilerArgTokens(Element cfg) {
+        List<String> tokens = new ArrayList<>();
+        if (cfg == null)
+            return tokens;
+        for (String tag : new String[]{"compilerArgs", "compilerArguments"}) {
+            Element args = first(cfg, tag);
+            if (args == null)
+                continue;
+            for (Element arg : children(args, "arg")) {
+                String t = text(arg);
+                if (t != null && !t.isBlank())
+                    tokens.add(t.trim());
+            }
             for (Element arg : children(args, "compilerArg")) {
                 String t = text(arg);
-                if (t != null && "-parameters".equals(t.trim()))
-                    return true;
+                if (t != null && !t.isBlank())
+                    tokens.add(t.trim());
             }
+        }
+        return tokens;
+    }
+
+    /** free-form compilerArgs the fast path cannot mirror (e.g. --add-modules
+     *  jdk.incubator.vector, --enable-preview): silent omission would produce
+     *  wrong products (packages invisible / preview mismatch), so the module is
+     *  flagged and routed to Maven (fail-safe, mirrors depsUnresolved routing). */
+    private boolean hasUnsupportedCompilerArgs(Element cfg) {
+        for (String t : compilerArgTokens(cfg)) {
+            if (!MIRRORABLE_COMPILER_ARGS.contains(t))
+                return true;
         }
         return false;
     }

@@ -93,7 +93,16 @@ public final class MavenFallback {
 
     /** -pl form that stays below package phases (design 01 §15.1: 回退分档). */
     public int compileModules(List<String> modules, Appendable out, Appendable err) {
-        return delegate("-pl " + String.join(",", modules)
+        return delegate("-pl " + plSelectors(modules)
                 + " -am compile test-compile -q", out, err);
+    }
+
+    /** -pl 选择器：artifactId 须带 ':' 前缀（Maven reactor 选择器 :artifactId）——裸名会被
+     *  解析为相对路径项目而报 "requested required projects ... do not exist"
+     *  （2026-11-20 nop-rg-vector 回退实测暴露；depsUnresolved 路径同样受益） */
+    public static String plSelectors(List<String> modules) {
+        return modules.stream()
+                .map(m -> m.startsWith(":") ? m : ":" + m)
+                .reduce((a, b) -> a + "," + b).orElse("");
     }
 }

@@ -416,7 +416,9 @@ public final class TestCommand {
             MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
             StringBuilder mout = new StringBuilder();
             StringBuilder merr = new StringBuilder();
-            int code = fallback.delegate("-pl " + String.join(",",
+            // 2026-11-20: -pl 选择器统一走 MavenFallback.plSelectors（:artifactId 形态，
+            // 裸名会被 Maven 解析为相对路径项目而报 do not exist）
+            int code = fallback.delegate("-pl " + MavenFallback.plSelectors(
                     plan.getCompileModules().isEmpty()
                             ? List.of(model.moduleForPath(changed.get(0)).getArtifactId())
                             : plan.getCompileModules())
