@@ -19,6 +19,7 @@ Conclusion: 三段式结论见文末——Phase 1 已随 nop-git-cli 交付零�
 
 - `nop-utils/nop-git`（`IGitRepository`/`GitRepositoryImpl`，单分支模型文件管理，依赖 nop-core + JGit 7.4）：**原地保留，不迁移不删除**。理由：其调用方在平台内部（模型文件管理场景），与 nop-git 的 AI 工具面（全命令 CLI + 策略 + worktree）职责不同；迁移收益低、回归面大。
 - 后续若其维护成本上升，可另立项将其 `GitRepositoryImpl` 底座切换到 `IGitRepositoryService`（successor：无强制）。
+- **【2026-11-21 更新：用户裁定直接删除】** 独立核查确认零外部引用（无 pom 依赖/类引用/beans 配置），同日已删除模块，GAV `io.github.entropy-cloud:nop-git` 释放。本节「原地保留」结论被此裁定取代。
 
 ## 4. 结论
 

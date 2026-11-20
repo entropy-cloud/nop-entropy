@@ -68,4 +68,4 @@ int port = server.start();
 
 ## 八、与 legacy nop-utils/nop-git 的关系
 
-`nop-utils/nop-git`（`IGitRepository`，单分支模型文件管理）原地保留，与本模块无依赖关系；处置裁定见 AI 开发分析区 2026-11 的 nop-git-ai-shell 集成评估（时效性文档，结论可能被推翻）。
+legacy `nop-utils/nop-git`（`IGitRepository`，单分支模型文件管理）已于 2026-11-21 删除（用户裁定；独立核查确认零外部引用，GAV `io.github.entropy-cloud:nop-git` 随之释放）。裁定过程见 AI 开发分析区 2026-11 的 nop-git-ai-shell 集成评估（时效性文档）。
