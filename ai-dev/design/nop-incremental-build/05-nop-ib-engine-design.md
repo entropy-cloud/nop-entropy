@@ -93,6 +93,8 @@ nop-ib → JDK（javax.tools / JUnit Platform，测试执行阶段）
 | 模块 | 坐标、basedir、packaging、parent、`<modules>`、激活 profile |
 | 依赖边 | 目标模块/外部坐标、scope、type（含 `test-jar`）、classifier |
 | 编译 | `sourceDirectory`/`testSourceDirectory`、resources、`outputDirectory`/`testOutputDirectory`、每个 compiler execution 的 `release`/`proc`/`compilerArgs`/`annotationProcessorPaths` |
+
+**compilerArgs 镜像策略（2026-11-20，nop-rg-vector 缺陷裁定）**：compilerArgs 按**白名单镜像、白名单外回退**的两分法处理，不追平全量。白名单（静态可判定、影响产物字节、逐项有 oracle 钉子）：`-parameters`、`-g`、`--add-modules <值>`（对偶与 `=x` 单 token 形态）、`--enable-preview`——解析捕获进模型（`addModules`/`enablePreview`），快路径编译逐字回放；白名单外任何 token → 模块标记 `unsupportedCompilerArgs`，planner 强制 Maven 回退且 reason 点名（fail-safe，对齐 depsUnresolved 路由）。裁定的成本模型：镜像收益 = 参数在本仓出现频率 × 快路径节省，成本 = oracle 钉子 + 永久维护；频率为零的参数，回退即正确答案，Maven 委托通道是配置语义的完备性保证而非缺陷。
 | 插件 | `exec-maven-plugin`（codegen/AOP 的 execution id）、`jandex`、`build-helper`、shaded 类插件 |
 | 测试 | Surefire 配置（`argLine`、系统属性含 `<property>` name/value 形态、includes/excludes、`groups`/`excludedGroups` tag 面、`environmentVariables`、`additionalClasspathElements`（仅 repo 外条目入 fork classpath）、非默认 `workingDirectory`/`additionalClasspathDependencies` → 记录为不支持事实并回退 surefire；fork/reuse 语义不消费，fork 隔离严格强于 surefire=documented-nonequivalence，wave6 6A-2） |
 | 工具链 | JDK/toolchain、编码、Maven 版本 |
@@ -207,7 +209,7 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 - 写产物（fast-path compile）/ Maven 委托 → `.mvn/build.lock` 排他锁（与 `mvnq` 同一文件、同一语义；Maven 委托不外层嵌套取锁——mvnq 自己取同一把锁，嵌套即自死锁）；
 - junit-fork 测试路径不取锁（wave6 6A-5 B-1 裁定：只读 target/classes、写每进程独立临时文件，非共享资源写者；取锁会串行化并行模块 sweep。compile-vs-test 跨进程竞争只可能产生假红，方向 fail-safe）；
 - 只读（`status/plan/model show`）→ 不取锁，但必须容忍并报告"检测到 Maven 构建持有锁"；
-- 超时与 `mvnq` 对齐（默认 3600s，`75` 退出码）；
+- Maven 委托超时：默认 **600s**（`nop.ib.maven.timeout` 分钟数可覆盖；2026-11-20 收紧——原 3600s 让锁饥饿委托占住 lane 1 小时不可观测），超时杀进程并在 stderr 写显式 `maven delegation timed out`；
 - 进程内并发：模块级串行 + 模块间有界并行；编译执行器实例按构建侧做法池化（编译器/file manager 非线程安全）。
 
 ## 八、状态、缓存与失效
@@ -220,14 +222,15 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 | `.nop-ib/units/<module>.bin` | 类图、ABI、常量、source→class、测试引用、生成指纹 | 模块重编/产物被外部改写 |
 | `.nop-ib/inputs.bin` | 文件 stat/内容哈希缓存 | 默认按 (size,mtime) 复用；不可信时重算 |
 | `.nop-ib/last-check.json` | 上次成功状态（用于 `--changed` 默认基线） | 失败不推进基线 |
-| `.nop-ib/test-cache.json` | opt-in `--cache` 的模块级绿结果缓存（wave9） | 指纹不命中即视为过期 |
+| `.nop-ib/test-cache.json` | 模块级绿结果缓存（默认开启，wave9 引入 opt-in、2026-11-20 翻转为默认） | 指纹不命中即视为过期 |
 
-### 测试结果缓存契约（opt-in `--cache`）
+### 测试结果缓存契约（默认开启，2026-11-20 裁定）
 
 - **只缓存绿**：`junit-fork` 执行且 exit=0 才写入；红结果写入即作废既有绿条目（预存红天然每次真跑）。
 - **命中条件**：模块指纹逐字节一致。指纹 = 模块单元索引全部 (class, contentHash, abiDigest) + 传递依赖模块的 ABI digest 表 + externalArtifacts + surefire 全部 facts（argLine/skip/includes/excludes/groups/excludedGroups/系统属性/env）。任一成分缺失（索引缺失、模型过期、依赖模块无索引）→ 指纹 null → **不命中**（fail-safe，不静默跳过）。
 - **显式性**：命中输出 kind=`cached-up-to-date` + JSON `cached:true` + advisory warning（点名 `--force` 逃逸）；不冒充执行结果。
 - **不可见输入披露**：外部环境（DB/容器/host 状态、环境变量）不在指纹内——cached 绿的环境失效由 `--force` 兜底；依赖模块无索引时其 ABI 变化不入指纹（reactor 内依赖正常有索引；外部 jar 由 externalArtifacts 兜底）。
+- **默认开启**（2026-11-20 裁定，原 wave9 opt-in 语义翻转）：`test`/`check` 未显式给参即启用缓存；命中必披露 `cached:true`/advisory warning（不冒充执行结果），`--no-cache` 恢复 run-always，`--force` 单次绕过命中。指纹不命中即真跑——默认翻转的安全前提是"不命中即执行"的 fail-safe 方向。
 - 适用面：`-pl` 显式模块与 plan scope 分支；`--class`/`--rerun-failed`（显式执行请求）与 Maven fallback 路径永不缓存。
 
 跨 worktree 共享（用户级）：jar 的 ABI digest / 内容哈希缓存，键为内容哈希，路径无关。
