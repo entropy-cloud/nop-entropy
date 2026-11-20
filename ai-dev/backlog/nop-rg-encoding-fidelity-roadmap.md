@@ -39,7 +39,7 @@
 
 | Status | Meaning |
 | --- | --- |
-| `todo` | 未开始（本 roadmap 当前全部处于此状态） |
+| `todo` | 未开始 |
 | `planned` | 有执行计划且通过评审 |
 | `in progress` | 正在执行 |
 | `done` | 完成并通过 closure audit |

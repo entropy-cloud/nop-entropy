@@ -2,7 +2,7 @@
 
 > 定位：规范文档（设计决策 + 使用契约）。只写结论与理由，不写实现代码、不写演进历史。
 > 关联：`ai-dev/backlog/nop-rg-encoding-fidelity-roadmap.md`（执行分解）、`ai-dev/design/nop-rg/01-architecture-baseline.md`（总体架构）。
-> 状态：**设计已定，未实施**。
+> 状态：**已实施**（plan 2575，2026-11-20 三波落地；决策 2/3/5 含实施期实测裁定 R2/R5/R11/R12）。
 
 ## 一、问题定义
 

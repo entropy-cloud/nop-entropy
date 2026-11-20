@@ -1,6 +1,6 @@
 # 2575 nop-rg 编码与字节保真实施
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-20
 > Source: `ai-dev/backlog/nop-rg-encoding-fidelity-roadmap.md`（执行分解）、`ai-dev/design/nop-rg/03-encoding-and-byte-fidelity-design.md`（设计决策）
 > Related: `ai-dev/plans/2574-nop-rg-wave5-native-parity.md`（前置，已完成）
@@ -138,15 +138,15 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 所有 in-scope 缺陷（输出失真 / regex 静默错配 / decoder 慢路径）已修复
-- [ ] 行为契约达成：非法 UTF-8 可还原、合法 UTF-8 零变化、GBK 全链路正确、非法 charset exit 3
-- [ ] 必要 focused verification 已完成（E1/E2/E3 全部 Exit Criteria 勾选）
-- [ ] 无 in-scope live defect 被降级到 deferred / follow-up
-- [ ] owner docs 已同步（设计文档 03、roadmap 状态）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（plan Closure 段）
-- [ ] Anti-Hollow Check：closure audit 已验证 `--encoding` 三处一致链路运行时连通、bytes 字段真实输出、无空方法体/静默跳过
-- [ ] `ib check`（nop-rg-core + nop-rg-cli 编译与受影响测试）通过
-- [ ] 代码规范检查通过（imports 分组、4 空格缩进）
+- [x] 所有 in-scope 缺陷（输出失真 / regex 静默错配 / decoder 慢路径）已修复
+- [x] 行为契约达成：非法 UTF-8 可还原、合法 UTF-8 零变化、GBK 全链路正确、非法 charset exit 3
+- [x] 必要 focused verification 已完成（E1/E2/E3 全部 Exit Criteria 勾选）
+- [x] 无 in-scope live defect 被降级到 deferred / follow-up
+- [x] owner docs 已同步（设计文档 03、roadmap 状态）
+- [x] 独立子 agent closure-audit 已完成并记录证据（plan Closure 段）
+- [x] Anti-Hollow Check：closure audit 已验证 `--encoding` 三处一致链路运行时连通、bytes 字段真实输出、无空方法体/静默跳过
+- [x] `ib check`（nop-rg-core + nop-rg-cli 编译与受影响测试）通过
+- [x] 代码规范检查通过（imports 分组、4 空格缩进）
 
 ## Deferred But Adjudicated
 
@@ -160,14 +160,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: 三波（E1 输出字节保真 / E2 --encoding 三处一致 / E3 对拍与保护）全部落地并通过独立子 agent 收口审计（2026-11-20）。无 in-scope live defect 残留；设计文档 03 决策 2/3/5 含实施期实测裁定（R2/R5/R11/R12），roadmap 状态同步 completed。
+Completed: 2026-11-20
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent 收口审计时填写）
-- Evidence: （每条 Exit Criterion / Closure Gate 验证结果 + 工具退出码）
+- Reviewer / Agent: 独立子 agent（fresh session，agent_e5636a73-d303-4811-b3ee-d48985df23d2，未参与实现）
+- Audit Session: agent_e5636a73-d303-4811-b3ee-d48985df23d2
+- Evidence:
+  - E1 Exit Criteria：全部 PASS（EncodingFidelityJsonTest golden 全串 + bytes 逐字节 assertArrayEquals；RgComparisonTest 零回归；端到端 picocli→stdout）
+  - E2 Exit Criteria：全部 PASS（EncodingCliTest 7 钉 + EncodingCharsetWiringTest 4 钉接线断言；exit 3 前置校验 NopRgMain:105-117；审计员独立复做 P2 探针红→绿）
+  - E3 Exit Criteria：全部 PASS（RgEncodingParityTest 2/0 **0 skipped**，R6 为 assertTrue 硬失败非 Assumption；性能数据见日志与设计决策 5 R12 修正）
+  - Closure Gates：全部 PASS（Anti-Hollow 三项 PASS：三处一致链逐环实读 NopRgMain:190→SearchCommand:67→SearchCoordinator:102,268→MatchAggregator:59,118→LineCursor:29,101→ByteText.decodeText；bytes 输出链 JsonOutput:50-52/:65-67；无空方法体/静默跳过）
+  - `node ai-dev/tools/check-plan-checklist.mjs <plan> --strict` 退出码 0
+  - `scan-hollow-implementations.mjs --severity high`（core 32 文件 + cli）退出码 0 无发现
+  - `check-doc-links.mjs --strict` 退出码 0（0 errors）
+  - 审计发现（已修复或披露）：
+    1. [已修复] 设计文档 03 头部状态残留「未实施」→ 已改为已实施口径；roadmap status 表 todo 括注清理。
+    2. [披露] ib 测试选择集默认通道遗漏 3 个新测试类（EncodingCharsetWiringTest/EncodingCliTest/RgEncodingParityTest）；R6「0 skipped」证据经 Maven 回退通道实跑取得（core 4/0、cli 7/0、parity 3/0、2/0 全绿）。属 nop-ib 选择器 gap，不在本 plan scope。
+    3. [披露] 影子类假绿风险实锤：审计中 P2 探针未清影子类时 4/0 假绿、清除后现红——探针协议必须捆绑 purge（_tmp/probe.sh 已内置），已列入 Non-Blocking Follow-ups。
+  - Deferred 项分类检查：3 条 follow-up（JMH 基准 / SIMD 扫描 / ib 影子类）均为优化候选或构建卫生，无 in-scope live defect 降级（审计员确认）。
 
 Follow-up:
 
-- （收口时填写或写 no remaining plan-owned work）
+- nop-rg-benchmark 编码语料 JMH 基准（优化候选）
+- Vector API SIMD UTF-8 合法性扫描（优化候选）
+- nop-ib 增量 javac 主类影子泄漏根治（构建卫生；测试选择集 gap 同属 nop-ib，一并跟踪）
