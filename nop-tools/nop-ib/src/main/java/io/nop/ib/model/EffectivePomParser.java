@@ -234,6 +234,7 @@ public final class EffectivePomParser {
         exec.parameters = parametersRequested(cfg) || (defaults != null && parametersRequested(defaults));
         exec.unsupportedCompilerArgs = hasUnsupportedCompilerArgs(cfg)
                 || (defaults != null && hasUnsupportedCompilerArgs(defaults));
+        parseMirrorableArgs(exec, cfg, defaults);
         exec.source = firstNonEmpty(text(first(cfg, "source")), text(first(defaults, "source")));
         exec.target = firstNonEmpty(text(first(cfg, "target")), text(first(defaults, "target")));
         return exec;
@@ -266,7 +267,8 @@ public final class EffectivePomParser {
     /** compilerArgs entries: both child element names are accepted — <arg> is the
      *  current form (nop-rg-vector uses --add-modules via <arg>), <compilerArg> the
      *  deprecated alias still emitted by some poms. */
-    private static final Set<String> MIRRORABLE_COMPILER_ARGS = Set.of("-parameters", "-g");
+    private static final Set<String> MIRRORABLE_COMPILER_ARGS = Set.of(
+            "-parameters", "-g", "--add-modules", "--enable-preview");
 
     private List<String> compilerArgTokens(Element cfg) {
         List<String> tokens = new ArrayList<>();
@@ -290,12 +292,55 @@ public final class EffectivePomParser {
         return tokens;
     }
 
-    /** free-form compilerArgs the fast path cannot mirror (e.g. --add-modules
-     *  jdk.incubator.vector, --enable-preview): silent omission would produce
-     *  wrong products (packages invisible / preview mismatch), so the module is
-     *  flagged and routed to Maven (fail-safe, mirrors depsUnresolved routing). */
+    /** ordered compilerArgs with --add-modules values consumed (token stream model:
+     *  "--add-modules" then "jdk.incubator.vector"; "--add-modules=x" single-token form). */
+    private List<String> orderedArgTokens(Element cfg) {
+        List<String> raw = compilerArgTokens(cfg);
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < raw.size(); i++) {
+            String t = raw.get(i);
+            if (t.startsWith("--add-modules=")) {
+                out.add("--add-modules");
+                out.add(t.substring("--add-modules=".length()));
+            } else {
+                out.add(t);
+            }
+        }
+        return out;
+    }
+
+    private void parseMirrorableArgs(IbModule.CompilerExec exec, Element cfg, Element defaults) {
+        for (Element src : new Element[]{defaults, cfg}) {
+            if (src == null)
+                continue;
+            List<String> tokens = orderedArgTokens(src);
+            for (int i = 0; i < tokens.size(); i++) {
+                String t = tokens.get(i);
+                if ("--add-modules".equals(t) && i + 1 < tokens.size()) {
+                    for (String m : tokens.get(i + 1).split(","))
+                        if (!m.isBlank() && !exec.addModules.contains(m.trim()))
+                            exec.addModules.add(m.trim());
+                    i++;
+                } else if ("--enable-preview".equals(t)) {
+                    exec.enablePreview = true;
+                }
+            }
+        }
+    }
+
+    /** free-form compilerArgs the fast path cannot mirror (anything outside the
+     *  MIRRORABLE set): silent omission would produce wrong products, so the
+     *  module is flagged and routed to Maven (fail-safe, mirrors depsUnresolved
+     *  routing). Mirrorable product-affecting args (--add-modules, --enable-preview,
+     *  -parameters, -g) are captured and replayed by the fast path instead. */
     private boolean hasUnsupportedCompilerArgs(Element cfg) {
-        for (String t : compilerArgTokens(cfg)) {
+        List<String> tokens = orderedArgTokens(cfg);
+        for (int i = 0; i < tokens.size(); i++) {
+            String t = tokens.get(i);
+            if ("--add-modules".equals(t)) {
+                i++; // 值 token 随 flag 一同镜像
+                continue;
+            }
             if (!MIRRORABLE_COMPILER_ARGS.contains(t))
                 return true;
         }

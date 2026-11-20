@@ -48,6 +48,15 @@ public final class JavaCompilerFacade {
                                         List<String> classpathEntries, String release,
                                         String sourceLevel, String procMode, List<File> sourcePath,
                                         boolean parameters) {
+        return compile(sourceFiles, outputDir, classpathEntries, release, sourceLevel,
+                procMode, sourcePath, parameters, List.of(), false);
+    }
+
+    public static CompileResult compile(List<File> sourceFiles, Path outputDir,
+                                        List<String> classpathEntries, String release,
+                                        String sourceLevel, String procMode, List<File> sourcePath,
+                                        boolean parameters, List<String> addModules,
+                                        boolean enablePreview) {
         JdkJavaCompiler compiler = new JdkJavaCompiler();
         List<String> extra = new ArrayList<>();
         // Maven compiler plugin default debug=true emits plain -g; required for
@@ -57,6 +66,15 @@ public final class JavaCompilerFacade {
         // requesting it (config element or compilerArg) must be mirrored exactly
         if (parameters)
             extra.add("-parameters");
+        // mirrorable compilerArgs replay (2026-11-20): product-affecting args are
+        // captured from the pom at refresh and replayed verbatim — silent omission
+        // makes packages invisible / preview mismatch (nop-rg-vector defect)
+        for (String m : addModules) {
+            extra.add("--add-modules");
+            extra.add(m);
+        }
+        if (enablePreview)
+            extra.add("--enable-preview");
         JavaCompileOptions options = new JavaCompileOptions()
                 .setOutputDir(outputDir.toFile())
                 .setClassPaths(classpathEntries)

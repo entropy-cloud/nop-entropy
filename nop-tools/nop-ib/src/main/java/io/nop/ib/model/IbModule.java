@@ -407,6 +407,25 @@ public class IbModule {
         return false;
     }
 
+    /** --add-modules values across compile executions (union; adding modules is
+     *  monotonic so union is safe across default-compile/default-testCompile). */
+    public List<String> getCompileAddModules() {
+        List<String> out = new java.util.ArrayList<>();
+        for (CompilerExec e : compilerExecs)
+            for (String m : e.addModules)
+                if (!out.contains(m))
+                    out.add(m);
+        return out;
+    }
+
+    /** any compile execution requests --enable-preview. */
+    public boolean getCompileEnablePreview() {
+        for (CompilerExec e : compilerExecs)
+            if (e.enablePreview)
+                return true;
+        return false;
+    }
+
     /** any compile execution requests compilerArgs the fast path cannot mirror
      *  (--add-modules / --enable-preview etc.): silent omission would produce wrong
      *  products — planner routes the module to Maven with an explicit reason. */
@@ -524,9 +543,13 @@ public class IbModule {
         boolean checkOnlyProcessors;
         /** -parameters debug metadata requested (config element or compilerArg) */
         boolean parameters;
-        /** free-form compilerArgs the fast path cannot mirror (--add-modules, --enable-preview
-         *  etc.): routing fail-safe, mirrors depsUnresolved (2026-11-20 nop-rg-vector defect) */
+        /** free-form compilerArgs the fast path cannot mirror (outside the mirrorable
+         *  set): routing fail-safe, mirrors depsUnresolved (2026-11-20 nop-rg-vector defect) */
         boolean unsupportedCompilerArgs;
+        /** --add-modules values (mirrorable: replayed verbatim by the fast path) */
+        final java.util.List<String> addModules = new java.util.ArrayList<>();
+        /** --enable-preview (mirrorable) */
+        boolean enablePreview;
         String source;
         String target;
 
@@ -542,6 +565,10 @@ public class IbModule {
                 m.put("parameters", 1);
             if (unsupportedCompilerArgs)
                 m.put("unsupportedCompilerArgs", 1);
+            if (!addModules.isEmpty())
+                m.put("addModules", new java.util.ArrayList<>(addModules));
+            if (enablePreview)
+                m.put("enablePreview", 1);
             m.put("source", source);
             m.put("target", target);
             return m;
@@ -566,6 +593,14 @@ public class IbModule {
             e.unsupportedCompilerArgs = Boolean.TRUE.equals(uca)
                     || (uca instanceof Number n && n.intValue() != 0)
                     || "1".equals(uca) || "true".equals(uca);
+            Object am = m.get("addModules");
+            if (am instanceof List<?> l)
+                for (Object o : l)
+                    e.addModules.add(String.valueOf(o));
+            Object ep = m.get("enablePreview");
+            e.enablePreview = Boolean.TRUE.equals(ep)
+                    || (ep instanceof Number n && n.intValue() != 0)
+                    || "1".equals(ep) || "true".equals(ep);
             e.source = (String) m.get("source");
             e.target = (String) m.get("target");
             return e;
@@ -589,6 +624,14 @@ public class IbModule {
 
         public boolean isUnsupportedCompilerArgs() {
             return unsupportedCompilerArgs;
+        }
+
+        public List<String> getAddModules() {
+            return addModules;
+        }
+
+        public boolean isEnablePreview() {
+            return enablePreview;
         }
 
         public boolean isParameters() {

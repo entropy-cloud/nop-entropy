@@ -45,8 +45,7 @@ class TestUnsupportedCompilerArgsFallback {
                           <artifactId>maven-compiler-plugin</artifactId>
                           <configuration>
                             <compilerArgs>
-                              <arg>--add-modules</arg>
-                              <arg>jdk.incubator.vector</arg>
+                              %ARGS%
                             </compilerArgs>
                           </configuration>
                         </plugin>
@@ -56,9 +55,13 @@ class TestUnsupportedCompilerArgsFallback {
                 </projects>
                 """;
 
-    private static final String POM_MIRRORABLE_ONLY = POM_WITH_ARGS
-            .replace("<arg>--add-modules</arg>", "<arg>-parameters</arg>")
-            .replace("<arg>jdk.incubator.vector</arg>", "");
+    private static final String ARGS_VECTOR = "<arg>--add-modules</arg>\n                              <arg>jdk.incubator.vector</arg>";
+
+    private static String pomWith(String argLines) {
+        return POM_WITH_ARGS.replace("%ARGS%", argLines);
+    }
+
+    private static final String POM_MIRRORABLE_ONLY = pomWith("<arg>-parameters</arg>");
 
     private Path repoRoot;
 
@@ -93,13 +96,36 @@ class TestUnsupportedCompilerArgsFallback {
         return model;
     }
 
-    /** pin 1: the defect shape — {@code <arg>--add-modules</arg>} flags the module. */
+    /** pin 1 (2026-11-20 update): --add-modules is now MIRRORED, not flagged —
+     *  the values are captured for the fast path to replay verbatim. */
     @Test
-    void addModulesCompilerArgIsFlagged() throws Exception {
-        IbModule mod = parse(POM_WITH_ARGS);
+    void addModulesCompilerArgIsMirrored() throws Exception {
+        IbModule mod = parse(pomWith(ARGS_VECTOR));
+        assertFalse(mod.hasUnsupportedCompilerArgs(),
+                "--add-modules is mirrorable now — must NOT flag the module");
+        assertEquals(List.of("jdk.incubator.vector"), mod.getCompileAddModules(),
+                "--add-modules values must be captured for the fast path");
+        // '=' 单 token 形态同效
+        IbModule mod2 = parse(pomWith("<arg>--add-modules=jdk.incubator.vector</arg>"));
+        assertEquals(List.of("jdk.incubator.vector"), mod2.getCompileAddModules(),
+                "--add-modules=x single-token form must parse");
+    }
+
+    /** pin 1b: unknown args still flag (fail-safe set is closed, not open). */
+    @Test
+    void unknownCompilerArgStillFlags() throws Exception {
+        IbModule mod = parse(pomWith("<arg>-Xlint:all</arg>"));
         assertTrue(mod.hasUnsupportedCompilerArgs(),
-                "--add-modules must flag the module for Maven fallback");
-        assertTrue(mod.getCompilerExecs().get(0).isUnsupportedCompilerArgs());
+                "non-mirrorable args must still route to Maven (fail-safe)");
+    }
+
+    /** pin 1c: --enable-preview is captured as a mirrorable flag. */
+    @Test
+    void enablePreviewCaptured() throws Exception {
+        IbModule mod = parse(pomWith("<arg>--add-modules</arg>\n                              <arg>jdk.incubator.vector</arg>\n                              <arg>--enable-preview</arg>"));
+        assertFalse(mod.hasUnsupportedCompilerArgs());
+        assertTrue(mod.getCompileEnablePreview(), "--enable-preview must be captured");
+        assertEquals(List.of("jdk.incubator.vector"), mod.getCompileAddModules());
     }
 
     /** pin 2: mirrorable args do NOT flag; the -parameters contract still works. */
@@ -116,7 +142,7 @@ class TestUnsupportedCompilerArgsFallback {
     /** pin 3: a change inside a flagged module forces Maven fallback naming it. */
     @Test
     void flaggedModuleChangeForcesFallbackNamingIt() {
-        IbModule mod = parseSilently(POM_WITH_ARGS);
+        IbModule mod = parseSilently(pomWith("<arg>-Xlint:all</arg>"));
         ScopePlanner planner = new ScopePlanner(modelWith(mod),
                 new ModuleGraph(modelWith(mod)), id -> null);
         PlanResult plan = planner.plan(List.of("vector-mod/src/main/java/A.java"), null, true);
@@ -145,12 +171,19 @@ class TestUnsupportedCompilerArgsFallback {
                 "module without unsupported compilerArgs must keep the fast path");
     }
 
-    /** pin 5: the fact survives compilerExec map round-trip (model persistence). */
+    /** pin 5: the fact survives compilerExec map round-trip (model persistence) —
+     *  both the unsupported flag and the captured addModules values. */
     @Test
     void factSurvivesRoundTrip() throws Exception {
-        IbModule mod = parse(POM_WITH_ARGS);
+        IbModule mod = parse(pomWith(ARGS_VECTOR));
         Map<String, Object> m = mod.getCompilerExecs().get(0).toMap();
-        assertTrue(IbModule.CompilerExec.fromMap(m).isUnsupportedCompilerArgs());
+        IbModule.CompilerExec restored = IbModule.CompilerExec.fromMap(m);
+        assertFalse(restored.isUnsupportedCompilerArgs());
+        assertEquals(List.of("jdk.incubator.vector"), restored.getAddModules());
+        // unknown-arg 形态的 flag 同样 round-trip
+        IbModule mod2 = parse(pomWith("<arg>-Xlint:all</arg>"));
+        assertTrue(IbModule.CompilerExec.fromMap(mod2.getCompilerExecs().get(0).toMap())
+                .isUnsupportedCompilerArgs());
     }
 
     /** pin 6 (MavenFallback fix): -pl selectors use the :artifactId reactor form —
