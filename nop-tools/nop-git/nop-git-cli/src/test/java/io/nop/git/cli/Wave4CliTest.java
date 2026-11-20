@@ -331,6 +331,56 @@ class Wave4CliTest {
     }
 
     @Test
+    void checkoutDashDashRestoresFile() throws Exception {
+        Path dir = repo("ckdd");
+        Files.writeString(dir.resolve("a.txt"), "one\ntwo\nthree\nchanged\n");
+        assertEquals(0, run(dir, "checkout", "--", "a.txt"));
+        assertEquals("one\ntwo\nthree\n", Files.readString(dir.resolve("a.txt")));
+    }
+
+    @Test
+    void initBareLayoutAndCloneRoundtrip() throws Exception {
+        Path originDir = base.resolve("bare-origin.git");
+        assertEquals(0, run(base, "init", "--bare", "bare-origin.git"));
+        // bare layout: HEAD/refs live at the top level, no nested .git dir
+        assertTrue(Files.exists(originDir.resolve("HEAD")));
+        assertTrue(Files.isDirectory(originDir.resolve("refs")));
+        assertFalse(Files.exists(originDir.resolve(".git")));
+
+        // seed from a work clone: clone bare (empty ok on first push after branch)
+        Path work = base.resolve("bare-work");
+        assertEquals(0, run(base, "init", "bare-work"));
+        Files.writeString(work.resolve("a.txt"), "x\n");
+        assertEquals(0, run(work, "add", "."));
+        assertEquals(0, run(work, "commit", "-m", "base"));
+        assertEquals(0, run(work, "remote", "add", "origin",
+                originDir.toAbsolutePath().toString()));
+        assertEquals(0, run(work, "push", "origin", "master"));
+
+        Path clone = base.resolve("bare-clone");
+        
+        assertEquals(0, run(base, "clone", originDir.toAbsolutePath().toString(),
+                clone.toAbsolutePath().toString()));
+        assertTrue(Files.exists(clone.resolve("a.txt")));
+    }
+
+    @Test
+    void stashListLineHasNoDuplicatedPrefix() throws Exception {
+        Path dir = repo("stash2");
+        Files.writeString(dir.resolve("a.txt"), "one\ntwo\nthree\nmod\n");
+        assertEquals(0, run(dir, "stash", "push"));
+        assertEquals(0, run(dir, "stash", "list"));
+        // native line: stash@{0}: WIP on master: <sha> <subject> — the WIP
+        // prefix must appear exactly once
+        long count = out().lines().filter(l -> l.contains("stash@{0}: WIP on master:"))
+                .count();
+        assertEquals(1, count);
+        assertTrue(out().lines().noneMatch(l ->
+                l.contains("WIP on master:") && l.indexOf("WIP on master:") !=
+                        l.lastIndexOf("WIP on master:")));
+    }
+
+    @Test
     void initHonorsExplicitBranch() throws Exception {
         Path dir = base.resolve("init-b");
         assertEquals(0, run(base, "init", "-b", "main", "init-b"));

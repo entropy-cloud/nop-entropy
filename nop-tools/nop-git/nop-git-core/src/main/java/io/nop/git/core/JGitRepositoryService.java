@@ -115,6 +115,22 @@ public final class JGitRepositoryService implements IGitRepositoryService {
                 Path.of(canonicalRoot(workDir))));
     }
 
+    public static void initBare(File dir, String defaultBranch) {
+        JdkBaseline.requireBaseline();
+        if (dir == null)
+            throw new NopGitException("init directory must not be null");
+        try (Git git = Git.init()
+                .setDirectory(dir)
+                .setBare(true)
+                .setInitialBranch(defaultBranch)
+                .call()) {
+            git.getRepository().close();
+        } catch (Exception e) {
+            throw new NopGitException("cannot init bare repository at "
+                    + dir.getAbsolutePath() + ": " + e.getMessage(), e);
+        }
+    }
+
     public static JGitRepositoryService init(File workDir, String defaultBranch,
                                              IGitPolicyEngine policy) {
         JdkBaseline.requireBaseline();

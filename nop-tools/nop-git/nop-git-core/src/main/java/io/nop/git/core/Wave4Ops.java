@@ -153,9 +153,9 @@ final class Wave4Ops {
         try (Git git = new Git(repository)) {
             List<String> lines = new ArrayList<>();
             for (org.eclipse.jgit.revwalk.RevCommit commit : git.stashList().call()) {
-                lines.add("stash@{" + lines.size() + "}: WIP on "
-                        + safeBranch(repository) + ": " + commit.abbreviate(7).name()
-                        + " " + commit.getShortMessage());
+                // the stash commit message already is the native line body
+                // ("WIP on <branch>: <sha> <subject>") — do not re-prefix it
+                lines.add("stash@{" + lines.size() + "}: " + commit.getShortMessage());
             }
             return lines;
         } catch (Exception e) {
@@ -394,11 +394,6 @@ final class Wave4Ops {
         } catch (IOException e) {
             throw new NopGitException("cannot determine current branch", e);
         }
-    }
-
-    private static String safeBranch(Repository repository) {
-        String branch = currentBranchOrNull(repository);
-        return branch != null ? branch : "master";
     }
 
     private static String currentBranchOrNull(Repository repository) {

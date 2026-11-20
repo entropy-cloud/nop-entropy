@@ -34,20 +34,34 @@ final class Wave4Commands {
 
     static int checkout(CliContext ctx, List<String> args) {
         boolean create = false;
+        boolean pathMode = false;
         String branch = null;
+        List<String> paths = new ArrayList<>();
         for (String arg : args) {
-            if (arg.equals("-b") || arg.equals("-c") || arg.equals("-B"))
+            if (arg.equals("--")) {
+                pathMode = true;
+            } else if (pathMode) {
+                paths.add(arg);
+            } else if (arg.equals("-b") || arg.equals("-c") || arg.equals("-B"))
                 create = true;
             else if (!arg.startsWith("-"))
                 branch = arg;
             else
                 return unknownOption(ctx, arg);
         }
-        if (branch == null) {
-            ctx.err().println("fatal: branch name required");
-            return EXIT_FATAL;
-        }
         try (var svc = ctx.openRepo()) {
+            // checkout -- <paths> discards worktree changes of tracked paths
+            // (native semantics; restore is the same operation)
+            if (pathMode) {
+                for (String path : paths) {
+                    svc.restore(path);
+                }
+                return EXIT_OK;
+            }
+            if (branch == null) {
+                ctx.err().println("fatal: branch name required");
+                return EXIT_FATAL;
+            }
             if (!create && branch.equals(svc.currentBranch())) {
                 ctx.err().println("Already on '" + branch + "'");
                 return EXIT_OK;
@@ -325,17 +339,31 @@ final class Wave4Commands {
     static int init(CliContext ctx, List<String> args) {
         String branch = null;
         String dir = ".";
+        boolean bare = false;
         for (int i = 0; i < args.size(); i++) {
             String arg = args.get(i);
             if (arg.equals("-b")) {
                 if (i + 1 >= args.size())
                     return ctx.fatal("switch `b' requires a value");
                 branch = args.get(++i);
+            } else if (arg.equals("--bare")) {
+                bare = true;
             } else if (!arg.startsWith("-")) {
                 dir = arg;
             }
         }
         File target = new File(ctx.workDir(), dir);
+        if (bare) {
+            // bare layout: HEAD/refs/objects live at the top level, no worktree
+            try {
+                JGitRepositoryService.initBare(target, branch);
+            } catch (NopGitException e) {
+                return GitCompatCli.nativeFatal(ctx, e);
+            }
+            ctx.out().println("Initialized empty Git repository in "
+                    + target.getAbsolutePath() + "/");
+            return EXIT_OK;
+        }
         try (var svc = JGitRepositoryService.init(target, branch)) {
             ctx.out().println("Initialized empty Git repository in "
                     + new File(target, ".git").getAbsolutePath() + "/");

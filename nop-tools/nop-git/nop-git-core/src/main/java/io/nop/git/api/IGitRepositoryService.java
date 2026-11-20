@@ -51,6 +51,14 @@ public interface IGitRepositoryService extends AutoCloseable {
     }
 
     /**
+     * Create a bare repository ({@code git init --bare}): HEAD/refs/objects
+     * live at the top level, no working tree.
+     */
+    static void initBare(File dir, String defaultBranch) {
+        io.nop.git.core.JGitRepositoryService.initBare(dir, defaultBranch);
+    }
+
+    /**
      * Create a new repository at workDir with an explicit default branch.
      */
     static IGitRepositoryService init(File workDir, String defaultBranch) {
