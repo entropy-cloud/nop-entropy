@@ -58,10 +58,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 5: 可选 HTTP Git 服务层
 
-- 26. nop-git-server 模块（GitServlet + RepositoryResolver + incrementOpen 生命周期）：`planned`
-- 27. PreReceiveHook 服务端分支保护（直推/强推/删除校验，与 CLI 层策略互补）：`planned`
-- 28. 仓库注册表配置 + 部署形态（内嵌容器 / 挂入已有 Nop 服务）+ HTTP 协议集成测试：`planned`
-- ★ **Milestone: HTTP 端点可用（可选）** (unlocks when 26..28 done): `planned`
+- 26. nop-git-server 模块（GitServlet + RepositoryResolver + incrementOpen 生命周期；嵌入 Jetty ee11 12.1.9/servlet 6.1 对齐 jgit-parent；push 显式 ReceivePackFactory 启用）：`done` (plan 2580)
+- 27. PreReceiveHook 服务端分支保护（直推/强推/删除三类拒绝各有集成测试；变异探针红→绿）：`done` (plan 2580)
+- 28. 仓库注册表配置 + 内嵌容器部署形态 + main 入口 + HTTP 协议集成测试（真实 git clone/commit/push 经 HTTP 往返绿；挂入 Nop 服务归 Wave 6 评估）：`done` (plan 2580)
+- ★ **Milestone: HTTP 端点可用（可选）** (unlocks when 26..28 done): `done`
 
 ### Wave 6: 平台集成与收尾
 

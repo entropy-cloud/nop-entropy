@@ -35,6 +35,7 @@
                 <module>nop-git-bom</module>
                 <module>nop-git-core</module>
                 <module>nop-git-cli</module>
+                <module>nop-git-server</module>
             </modules>
         </profile>
     </profiles>

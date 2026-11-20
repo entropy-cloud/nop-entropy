@@ -61,7 +61,7 @@ public interface IGitRepositoryService extends AutoCloseable {
 
 ## 四、HTTP Git 服务层（可选）
 
-- 技术选型：JGit `GitServlet` + `RepositoryResolver<HttpServletRequest>`，解析时 `incrementOpen()` 管理生命周期；浏览器直接访问返回 404 是正常行为（只处理智能协议路径）。
+- 技术选型：JGit `GitServlet` + `RepositoryResolver<HttpServletRequest>`，解析时 `incrementOpen()` 管理生命周期；**push 需显式设 ReceivePackFactory（GitServlet 默认只服务 fetch，落地裁定 plan 2580）**；浏览器直接访问返回 404 是正常行为（只处理智能协议路径）。
 - **服务端必须独立部署推送保护**：CLI/API 层策略引擎保护的是本地 AI 操作；HTTP 端点的完整性由 `PreReceiveHook` 保护——对 push 的 ref 更新做保护分支直推/强推/删除校验，两者互补不互替。
 - 部署形态：独立可执行（内嵌 HTTP 容器）或挂入已有 Nop 服务；仓库注册表由配置声明仓库根目录映射。
 
