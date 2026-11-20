@@ -2,6 +2,7 @@ package io.nop.rg.core.coordinator;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
@@ -132,5 +133,22 @@ final class ByteText {
 
     private static byte[] slice(MemorySegment seg, long offset, int length) {
         return seg.asSlice(offset, length).toArray(ValueLayout.JAVA_BYTE);
+    }
+
+    /**
+     * 输出侧统一文本解码（plan 2575 Phase E2，设计文档 03 决策 2/3）：
+     * text 按指定 charset 解码；bytes（原始字节）仅在区间非法 UTF-8 时非 null——该出现条件
+     * 与 charset 无关（R2 裁定）。UTF-8 非法区间在 charset==UTF-8 时走 lossy 快路径
+     * （不落入 decoder 整体慢路径，决策 5）；其他 charset 直接整段解码。
+     */
+    static LineCursor.DecodedText decodeText(byte[] bytes, Charset charset) {
+        int length = bytes.length;
+        if (isValidUtf8(bytes, 0, length)) {
+            return new LineCursor.DecodedText(new String(bytes, 0, length, charset), null);
+        }
+        String text = charset.equals(StandardCharsets.UTF_8)
+                ? decodeLossy(bytes)
+                : new String(bytes, 0, length, charset);
+        return new LineCursor.DecodedText(text, bytes);
     }
 }

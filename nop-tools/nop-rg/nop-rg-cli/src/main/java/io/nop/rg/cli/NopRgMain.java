@@ -10,6 +10,10 @@ import picocli.CommandLine;
 
 import java.io.BufferedOutputStream;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,9 +24,11 @@ import java.util.concurrent.Callable;
  * nop-rg 命令行入口（plan 2264 CLI-01..03）。
  *
  * <p>用法：{@code nop-rg PATTERN [PATH] [-g glob]... [-i] [-c] [-l] [--json] [--no-ignore] [--threads N]
- * [--jfr <file>]
+ * [--encoding <charset>] [--jfr <file>]
  *
- * <p>退出码对齐 rg：命中 0 / 未命中 1 / 错误 2。
+ * <p>退出码：命中 0 / 未命中 1 / 错误 2 / 非法 --encoding 值 3（plan 2575 Phase E2 R4 裁定：
+ * 有意偏离 rg 的 0/1/2 契约——非法编码是参数用法错误，与搜索执行错误区分；roadmap 与
+ * 设计文档 03 验收表钉 exit 3）。
  */
 @CommandLine.Command(
         name = "nop-rg",
@@ -72,6 +78,21 @@ public class NopRgMain implements Callable<Integer> {
             description = "Record JFR events (CPU/alloc/lock) to the given .jfr file during the search")
     private String jfrOutput;
 
+    /**
+     * 显式编码（plan 2575 Phase E2）：同时作用于模式编码 / regex 解码 / 输出解码三处
+     * （设计文档 03 决策 3）；{@code none} 别名 = 默认字节保真（决策 2 显式形式）。
+     * 非法值显式报错 exit 3，不回退 UTF-8（R4：catch-all 之前前置校验）。
+     */
+    @CommandLine.Option(names = "--encoding", arity = "1",
+            description = "Text encoding for pattern matching, regex decoding and output text"
+                    + " (e.g. gbk, iso-8859-1, shift_jis; 'none' = byte-fidelity default)."
+                    + " Invalid value exits with code 3")
+    private String encoding;
+
+    // --encoding 解析结果（plan 2575 Phase E2）：call() 前置校验后写入，search() 消费；
+    // 包内字段便于测试覆写/断言
+    Charset searchCharset = StandardCharsets.UTF_8;
+
     public static void main(String[] args) {
         int code = new CommandLine(new NopRgMain()).execute(args);
         System.exit(code);
@@ -79,6 +100,22 @@ public class NopRgMain implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        // --encoding 校验前置（plan 2575 R4）：IllegalCharsetNameException/UnsupportedCharsetException
+        // 均为 IllegalArgumentException 子类，若落入下方 catch-all 会被归位 exit 2——显式前置返回 exit 3
+        Charset charset;
+        if (encoding == null || "none".equals(encoding)) {
+            charset = StandardCharsets.UTF_8;
+        } else {
+            try {
+                charset = Charset.forName(encoding);
+            } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+                // stderr 直出（CLI 无 logger；消息面向用户，无需堆栈——非法值属用法错误）
+                System.err.println("nop-rg: invalid --encoding value '" + encoding + "' ("
+                        + e.getClass().getSimpleName() + "): not a supported charset name");
+                return 3;
+            }
+        }
+        this.searchCharset = charset;
         try {
             Path root = Path.of(path).toAbsolutePath().normalize();
             if (!Files.isDirectory(root)) {
@@ -150,7 +187,7 @@ public class NopRgMain implements Callable<Integer> {
                 : vector ? SearchCoordinator.Strategy.VECTOR
                 : SearchCoordinator.Strategy.LITERAL;
         SearchCommand command = new SearchCommand(root, pattern, strategy,
-                ignoreCase, globs, 0, includeLineText, includeSubmatchText);
+                ignoreCase, globs, 0, includeLineText, includeSubmatchText, searchCharset);
         return coordinator.search(command);
     }
 }

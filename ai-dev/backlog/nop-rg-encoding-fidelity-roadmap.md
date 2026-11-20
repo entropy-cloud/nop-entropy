@@ -23,11 +23,11 @@
 
 ### Wave E2: `--encoding <charset>` 显式编码
 
-- E2.1 `SearchCommand.patternBytes` 按指定编码编码（模式侧）: `todo`
-- E2.2 `RegexSearcher` 整文件与候选行按指定 Charset 解码（regex 侧）: `todo`
-- E2.3 输出 `text` 按指定编码解码（输出侧）+ `--encoding none` 别名: `todo`
-- E2.4 非法 charset 值 exit 3 显式报错: `todo`
-- ★ **Milestone E2**: `todo`（GBK 语料全链路正确）
+- E2.1 `SearchCommand.patternBytes` 按指定编码编码（模式侧）: `done`
+- E2.2 `RegexSearcher` 整文件与候选行按指定 Charset 解码（regex 侧）: `done`
+- E2.3 输出 `text` 按指定编码解码（输出侧）+ `--encoding none` 别名: `done`
+- E2.4 非法 charset 值 exit 3 显式报错: `done`
+- ★ **Milestone E2**: `done`（GBK 语料全链路正确）
 
 ### Wave E3: 验收与保护
 

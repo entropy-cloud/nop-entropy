@@ -1,7 +1,7 @@
 package io.nop.rg.core.coordinator;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +26,12 @@ public final class MatchAggregator {
 
     /**
      * 命中聚合入口：按 {@code includeLineText} 分派 count 快速路径与 LineMatch 构建。
-     * spans 须按起始偏移升序（literalSpans/regexSpans 契约）。
+     * spans 须按起始偏移升序（literalSpans/regexSpans 契约）。charset 为输出解码统一口径
+     * （plan 2575 Phase E2，null 视为 UTF-8）。
      */
     static FileMatches aggregate(List<MatchSpan> spans, MemorySegment seg, long size, int maxLines,
-                                 boolean includeLineText, boolean includeSubmatchText) {
+                                 boolean includeLineText, boolean includeSubmatchText, Charset charset) {
+        Charset cs = charset == null ? StandardCharsets.UTF_8 : charset;
         if (!includeLineText) {
             LineCursor cursor = new LineCursor(seg, size);
             int lineCount = 0;
@@ -49,12 +51,12 @@ public final class MatchAggregator {
             }
             return FileMatches.ofCount(lineCount, truncated);
         }
-        return buildLineMatches(seg, size, spans, maxLines, includeSubmatchText);
+        return buildLineMatches(seg, size, spans, maxLines, includeSubmatchText, cs);
     }
 
     private static FileMatches buildLineMatches(MemorySegment seg, long size, List<MatchSpan> spans, int maxLines,
-                                                boolean includeSubmatchText) {
-        LineCursor cursor = new LineCursor(seg, size);
+                                                boolean includeSubmatchText, Charset charset) {
+        LineCursor cursor = new LineCursor(seg, size, charset);
         List<LineMatch> lines = new ArrayList<>();
         List<Submatch> currentSubmatches = new ArrayList<>();
         LineCursor.LineInfo currentInfo = null;
@@ -75,7 +77,7 @@ public final class MatchAggregator {
             }
             // R5：消费方不读命中文本时免逐命中解码（text 置空串，区间保留）
             LineCursor.DecodedText subText = includeSubmatchText
-                    ? decodeFidelity(seg, span.start(), (int) (span.end() - span.start()))
+                    ? decodeFidelity(seg, span.start(), (int) (span.end() - span.start()), charset)
                     : null;
             currentSubmatches.add(new Submatch(span.start(), span.end(),
                     subText == null ? "" : subText.text(),
@@ -106,17 +108,13 @@ public final class MatchAggregator {
     }
 
     /**
-     * 命中文本字节保真解码（plan 2575 Phase E1）：合法 UTF-8 走 decoder 快路径，
-     * 非法走 lossy + 原始字节保留。
+     * 命中文本字节保真解码（plan 2575 Phase E1/E2）：text 按指定 charset 解码，
+     * bytes 仅区间非法 UTF-8 时保留。
      */
-    private static LineCursor.DecodedText decodeFidelity(MemorySegment seg, long offset, int length) {
+    private static LineCursor.DecodedText decodeFidelity(MemorySegment seg, long offset, int length, Charset charset) {
         if (length <= 0) {
             return new LineCursor.DecodedText("", null);
         }
-        byte[] bytes = ByteText.rawBytes(seg, offset, length);
-        if (ByteText.isValidUtf8(bytes, 0, length)) {
-            return new LineCursor.DecodedText(ByteText.decodeValid(bytes), null);
-        }
-        return new LineCursor.DecodedText(ByteText.decodeLossy(bytes), bytes);
+        return ByteText.decodeText(ByteText.rawBytes(seg, offset, length), charset);
     }
 }

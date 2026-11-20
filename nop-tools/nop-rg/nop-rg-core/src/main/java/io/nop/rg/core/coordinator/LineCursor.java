@@ -4,6 +4,7 @@ import io.nop.rg.core.search.ByteScan;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -17,12 +18,18 @@ public final class LineCursor {
 
     private final MemorySegment seg;
     private final long size;
+    private final Charset charset; // 行文本解码口径（plan 2575 Phase E2，默认 UTF-8）
     private long lineStart;
     private long lineNumber = 1;
 
     public LineCursor(MemorySegment seg, long size) {
+        this(seg, size, StandardCharsets.UTF_8);
+    }
+
+    public LineCursor(MemorySegment seg, long size, Charset charset) {
         this.seg = seg;
         this.size = size;
+        this.charset = charset == null ? StandardCharsets.UTF_8 : charset;
     }
 
     /**
@@ -78,13 +85,12 @@ public final class LineCursor {
     }
 
     /**
-     * 提取行文本（不含行终止符）并做字节保真判定（plan 2575 Phase E1）。行文本解码的唯一实现
+     * 提取行文本（不含行终止符）并做字节保真判定（plan 2575 Phase E1/E2）。行文本解码的唯一实现
      * （plan 2273 A4：MatchAggregator 行内容经此解码，不再自持 decode 拷贝）。
      *
-     * <p>合法 UTF-8：text = decoder 快路径解码（与改动前相同），bytes 为 null（零额外开销除
-     * 一次线性扫描）；非法 UTF-8：text = lossy 形态（逐非法字节 {@code U+FFFD}），
-     * bytes = 行内容原始字节（不含终止符；bytes 输出字段含终止符，由聚合层按
-     * {@code lineStart..lineEnd} 另行截取，plan 2575 R1）。
+     * <p>text 按构造器 Charset 解码（决策 3 输出侧）；bytes = 行内容原始字节（不含终止符），
+     * 仅区间非法 UTF-8 时非 null（出现条件与 charset 无关，R2；bytes 输出字段含终止符，
+     * 由聚合层按 {@code lineStart..lineEnd} 另行截取，plan 2575 R1）。
      */
     public DecodedText decodedText(LineInfo info) {
         if (info.contentEnd() <= info.lineStart()) {
@@ -92,10 +98,7 @@ public final class LineCursor {
         }
         int len = (int) (info.contentEnd() - info.lineStart());
         byte[] bytes = seg.asSlice(info.lineStart(), len).toArray(ValueLayout.JAVA_BYTE);
-        if (ByteText.isValidUtf8(bytes, 0, len)) {
-            return new DecodedText(ByteText.decodeValid(bytes), null);
-        }
-        return new DecodedText(ByteText.decodeLossy(bytes), bytes);
+        return ByteText.decodeText(bytes, charset);
     }
 
     private long indexOf(byte target, long from, long to) {

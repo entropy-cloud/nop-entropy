@@ -29,7 +29,7 @@ public class RegexPrefilterEquivalenceTest {
      */
     private List<RegexSearcher.ByteSpan> wholeFileExpected(String content, String regex, boolean ignoreCase) {
         Pattern pattern = Pattern.compile(regex, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
-        RegexSearcher.Utf8OffsetMap map = new RegexSearcher.Utf8OffsetMap(content);
+        RegexSearcher.CharsetOffsetMap map = new RegexSearcher.CharsetOffsetMap(content, StandardCharsets.UTF_8);
         Matcher m = pattern.matcher(content);
         List<RegexSearcher.ByteSpan> spans = new ArrayList<>();
         while (m.find()) {

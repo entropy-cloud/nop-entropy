@@ -92,28 +92,28 @@ Exit Criteria:
 
 ### Phase E2 - `--encoding <charset>` 显式编码
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-rg/nop-rg-core`（SearchCommand/RegexSearcher/LineCursor/MatchAggregator/SearchCoordinator）、`nop-tools/nop-rg/nop-rg-cli`（NopRgMain）
 
 - Item Types: `Feature`（显式编码能力）、`Fix`（regex 非 UTF-8 静默错配）
 
-- [ ] `SearchCommand` 携带目标 Charset（默认 UTF-8，加在全参主构造器，R8）；`patternBytes` 与 `RegexSearcher.requiredLiteral`（prefilter）按该 Charset 编码（模式侧两处一致）
-- [ ] `RegexSearcher` 整文件与候选行解码按指定 Charset（regex 侧）；构造器接收 Charset
-- [ ] 输出侧：行文本/命中文本按指定 Charset 解码转 `text`，`bytes` 仍为原始字节 base64（仅非法 UTF-8 时输出）；`SearchCommand` 编码参数贯通 `SearchCoordinator` → `MatchAggregator`/`LineCursor`
-- [ ] `NopRgMain` 新增 `--encoding` 选项；`none` 别名 = 默认字节保真；非法 charset 值 stderr 显式报错并 exit 3（catch-all 之前前置校验，R4；更新退出码 javadoc）
-- [ ] `RegexSearcher.Utf8OffsetMap` char→byte 映射按指定 Charset 通用化（R5，写死 UTF-8 的 `utf8Length` 在 GBK 下区间漂移）
-- [ ] 新增测试：GBK 语料 literal 命中 / regex 命中（含 submatch 字节偏移断言，R5）/ 输出文本全链路正确；`--encoding none` 与默认行为等价；非法 charset exit 3
-- [ ] 变异探针（设计第三节强制）：破坏「模式编码」（patternBytes 回退 UTF-8）→ GBK 用例必红；破坏「regex 解码」（RegexSearcher 回退 UTF-8）→ GBK regex 用例必红；破坏「输出解码」→ 输出用例必红；逐一记录红→恢复绿证据
+- [x] `SearchCommand` 携带目标 Charset（默认 UTF-8，加在全参主构造器，R8）；`patternBytes` 与 `RegexSearcher.requiredLiteral`（prefilter）按该 Charset 编码（模式侧两处一致）
+- [x] `RegexSearcher` 整文件与候选行解码按指定 Charset（regex 侧）；构造器接收 Charset
+- [x] 输出侧：行文本/命中文本按指定 Charset 解码转 `text`，`bytes` 仍为原始字节 base64（仅非法 UTF-8 时输出）；`SearchCommand` 编码参数贯通 `SearchCoordinator` → `MatchAggregator`/`LineCursor`
+- [x] `NopRgMain` 新增 `--encoding` 选项；`none` 别名 = 默认字节保真；非法 charset 值 stderr 显式报错并 exit 3（catch-all 之前前置校验，R4；更新退出码 javadoc）
+- [x] `RegexSearcher.Utf8OffsetMap` char→byte 映射按指定 Charset 通用化（R5，写死 UTF-8 的 `utf8Length` 在 GBK 下区间漂移）
+- [x] 新增测试：GBK 语料 literal 命中 / regex 命中（含 submatch 字节偏移断言，R5）/ 输出文本全链路正确；`--encoding none` 与默认行为等价；非法 charset exit 3
+- [x] 变异探针（设计第三节强制）：破坏「模式编码」（patternBytes 回退 UTF-8）→ GBK 用例必红；破坏「regex 解码」（RegexSearcher 回退 UTF-8）→ GBK regex 用例必红；破坏「输出解码」→ 输出用例必红；逐一记录红→恢复绿证据
 
 Exit Criteria:
 
-- [ ] GBK 语料：literal、regex、`--json` 输出文本三路断言全绿；漏改任一处对应变异用例确实变红（探针证据写入日志）
-- [ ] `--encoding none` 输出与未指定 `--encoding` 逐字节一致
-- [ ] 非法 charset 值：exit 3 + stderr 显式报错（自动化断言）
-- [ ] 二进制判定不受 `--encoding` 影响（决策 4 回归断言）
-- [ ] **接线验证**：`SearchCommand.charset` 在运行时确实被 patternBytes 编码 / RegexSearcher 解码 / 输出解码三条链消费（测试断言或代码追踪记录）
-- [ ] owner 文档：设计文档 03 状态更新为已实施 + 契约（`--encoding`）写入；roadmap E2 状态更新
-- [ ] `ai-dev/logs/` 当日条目已更新
+- [x] GBK 语料：literal、regex、`--json` 输出文本三路断言全绿；漏改任一处对应变异用例确实变红（探针证据写入日志）
+- [x] `--encoding none` 输出与未指定 `--encoding` 逐字节一致
+- [x] 非法 charset 值：exit 3 + stderr 显式报错（自动化断言）
+- [x] 二进制判定不受 `--encoding` 影响（决策 4 回归断言）
+- [x] **接线验证**：`SearchCommand.charset` 在运行时确实被 patternBytes 编码 / RegexSearcher 解码 / 输出解码三条链消费（测试断言或代码追踪记录）
+- [x] owner 文档：设计文档 03 状态更新为已实施 + 契约（`--encoding`）写入；roadmap E2 状态更新
+- [x] `ai-dev/logs/` 当日条目已更新
 
 ### Phase E3 - 验收与保护
 

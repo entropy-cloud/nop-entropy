@@ -99,7 +99,7 @@ public class SearchCoordinator {
 
         // RegexSearcher / PreparedFinder per-command 编译一次（优化迭代 Round 1：BMH 跳表不再每 match 重建）
         RegexSearcher regexSearcher = strategy == Strategy.REGEX
-                ? new RegexSearcher(command.getPattern(), command.isIgnoreCase())
+                ? new RegexSearcher(command.getPattern(), command.isIgnoreCase(), command.charset())
                 : null;
         PreparedFinder prepared;
         if (strategy == Strategy.VECTOR) {
@@ -265,7 +265,7 @@ public class SearchCoordinator {
 
     private FileMatches aggregate(List<MatchSpan> spans, MemorySegment seg, long size, SearchCommand command) {
         return MatchAggregator.aggregate(spans, seg, size, command.getMaxMatchesPerFile(),
-                command.isIncludeLineText(), command.isIncludeSubmatchText());
+                command.isIncludeLineText(), command.isIncludeSubmatchText(), command.charset());
     }
 
     /**
