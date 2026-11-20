@@ -15,8 +15,10 @@ public final class LineMatch {
     private final List<Submatch> submatches;
     private final String text;     // 不含终止符
     private final String lineWithTerminator; // 含终止符（rg lines.text 形态）
+    private final byte[] contentBytes; // 含终止符的行原始字节；仅行内容非法 UTF-8 时非 null（plan 2575 E1）
 
-    LineMatch(LineCursor.LineInfo info, List<Submatch> submatches, String content, String terminator) {
+    LineMatch(LineCursor.LineInfo info, List<Submatch> submatches, String content, String terminator,
+              byte[] contentBytes) {
         this.lineNumber = info.lineNumber();
         this.lineStart = info.lineStart();
         this.lineEnd = info.lineEnd();
@@ -24,6 +26,7 @@ public final class LineMatch {
         this.submatches = submatches;
         this.text = content;
         this.lineWithTerminator = content + terminator;
+        this.contentBytes = contentBytes;
     }
 
     public long getLineNumber() {
@@ -52,5 +55,13 @@ public final class LineMatch {
 
     public String getLineWithTerminator() {
         return lineWithTerminator;
+    }
+
+    /**
+     * 行原始字节（含终止符，{@code lineStart..lineEnd}）；仅行内容非法 UTF-8 时非 null
+     * （plan 2575 Phase E1，JSON lines.bytes 契约）。
+     */
+    public byte[] getContentBytes() {
+        return contentBytes;
     }
 }

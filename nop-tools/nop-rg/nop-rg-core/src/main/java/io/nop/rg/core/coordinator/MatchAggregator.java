@@ -68,39 +68,55 @@ public final class MatchAggregator {
                         break;
                     }
                     // submatches 所有权转移给 LineMatch（优化迭代 Round 3：去掉 List.copyOf）
-                    lines.add(newLineMatch(cursor, currentInfo, currentSubmatches));
+                    lines.add(newLineMatch(seg, cursor, currentInfo, currentSubmatches));
                     currentSubmatches = new ArrayList<>();
                 }
                 currentInfo = info;
             }
             // R5：消费方不读命中文本时免逐命中解码（text 置空串，区间保留）
+            LineCursor.DecodedText subText = includeSubmatchText
+                    ? decodeFidelity(seg, span.start(), (int) (span.end() - span.start()))
+                    : null;
             currentSubmatches.add(new Submatch(span.start(), span.end(),
-                    includeSubmatchText ? decode(seg, span.start(), (int) (span.end() - span.start())) : ""));
+                    subText == null ? "" : subText.text(),
+                    subText == null ? null : subText.bytes()));
         }
         if (currentInfo != null && !truncated) {
             if (maxLines > 0 && lines.size() >= maxLines) {
                 truncated = true;
             } else {
-                lines.add(newLineMatch(cursor, currentInfo, currentSubmatches));
+                lines.add(newLineMatch(seg, cursor, currentInfo, currentSubmatches));
             }
         }
         return FileMatches.ofLines(lines, truncated);
     }
 
-    private static LineMatch newLineMatch(LineCursor cursor, LineCursor.LineInfo info, List<Submatch> submatches) {
-        // 行文本经 LineCursor.text 解码（plan 2273 A4：与 MatchAggregator 自有 decode 的重复实现归一）
-        String content = cursor.text(info);
+    private static LineMatch newLineMatch(MemorySegment seg, LineCursor cursor, LineCursor.LineInfo info,
+                                          List<Submatch> submatches) {
+        // 行文本经 LineCursor.decodedText 解码 + 字节保真判定（plan 2575 Phase E1；plan 2273 A4 归一保持）
+        LineCursor.DecodedText decoded = cursor.decodedText(info);
+        String content = decoded.text();
         // 终止符由长度直接判定，免解码（优化迭代 Round 3）
         long termLen = info.lineEnd() - info.contentEnd();
         String terminator = termLen == 0 ? "" : termLen == 1 ? "\n" : "\r\n";
-        return new LineMatch(info, submatches, content, terminator);
+        // bytes 输出字段含行终止符（lineStart..lineEnd，plan 2575 R1）；仅行内容非法 UTF-8 时产出
+        byte[] lineBytes = decoded.bytes() == null ? null
+                : ByteText.rawBytes(seg, info.lineStart(), (int) (info.lineEnd() - info.lineStart()));
+        return new LineMatch(info, submatches, content, terminator, lineBytes);
     }
 
-    private static String decode(MemorySegment seg, long offset, int length) {
+    /**
+     * 命中文本字节保真解码（plan 2575 Phase E1）：合法 UTF-8 走 decoder 快路径，
+     * 非法走 lossy + 原始字节保留。
+     */
+    private static LineCursor.DecodedText decodeFidelity(MemorySegment seg, long offset, int length) {
         if (length <= 0) {
-            return "";
+            return new LineCursor.DecodedText("", null);
         }
-        byte[] bytes = seg.asSlice(offset, length).toArray(ValueLayout.JAVA_BYTE);
-        return new String(bytes, StandardCharsets.UTF_8);
+        byte[] bytes = ByteText.rawBytes(seg, offset, length);
+        if (ByteText.isValidUtf8(bytes, 0, length)) {
+            return new LineCursor.DecodedText(ByteText.decodeValid(bytes), null);
+        }
+        return new LineCursor.DecodedText(ByteText.decodeLossy(bytes), bytes);
     }
 }

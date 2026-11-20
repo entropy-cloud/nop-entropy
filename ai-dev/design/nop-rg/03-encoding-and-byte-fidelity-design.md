@@ -48,7 +48,7 @@
 - `text`：按 UTF-8 lossy 转义后的可读文本（与 rg 一致：非法序列记 `U+FFFD`），保证 JSON 合法与终端可读；
 - `bytes`：原始字节的 **base64**（仅当该区间非合法 UTF-8 时输出；合法 UTF-8 时省略，保持现有输出零增长）。
 
-依据：rg 15.x `--json` 在 `--encoding none` 与非法字节场景下正是此形态。这样既保留可读性，又不丢失可编程消费者所需的精确字节。
+依据：rg 15.x `--json` 在非法字节场景输出 `bytes`（base64，含行终止符）。**注意与 rg 的形态差异是裁定**：rg 为 `text`/`bytes` 互斥（非法行不再输出 text），nop-rg 输出为**有意超集**——`text`（lossy）恒在 + `bytes` 仅在区间原始字节非法 UTF-8 时出现（该出现条件与 `--encoding` 无关；指定 GBK 等编码时同样按原始字节是否合法 UTF-8 判定）。这样既保留可读性，又不丢失可编程消费者所需的精确字节，且消费方按 rg 的「读 bytes 优先」逻辑天然兼容。`lines.bytes` 覆盖区间含行终止符（`lineStart..lineEnd`），submatch `bytes` 为命中的字节区间 `[byteStart, byteEnd)`。
 
 **兼容性**：合法 UTF-8 文件的输出与当前逐字节相同（新增字段仅在非法场景出现），既有对拍测试（`RgComparisonTest` 等）不受影响。
 

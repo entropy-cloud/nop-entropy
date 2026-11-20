@@ -1,8 +1,8 @@
 # nop-rg 编码与字节保真 Roadmap
 
 > Last updated: 2026-11-20
-> Sources: `ai-dev/design/nop-rg/03-encoding-and-byte-fidelity-design.md`（设计决策，已定未实施）
-> Status: **planned-only — 设计完成，暂不实施**
+> Sources: `ai-dev/design/nop-rg/03-encoding-and-byte-fidelity-design.md`（设计决策）、`ai-dev/plans/2575-nop-rg-encoding-byte-fidelity.md`（执行计划）
+> Status: **in progress — owner 已于 2026-11-20 指示执行（plan 2575）**
 
 ## Purpose
 
@@ -16,10 +16,10 @@
 
 ### Wave E1: 输出字节保真（默认行为，无开关）
 
-- E1.1 JSON 输出 `text` + `bytes`（base64，仅非法区间）双字段: `todo`
-- E1.2 非法 UTF-8 不再走 `CharsetDecoder` 回退，改基础扫描 + base64: `todo`
-- E1.3 合法 UTF-8 输出零变化对拍（JSON 逐字节 diff）: `todo`
-- ★ **Milestone E1**: `todo`（非 UTF-8 输出可精确还原原始字节）
+- E1.1 JSON 输出 `text` + `bytes`（base64，仅非法区间）双字段: `done`
+- E1.2 非法 UTF-8 不再走 `CharsetDecoder` 回退，改基础扫描 + base64: `done`
+- E1.3 合法 UTF-8 输出零变化对拍（JSON 逐字节 diff）: `done`
+- ★ **Milestone E1**: `done`（非 UTF-8 输出可精确还原原始字节）
 
 ### Wave E2: `--encoding <charset>` 显式编码
 
@@ -63,6 +63,6 @@
 
 ## Rules
 
-- 本 roadmap 当前**不进入执行队列**（owner 指示：先写文档，暂不实施）；任何开始实施的动作须先确认。
+- ~~本 roadmap 当前**不进入执行队列**（owner 指示：先写文档，暂不实施）~~；owner 已于 2026-11-20 显式指示执行，锁定解除（plan 2575）。
 - 三处一致性（模式编码 / regex 解码 / 输出编码）是硬约束：任一处遗漏即静默错配，验收以变异探针强制。
 - 状态只在上方 Work Items 块更新；阶段间必须完成对拍验收再推进。

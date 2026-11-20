@@ -78,16 +78,24 @@ public final class LineCursor {
     }
 
     /**
-     * 提取行文本（不含行终止符）。行文本解码的唯一实现
+     * 提取行文本（不含行终止符）并做字节保真判定（plan 2575 Phase E1）。行文本解码的唯一实现
      * （plan 2273 A4：MatchAggregator 行内容经此解码，不再自持 decode 拷贝）。
+     *
+     * <p>合法 UTF-8：text = decoder 快路径解码（与改动前相同），bytes 为 null（零额外开销除
+     * 一次线性扫描）；非法 UTF-8：text = lossy 形态（逐非法字节 {@code U+FFFD}），
+     * bytes = 行内容原始字节（不含终止符；bytes 输出字段含终止符，由聚合层按
+     * {@code lineStart..lineEnd} 另行截取，plan 2575 R1）。
      */
-    public String text(LineInfo info) {
+    public DecodedText decodedText(LineInfo info) {
         if (info.contentEnd() <= info.lineStart()) {
-            return "";
+            return new DecodedText("", null);
         }
-        byte[] bytes = seg.asSlice(info.lineStart(), info.contentEnd() - info.lineStart())
-                .toArray(ValueLayout.JAVA_BYTE);
-        return new String(bytes, StandardCharsets.UTF_8);
+        int len = (int) (info.contentEnd() - info.lineStart());
+        byte[] bytes = seg.asSlice(info.lineStart(), len).toArray(ValueLayout.JAVA_BYTE);
+        if (ByteText.isValidUtf8(bytes, 0, len)) {
+            return new DecodedText(ByteText.decodeValid(bytes), null);
+        }
+        return new DecodedText(ByteText.decodeLossy(bytes), bytes);
     }
 
     private long indexOf(byte target, long from, long to) {
@@ -103,5 +111,12 @@ public final class LineCursor {
      * 行信息：行号（1-based）、行起点、行终点（含终止符）、内容终点（不含终止符）。
      */
     public record LineInfo(long lineNumber, long lineStart, long lineEnd, long contentEnd) {
+    }
+
+    /**
+     * 行文本字节保真结果：text 为可读文本（非法 UTF-8 时为 lossy 形态）；bytes 为原始
+     * 内容字节（仅非法 UTF-8 时非 null，plan 2575 Phase E1）。
+     */
+    public record DecodedText(String text, byte[] bytes) {
     }
 }

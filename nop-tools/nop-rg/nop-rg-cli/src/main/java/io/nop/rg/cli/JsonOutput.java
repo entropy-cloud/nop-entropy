@@ -6,6 +6,7 @@ import io.nop.rg.core.coordinator.SearchCoordinator;
 import io.nop.rg.core.coordinator.Submatch;
 
 import java.io.PrintWriter;
+import java.util.Base64;
 import java.util.Map;
 
 /**
@@ -16,6 +17,9 @@ import java.util.Map;
  *   <li>end 消息含 binary_offset/binary_end（恒 null）与 stats（本实现豁免，恒缺省）。</li>
  *   <li>lines.text 含行终止符；absolute_offset 为行首字节偏移；
  *       submatch start/end 为行内字节偏移。</li>
+ *   <li>字节保真契约（plan 2575 Phase E1）：行内容/命中区间非法 UTF-8 时额外输出
+ *       bytes 字段（原始字节 base64；lines 含终止符），合法 UTF-8 输出零增长——
+ *       与 rg 15.x text/bytes 互斥形态的有意超集（设计文档 03 决策 2）。</li>
  * </ul>
  */
 public final class JsonOutput {
@@ -40,8 +44,13 @@ public final class JsonOutput {
     private static void writeMatch(PrintWriter out, String escapedPath, LineMatch line) {
         StringBuilder sb = new StringBuilder(256);
         sb.append("{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"").append(escapedPath)
-                .append("\"},\"lines\":{\"text\":\"").append(escape(line.getLineWithTerminator()))
-                .append("\"},\"line_number\":").append(line.getLineNumber())
+                .append("\"},\"lines\":{\"text\":\"").append(escape(line.getLineWithTerminator()));
+        // bytes 字段契约（plan 2575 Phase E1）：仅行内容非法 UTF-8 时输出 base64（含行终止符，
+        // lineStart..lineEnd），合法 UTF-8 输出零增长；与 rg 15.x 互斥形态的有意超集（设计文档 03 决策 2）
+        if (line.getContentBytes() != null) {
+            sb.append("\",\"bytes\":\"").append(Base64.getEncoder().encodeToString(line.getContentBytes()));
+        }
+        sb.append("\"},\"line_number\":").append(line.getLineNumber())
                 .append(",\"absolute_offset\":").append(line.getLineStart())
                 .append(",\"submatches\":[");
         for (int i = 0; i < line.getSubmatches().size(); i++) {
@@ -51,8 +60,12 @@ public final class JsonOutput {
             }
             long startInLine = sub.byteStart() - line.getLineStart();
             long endInLine = sub.byteEnd() - line.getLineStart();
-            sb.append("{\"match\":{\"text\":\"").append(escape(sub.text()))
-                    .append("\"},\"start\":").append(startInLine)
+            sb.append("{\"match\":{\"text\":\"").append(escape(sub.text()));
+            // bytes 字段契约（plan 2575 Phase E1）：仅命中区间非法 UTF-8 时输出 base64
+            if (sub.bytes() != null) {
+                sb.append("\",\"bytes\":\"").append(Base64.getEncoder().encodeToString(sub.bytes()));
+            }
+            sb.append("\"},\"start\":").append(startInLine)
                     .append(",\"end\":").append(endInLine).append('}');
         }
         sb.append("]}}");
