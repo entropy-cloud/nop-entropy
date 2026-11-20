@@ -27,6 +27,16 @@ public interface IGitRepositoryService extends AutoCloseable {
     }
 
     /**
+     * Open with an explicit policy engine; every public method consults it
+     * before executing (design 03 section 6 interception point 2). The
+     * engine instance should be shared with the CLI to guarantee a single
+     * configuration source.
+     */
+    static IGitRepositoryService open(File workDir, io.nop.git.policy.IGitPolicyEngine policy) {
+        return io.nop.git.core.JGitRepositoryService.open(workDir, policy);
+    }
+
+    /**
      * Create a new repository at workDir. The default branch follows
      * {@code init.defaultBranch} when configured, else {@code master}.
      *
@@ -36,11 +46,20 @@ public interface IGitRepositoryService extends AutoCloseable {
         return io.nop.git.core.JGitRepositoryService.init(workDir, null);
     }
 
+    static IGitRepositoryService init(File workDir, io.nop.git.policy.IGitPolicyEngine policy) {
+        return io.nop.git.core.JGitRepositoryService.init(workDir, null, policy);
+    }
+
     /**
      * Create a new repository at workDir with an explicit default branch.
      */
     static IGitRepositoryService init(File workDir, String defaultBranch) {
         return io.nop.git.core.JGitRepositoryService.init(workDir, defaultBranch);
+    }
+
+    static IGitRepositoryService init(File workDir, String defaultBranch,
+                                      io.nop.git.policy.IGitPolicyEngine policy) {
+        return io.nop.git.core.JGitRepositoryService.init(workDir, defaultBranch, policy);
     }
 
     /**

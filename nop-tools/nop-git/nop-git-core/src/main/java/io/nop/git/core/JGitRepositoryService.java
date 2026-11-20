@@ -11,6 +11,11 @@ import io.nop.git.api.NopGitException;
 import io.nop.git.api.NopGitRef;
 import io.nop.git.api.NopGitRename;
 import io.nop.git.api.NopGitStatus;
+import io.nop.git.policy.GitRequests;
+import io.nop.git.policy.IGitOperationRequest;
+import io.nop.git.policy.IGitPolicyEngine;
+import io.nop.git.policy.GitPolicyMode;
+import io.nop.git.policy.GitVerdict;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.Edit;
@@ -43,6 +48,7 @@ import org.eclipse.jgit.util.SystemReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -72,13 +78,20 @@ public final class JGitRepositoryService implements IGitRepositoryService {
     private static final int ABBREV = 7;
 
     private final Repository repository;
+    private final IGitPolicyEngine policy;
     private boolean closed;
 
-    private JGitRepositoryService(Repository repository) {
+    private JGitRepositoryService(Repository repository, IGitPolicyEngine policy) {
         this.repository = repository;
+        this.policy = policy;
     }
 
     public static JGitRepositoryService open(File workDir) {
+        return open(workDir, io.nop.git.policy.DefaultGitPolicyEngine.load(
+                Path.of(canonicalRoot(workDir))));
+    }
+
+    public static JGitRepositoryService open(File workDir, IGitPolicyEngine policy) {
         JdkBaseline.requireBaseline();
         RepositoryBuilder builder = new RepositoryBuilder();
         try {
@@ -86,7 +99,7 @@ public final class JGitRepositoryService implements IGitRepositoryService {
             if (builder.getGitDir() == null)
                 throw new NopGitException("not a git repository: " + workDir.getAbsolutePath()
                         + " (no .git directory found)");
-            return new JGitRepositoryService(builder.build());
+            return new JGitRepositoryService(builder.build(), policy);
         } catch (IOException e) {
             throw new NopGitException("cannot open git repository at "
                     + workDir.getAbsolutePath() + ": " + e.getMessage(), e);
@@ -94,6 +107,12 @@ public final class JGitRepositoryService implements IGitRepositoryService {
     }
 
     public static JGitRepositoryService init(File workDir, String defaultBranch) {
+        return init(workDir, defaultBranch, io.nop.git.policy.DefaultGitPolicyEngine.load(
+                Path.of(canonicalRoot(workDir))));
+    }
+
+    public static JGitRepositoryService init(File workDir, String defaultBranch,
+                                             IGitPolicyEngine policy) {
         JdkBaseline.requireBaseline();
         if (workDir == null)
             throw new NopGitException("init directory must not be null");
@@ -103,7 +122,7 @@ public final class JGitRepositoryService implements IGitRepositoryService {
                     .setInitialBranch(defaultBranch)
                     .call();
             git.close();
-            return open(workDir);
+            return open(workDir, policy);
         } catch (Exception e) {
             throw new NopGitException("cannot init git repository at "
                     + workDir.getAbsolutePath() + ": " + e.getMessage(), e);
@@ -112,6 +131,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public NopGitStatus status() {
+        return guarded(GitRequests.of("status", repoPath(), "status"), this::doStatus);
+    }
+
+    private NopGitStatus doStatus() {
         Git git = git();
         try {
             org.eclipse.jgit.api.Status st = git.status().call();
@@ -161,6 +184,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public List<NopGitDiffEntry> diff(DiffOptions options) {
+        return guarded(GitRequests.of("diff", repoPath(), "diff"), () -> doDiff(options));
+    }
+
+    private List<NopGitDiffEntry> doDiff(DiffOptions options) {
         try (TreeWalk walk = buildDiffWalk(options)) {
             List<DiffEntry> entries = filterUntracked(detectRenames(walk), options);
             List<NopGitDiffEntry> result = new ArrayList<>(entries.size());
@@ -177,6 +204,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public List<String> unifiedDiff(DiffOptions options) {
+        return guarded(GitRequests.of("diff", repoPath(), "diff"), () -> doUnifiedDiff(options));
+    }
+
+    private List<String> doUnifiedDiff(DiffOptions options) {
         try (TreeWalk walk = buildDiffWalk(options)) {
             List<DiffEntry> entries = filterUntracked(detectRenames(walk), options);
             List<String> out = new ArrayList<>();
@@ -194,6 +225,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public List<NopGitCommit> log(LogOptions options) {
+        return guarded(GitRequests.of("log", repoPath(), "log"), () -> doLog(options));
+    }
+
+    private List<NopGitCommit> doLog(LogOptions options) {
         Git git = git();
         try {
             String rev = options.rev() == null ? "HEAD" : options.rev();
@@ -216,6 +251,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public String currentBranch() {
+        return guarded(GitRequests.of("status", repoPath(), "symbolic-ref"), () -> doGetCurrentBranch());
+    }
+
+    private String doGetCurrentBranch() {
         if (headCommit() == null)
             return null; // unborn HEAD: no current branch per API contract
         try {
@@ -227,6 +266,11 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public String resolveRevision(String rev) {
+        return guarded(GitRequests.of("rev-parse", repoPath(), "rev-parse " + rev),
+                () -> doResolveRevision(rev));
+    }
+
+    private String doResolveRevision(String rev) {
         try {
             ObjectId id = repository.resolve(rev);
             return id == null ? null : id.name();
@@ -237,6 +281,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public List<NopGitRef> branchList() {
+        return guarded(GitRequests.of("branch", repoPath(), "branch"), this::doBranchList);
+    }
+
+    private List<NopGitRef> doBranchList() {
         try {
             return mapRefs(repository.getRefDatabase()
                     .getRefsByPrefix(Constants.R_HEADS), false);
@@ -247,6 +295,10 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public List<NopGitRef> branchListAll() {
+        return guarded(GitRequests.of("branch", repoPath(), "branch -a"), this::doBranchListAll);
+    }
+
+    private List<NopGitRef> doBranchListAll() {
         try {
             List<NopGitRef> all = new ArrayList<>(mapRefs(
                     repository.getRefDatabase().getRefsByPrefix(Constants.R_HEADS), false));
@@ -260,6 +312,11 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public String topLevel() {
+        return guarded(GitRequests.of("rev-parse", repoPath(), "rev-parse --show-toplevel"),
+                this::doTopLevel);
+    }
+
+    private String doTopLevel() {
         File workTree = repository.getWorkTree();
         try {
             return workTree.toPath().toRealPath().toString();
@@ -270,6 +327,11 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public String configGet(String key, GitConfigScope scope) {
+        return guarded(GitRequests.of("config", repoPath(), "config --get " + key),
+                () -> doGetConfig(key, scope));
+    }
+
+    private String doGetConfig(String key, GitConfigScope scope) {
         String[] parts = splitKey(key);
         try {
             // strict scope read: repository scope must not fall back to the
@@ -294,12 +356,18 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public void configSet(String key, String value, GitConfigScope scope) {
+        guarded(GitRequests.of("config", repoPath(), "config " + key + " " + value),
+                () -> doSetConfig(key, value, scope));
+    }
+
+    private Void doSetConfig(String key, String value, GitConfigScope scope) {
         String[] parts = splitKey(key);
         try {
             StoredConfig config = scopeConfig(scope);
             config.load();
             config.setString(parts[0], parts[1], parts[2], value);
             config.save();
+            return null;
         } catch (IOException | org.eclipse.jgit.errors.ConfigInvalidException e) {
             throw wrap("cannot write git config " + key, e);
         }
@@ -307,9 +375,18 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public void add(String filepattern) {
+        // path rules need the actual worktree paths the pattern matches
+        List<String> paths = expandPathspec(filepattern);
+        var builder = GitRequests.builder("add", repoPath(), "add " + filepattern);
+        paths.forEach(builder::path);
+        guarded(builder.build(), () -> doAdd(filepattern));
+    }
+
+    private Void doAdd(String filepattern) {
         Git git = git();
         try {
             git.add().addFilepattern(filepattern).call();
+            return null;
         } catch (Exception e) {
             throw wrap("git add failed for pattern '" + filepattern + "'", e);
         } finally {
@@ -319,6 +396,11 @@ public final class JGitRepositoryService implements IGitRepositoryService {
 
     @Override
     public NopGitCommit commit(String message, String authorName, String authorEmail) {
+        return guarded(GitRequests.of("commit", repoPath(),
+                "commit -m " + message), () -> doCommit(message, authorName, authorEmail));
+    }
+
+    private NopGitCommit doCommit(String message, String authorName, String authorEmail) {
         Git git = git();
         try {
             org.eclipse.jgit.api.CommitCommand cmd = git.commit().setMessage(message);
@@ -358,6 +440,92 @@ public final class JGitRepositoryService implements IGitRepositoryService {
     // ------------------------------------------------------------------
     // generic helpers
     // ------------------------------------------------------------------
+
+    // ------------------------------------------------------------------
+    // policy interception (design 03 section 6, point 2)
+    // ------------------------------------------------------------------
+
+    /**
+     * Evaluate the policy for one facade operation, execute the action when
+     * allowed/review-approved, and write a single audit line with the final
+     * outcome. Inactive engines pass straight through.
+     */
+    private <T> T guarded(IGitOperationRequest request, java.util.function.Supplier<T> action) {
+        if (policy == null || !policy.isActive()) {
+            return action.get();
+        }
+        GitVerdict verdict = policy.evaluate(request);
+        boolean observe = policy.mode() == GitPolicyMode.OBSERVE;
+        // observe mode never blocks (design 03 section 5); the audit record
+        // carries the hypothetical enforce verdict instead
+        if (!observe && verdict.effect() == GitVerdict.Effect.DENY) {
+            policy.audit(request, verdict, "denied");
+            throw new NopGitException("policy denied: " + verdict.reason());
+        }
+        if (!observe && verdict.effect() == GitVerdict.Effect.REVIEW
+                && !policy.resolveReview(request, verdict)) {
+            policy.audit(request, verdict, "review-denied");
+            throw new NopGitException("policy denied: review not approved: " + verdict.reason());
+        }
+        T result;
+        try {
+            result = action.get();
+        } catch (RuntimeException e) {
+            policy.audit(request, verdict, "error");
+            throw e;
+        }
+        policy.audit(request, verdict, "ok");
+        return result;
+    }
+
+    private String repoPath() {
+        try {
+            return repository.getWorkTree().toPath().toRealPath().toString();
+        } catch (IOException e) {
+            return repository.getWorkTree().getAbsolutePath();
+        }
+    }
+
+    private static String canonicalRoot(File workDir) {
+        try {
+            return workDir.toPath().toRealPath().toString();
+        } catch (IOException e) {
+            return workDir.getAbsolutePath();
+        }
+    }
+
+    /**
+     * Expand an add/rm pathspec into the actual worktree paths it matches
+     * (plan 2578 pinned semantics: {@code .} / {@code -A} cover the whole
+     * tree; a directory prefix covers everything below it).
+     */
+    private List<String> expandPathspec(String filepattern) {
+        List<String> matches = new ArrayList<>();
+        try {
+            File root = repository.getWorkTree();
+            Path rootPath = root.toPath();
+            String prefix = filepattern == null || filepattern.equals(".")
+                    || filepattern.equals("-A") || filepattern.equals("--all")
+                    ? "" : filepattern.replaceAll("/+$", "") + "/";
+            try (var stream = Files.walk(rootPath)) {
+                stream.filter(Files::isRegularFile)
+                        .filter(p -> !p.startsWith(rootPath.resolve(".git")))
+                        .forEach(p -> {
+                            String rel = rootPath.relativize(p).toString().replace(File.separatorChar, '/');
+                            if (prefix.isEmpty() || rel.startsWith(prefix))
+                                matches.add(rel);
+                            else if (prefix.endsWith("/"))
+                                // also match a directory argument itself being a file
+                                if (rel.startsWith(prefix.substring(0, prefix.length() - 1))
+                                        && rel.contains("/"))
+                                    matches.add(rel);
+                        });
+            }
+        } catch (IOException e) {
+            throw wrap("cannot expand pathspec '" + filepattern + "'", e);
+        }
+        return matches;
+    }
 
     private Git git() {
         if (closed)

@@ -235,9 +235,21 @@ public final class IncrementalCompileExecutor {
                 && Files.isDirectory(model.resolve(module.getTestSourceDir()).toPath()))
             sourcePath.add(model.resolve(module.getTestSourceDir()));
 
+        // reactor-directory classpath entries are repo-root-relative; nop-javac's
+        // pre-validation (validateClassPaths) checks File.exists() against the
+        // SERVICE process cwd, so relative entries must be absolutized here —
+        // otherwise the first test pre-compile after a clean fails validation
+        // with invalid-option-value diagnostics (coblab-rpg rm6-WI6 observation).
+        Path repoRoot = Path.of(model.getRepoRoot());
+        List<String> classpathEntries = new ArrayList<>(cp.entries().size());
+        for (String entry : cp.entries()) {
+            Path entryPath = Path.of(entry);
+            classpathEntries.add(entryPath.isAbsolute() ? entry
+                    : repoRoot.resolve(entry).toString());
+        }
         JavaCompilerFacade.CompileResult result = JavaCompilerFacade.compile(
                 files, compileOutputDir,
-                cp.entries(), module.getCompileRelease(), module.getCompileSource(),
+                classpathEntries, module.getCompileRelease(), module.getCompileSource(),
                 module.getCompileProc(), sourcePath, module.getCompileParameters(),
                 module.getCompileAddModules(), module.getCompileEnablePreview());
 

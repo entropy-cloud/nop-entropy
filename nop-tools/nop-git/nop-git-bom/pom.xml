@@ -17,6 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- JGit 版本唯一声明点（design 00-vision §五 / 01-architecture-baseline §一） -->
         <org.eclipse.jgit.version>7.7.1.202607240634-r</org.eclipse.jgit.version>
+        <!-- policy.yaml 解析（design 03；plan 2578） -->
+        <snakeyaml.version>2.2</snakeyaml.version>
     </properties>
 
     <dependencyManagement>
@@ -30,6 +32,11 @@
                 <groupId>org.eclipse.jgit</groupId>
                 <artifactId>org.eclipse.jgit</artifactId>
                 <version>${org.eclipse.jgit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

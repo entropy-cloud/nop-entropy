@@ -36,13 +36,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 3: 权限策略引擎
 
-- 12. `IGitPolicyEngine` 骨架（IGitOperationRequest 归一化模型 + 三态裁决枚举 + 分层配置加载/strict 合并）：`planned`
-- 13. 五维规则评估：操作级、选项级（含同族 flag 归一化 -f/--force 等）、分支级（protected_branches + refspec 解析）、路径级（deny/review paths + status 路径集合）、远程级（remotes/protocols/url patterns）+ scopes 覆盖：`planned`
-- 14. review 通道（交互确认 / NOP_GIT_REVIEW_APPROVED 环境变量 / 超时降级 deny）：`planned`
-- 15. observe/enforce 两模式 + JSON Lines 审计日志（hypothetical_effect、命中规则 ID、outcome）：`planned`
-- 16. CLI 拦截点 + API 门面拦截点接入（同一引擎实例）+ deny 输出 `fatal: policy denied: ...` 契约测试：`planned`
-- 17. 策略裁决全覆盖测试（每维度 × allow/deny/review × observe/enforce、绕过尝试：flag 别名、路径遍历、refspec 变体）：`planned`
-- ★ **Milestone: 策略防火墙可用** (unlocks when 12..17 done): `planned`
+- 12. `IGitPolicyEngine` 骨架（IGitOperationRequest 归一化模型 + 三态裁决枚举 + 分层配置加载/strict 合并；引擎非激活裁定=无 policy.yaml 时零拦截零审计）：`done` (plan 2578)
+- 13. 五维规则评估：操作级、选项级（同族 flag 归一化 -f/--force/-fd/--force-with-lease[=x] 按命令查表）、分支级（protected_branches glob + refspec/branch -d 解析）、路径级（gitignore 语义 glob + pathspec 展开 + ../ 规范化）、远程级 + scopes 覆盖；评估语义钉死（偏序/fall-through/review 累积先于 allow）：`done` (plan 2578)
+- 14. review 通道（交互确认 / NOP_GIT_REVIEW_APPROVED / 超时降级 deny；session 级批准缓存防 CLI+门面双重提示；prompt 走 stderr）：`done` (plan 2578)
+- 15. observe/enforce 两模式 + JSON Lines 审计（单行一次写入含 outcome 契约字段全集；observe 带 hypotheticalEffect）：`done` (plan 2578)
+- 16. CLI 拦截点 + API 门面拦截点接入（同一引擎实例；CLI allow 不重复审计、facade 单行审计；policy denied → exit 1 契约测试）：`done` (plan 2578)
+- 17. 策略裁决全覆盖测试（引擎级五维×三态×两模式矩阵 + 绕过尝试 14 例 + CLI 入口 E2E 5 例；push/reset 等无入口子命令按 plan 2578 Deferred 归 Wave 4 successor）：`done` (plan 2578)
+- ★ **Milestone: 策略防火墙可用** (unlocks when 12..17 done): `done`
 
 ### Wave 4: CLI 扩展 + Worktree 一等支持（P2/P3）
 

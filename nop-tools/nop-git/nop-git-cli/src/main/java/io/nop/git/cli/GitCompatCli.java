@@ -39,6 +39,44 @@ public final class GitCompatCli {
     }
 
     /**
+     * CLI-level policy guard: deny audits and exits 1 with the native-style
+     * fatal line; review resolves through the engine (env/interactive/timeout)
+     * and exits 1 when not approved. Allow/approved passes through — the
+     * facade writes the single audit line for the operation.
+     */
+    private static int policyGuard(CliContext ctx, io.nop.git.policy.IGitPolicyEngine engine,
+                                   String command, List<String> args) {
+        var builder = io.nop.git.policy.GitRequests.builder(command,
+                io.nop.git.policy.GitRequests.canonicalPath(ctx.workDir()), command + " " + String.join(" ", args));
+        for (String arg : args) {
+            if (arg.startsWith("--")) {
+                builder.flag(arg);
+            } else if (arg.startsWith("-")) {
+                builder.flag(arg);
+            } else {
+                builder.path(arg);
+            }
+        }
+        var request = builder.build();
+        io.nop.git.policy.GitVerdict verdict = engine.evaluate(request);
+        if (engine.mode() == io.nop.git.policy.GitPolicyMode.OBSERVE) {
+            return EXIT_OK; // observe never blocks; the facade records the audit line
+        }
+        if (verdict.effect() == io.nop.git.policy.GitVerdict.Effect.DENY) {
+            engine.audit(request, verdict, "denied");
+            ctx.err().println("fatal: policy denied: " + verdict.reason());
+            return EXIT_FAILURE;
+        }
+        if (verdict.effect() == io.nop.git.policy.GitVerdict.Effect.REVIEW
+                && !engine.resolveReview(request, verdict)) {
+            engine.audit(request, verdict, "review-denied");
+            ctx.err().println("fatal: policy denied: review not approved: " + verdict.reason());
+            return EXIT_FAILURE;
+        }
+        return EXIT_OK;
+    }
+
+    /**
      * Run one CLI invocation; separated from {@link #main} for tests.
      */
     public static int run(String[] argv, PrintStream out, PrintStream err) {
@@ -86,7 +124,21 @@ public final class GitCompatCli {
 
         String command = args.remove(0);
         File workDir = dir != null ? dir.getAbsoluteFile() : new File(".").getAbsoluteFile();
-        CliContext context = new CliContext(out, err, workDir);
+
+        // CLI interception point (design 03 section 6, point 1): parse argv
+        // into a normalized request and consult the shared engine before any
+        // facade call; the facade re-checks with the same engine instance
+        io.nop.git.policy.IGitPolicyEngine engine =
+                io.nop.git.policy.DefaultGitPolicyEngine.load(
+                        java.nio.file.Path.of(io.nop.git.policy.GitRequests.canonicalPath(workDir)),
+                        err);
+        CliContext context = new CliContext(out, err, workDir, engine);
+
+        if (engine.isActive()) {
+            int policyExit = policyGuard(context, engine, command, args);
+            if (policyExit != EXIT_OK)
+                return policyExit;
+        }
 
         return switch (command) {
             case "status" -> StatusCommand.run(context, args);
@@ -139,11 +191,22 @@ public final class GitCompatCli {
     // ------------------------------------------------------------------
 
     /**
+     * CLI-level policy guard: deny audits and exits 1 with the native-style
+     * fatal line; review resolves through the engine (env/interactive/timeout)
+     * and exits 1 when not approved. Allow/approved passes through — the
+     * facade writes the single audit line for the operation.
+     */
+
+    /**
      * Render facade failures as native git fatal messages: "not a git
      * repository" and "unknown revision" have fixed native texts; exit 128.
      */
     static int nativeFatal(CliContext ctx, NopGitException e) {
         String message = e.getMessage();
+        if (message != null && message.startsWith("policy denied:")) {
+            ctx.err().println("fatal: " + message);
+            return EXIT_FAILURE;
+        }
         if (message != null && message.contains("not a git repository")) {
             ctx.err().println("fatal: not a git repository (or any of the parent"
                     + " directories): .git");
@@ -164,10 +227,12 @@ public final class GitCompatCli {
         int run(CliContext context, List<String> args);
     }
 
-    record CliContext(PrintStream out, PrintStream err, File workDir) {
+    record CliContext(PrintStream out, PrintStream err, File workDir,
+                      io.nop.git.policy.IGitPolicyEngine policy) {
 
         IGitRepositoryService openRepo() {
-            return IGitRepositoryService.open(workDir);
+            // same engine instance as the CLI guard: one configuration source
+            return IGitRepositoryService.open(workDir, policy);
         }
 
         int fatal(String message) {

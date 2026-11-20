@@ -28,17 +28,15 @@ operations:
   deny: [gc, reflog]
   review: [push, reset, clean, checkout]
 
-option_rules:
+option_rules:                  # 只写规范 flag（归一化在评估前，见 §三表格）
   - operation: reset
     deny_flags: ["--hard", "--keep"]
   - operation: clean
-    deny_flags: ["-f", "-fd", "-fdx", "--force"]
+    deny_flags: ["--force", "--directories", "--force-x"]
   - operation: push
-    deny_flags: ["--force", "-f", "--force-with-lease", "--mirror", "--delete"]
-  - operation: checkout
-    deny_flags: ["--", "."]
+    deny_flags: ["--force", "--force-with-lease", "--mirror", "--delete"]
   - operation: branch
-    deny_flags: ["-D", "-d"]
+    deny_flags: ["--delete --force", "--delete"]   # 规范形为组合串；-D 归一为 --delete --force
 
 protected_branches:
   patterns: ["main", "master", "release/*"]
@@ -108,7 +106,15 @@ evaluate(request):
     return default_effect
 ```
 
-选项归一化规则（防绕过的核心）：
+评估语义钉死（落地裁定，plan 2578）：
+
+- verdict 偏序：DENY > REVIEW > ALLOW；`max(verdict, REVIEW)` 按此偏序。
+- scope 命中但未命中其 operations.deny 时 fall-through 继续后续维度（不短路）。
+- review 累积发生在 allow 白名单判定**之前**：操作在 operations.allow 且已命中 review_flags/ review_paths → 最终 REVIEW（有意语义：高危 flag 不因操作白名单放行）。
+- **引擎非激活**：项目与用户层均无 policy.yaml 时引擎 inactive——不拦截、不写审计文件（保证无策略部署的输出与行为零变化，parity/golden 回归不红）；存在任一层 policy.yaml 时按其 mode 激活（缺省 observe）。
+- **审计 outcome 回填协议**：单行一次写入（不 pending、不改写）；入口 wrapper 在操作完成后同步写入含 outcome 的完整行（CLI=命令分发处、API=门面方法公共包装）；进程被杀可留无 outcome 字段的行（可接受）。E2E 行数断言只数含 outcome 的完整行。
+
+选项归一化规则（防绕过的核心；`-d` 语义按命令定表）：
 
 | 原始写法 | 归一化为 |
 |---|---|
@@ -117,6 +123,7 @@ evaluate(request):
 | `--hard` / `--mixed` / `--soft` / `--keep` | 各自保留（reset mode 族，互不代换） |
 | `-fd` / `-f -d` / `--force --directories` | `--force` + `--directories` 两个规范 flag |
 | `-D` | `--delete --force`（branch 上下文） |
+| `-d` | branch 上下文 → `--delete`；clean 上下文 → `--directories`（按命令查表） |
 
 归一化发生在策略评估**之前**，策略配置只写规范 flag。
 
