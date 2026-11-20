@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  nop-git IoC 集成面（roadmap item 29，plan 2581）：
+  平台服务通过本 beans 文件获得策略守卫的 IGitRepositoryService 工厂。
+  nop-git-core 自身零仓库内部依赖（JDK 21 基线裁定，plan 2576），
+  本集成模块运行在平台 Java 基线上。
+-->
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="gitIocFactory" class="io.nop.git.ioc.GitIocFactory">
+        <property name="defaultBranch" value="${nop.git.default-branch:master}"/>
+        <property name="policyPath" value="${nop.git.policy-path:.nop-git/policy.yaml}"/>
+    </bean>
+</beans>

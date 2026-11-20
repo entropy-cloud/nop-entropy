@@ -200,6 +200,11 @@
 | **分析一段 shell 命令（AI Agent 执行前：证明型拆分 / 字面量收割 / heredoc 提取 / 动态构造标记 / 路径抽取 / 结构化摘要）** | **`03-modules/nop-treesitter.md`**（"shell 分析语义层"一节，含可证明/不可证明边界与三条使用限制） |
 | 理解 nop-refactor（纯 Java tree-sitter 运行时：架构 / 恢复语义 / 性能） | `03-modules/nop-refactor.md` |
 | **使用 tree-sitter 解析（直接 API / NopIoC provider / GraphQL @BizQuery / 自定义语法注册）** | **`03-modules/nop-treesitter.md`**（快速开始）+ `nop-tools/nop-treesitter/README.md`（用户指南） |
+| **在无系统 Git 环境让 AI 编程工具工作（PATH 覆盖部署 / CLI 子命令与退出码契约）** | `03-modules/nop-git.md`（§二 CLI 部署） |
+| **平台内 Java 集成 Git（IGitRepositoryService / worktree / deny 语义）** | `03-modules/nop-git.md`（§三 API + §四 策略） |
+| **配置 nop-git 策略（policy.yaml 五维规则 / observe-enforce / 审计）** | `03-modules/nop-git.md`（§四；设计裁定见 AI 开发记录区 design 目录） |
+| **HTTP Git 服务端（GitServlet / 服务端分支保护）** | `03-modules/nop-git.md`（§五） |
+| **平台 IoC 注入 IGitRepositoryService（gitIocFactory）** | `03-modules/nop-git.md`（§六） |
 | 理解 nop-bytecode（字节码分析通道：架构 / 内核 / 性能基线） | `03-modules/nop-bytecode.md` |
 | **使用字节码发现流 CLI（report-only 诊断 / JSON 输出 / 退出码语义）** | **`03-modules/nop-bytecode.md`**（快速开始）+ `nop-tools/nop-bytecode/README.md`（模块指南） |
 | 理解 nop-duckdb（数据文件与本地库的进程内分析执行层：配置 / 执行层 API / task step / 单写者与内存约束 / 分析侧接入） | `03-modules/nop-duckdb.md` |

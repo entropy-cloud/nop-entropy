@@ -1,6 +1,6 @@
 # nop-git Roadmap
 
-> Last updated: 2026-11-20
+> Last updated: 2026-11-21（全部 Wave 1-6 + 6 Milestones `done`；终局目标达成：AI 编程工具在无系统 Git 环境可完整工作（PATH 覆盖 + P0-P3 子命令与原生逐字节对齐）、linked worktree 增删可用且双向兼容、enforce 五维裁决 + 审计可用、运行基线 JDK 21（裸 core/cli）、全子命令与裁决路径测试覆盖）
 > Sources: `ai-dev/design/nop-git/00-vision.md` (Vision), `ai-dev/design/nop-git/01-architecture-baseline.md` (Architecture Baseline)
 
 ## Purpose
@@ -65,10 +65,10 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 6: 平台集成与收尾
 
-- 29. nop-git-core beans.xml（IGitPolicyEngine / service 工厂显式 bean 声明，@InjectValue 配置覆盖）：`planned`
-- 30. nop-ai-shell AI Agent git 工具后端切换评估（拼 shell → IGitRepositoryService 注入）：`planned`
-- 31. `docs-for-ai/` 使用文档 + INDEX 路由更新；架构支柱/策略绕过专项审计；全模块测试收口：`planned`
-- ★ **Milestone: 平台集成完成** (unlocks when 29 + 30 + 31 done): `planned`
+- 29. nop-git-ioc 薄模块（gitIocFactory bean + git-ioc.beans.xml + 配置覆盖；**裁定：不继承 release=21**——它依赖 nop-core，属平台 25 集成面，裸 core/cli 保持 JDK 21）：`done` (plan 2581)
+- 30. nop-ai-shell 评估完成：现状为通用 shell 执行器（无 git 感知），Phase 1 PATH 覆盖已随 Wave 2 零改动生效；注入式与 legacy nop-utils/nop-git 保留裁定见评估文档（实施另立项）：`done` (plan 2581)
+- 31. docs-for-ai/03-modules/nop-git.md + INDEX 路由 5 条；支柱/策略绕过专项审计（独立子 agent，ai-dev/audits/nop-git-pillar-bypass-audit.md）；全模块测试收口：`done` (plan 2581)
+- ★ **Milestone: 平台集成完成** (unlocks when 29 + 30 + 31 done): `done`
 
 ## Dependencies & Notes
 
