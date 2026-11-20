@@ -1,0 +1,22 @@
+### args: diff --cached
+### exit: 0
+--- stdout ---
+diff --git a/a.txt b/a.txt
+index 4cb29ea..b2f931a 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1,3 +1,5 @@
+ one
+ two
+ three
++four
++five
+diff --git a/b.txt b/b.txt
+new file mode 100644
+index 0000000..94954ab
+--- /dev/null
++++ b/b.txt
+@@ -0,0 +1,2 @@
++hello
++world
+--- stderr ---

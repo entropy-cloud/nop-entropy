@@ -1,6 +1,6 @@
 package io.nop.git.api;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -11,7 +11,8 @@ import java.util.List;
  * @param abbrevId      abbreviated commit SHA-1 (at least 7 hex chars)
  * @param authorName    author name
  * @param authorEmail   author email
- * @param commitTime    author/commit time
+ * @param commitTime    commit time in the commit's own zone offset
+ *                        (native {@code git log} prints this offset)
  * @param shortMessage  first line of the commit message
  * @param fullMessage   complete commit message
  * @param parentIds     full SHAs of parent commits (empty for the root commit)
@@ -21,7 +22,7 @@ public record NopGitCommit(
         String abbrevId,
         String authorName,
         String authorEmail,
-        Instant commitTime,
+        OffsetDateTime commitTime,
         String shortMessage,
         String fullMessage,
         List<String> parentIds) {

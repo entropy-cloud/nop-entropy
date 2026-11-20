@@ -1,0 +1,9 @@
+### args: log -n 1
+### exit: 0
+--- stdout ---
+commit 5270dce782c61f74e7bbf722b8fdd98b0edd4831
+Author: Fixture User <fixture@example.com>
+Date:   Wed Nov 15 06:13:20 2023 +0800
+
+    base commit
+--- stderr ---

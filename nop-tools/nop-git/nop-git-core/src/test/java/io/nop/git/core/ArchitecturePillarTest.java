@@ -37,7 +37,10 @@ class ArchitecturePillarTest {
         for (Path moduleRoot : moduleRoots) {
             // only nop-git-core may touch JGit at all (design 01 section 1)
             boolean isCore = moduleRoot.getFileName().toString().equals("nop-git-core");
-            for (String srcDir : MODULE_SRC_DIRS) {
+                // non-core modules: production sources only; test fixtures may
+                // legitimately drive JGit directly
+                List<String> dirs = isCore ? MODULE_SRC_DIRS : List.of("src/main/java");
+                for (String srcDir : dirs) {
                 Path src = moduleRoot.resolve(srcDir);
                 if (!Files.isDirectory(src))
                     continue;

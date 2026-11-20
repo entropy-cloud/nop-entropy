@@ -88,18 +88,15 @@ class JGitRepositoryServiceLifecycleTest {
             Files.writeString(dir.resolve("a.txt"), "line1\nline2\nline3\n");
             file("b.txt", "new file\n");
             List<NopGitDiffEntry> worktreeDiff = svc.diff(DiffOptions.worktree());
-            assertEquals(2, worktreeDiff.size());
-            NopGitDiffEntry modified = worktreeDiff.stream()
-                    .filter(e -> e.newPath().equals("a.txt")).findFirst().orElseThrow();
+            // b.txt is untracked: git diff does not report it (only a.txt)
+            assertEquals(1, worktreeDiff.size());
+            NopGitDiffEntry modified = worktreeDiff.get(0);
+            assertEquals("a.txt", modified.newPath());
             assertEquals(ChangeType.MODIFIED, modified.changeType());
             assertEquals(1, modified.insertions());
             assertEquals(0, modified.deletions());
 
-            NopGitDiffEntry added = worktreeDiff.stream()
-                    .filter(e -> e.newPath().equals("b.txt")).findFirst().orElseThrow();
-            assertEquals(ChangeType.ADDED, added.changeType());
-            assertEquals(1, added.insertions());
-
+            // untracked files are invisible to git diff (native parity)
             // staging changes moves the diff to --cached
             svc.add(".");
             assertTrue(svc.diff(DiffOptions.worktree()).isEmpty());

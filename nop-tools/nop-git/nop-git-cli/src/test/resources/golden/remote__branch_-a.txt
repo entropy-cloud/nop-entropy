@@ -1,0 +1,7 @@
+### args: branch -a
+### exit: 0
+--- stdout ---
+* master
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/master
+--- stderr ---

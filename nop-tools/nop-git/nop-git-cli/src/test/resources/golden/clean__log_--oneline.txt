@@ -1,0 +1,5 @@
+### args: log --oneline
+### exit: 0
+--- stdout ---
+5270dce base commit
+--- stderr ---

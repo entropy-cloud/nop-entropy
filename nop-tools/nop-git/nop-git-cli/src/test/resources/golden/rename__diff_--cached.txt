@@ -1,0 +1,8 @@
+### args: diff --cached
+### exit: 0
+--- stdout ---
+diff --git a/a.txt b/b.txt
+similarity index 100%
+rename from a.txt
+rename to b.txt
+--- stderr ---

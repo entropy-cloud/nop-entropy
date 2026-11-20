@@ -1,0 +1,4 @@
+### args: diff --stat
+### exit: 0
+--- stdout ---
+--- stderr ---

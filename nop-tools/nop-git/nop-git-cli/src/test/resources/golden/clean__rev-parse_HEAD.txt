@@ -1,0 +1,5 @@
+### args: rev-parse HEAD
+### exit: 0
+--- stdout ---
+5270dce782c61f74e7bbf722b8fdd98b0edd4831
+--- stderr ---

@@ -77,6 +77,39 @@ public interface IGitRepositoryService extends AutoCloseable {
     List<NopGitRef> branchList();
 
     /**
+     * All refs: local branches plus remote-tracking refs
+     * ({@code refs/remotes/*}), symbolic refs included
+     * ({@code branch --all} data source).
+     */
+    List<NopGitRef> branchListAll();
+
+    /**
+     * Absolute (real) path of the working tree root
+     * ({@code rev-parse --show-toplevel}).
+     */
+    String topLevel();
+
+    /**
+     * Read a config value (key like {@code user.name}) from the given scope.
+     *
+     * @return the value, or null when the key is not set
+     */
+    String configGet(String key, GitConfigScope scope);
+
+    /**
+     * Write a config value to the given scope ({@code git config <key> <value>}).
+     */
+    void configSet(String key, String value, GitConfigScope scope);
+
+    /**
+     * Unified diff text lines, byte-compatible with native git
+     * ({@code git diff} pure text output; headers, hunks and the
+     * {@code \ No newline at end of file} marker included). Empty when there
+     * is no change.
+     */
+    List<String> unifiedDiff(DiffOptions options);
+
+    /**
      * Stage paths matching the file pattern ({@code git add <filepattern>}).
      */
     void add(String filepattern);

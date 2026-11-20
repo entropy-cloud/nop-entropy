@@ -1,0 +1,5 @@
+### args: rev-parse --abbrev-ref HEAD
+### exit: 0
+--- stdout ---
+master
+--- stderr ---

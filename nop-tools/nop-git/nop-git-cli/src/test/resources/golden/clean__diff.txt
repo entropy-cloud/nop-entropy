@@ -1,0 +1,4 @@
+### args: diff
+### exit: 0
+--- stdout ---
+--- stderr ---

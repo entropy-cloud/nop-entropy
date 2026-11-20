@@ -1,0 +1,10 @@
+### args: status
+### exit: 0
+--- stdout ---
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   a.txt
+	new file:   b.txt
+
+--- stderr ---

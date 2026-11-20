@@ -1,0 +1,5 @@
+### args: branch --show-current
+### exit: 0
+--- stdout ---
+master
+--- stderr ---

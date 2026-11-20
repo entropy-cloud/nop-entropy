@@ -1,0 +1,6 @@
+### args: status --porcelain
+### exit: 0
+--- stdout ---
+?? newdir/
+?? u.txt
+--- stderr ---

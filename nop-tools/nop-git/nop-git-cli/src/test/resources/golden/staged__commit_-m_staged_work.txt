@@ -1,0 +1,5 @@
+### args: commit -m staged work
+### exit: 1
+--- stdout ---
+--- stderr ---
+error: pathspec 'work' did not match any file(s) known to git

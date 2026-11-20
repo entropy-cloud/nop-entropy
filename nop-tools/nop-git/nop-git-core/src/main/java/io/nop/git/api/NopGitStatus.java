@@ -11,15 +11,18 @@ import java.util.List;
  * @param stagedAdded      paths added to the index (new since HEAD)
  * @param stagedChanged    paths whose index content differs from HEAD
  * @param stagedRemoved    paths removed from the index but present in HEAD
+ * @param stagedRenames    staged renames HEAD→index (porcelain {@code R})
  * @param modified         tracked paths modified in the working tree
  * @param deleted          tracked paths deleted from the working tree
- * @param untracked        untracked paths
+ * @param untracked        untracked paths (new directories collapsed with a
+ *                         trailing slash, as git reports them)
  */
 public record NopGitStatus(
         String branch,
         List<String> stagedAdded,
         List<String> stagedChanged,
         List<String> stagedRemoved,
+        List<NopGitRename> stagedRenames,
         List<String> modified,
         List<String> deleted,
         List<String> untracked) {
@@ -29,6 +32,7 @@ public record NopGitStatus(
      */
     public boolean isClean() {
         return stagedAdded.isEmpty() && stagedChanged.isEmpty() && stagedRemoved.isEmpty()
+                && stagedRenames.isEmpty()
                 && modified.isEmpty() && deleted.isEmpty() && untracked.isEmpty();
     }
 }

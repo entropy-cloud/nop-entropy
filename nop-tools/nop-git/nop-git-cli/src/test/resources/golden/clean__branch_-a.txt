@@ -1,0 +1,5 @@
+### args: branch -a
+### exit: 0
+--- stdout ---
+* master
+--- stderr ---

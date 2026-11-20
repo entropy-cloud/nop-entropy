@@ -27,12 +27,12 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 2: git 兼容 CLI（P0/P1）
 
-- 7. CLI 骨架（GitCompatCli main、`-C`、退出码契约、fatal/error 消息格式、未实现子命令报错）：`planned`
-- 8. P0 子命令：`--version`（配置伪装版本）、`status --porcelain`、`diff`（--cached/HEAD/--stat）、`add`、`commit -m/-a`：`planned`
-- 9. P1 子命令：`log --oneline/-n`、`branch`（--show-current/-a）、`rev-parse`（HEAD/--abbrev-ref/--show-toplevel）、`config` 子集：`planned`
-- 10. GitOutputFormatter + 原生 git golden 对照测试框架（本地有真实 git 时录制/对比，无 git 时 golden file）：`planned`
-- 11. PATH 覆盖部署包装（sh 脚本 + Windows .cmd）+ AI 工具兼容冒烟清单（Claude Code 只读探测 / Aider add+commit 输出解析 / Codex doctor --version 解析）：`planned`
-- ★ **Milestone: AI 工具可当系统 Git 使用（P0/P1）** (unlocks when 7..11 done): `planned`
+- 7. CLI 骨架（GitCompatCli main、`-C`、退出码契约 0/1/128/129、fatal/error 消息格式、未实现子命令报错）：`done` (plan 2577)
+- 8. P0 子命令：`--version`（配置伪装版本）、`status --porcelain`（含 rename R）、`diff`（--cached/rev/--stat，排除 untracked 对齐原生）、`add`、`commit -m/-a`（root-commit 标注）：`done` (plan 2577)
+- 9. P1 子命令：`log --oneline/-n`（含 long 格式）、`branch`（--show-current/-a 含 symbolic origin/HEAD）、`rev-parse`（HEAD/--abbrev-ref/--show-toplevel）、`config` 子集（--get/--global 读写）：`done` (plan 2577)
+- 10. GitOutputFormatter + 原生 git 对照（live-parity 42 例逐字节对拍全绿 + 确定性 fixture golden file 41 例 committed 双保险；变异探针红→绿验证）：`done` (plan 2577)
+- 11. PATH 覆盖部署包装（bin/git sh + git.cmd，shade 单 jar 自包含含签名过滤 + slf4j-nop 静默 stderr）+ AI 工具冒烟清单测试化（Claude/Aider/Codex 三契约绿；本机 bin/git 实跑全链路通过）：`done` (plan 2577)
+- ★ **Milestone: AI 工具可当系统 Git 使用（P0/P1）** (unlocks when 7..11 done): `done`
 
 ### Wave 3: 权限策略引擎
 

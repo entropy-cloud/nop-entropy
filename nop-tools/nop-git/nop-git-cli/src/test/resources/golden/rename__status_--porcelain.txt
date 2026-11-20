@@ -1,0 +1,5 @@
+### args: status --porcelain
+### exit: 0
+--- stdout ---
+R  a.txt -> b.txt
+--- stderr ---

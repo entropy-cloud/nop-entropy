@@ -1,0 +1,7 @@
+### args: diff --cached --stat
+### exit: 0
+--- stdout ---
+ a.txt | 2 ++
+ b.txt | 2 ++
+ 2 files changed, 4 insertions(+)
+--- stderr ---

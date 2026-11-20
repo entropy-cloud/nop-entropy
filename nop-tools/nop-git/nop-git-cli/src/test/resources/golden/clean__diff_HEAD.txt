@@ -1,0 +1,4 @@
+### args: diff HEAD
+### exit: 0
+--- stdout ---
+--- stderr ---

@@ -1,0 +1,13 @@
+### args: diff
+### exit: 0
+--- stdout ---
+diff --git a/a.txt b/a.txt
+index 4cb29ea..f384549 100644
+--- a/a.txt
++++ b/a.txt
+@@ -1,3 +1,4 @@
+ one
+ two
+ three
++four
+--- stderr ---

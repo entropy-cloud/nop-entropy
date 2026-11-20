@@ -1,0 +1,5 @@
+### args: log
+### exit: 128
+--- stdout ---
+--- stderr ---
+fatal: your current branch 'master' does not have any commits yet

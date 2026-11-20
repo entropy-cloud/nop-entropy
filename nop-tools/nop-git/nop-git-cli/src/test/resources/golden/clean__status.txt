@@ -1,0 +1,6 @@
+### args: status
+### exit: 0
+--- stdout ---
+On branch master
+nothing to commit, working tree clean
+--- stderr ---
