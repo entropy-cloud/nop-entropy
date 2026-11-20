@@ -106,7 +106,11 @@ public class NopIbMain {
         String plModules = null;
         boolean rerunFailed = false;
         String runner = "junit";
-        boolean useCache = false;
+        // 2026-11-20 owner adjudication: green-result cache is ON by default —
+        // unchanged inputs + last green run skip re-execution ("cached": true is
+        // always disclosed in output). --no-cache restores run-always; --force
+        // bypasses a hit for a single invocation.
+        boolean useCache = true;
         boolean forceRun = false;
         // wave 11: test defaults to a pre-compile (same channel as check);
         // --no-compile restores the v1 dispatch-without-compile behavior
@@ -136,8 +140,9 @@ public class NopIbMain {
             } else if ("--runner".equals(arg) && i + 1 < args.length) {
                 runner = args[++i];
             } else if ("--cache".equals(arg)) {
-                // wave 9: opt-in green-result cache (see TestCacheStore)
-                useCache = true;
+                // accepted for backward compatibility (cache is the default now)
+            } else if ("--no-cache".equals(arg)) {
+                // run-always: skip the green-result cache entirely (see TestCacheStore)
             } else if ("--force".equals(arg)) {
                 forceRun = true;
             } else if ("--no-compile".equals(arg)) {
@@ -212,6 +217,7 @@ public class NopIbMain {
         out.println("usage: nop-ib <command> [options]");
         out.println("commands: " + String.join(" | ", COMMANDS));
         out.println("common options: --json, --allow-partial, --paths <paths>, --no-compile (test only)");
+        out.println("test/check: green-result cache ON by default (cached runs disclose cached:true); --no-cache run-always, --force bypass a hit");
         out.println("implemented (wave 1): status plan explain model cache");
         out.println("try 'nop-ib --version'");
     }
