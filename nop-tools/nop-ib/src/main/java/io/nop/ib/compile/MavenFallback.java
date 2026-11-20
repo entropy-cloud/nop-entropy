@@ -22,8 +22,16 @@ public final class MavenFallback {
     private final Path repoRoot;
     private final Duration timeout;
 
+    public Duration getTimeout() {
+        return timeout;
+    }
+
     public MavenFallback(Path repoRoot) {
-        this(repoRoot, Duration.ofMinutes(60));
+        // 2026-11-20 governance: 60min default let a lock-starved delegation hold a
+        // service lane unobservably for an hour (nop-rg-vector E2E observation).
+        // 10min default, overridable via nop.ib.maven.timeout (minutes).
+        this(repoRoot, Duration.ofMinutes(
+                Long.getLong("nop.ib.maven.timeout", 10)));
     }
 
     public MavenFallback(Path repoRoot, Duration timeout) {

@@ -186,6 +186,23 @@ class TestUnsupportedCompilerArgsFallback {
                 .isUnsupportedCompilerArgs());
     }
 
+    /** pin 7 (timeout governance): nop.ib.maven.timeout overrides the delegation
+     *  window — default shrank 60min → 10min (lock-starved lane held 1h, E2E 2026-11-20). */
+    @Test
+    void mavenTimeoutPropertyOverridable() {
+        String old = System.getProperty("nop.ib.maven.timeout");
+        try {
+            System.setProperty("nop.ib.maven.timeout", "3");
+            assertEquals(java.time.Duration.ofMinutes(3),
+                    new MavenFallback(java.nio.file.Path.of("/repo")).getTimeout());
+        } finally {
+            if (old == null)
+                System.clearProperty("nop.ib.maven.timeout");
+            else
+                System.setProperty("nop.ib.maven.timeout", old);
+        }
+    }
+
     /** pin 6 (MavenFallback fix): -pl selectors use the :artifactId reactor form —
      *  bare artifactIds make Maven fail with "requested required projects ... do not
      *  exist" (exposed live by the nop-rg-vector fallback on 2026-11-20). */
