@@ -31,7 +31,7 @@
 | `ib plan --paths <files...> [--json]` | 只算不做: 编译集/测试集/回退原因/下游候选 |
 | `ib compile --paths <file...>` / `ib compile -pl <module>` | 选择性编译 |
 | `ib test --affected` / `ib test -pl <module>` / `ib test --class [mod:]Class` / `--rerun-failed` | **默认先增量编译**（与 `check` 同通道，编译范围镜像测试作用域），再自研 JUnit Platform fork 启动器执行（每类隔离 fork+4 并行;launcher 版本自模块 classpath 推导;快照录制显式禁用;批超时看门狗）。`--no-compile` 显式关闭预编译（JSON `compiled:false`，不静默）; 编译失败以编译退出码结束、不派发测试（零假绿）; JSON 契约 `compiled: true\|false\|"skipped"`。`--runner surefire` 可退出到 Maven Surefire 委托（setup 不满足时也自动显式回退） |
-| **绿结果缓存（test/check 默认开启）** | 输入指纹未变 + 上次运行绿 → 跳过重执行，输出显式 `cached:true` + advisory（不冒充执行结果）。指纹覆盖：模块单元索引 + 传递依赖 ABI + externalArtifacts + surefire 全部 facts。指纹不命中即真跑（fail-safe）。`--no-cache` 恢复 run-always；`--force` 单次绕过命中；`--class`/`--rerun-failed`/Maven 回退路径永不缓存 |
+| **绿结果缓存（test/check 默认开启）** | 输入指纹未变 + 上次运行绿 → 跳过重执行，输出显式 `cached:true` + advisory（不冒充执行结果）。指纹覆盖：模块单元索引 + 传递依赖 ABI + externalArtifacts + surefire 全部 facts——注释级修改不改字节码/ABI 时仍命中（字节码等价 → 测试行为相同，正确命中非假绿）。指纹不命中即真跑（fail-safe）。`--no-cache` 恢复 run-always；`--force` 单次绕过命中；`--class`/`--rerun-failed`/Maven 回退路径永不缓存。实测（nop-rg-core，2026-11-20）：改 1 测试文件首跑 3.2s（增量编译 1 文件 + 100 受影响测试真实执行）→ 无变更命中 0.54s（≈5.9x）；对照 mvn 同模块暖态 4.0s |
 | **compilerArgs 镜像** | pom `compilerArgs` 白名单参数（`-parameters`/`-g`/`--add-modules <值>`/`--enable-preview`）由快路径逐字回放；白名单外参数 → 该模块自动 Maven 回退且 reason 点名（不静默省略） |
 | `ib check --paths <file...>` | **AI 日常主入口**: 编译 + 受影响测试（`--no-compile` 对 `check` 无效，编译恒开） |
 | `ib explain <file\|module>` | 解释归属/能力分级/依赖者 |
