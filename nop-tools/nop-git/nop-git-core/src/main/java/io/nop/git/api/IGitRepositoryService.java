@@ -99,6 +99,11 @@ public interface IGitRepositoryService extends AutoCloseable {
     String resolveRevision(String rev);
 
     /**
+     * Create a branch at HEAD without switching ({@code git branch <name>}).
+     */
+    void createBranch(String name);
+
+    /**
      * Local branch refs ({@code refs/heads/*}).
      */
     List<NopGitRef> branchList();

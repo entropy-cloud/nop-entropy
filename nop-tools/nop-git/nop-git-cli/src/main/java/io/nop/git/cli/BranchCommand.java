@@ -20,6 +20,7 @@ final class BranchCommand {
     static int run(CliContext ctx, List<String> args) {
         boolean showCurrent = false;
         boolean all = false;
+        String newBranch = null;
         for (String arg : args) {
             if (arg.startsWith("--nop-git-internal"))
                 continue;
@@ -27,14 +28,23 @@ final class BranchCommand {
                 case "--show-current" -> showCurrent = true;
                 case "-a", "--all" -> all = true;
                 default -> {
-                    ctx.err().println("error: unknown option `"
-                            + (arg.startsWith("--") ? arg.substring(2) : arg.substring(1)) + "'");
-                    return GitCompatCli.EXIT_USAGE;
+                    if (!arg.startsWith("-")) {
+                        // native `git branch <name>`: create at HEAD, silent
+                        newBranch = arg;
+                    } else {
+                        ctx.err().println("error: unknown option `"
+                                + (arg.startsWith("--") ? arg.substring(2) : arg.substring(1)) + "'");
+                        return GitCompatCli.EXIT_USAGE;
+                    }
                 }
             }
         }
 
         try (var svc = ctx.openRepo()) {
+            if (newBranch != null) {
+                svc.createBranch(newBranch);
+                return GitCompatCli.EXIT_OK;
+            }
             if (showCurrent) {
                 // native prints the symbolic branch even for unborn HEAD
                 String branch = svc.status().branch();

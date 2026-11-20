@@ -331,6 +331,20 @@ class Wave4CliTest {
     }
 
     @Test
+    void branchNameCreatesBranchSilently() throws Exception {
+        Path dir = repo("bcreate");
+        assertEquals(0, run(dir, "branch", "feature"));
+        assertEquals(0, run(dir, "branch"));
+        assertTrue(out().contains("feature"));
+        // still on the current branch (create does not switch)
+        assertEquals(0, run(dir, "branch", "--show-current"));
+        assertEquals("master\n", out());
+        assertEquals(0, run(dir, "checkout", "feature"));
+        assertEquals(0, run(dir, "branch", "--show-current"));
+        assertEquals("feature\n", out());
+    }
+
+    @Test
     void checkoutDashDashRestoresFile() throws Exception {
         Path dir = repo("ckdd");
         Files.writeString(dir.resolve("a.txt"), "one\ntwo\nthree\nchanged\n");

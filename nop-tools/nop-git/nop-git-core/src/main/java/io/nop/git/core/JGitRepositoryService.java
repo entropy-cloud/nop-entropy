@@ -300,6 +300,22 @@ public final class JGitRepositoryService implements IGitRepositoryService {
     }
 
     @Override
+    public void createBranch(String name) {
+        guarded(GitRequests.of("branch", repoPath(), "branch " + name), () -> {
+            try (Git git = git()) {
+                ObjectId head = repository.resolve(Constants.HEAD);
+                if (head == null)
+                    throw new io.nop.git.api.NopGitException(
+                            "cannot create branch: repository has no commit yet");
+                git.branchCreate().setName(name).setStartPoint(head.getName()).call();
+            } catch (IOException | org.eclipse.jgit.api.errors.GitAPIException e) {
+                throw wrap("branch create failed for '" + name + "'", e);
+            }
+            return null;
+        });
+    }
+
+    @Override
     public List<NopGitRef> branchList() {
         return guarded(GitRequests.of("branch", repoPath(), "branch"), this::doBranchList);
     }
