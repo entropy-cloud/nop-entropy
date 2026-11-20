@@ -26,6 +26,7 @@
         <module>nop-treesitter</module>
         <module>nop-bytecode</module>
         <module>nop-ib</module>
+        <module>nop-git</module>
     </modules>
 
 </project>

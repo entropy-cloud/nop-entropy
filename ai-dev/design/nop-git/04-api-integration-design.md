@@ -46,7 +46,9 @@ public interface IGitRepositoryService extends AutoCloseable {
 
 契约要点：
 
-- **每个公开方法内部先经 `IGitPolicyEngine` 裁决**（architecture baseline §三硬约束 1）；deny 抛 `NopException`（`nop-git` ErrorCode），消息含命中规则原因。
+- **接口按 Wave 增量扩签**：上表是终态契约；Wave 1 落地其无 policy 参数子集（open/init/status/add/commit/log/branch/resolveRevision 等），policy 裁决与 checkout/reset/clean/worktree/push 签名分别在 Wave 3 / Wave 4+ 加入（plan 2576 裁定）。
+
+- **每个公开方法内部先经 `IGitPolicyEngine` 裁决**（architecture baseline §三硬约束 1，Wave 3 接入）；deny 抛 `NopGitException`，消息含命中规则原因。（落地修订，plan 2576：为保 JDK 21 基线 nop-git-core 零仓库内部依赖，错误面用模块级 `NopGitException` 而非 `NopException`+ErrorCode；Wave 6 IoC 集成时若引入 nop-core 再以适配方式补 ErrorCode 面。）
 - 返回类型 `NopGitStatus` / `NopGitCommit` / `NopGitDiffEntry` / `NopGitRef` / `NopGitWorktree` 为自有 record/POJO，字段覆盖 CLI 格式化所需全部信息（CLI 的 `GitOutputFormatter` 消费同一批类型——CLI 与 API 共享一条数据路径，格式化只在出口分叉）。
 - `AutoCloseable`：实例持有底层 Repository，必须关闭；每次 open 一个实例，不共享。
 - 身份（user.name/email）缺省从 git config 链读取，未配置时 commit 报原生风格错误。

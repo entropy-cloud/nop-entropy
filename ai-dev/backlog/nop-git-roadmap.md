@@ -17,13 +17,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 1: 骨架与 API 门面
 
-- 1. nop-git module skeleton (parent POM + nop-git-bom + nop-git-core/cli 模块占位，接入 nop-tools modules)：`planned`
-- 2. JGit 依赖引入与版本锁定（bom 唯一声明点；运行基线 JDK 21 启动校验 `feature() >= 21`）：`planned`
-- 3. 自有结果模型（NopGitStatus / NopGitCommit / NopGitDiffEntry / NopGitRef + Options 类型）：`planned`
-- 4. `IGitRepositoryService` 门面 + `JGitRepositoryService` 适配层（open/init/status/add/commit/log/branch/resolveRevision）：`planned`
-- 5. 空仓库 / 默认分支 / Repository 生命周期（AutoCloseable）语义处理：`planned`
-- 6. 架构支柱测试（`io.nop.git` 外禁止 import org.eclipse.jgit）：`planned`
-- ★ **Milestone: Java API 集成可用** (unlocks when 1 + 3 + 4 + 5 + 6 done): `planned`
+- 1. nop-git module skeleton (parent POM + nop-git-bom + nop-git-core/cli 模块占位，接入 nop-tools modules；聚合 artifact 定名 nop-git-parent，规避 legacy nop-utils/nop-git 的 GAV 冲突)：`done` (plan 2576)
+- 2. JGit 依赖引入与版本锁定（bom 唯一声明点，7.7.1.202607240634-r；运行基线 JDK 21 启动校验 `feature() >= 21`，core 零仓库内部依赖保证基线真实可达）：`done` (plan 2576)
+- 3. 自有结果模型（NopGitStatus / NopGitCommit / NopGitDiffEntry / NopGitRef + Options 类型）：`done` (plan 2576)
+- 4. `IGitRepositoryService` 门面 + `JGitRepositoryService` 适配层（open/init/status/add/commit/log/branch/resolveRevision；policy 裁决点 Wave 3 接入）：`done` (plan 2576)
+- 5. 空仓库 / 默认分支 / Repository 生命周期（AutoCloseable）语义处理：`done` (plan 2576)
+- 6. 架构支柱测试（`io.nop.git` 外禁止 import org.eclipse.jgit；红笔验证通过）：`done` (plan 2576)
+- ★ **Milestone: Java API 集成可用** (unlocks when 1 + 3 + 4 + 5 + 6 done): `done`
 
 ### Wave 2: git 兼容 CLI（P0/P1）
 

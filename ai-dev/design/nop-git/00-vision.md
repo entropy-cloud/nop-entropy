@@ -47,6 +47,7 @@
 - JGit 属于单一职责工具库，引用方式满足允许项：全部 JGit 调用收敛在 `JGitRepositoryService` 一个适配类内，模块其余部分（CLI 解析、策略引擎、输出格式化、审计）全部自建；对外 API（`IGitRepositoryService`）与 CLI 契约均为自有类型，替换底层实现（如未来换 native git 进程桥）不动使用方。
 - 架构支柱测试：禁止 `io.nop.git` 包以外的类 import `org.eclipse.jgit`（ArchUnit/包结构测试保证）。
 - 版本选型：JGit 7.x 稳定版（要求 JDK 17+）；**模块运行基线为 JDK 21**，启动时校验 `Runtime.version().feature() >= 21`，不满足时输出明确错误而非让 JGit 抛 `UnsupportedClassVersionError`。
+- **`nop-git-core` 零仓库内部依赖**（落地裁定，plan 2576）：平台模块（nop-core/nop-api-core 等）为 class v69（Java 25）编译，依赖它们会隐式把运行基线抬到 25，破坏 JDK 21 目标；因此 core 只依赖 JGit，错误面用模块级 `NopGitException`。编译级别由 nop-git 父 pom 覆写 `maven.compiler.release=21`（根 pom 的 release=25 property 会被 maven-compiler-plugin 的 release 参数直接消费，子 pom 必须覆写同名 property）。Wave 6 IoC 集成若引入 nop-core 依赖，需重新裁定基线并显式记录。
 
 ## 六、与已有设计的关系
 
