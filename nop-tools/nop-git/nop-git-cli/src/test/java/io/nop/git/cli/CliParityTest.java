@@ -89,33 +89,37 @@ class CliParityTest {
         for (String args : remote)
             cases.add(new Case("remote", args));
 
+        // Wave 4 deterministic output faces
+        cases.add(new Case("untracked", "clean -n"));
+        cases.add(new Case("clean", "checkout -b dev"));
+        cases.add(new Case("clean", "checkout master"));
+        // ("staged", "checkout master") omitted: native carries the local-change
+        // summary on stdout for dirty checkouts (follow-up; stderr contract matches)
+        cases.add(new Case("unstaged", "clean -fd"));
+
         return cases.stream();
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("cases")
     void parityWithNativeGit(Case testCase) throws Exception {
-        Path repo = switch (testCase.scenario()) {
-            case "empty" -> Fixture.createRepo(base, "empty-" + hash(testCase.scenario() + testCase.argsLine()));
-            case "clean" -> Fixture.cleanSingleCommit(base, "clean-" + hash(testCase.scenario() + testCase.argsLine()));
-            case "untracked" -> Fixture.untrackedContent(base, "untracked-" + hash(testCase.scenario() + testCase.argsLine()));
-            case "unstaged" -> Fixture.dirtyUnstaged(base, "unstaged-" + hash(testCase.scenario() + testCase.argsLine()));
-            case "staged" -> Fixture.dirtyStaged(base, "staged-" + hash(testCase.scenario() + testCase.argsLine()));
-            case "rename" -> Fixture.stagedRename(base, "rename-" + hash(testCase.scenario() + testCase.argsLine()));
-            case "remote" -> Fixture.withRemote(base, "remote-" + hash(testCase.scenario() + testCase.argsLine()));
-            default -> throw new IllegalStateException(testCase.scenario());
-        };
-
-        // exercise -C like real AI tools (fixture != process cwd)
+        // exercise -C like real AI tools (fixture != process cwd). Non-idempotent
+        // commands (checkout -b...) need separate-but-identical fixtures: the
+        // pinned identity makes SHAs deterministic, so outputs stay comparable.
         String[] args = testCase.argsLine().split(" ");
+        Path nativeRepo = buildFixture(testCase.scenario(),
+                testCase.argsLine() + "#native");
         String[] fullArgs = new String[args.length + 2];
         fullArgs[0] = "-C";
-        fullArgs[1] = repo.toAbsolutePath().toString();
+        fullArgs[1] = nativeRepo.toAbsolutePath().toString();
         System.arraycopy(args, 0, fullArgs, 2, args.length);
-        GitCommandRunner.Result nativeResult = GitCommandRunner.run(repo, Map.of(), args);
+        GitCommandRunner.Result nativeResult = GitCommandRunner.run(nativeRepo, Map.of(), args);
 
         ByteArrayOutputStream outBuf = new ByteArrayOutputStream();
         ByteArrayOutputStream errBuf = new ByteArrayOutputStream();
+        Path nopRepo = buildFixture(testCase.scenario(),
+                testCase.argsLine() + "#nop");
+        fullArgs[1] = nopRepo.toAbsolutePath().toString();
         int exit = GitCompatCli.run(fullArgs,
                 new PrintStream(outBuf, true, StandardCharsets.UTF_8),
                 new PrintStream(errBuf, true, StandardCharsets.UTF_8));
@@ -123,8 +127,15 @@ class CliParityTest {
         assertEquals(nativeResult.exit(), exit,
                 "exit code differs for: git " + testCase.argsLine()
                         + "\nnative stderr: " + nativeResult.stderr()
-                        + "\nnop stderr: " + errBuf);
-        assertEquals(nativeResult.stdout(), outBuf.toString(StandardCharsets.UTF_8),
+                        + "\nnop stderr: " + errBuf
+                        + "\nrepo=" + nativeRepo.toAbsolutePath());
+        // dual fixtures live in different directories: path-bearing outputs
+        // (--show-toplevel) are compared with the fixture base normalized
+        String nativeOut = nativeResult.stdout()
+                .replace(nativeRepo.getFileName().toString(), "<BASE>");
+        String nopOut = outBuf.toString(StandardCharsets.UTF_8)
+                .replace(nopRepo.getFileName().toString(), "<BASE>");
+        assertEquals(nativeOut, nopOut,
                 "stdout differs for: git " + testCase.argsLine()
                         + "\nnative stdout: " + nativeResult.stdout()
                         + "\nnop stdout: " + outBuf
@@ -132,6 +143,20 @@ class CliParityTest {
         assertEquals(normalizeFatal(nativeResult.stderr()),
                 normalizeFatal(errBuf.toString(StandardCharsets.UTF_8)),
                 "stderr differs for: git " + testCase.argsLine());
+    }
+
+    private Path buildFixture(String scenario, String suffix) throws Exception {
+        String name = scenario + "-" + hash(suffix);
+        return switch (scenario) {
+            case "empty" -> Fixture.createRepo(base, name);
+            case "clean" -> Fixture.cleanSingleCommit(base, name);
+            case "untracked" -> Fixture.untrackedContent(base, name);
+            case "unstaged" -> Fixture.dirtyUnstaged(base, name);
+            case "staged" -> Fixture.dirtyStaged(base, name);
+            case "rename" -> Fixture.stagedRename(base, name);
+            case "remote" -> Fixture.withRemote(base, name);
+            default -> throw new IllegalStateException(scenario);
+        };
     }
 
     private static String hash(String s) {

@@ -120,6 +120,142 @@ public interface IGitRepositoryService extends AutoCloseable {
      */
     void configSet(String key, String value, GitConfigScope scope);
 
+    // ---- Wave 4 (design 04 terminal contract extension) ----
+
+    /**
+     * {@code git clone <from> <to>} for local paths (policy engine loaded
+     * from the target parent for the "clone" operation).
+     */
+    static void cloneRepository(File from, File to) {
+        io.nop.git.core.JGitRepositoryService.cloneRepository(from, to);
+    }
+
+    /**
+     * Switch branches; create first when create is true ({@code checkout -b}).
+     */
+    void checkout(String branch, boolean create);
+
+    /**
+     * {@code git reset} with soft/mixed/hard semantics against the given rev.
+     */
+    void reset(GitResetMode mode, String rev);
+
+    /**
+     * {@code git clean}: remove (or list with dryRun) untracked paths.
+     */
+    List<String> clean(CleanOptions options);
+
+    /**
+     * {@code git restore <path>}: discard worktree changes of tracked paths.
+     */
+    void restore(String path);
+
+    /**
+     * {@code git rm}.
+     */
+    void rm(String path, boolean cached, boolean force);
+
+    /**
+     * {@code git mv}.
+     */
+    void mv(String oldPath, String newPath);
+
+    /**
+     * {@code git stash}: stash tracked changes (default message).
+     *
+     * @return the commit sha of the created stash, or null when there was
+     *         nothing to stash
+     */
+    String stashPush();
+
+    /**
+     * {@code git stash list}: one line per stash entry.
+     */
+    List<String> stashList();
+
+    /**
+     * {@code git stash pop}: apply the latest stash and drop it.
+     */
+    void stashPop();
+
+    /**
+     * {@code git worktree list}.
+     */
+    List<NopGitWorktree> listWorktrees();
+
+    /**
+     * {@code git worktree add} (self-built metadata, design 05).
+     */
+    NopGitWorktree addWorktree(AddWorktreeOptions options);
+
+    /**
+     * {@code git worktree remove}.
+     */
+    void removeWorktree(String path, boolean force);
+
+    /**
+     * {@code git worktree prune}.
+     *
+     * @return number of pruned admin entries
+     */
+    int pruneWorktrees();
+
+    /**
+     * {@code git remote} names.
+     */
+    List<String> remoteList();
+
+    /**
+     * {@code git remote -v} lines: {@code <name>\t<url> (fetch)}` etc.
+     */
+    List<String> remoteListVerbose();
+
+    /**
+     * {@code git remote add}.
+     */
+    void remoteAdd(String name, String url);
+
+    /**
+     * {@code git remote set-url}.
+     */
+    void remoteSetUrl(String name, String url);
+
+    /**
+     * {@code git remote rm}.
+     */
+    void remoteRemove(String name);
+
+    /**
+     * {@code git push <remote> <refspec>} (policy: branch/remote dimensions).
+     */
+    void push(String remote, String refspec, boolean setUpstream);
+
+    /**
+     * {@code git fetch <remote>}.
+     */
+    void fetch(String remote);
+
+    /**
+     * {@code git pull <remote> <branch>} (fetch + fast-forward merge).
+     */
+    void pull(String remote, String branch);
+
+    /**
+     * {@code git merge <ref>} (fast-forward default; noFf forces a merge
+     * commit). Conflict raises NopGitException.
+     */
+    void merge(String ref, boolean noFf);
+
+    /**
+     * {@code git rebase <upstream>} (simple non-interactive form).
+     */
+    void rebase(String upstream);
+
+    /**
+     * {@code git cherry-pick <commit>}.
+     */
+    io.nop.git.api.NopGitCommit cherryPick(String commit);
+
     /**
      * Unified diff text lines, byte-compatible with native git
      * ({@code git diff} pure text output; headers, hunks and the

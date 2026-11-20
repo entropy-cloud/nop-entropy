@@ -46,15 +46,15 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 4: CLI 扩展 + Worktree 一等支持（P2/P3）
 
-- 18. P2：`checkout`/`switch`、`reset`（soft/mixed/hard）、`clean`、`restore`/`rm`/`mv`、`stash` 子集：`planned`
-- 19. worktree API（`listWorktrees`/`addWorktree`/`removeWorktree`，管理元数据自建，见设计 05-worktree-design.md）：`planned`
-- 20. worktree CLI（`worktree add` 含 `-b`、`list` 含 `--porcelain`、`remove` 含 `--force`/prune）：`planned`
-- 21. worktree 双向兼容对照测试（真实 git 创建 → nop-git 读；nop-git 创建 → 真实 git 读/`worktree list` 识别）+ 策略接入（`remove` 默认 review）：`planned`
-- 22. P3（本地）：`init`（defaultBranch 配置）、`remote -v/add/set-url`：`planned`
-- 23. P3（网络）：`push`/`fetch`/`pull`/`clone` refspec 子集（受远程规则约束）：`planned`
-- 24. P3（历史改写类，最后）：`merge`/`rebase`/`cherry-pick` 子集：`planned`
-- 25. 扩展子命令逐个补 golden 对照 + AI 工具回归冒烟：`planned`
-- ★ **Milestone: CLI 覆盖面达标（含 worktree 增删）** (unlocks when 18..25 done): `planned`
+- 18. P2：`checkout`/`switch`、`reset`（soft/mixed/hard）、`clean`、`restore`/`rm`/`mv`、`stash` push/list/pop 子集：`done` (plan 2579)
+- 19. worktree API（`listWorktrees`/`addWorktree`/`removeWorktree`，管理元数据自建，见设计 05-worktree-design.md；元数据自建 spike 验证 JGit 打开自建 linked worktree + reset --hard 物化）：`done` (plan 2579)
+- 20. worktree CLI（`worktree add` 含 `-b`、`list` 含 `--porcelain`、`remove` 含 `--force`/prune）：`done` (plan 2579)
+- 21. worktree 双向兼容对照测试（真实 git 创建 → nop-git 读；nop-git 创建 → 真实 git 读/`worktree list` 识别）+ 策略接入（`remove` 内置默认 review）：`done` (plan 2579)
+- 22. P3（本地）：`init`（-b defaultBranch）、`remote -v/add/set-url/rm`：`done` (plan 2579)
+- 23. P3（网络）：`push`（refspec + -u）/`fetch`/`pull`/`clone`（本地 file 远程往返测试绿；策略 request 构造进引擎）：`done` (plan 2579)
+- 24. P3（历史改写类，最后）：`merge`（ff/no-ff，冲突报错）/`rebase`（简单形态）/`cherry-pick`（单 commit）：`done` (plan 2579)
+- 25. 扩展子命令确定性面补对照（parity +5 例；dual-fixture harness 修复非幂等命令同仓污染 + 路径归一化）+ AI 冒烟回归绿 + 变异探针红→绿：`done` (plan 2579)
+- ★ **Milestone: CLI 覆盖面达标（含 worktree 增删）** (unlocks when 18..25 done): `done`
 
 ### Wave 5: 可选 HTTP Git 服务层
 

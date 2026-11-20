@@ -5,12 +5,16 @@ import io.nop.git.api.DiffOptions;
 import io.nop.git.api.GitConfigScope;
 import io.nop.git.api.IGitRepositoryService;
 import io.nop.git.api.LogOptions;
+import io.nop.git.api.AddWorktreeOptions;
+import io.nop.git.api.GitResetMode;
 import io.nop.git.api.NopGitCommit;
 import io.nop.git.api.NopGitDiffEntry;
 import io.nop.git.api.NopGitException;
 import io.nop.git.api.NopGitRef;
 import io.nop.git.api.NopGitRename;
+import io.nop.git.api.CleanOptions;
 import io.nop.git.api.NopGitStatus;
+import io.nop.git.api.NopGitWorktree;
 import io.nop.git.policy.GitRequests;
 import io.nop.git.policy.IGitOperationRequest;
 import io.nop.git.policy.IGitPolicyEngine;
@@ -427,6 +431,278 @@ public final class JGitRepositoryService implements IGitRepositoryService {
         } finally {
             git.close();
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Wave 4: P2/P3 commands + worktree (design 05; guarded like all ops)
+    // ------------------------------------------------------------------
+
+    public static void cloneRepository(File from, File to) {
+        IGitPolicyEngine engine = io.nop.git.policy.DefaultGitPolicyEngine.load(
+                Path.of(canonicalRoot(to.getParentFile() == null ? to : to.getParentFile())));
+        var request = GitRequests.builder("clone",
+                canonicalRoot(to.getParentFile() == null ? to : to.getParentFile()),
+                "clone " + from + " " + to).build();
+        runGuarded(engine, request, () -> {
+            Wave4Ops.cloneRepository(from, to);
+            return null;
+        });
+    }
+
+    static <T> T runGuarded(IGitPolicyEngine engine, IGitOperationRequest request,
+                            java.util.function.Supplier<T> action) {
+        if (engine == null || !engine.isActive())
+            return action.get();
+        GitVerdict verdict = engine.evaluate(request);
+        boolean observe = engine.mode() == GitPolicyMode.OBSERVE;
+        if (!observe && verdict.effect() == GitVerdict.Effect.DENY) {
+            engine.audit(request, verdict, "denied");
+            throw new NopGitException("policy denied: " + verdict.reason());
+        }
+        if (!observe && verdict.effect() == GitVerdict.Effect.REVIEW
+                && !engine.resolveReview(request, verdict)) {
+            engine.audit(request, verdict, "review-denied");
+            throw new NopGitException("policy denied: review not approved: " + verdict.reason());
+        }
+        T result;
+        try {
+            result = action.get();
+        } catch (RuntimeException e) {
+            engine.audit(request, verdict, "error");
+            throw e;
+        }
+        engine.audit(request, verdict, "ok");
+        return result;
+    }
+
+    @Override
+    public void checkout(String branch, boolean create) {
+        guarded(GitRequests.of("checkout", repoPath(),
+                "checkout " + (create ? "-b " : "") + branch),
+                () -> {
+                    Wave4Ops.checkout(repository, branch, create);
+                    return null;
+                });
+    }
+
+    @Override
+    public void reset(GitResetMode mode, String rev) {
+        var builder = GitRequests.builder("reset", repoPath(),
+                "reset --" + mode.name().toLowerCase() + " " + (rev == null ? "" : rev));
+        builder.canonicalFlag("--" + mode.name().toLowerCase());
+        guarded(builder.build(), () -> {
+            Wave4Ops.reset(repository, mode, rev);
+            return null;
+        });
+    }
+
+    @Override
+    public List<String> clean(CleanOptions options) {
+        var builder = GitRequests.builder("clean", repoPath(), "clean");
+        if (options.force())
+            builder.canonicalFlag("--force");
+        if (options.directories())
+            builder.canonicalFlag("--directories");
+        if (options.dryRun())
+            builder.canonicalFlag("--dry-run");
+        return guarded(builder.build(), () -> Wave4Ops.clean(repository, options));
+    }
+
+    @Override
+    public void restore(String path) {
+        var builder = GitRequests.builder("restore", repoPath(), "restore " + path);
+        builder.path(path);
+        guarded(builder.build(), () -> {
+            Wave4Ops.restore(repository, path);
+            return null;
+        });
+    }
+
+    @Override
+    public void rm(String path, boolean cached, boolean force) {
+        var builder = GitRequests.builder("rm", repoPath(), "rm " + path);
+        builder.path(path);
+        if (cached)
+            builder.canonicalFlag("--cached");
+        if (force)
+            builder.canonicalFlag("--force");
+        guarded(builder.build(), () -> {
+            Wave4Ops.rm(repository, path, cached, force);
+            return null;
+        });
+    }
+
+    @Override
+    public void mv(String oldPath, String newPath) {
+        var builder = GitRequests.builder("mv", repoPath(), "mv " + oldPath + " " + newPath);
+        builder.path(oldPath);
+        builder.path(newPath);
+        guarded(builder.build(), () -> {
+            Wave4Ops.mv(repository, oldPath, newPath);
+            return null;
+        });
+    }
+
+    @Override
+    public String stashPush() {
+        return guarded(GitRequests.of("stash", repoPath(), "stash push"),
+                () -> Wave4Ops.stashPush(repository));
+    }
+
+    @Override
+    public List<String> stashList() {
+        return guarded(GitRequests.of("stash", repoPath(), "stash list"),
+                () -> Wave4Ops.stashList(repository));
+    }
+
+    @Override
+    public void stashPop() {
+        guarded(GitRequests.of("stash", repoPath(), "stash pop"), () -> {
+            Wave4Ops.stashPop(repository);
+            return null;
+        });
+    }
+
+    @Override
+    public List<NopGitWorktree> listWorktrees() {
+        return guarded(GitRequests.of("worktree-list", repoPath(), "worktree list"),
+                () -> WorktreeSupport.list(repository));
+    }
+
+    @Override
+    public NopGitWorktree addWorktree(AddWorktreeOptions options) {
+        return guarded(GitRequests.of("worktree-add", repoPath(),
+                        "worktree add " + options.path()),
+                () -> WorktreeSupport.add(repository, options));
+    }
+
+    @Override
+    public void removeWorktree(String path, boolean force) {
+        var builder = GitRequests.builder("worktree-remove", repoPath(),
+                "worktree remove " + path);
+        builder.path(path);
+        if (force)
+            builder.canonicalFlag("--force");
+        guarded(builder.build(), () -> {
+            WorktreeSupport.remove(repository, path, force);
+            return null;
+        });
+    }
+
+    @Override
+    public int pruneWorktrees() {
+        return guarded(GitRequests.of("worktree-prune", repoPath(), "worktree prune"),
+                () -> WorktreeSupport.prune(repository));
+    }
+
+    @Override
+    public List<String> remoteList() {
+        return guarded(GitRequests.of("remote", repoPath(), "remote"),
+                () -> Wave4Ops.remoteList(repository));
+    }
+
+    @Override
+    public List<String> remoteListVerbose() {
+        return guarded(GitRequests.of("remote", repoPath(), "remote -v"),
+                () -> Wave4Ops.remoteListVerbose(repository));
+    }
+
+    @Override
+    public void remoteAdd(String name, String url) {
+        guarded(GitRequests.builder("remote", repoPath(), "remote add " + name + " " + url)
+                        .remote(name, url).build(),
+                () -> {
+                    Wave4Ops.remoteAdd(repository, name, url);
+                    return null;
+                });
+    }
+
+    @Override
+    public void remoteSetUrl(String name, String url) {
+        guarded(GitRequests.builder("remote", repoPath(), "remote set-url " + name + " " + url)
+                        .remote(name, url).build(),
+                () -> {
+                    Wave4Ops.remoteSetUrl(repository, name, url);
+                    return null;
+                });
+    }
+
+    @Override
+    public void remoteRemove(String name) {
+        guarded(GitRequests.builder("remote", repoPath(), "remote rm " + name)
+                        .remote(name, null).build(),
+                () -> {
+                    Wave4Ops.remoteRemove(repository, name);
+                    return null;
+                });
+    }
+
+    @Override
+    public void push(String remote, String refspec, boolean setUpstream) {
+        var builder = GitRequests.builder("push", repoPath(),
+                "push " + remote + " " + (refspec == null ? "" : refspec));
+        builder.remote(remote, repository.getConfig().getString("remote", remote, "url"));
+        if (refspec != null && refspec.contains(":")) {
+            builder.targetBranch(refspec.split(":")[1]);
+        } else if (refspec != null && !refspec.isEmpty()) {
+            builder.targetBranch(refspec);
+        }
+        guarded(builder.build(), () -> {
+            Wave4Ops.push(repository, remote, refspec, setUpstream);
+            return null;
+        });
+    }
+
+    @Override
+    public void fetch(String remote) {
+        guarded(GitRequests.builder("fetch", repoPath(), "fetch " + remote)
+                        .remote(remote, repository.getConfig()
+                                .getString("remote", remote, "url")).build(),
+                () -> {
+                    Wave4Ops.fetch(repository, remote);
+                    return null;
+                });
+    }
+
+    @Override
+    public void pull(String remote, String branch) {
+        guarded(GitRequests.builder("pull", repoPath(), "pull " + remote + " " + branch)
+                        .remote(remote, repository.getConfig()
+                                .getString("remote", remote, "url"))
+                        .targetBranch(branch).build(),
+                () -> {
+                    Wave4Ops.pull(repository, remote, branch);
+                    return null;
+                });
+    }
+
+    @Override
+    public void merge(String ref, boolean noFf) {
+        var builder = GitRequests.builder("merge", repoPath(), "merge " + ref);
+        if (noFf)
+            builder.canonicalFlag("--no-ff");
+        builder.targetBranch(ref);
+        guarded(builder.build(), () -> {
+            Wave4Ops.merge(repository, ref, noFf);
+            return null;
+        });
+    }
+
+    @Override
+    public void rebase(String upstream) {
+        var builder = GitRequests.builder("rebase", repoPath(), "rebase " + upstream);
+        builder.targetBranch(upstream);
+        guarded(builder.build(), () -> {
+            Wave4Ops.rebase(repository, upstream);
+            return null;
+        });
+    }
+
+    @Override
+    public NopGitCommit cherryPick(String commit) {
+        return guarded(GitRequests.of("cherry-pick", repoPath(), "cherry-pick " + commit),
+                () -> Wave4Ops.cherryPick(repository, commit, c -> {
+                }));
     }
 
     @Override

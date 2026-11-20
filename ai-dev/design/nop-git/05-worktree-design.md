@@ -17,10 +17,12 @@
 ```
 <common-dir>/worktrees/<id>/     # id = 目录名 sanitized（冲突时 -1、-2 后缀）
 ├── gitdir      # 单行：反向指针，指向工作目录的 .git 文件绝对路径
-├── commondir   # 单行：相对/绝对路径回指 common dir（通常 "../.."）
-├── HEAD        # 单行：ref 名或 detached commit SHA
-├── index       # 该 worktree 独立的暂存区
-├── ORIG_HEAD   # 可选
+├── commondir   # 单行：固定相对路径 "../.."（真实 git 实测即此；逐字节兼容锚点）
+├── HEAD        # 单行：ref 名（"ref: refs/heads/x"）或 detached commit SHA
+├── index       # 该 worktree 独立的暂存区——按检出树物化（非空；由 checkout
+│               # 物化步骤生成，与真实 git 行为一致：worktree add 后 status 干净）
+├── ORIG_HEAD   # 可选（真实 git 会写；nop-git 不创建也双向兼容）
+├── logs/ refs/ # 可选（同上）
 └── locked      # 可选：存在即锁定（remove 拒绝，需 --force）
 ```
 
@@ -30,7 +32,7 @@ worktree 工作目录侧：
 <worktree-path>/.git             # 纯文件（非目录），单行：gitdir: <admin-dir绝对路径>
 ```
 
-add 语义：解析目标 commit/branch（`-b` 先建分支；缺省检出 HEAD 新分支或在 detached 模式直接检出）→ 写 admin 目录（HEAD/index 用空 index 初始化）→ 创建工作目录 + `.git` 指针文件 → 按 reflog/checkout 语义物化工作区文件（复用 JGit checkout 到指定目录的能力）。
+add 语义：解析目标 commit/branch（`-b` 先建分支；缺省检出 HEAD 新分支或在 detached 模式直接检出）→ 写 admin 目录（HEAD 写 ref 名形如 `ref: refs/heads/x`；commondir 写 `../..`；gitdir 写工作目录 `.git` 绝对路径）→ 创建工作目录 + `.git` 指针文件 → 用 JGit `Git.open(worktree)` 打开自建 linked worktree（其只读 commondir 解析识别自建元数据）→ `checkout().setAllPaths(true)` 物化 index 与工作区文件（index 由此生成，非空、按检出树物化——真实 git 行为）。
 
 remove 语义：校验目标在 `worktrees/` 注册表内 → 拒绝删除主 worktree 与 locked（除非 force）→ 删除工作目录内容 → 删除 admin 目录 → 清理关联 branch（`--delete-branch` 时）。prune（清理失效指针）随 remove 附带实现。
 

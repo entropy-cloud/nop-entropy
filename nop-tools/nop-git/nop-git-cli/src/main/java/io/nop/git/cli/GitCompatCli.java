@@ -149,6 +149,24 @@ public final class GitCompatCli {
             case "branch" -> BranchCommand.run(context, args);
             case "rev-parse" -> RevParseCommand.run(context, args);
             case "config" -> ConfigCommand.run(context, args);
+            case "checkout" -> Wave4Commands.checkout(context, args);
+            case "switch" -> Wave4Commands.checkout(context, args);
+            case "reset" -> Wave4Commands.reset(context, args);
+            case "clean" -> Wave4Commands.clean(context, args);
+            case "restore" -> Wave4Commands.restore(context, args);
+            case "rm" -> Wave4Commands.rm(context, args);
+            case "mv" -> Wave4Commands.mv(context, args);
+            case "stash" -> Wave4Commands.stash(context, args);
+            case "worktree" -> Wave4Commands.worktree(context, args);
+            case "init" -> Wave4Commands.init(context, args);
+            case "remote" -> Wave4Commands.remote(context, args);
+            case "push" -> Wave4Commands.push(context, args);
+            case "fetch" -> Wave4Commands.fetch(context, args);
+            case "pull" -> Wave4Commands.pull(context, args);
+            case "clone" -> Wave4Commands.clone(context, args);
+            case "merge" -> Wave4Commands.merge(context, args);
+            case "rebase" -> Wave4Commands.rebase(context, args);
+            case "cherry-pick" -> Wave4Commands.cherryPick(context, args);
             case "help" -> {
                 printUsage(out);
                 yield EXIT_OK;

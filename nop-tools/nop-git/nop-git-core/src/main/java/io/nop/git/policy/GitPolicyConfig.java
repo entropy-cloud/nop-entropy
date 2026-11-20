@@ -53,7 +53,7 @@ public record GitPolicyConfig(
                     List.of("status", "diff", "log", "add", "commit", "rev-parse",
                             "branch", "config"),
                     List.of("gc", "reflog"),
-                    List.of("push", "reset", "clean", "checkout")),
+                    List.of("push", "reset", "clean", "checkout", "worktree-remove")),
             List.of(),
             new ProtectedBranches(
                     List.of("main", "master", "release/*"),

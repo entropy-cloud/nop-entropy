@@ -79,10 +79,11 @@ class AiToolSmokeTest {
 
     @Test
     void unimplementedSubcommandErrorsLoudly() {
-        assertEquals(1, run(base, "push"));
-        assertTrue(err().contains("git: 'push' is not a nop-git command."));
-        assertEquals(1, run(base, "rebase"));
-        assertTrue(err().contains("git: 'rebase' is not a nop-git command."));
+        // rebase/push arrived with Wave 4; bisect stays outside the supported set
+        assertEquals(1, run(base, "bisect"));
+        assertTrue(err().contains("git: 'bisect' is not a nop-git command."));
+        assertEquals(1, run(base, "gc"));
+        assertTrue(err().contains("git: 'gc' is not a nop-git command."));
     }
 
     @Test
