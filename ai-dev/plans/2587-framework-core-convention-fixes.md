@@ -1,6 +1,6 @@
 # 2587 框架核心与持久层收敛修复（nop-orm/nop-dao/nop-core）+ nop-rg 预滤缺陷
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（6 先修已吸收）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（框架核心分区 + nop-ib/rg 分区 finding 3）
@@ -72,7 +72,7 @@ Targets: `RegexLiteralExtractor.java`、`RegexSearcher.java`、`ResourceDependsM
 - Item Types: `Fix`
 
 - [x] mayMatchAcrossLines 进入 `[...]` 后继续扫描转义序列（\n \r \x \012 及真实行终止字符即拒绝，新 helper `skipClassScanLineTerminators`）；extract 对含此类构造的类不拼接 run（既有行为已满足——类内容从不进入 run，钉 testPlan2587_extractDoesNotConcatenateClassContentAcrossRuns 固化）。裁定补记：mayMatchAcrossLines=true 的 pattern（literal=null）原落整文件路径会产出 rg 行模式不可能给出的跨行命中——RegexSearcher 新增逐行匹配路径 `findAllByLines`（按 \n 切行逐行跑 pattern，^$ 行边界锚定，与 rg 行模式语义一致；接线钉 testPlan2587_searcherRoutesClassLineTerminatorToLineScan 断言路由；原 2574 钉 testCrossLinePatternFallsBackToWholeFile 按 2587 契约改写 + 新增行内真命中保留对照钉）
-- [ ] （移除：ResourceDependsManager 项降级为 follow-up——Supplier 无身份元数据，「身份型 task 识别」机制不存在，:118 已有 WARN）
+- （移除项记录：ResourceDependsManager 降级 follow-up——Supplier 无身份元数据，:118 已有 WARN）
 - [x] 三语料 rg 对拍回归（0 skipped 硬门禁口径）覆盖跨行字符类用例（RgEncodingParityTest#testCrossLineCharClassParityWithRg：`a[\n]b`/`a[\x0A]b` 双方 0 命中、a<CR>b 双方命中且非空防恒空假绿；rg 15.1.0 环境实测 3 tests / 0 failures / 0 skipped）
 
 Exit Criteria:
@@ -88,9 +88,9 @@ Exit Criteria:
 - [x] nop-rg 跨行字符类缺陷修复并对拍通过
 - [x] rollback-only 行为变更登记完成
 - [x] focused tests 全绿（nop-dao 359 / nop-orm 553 / nop-rg-core 115 / nop-rg-cli 44，全 0 failures；skipped 均为既有基线）
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-orm --severity high` 退出码 0（主控负责）
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence/nop-orm --severity high` 退出码 0（gate 路径修正；nop-wf/nop-wf-core 同批复跑 0 High）（主控负责）
 
 ## Deferred But Adjudicated
 
@@ -112,10 +112,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 两 Phase 全部落地；独立审计 PASS（GenerationFence 前提证伪撤销有据、rg 对拍 0 skipped、hollow 0 High），记账后置 completed。
+Completed: 2026-11-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 独立 fresh-session 子代理（closure audit 2585+2587，2026-11-21）
+- Evidence: TestTransactionStateCas 9/0、RgEncodingParityTest 3/0（0 skipped 硬门禁，含跨行字符类对拍与防假绿断言）、BatchActionQueueImpl 移交下一轮钉、ERR_TXN_ALREADY_FINISHED 复用与 close CAS 门 live 核实；GenerationFence 勘误登记；变异探针 13/2 红→23/0 绿记录在案

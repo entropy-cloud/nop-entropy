@@ -1,6 +1,6 @@
 # 2582 nop-git 安全加固：策略绕过封堵 + HTTP 服务访问控制
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（2 Major 已吸收：CLI 入口归一、push -u 裁定）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（B1/B2 + nop-git Major/Minor 群）
@@ -66,7 +66,7 @@ Exit Criteria:
 
 ### Phase 2 - HTTP 服务访问控制
 
-Status: planned
+Status: completed
 Targets: `nop-tools/nop-git/nop-git-server/`、`nop-git-ioc/`
 
 - Item Types: `Fix | Decision`
@@ -92,9 +92,9 @@ Exit Criteria:
 - [x] focused tests 全绿（core/cli/server/ioc）（nop-ib 缺陷退避 mvnw 模块级等价：34+126+6+3 = 169 tests / 0 failures）
 - [x] 无 in-scope live defect 被降级为 follow-up
 - [x] owner docs 已同步
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件（留待主控）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（留给主控）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-git-core --severity high` 退出码 0（留给主控）
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件（留待主控）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（留给主控）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-git-core --severity high` 退出码 0（留给主控）
 
 ## Deferred But Adjudicated
 

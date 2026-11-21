@@ -1,6 +1,6 @@
 # 2585 运行时服务并发与协议正确性修复（wf/gateway/graphql/stream/datav/metadata）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（3 Major 先修已吸收：off-by-one 改语义核查、endSubFlow 首选同步移出锁外、end 脚本防双跑取舍）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（运行时分区 Major/Minor 群）
@@ -62,7 +62,7 @@ Exit Criteria:
 
 ### Phase 2 - 协议与扫描防线（群修）
 
-Status: in progress
+Status: completed
 Targets: `JsonRpcWebSocketHandler.java`、`BufferedStreamingPublisher.java`、`DaoWorkflowStore.java`、`WfTaskScanner.java`、`MetaMethodExecutor.java`、`NopDatavExportTaskBizModel.java`、`PollingJdbcMessageService.java`
 
 - Item Types: `Fix`
@@ -79,18 +79,18 @@ Exit Criteria:
 
 - [x] 每项 focused 钉测试（同毫秒批不跳过、off-by-one 断言钉、maxRows 生效等）——已执行绿：`TestWfTaskScannerFencing.testSameMillisecondDueTime_tieBreakerCursorConsumesAll`、`TestWfScanQueryShape`、`testMaxRowsSecondLineOfDefense`（metadata 8/0）、`TestPollBatchSizeConfigFailFast`（stream-runtime 1246/0）、wf-core 57/0、dao+scheduler 9/0；gateway `pin3a` 为既有绿钉（本批 gateway 仅注释零语义 diff）未复跑，graphql-core 钉（pin_a~d）随该模块测试阻塞未复跑（见下条）
 - [x] 模块测试全绿收口（复跑于并行批收敛后）：graphql-core **209/0**、gateway **150/0**（mvnw 模块级，nop-ib 对该选择集仍受 nop-cli-core depsUnresolved 回退限制）。复跑暴露并修复一处真实缺陷：`onMessage(JsonRpcRequest)` 直入路径漏加入站续期（pin_d 必红）——已补，pin_a~d 全绿。dao/scheduler/metadata/stream-runtime 前轮已绿（9/0、8/0、1246/0）
-- [ ] owner docs 若行为面变化已同步，否则显式 No owner-doc update required
-- [ ] `ai-dev/logs/` 已更新
+- [x] owner docs 若行为面变化已同步，否则显式 No owner-doc update required
+- [x] `ai-dev/logs/` 已更新
 
 ## Closure Gates
 
-- [ ] wf ABBA 锁序面修复并有并发钉
-- [ ] WS idle 误杀修复并有标准客户端行为钉
-- [ ] Minor 群全部落地或移入 Deferred But Adjudicated
-- [ ] focused tests 全绿
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-wf-core --severity high` 退出码 0
+- [x] wf ABBA 锁序面修复并有并发钉
+- [x] WS idle 误杀修复并有标准客户端行为钉
+- [x] Minor 群全部落地或移入 Deferred But Adjudicated
+- [x] focused tests 全绿
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-wf/nop-wf-core --severity high` 退出码 0（gate 路径修正：模块名裸称会 vacuous 空扫）
 
 ## Deferred But Adjudicated
 
@@ -107,10 +107,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 两 Phase 全部落地；独立审计确认全部技术性 Exit Criteria 成立（代表钉复跑绿：TestWfEndScriptLockOrder 2/0），记账完成后置 completed。
+Completed: 2026-11-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 独立 fresh-session 子代理（closure audit 2585+2587，2026-11-21）
+- Evidence: 三段式终结/锁序不变式/二元组游标/ERR_WF_INVALID_SCAN_BATCH_SIZE/maxRows/lastInboundAt 直入续期（dc2b2f76d7）逐条 live 核实；TestWfEndScriptLockOrder 2/0、graphql-core 209/0、gateway 150/0（mvnw 复跑）；datav 复查裁定⑨零改动有据；Anti-Hollow 通过

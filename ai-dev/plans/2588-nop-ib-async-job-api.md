@@ -1,6 +1,6 @@
 # 2588 nop-ib 异步 Job API：长轮询 / 进度 / 运行中取消 / 任务日志
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（1 Blocker + 2 Major 先修已吸收：第三个进程源+树终止、handler 池饿死、prune 空闲清理）
 > Source: 用户裁定 + `ai-dev/design/nop-incremental-build/09-async-job-api-design.md`
@@ -74,7 +74,7 @@ Targets: `nop-tools/nop-ib/src/main/java/io/nop/ib/service/JobRegistry.java`、`
 - [x] ProcessTracker：三处进程源（MavenFallback:97、JUnitForkExecutor:200、JUnitWorkerPool:322）`Process.start()` 后登记 / 退出后注销；DELETE 对 RUNNING job 对每个登记进程 `handle.descendants().forEach(destroyForcibly)` 后杀本进程（Java destroyForcibly 只杀直接子进程，surefire 孙进程需树终止）+ job 线程 interrupt + 置 `CANCELLED`（exit=-1）+ 日志尾写 `cancelled at phase=…`
 - [x] 取消响应契约：`{result:"cancelled", state:"cancelled"}`；`cannot-cancel-running` 语义废止（该返回码移除，更新 /v1/help 与测试）
 - [x] design 07 §2 契约补充指向 design 09；`check-doc-links --strict` 0 错误（本次改动文件 0 新增问题；仓库现存 10 个 error 来自另一并行代理未提交的 docs-for-ai 文件，见 Closure evidence）
-- [ ] `package-ib.sh` 重打包 + 真实服务冒烟：起服务→submit 长任务→waitMs 轮询→DELETE 取消→确认进程树终止与 CANCELLED 状态
+- [x] `package-ib.sh` 重打包 + 真实服务冒烟：起服务→submit 长任务→waitMs 轮询→DELETE 取消→确认进程树终止与 CANCELLED 状态
 
 Exit Criteria:
 
@@ -89,9 +89,9 @@ Exit Criteria:
 - [x] 无静默跳过：新增接口参数未实现时显式 400，而非忽略（/v1/job 与 /v1/jobs 未知 query 参数、非法 state 值均 400）
 - [x] design 07/09、bin/README、/v1/help 与实现一致（机器可读契约为 owner）
 - [x] `ib test -pl :nop-ib` 全绿 + 重打包冒烟通过
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ib --severity high` 退出码 0（主控负责）
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ib --severity high` 退出码 0（gate 字面 --module nop-ib 为 vacuous 空扫，已用 --path nop-tools/nop-ib 复跑 0 finding）（主控负责）
 
 ## Deferred But Adjudicated
 

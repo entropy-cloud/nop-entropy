@@ -1,6 +1,6 @@
 # 2583 nop-ib 正确性修复：索引陈旧假绿 + 并发预算 + Maven 委托超时
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（2 先修已吸收：失效点=CompileCommand、预算改参数传递）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（B3 + nop-ib Major/Minor 群）
@@ -82,14 +82,14 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] B3 修复并有回归钉
-- [ ] in-scope Major 全部修复（预算/超时/早退/并发委托）
-- [ ] focused tests 全绿 + 服务重打包冒烟通过
-- [ ] 无 in-scope live defect 被降级
-- [ ] owner docs 已同步或显式豁免
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ib --severity high` 退出码 0
+- [x] B3 修复并有回归钉
+- [x] in-scope Major 全部修复（预算/超时/早退/并发委托）
+- [x] focused tests 全绿 + 服务重打包冒烟通过
+- [x] 无 in-scope live defect 被降级
+- [x] owner docs 已同步或显式豁免
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ib --severity high` 退出码 0（--path nop-tools/nop-ib 复跑确认非 vacuous）
 
 ## Deferred But Adjudicated
 

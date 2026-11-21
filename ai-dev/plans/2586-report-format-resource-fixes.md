@@ -1,6 +1,6 @@
 # 2586 报表缓存与格式模块资源/一致性修复（report/pdf/chart/debug-web）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（1 Blocker + 3 Major 先修已吸收：PDFMergerUtility 深拷、download 联动、单 JVM 边界、Baseline 修正）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（格式/报表分区 Major/Minor 群）
@@ -83,9 +83,9 @@ Exit Criteria:
 - [x] 3 个 Major 修复并有回归钉
 - [x] Minor 群全部落地或移入 Deferred But Adjudicated
 - [x] focused tests 全绿（5 模块 340 tests / 0 failures / 0 errors，见 Phase 1/2 Exit Criteria）
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-report-service --severity high` 退出码 0（主控负责）
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-report-service --severity high` 退出码 0（主控负责）
 
 ## Deferred But Adjudicated
 
@@ -103,10 +103,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: Status Note: 两 Phase 全部落地；独立审计 PASS（5 模块 340/0 与 plan 逐字一致）。
+Completed: 2026-11-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 独立 fresh-session 子代理（closure audit 2584+2586，2026-11-21）
+- Evidence: 缓存临时目录/resolveRecordFile 分支/keyLocks+ATOMIC_MOVE、PdfDoc deepCopySelected 无 importPage、configureTimeout 全仓 grep 零命中、shutdown hook、16M 守卫、DataSec ruleIndex、Repl token 判定、SecurityContext 携带用户——逐条 live 核实

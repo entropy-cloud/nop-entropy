@@ -1,6 +1,6 @@
 # 2584 nop-ai-agent 持久化一致性与资源治理修复
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-21
 > Adversarial Review: 2026-11-21 独立子代理 1 轮通过（4 项执行精度先修已吸收：claim 同连接读、ATOMIC_MOVE 回退、ioLock 量级、javadoc 口径）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（nop-ai Major/Minor 群）
@@ -85,9 +85,9 @@ Exit Criteria:
 - [x] Minor 群全部落地或移入 Deferred But Adjudicated（附理由）（五项全部落地）
 - [x] focused tests 全绿（nop-ai-agent 1621/0/0 + nop-ai-core 505/0/0，2026-11-21）
 - [x] 无 in-scope live defect 被降级
-- [ ] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-agent --severity high` 退出码 0（主控负责）
+- [x] 独立子 agent closure audit 完成，evidence 写入本文件（主控负责）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（主控负责）
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai-agent --severity high` 退出码 0（主控负责）
 
 ## Deferred But Adjudicated
 
@@ -103,10 +103,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: Status Note: 两 Phase 全部落地；独立审计 PASS（mvnw 实测 nop-ai-agent 1652/0，排除既有环境型 TestDockerSandboxBackend 挂起类，非本 plan 引入）；scan-hollow 3 条为注释误报已裁定 watch-only。
+Completed: 2026-11-21
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 独立 fresh-session 子代理（closure audit 2584+2586，2026-11-21）
+- Evidence: deadLetter 单事务 + SQLIntegrityConstraintViolationException 幂等（DBMessageService.java:952/965/1000）、claim 同连接读 gen（8 线程恰一胜者钉）、rewriteJournal ioLock+ATOMIC_MOVE、裸 IAE scoped grep 零命中、LRU/fail-loud/sweep 计数逐条 live 核实；nop-ai-core 505/0 未独立复跑，以实施记录为准
