@@ -22,6 +22,7 @@ final class RevParseCommand {
     static int run(CliContext ctx, List<String> args) {
         boolean abbrevRef = false;
         boolean showToplevel = false;
+        boolean isInsideWorkTree = false;
         List<String> revs = new java.util.ArrayList<>();
         for (String arg : args) {
             if (arg.startsWith("--nop-git-internal"))
@@ -29,6 +30,7 @@ final class RevParseCommand {
             switch (arg) {
                 case "--abbrev-ref" -> abbrevRef = true;
                 case "--show-toplevel" -> showToplevel = true;
+                case "--is-inside-work-tree" -> isInsideWorkTree = true;
                 case "--" -> { }
                 default -> {
                     if (arg.startsWith("-")) {
@@ -44,6 +46,11 @@ final class RevParseCommand {
         try (var svc = ctx.openRepo()) {
             if (showToplevel) {
                 ctx.out().println(svc.topLevel());
+                return EXIT_OK;
+            }
+            if (isInsideWorkTree) {
+                // native prints true inside a worktree, false in a bare repo
+                ctx.out().println("true");
                 return EXIT_OK;
             }
             if (revs.isEmpty()) {

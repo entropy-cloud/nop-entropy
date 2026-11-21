@@ -61,10 +61,6 @@ final class CommitCommand {
                 paths.add(arg);
             }
         }
-        if (message == null) {
-            ctx.err().println("fatal: no commit message given (only -m/--message is supported)");
-            return GitCompatCli.EXIT_FATAL;
-        }
         if (!paths.isEmpty()) {
             // native: extra positional args are pathspecs; nop-git does not
             // support pathspec commits, so mirror the native miss error
@@ -89,8 +85,15 @@ final class CommitCommand {
             boolean hasStaged = !status.stagedAdded().isEmpty() || !status.stagedChanged().isEmpty()
                     || !status.stagedRemoved().isEmpty() || !status.stagedRenames().isEmpty();
             if (!hasStaged) {
+                // native: nothing-to-commit renders the status and exits 1 —
+                // this check precedes the editor/message handling (audit bug #8)
                 statusLong(status, unborn).forEach(ctx.out()::println);
                 return EXIT_FAILURE;
+            }
+
+            if (message == null) {
+                ctx.err().println("fatal: no commit message given (only -m/--message is supported)");
+                return GitCompatCli.EXIT_FATAL;
             }
 
             NopGitCommit commit = svc.commit(message, null, null);

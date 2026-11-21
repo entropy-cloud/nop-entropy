@@ -37,7 +37,7 @@ public final class GitOutputFormatter {
         var paths = new java.util.TreeMap<String, char[]>();
 
         for (NopGitRename rename : status.stagedRenames()) {
-            lines.add("R  " + rename.oldPath() + " -> " + rename.newPath());
+            lines.add("R  " + quotePath(rename.oldPath()) + " -> " + quotePath(rename.newPath()));
         }
         for (String path : status.stagedAdded())
             paths.put(path, setX(paths.get(path), 'A'));
@@ -52,11 +52,54 @@ public final class GitOutputFormatter {
         for (var entry : paths.entrySet()) {
             char[] xy = entry.getValue();
             lines.add("" + (xy[0] == 0 ? ' ' : xy[0]) + (xy[1] == 0 ? ' ' : xy[1])
-                    + " " + entry.getKey());
+                    + " " + quotePath(entry.getKey()));
         }
         for (String path : status.untracked())
-            lines.add("?? " + path);
+            lines.add("?? " + quotePath(path));
         return lines;
+    }
+
+    /**
+     * Native quote_path (porcelain v1, non-tty): wrap the path in double
+     * quotes and C-escape when it contains a space, a control/non-ASCII byte
+     * or a double quote / backslash. Plain paths stay unquoted.
+     */
+    public static String quotePath(String path) {
+        boolean needsQuote = false;
+        for (int i = 0; i < path.length(); i++) {
+            char c = path.charAt(i);
+            if (c <= 32 || c >= 127 || c == '"' || c == '\\') {
+                needsQuote = true;
+                break;
+            }
+        }
+        if (!needsQuote)
+            return path;
+        StringBuilder sb = new StringBuilder(path.length() + 2);
+        sb.append('"');
+        for (int i = 0; i < path.length(); i++) {
+            char c = path.charAt(i);
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\t' -> sb.append("\\t");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case 7 -> sb.append("\\a");
+                case 8 -> sb.append("\\b");
+                case 11 -> sb.append("\\v");
+                case 12 -> sb.append("\\f");
+                default -> {
+                    if (c < 32 || c >= 127) {
+                        sb.append(String.format("\\%03o", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        sb.append('"');
+        return sb.toString();
     }
 
     private static char[] setX(char[] xy, char value) {
@@ -100,13 +143,13 @@ public final class GitOutputFormatter {
             section.add("  (use \"git restore --staged <file>...\" to unstage)");
             List<String[]> rows = new ArrayList<>();
             for (String path : status.stagedAdded())
-                rows.add(new String[]{"new file", path});
+                rows.add(new String[]{"new file", quotePath(path)});
             for (String path : status.stagedChanged())
-                rows.add(new String[]{"modified", path});
+                rows.add(new String[]{"modified", quotePath(path)});
             for (String path : status.stagedRemoved())
-                rows.add(new String[]{"deleted", path});
+                rows.add(new String[]{"deleted", quotePath(path)});
             for (var rename : status.stagedRenames())
-                rows.add(new String[]{"renamed", rename.oldPath() + " -> " + rename.newPath()});
+                rows.add(new String[]{"renamed", quotePath(rename.oldPath()) + " -> " + quotePath(rename.newPath())});
             rows.sort(java.util.Comparator.comparing(r -> r[1]));
             for (String[] row : rows)
                 section.add("\t" + sectionLine(row[0], row[1]));
@@ -120,9 +163,9 @@ public final class GitOutputFormatter {
             section.add("  (use \"git restore <file>...\" to discard changes in working directory)");
             List<String[]> rows = new ArrayList<>();
             for (String path : status.modified())
-                rows.add(new String[]{"modified", path});
+                rows.add(new String[]{"modified", quotePath(path)});
             for (String path : status.deleted())
-                rows.add(new String[]{"deleted", path});
+                rows.add(new String[]{"deleted", quotePath(path)});
             rows.sort(java.util.Comparator.comparing(r -> r[1]));
             for (String[] row : rows)
                 section.add("\t" + sectionLine(row[0], row[1]));
@@ -134,7 +177,7 @@ public final class GitOutputFormatter {
             section.add("Untracked files:");
             section.add("  (use \"git add <file>...\" to include in what will be committed)");
             for (String path : status.untracked())
-                section.add("\t" + path);
+                section.add("\t" + quotePath(path));
             sections.add(section);
         }
 
@@ -303,8 +346,11 @@ public final class GitOutputFormatter {
     }
 
     /**
-     * Long {@code git log} entry: commit/Author/Date header + 4-space indented
-     * message lines, separated by a blank line before each following commit.
+     * Long {@code git log} entry: commit/Merge/Author/Date header + 4-space
+     * indented message lines, separated by a blank line before each following
+     * commit. Native git stores the message with a trailing newline — strip it
+     * before splitting, otherwise repos created by real git render an extra
+     * blank line per commit (parity defect 2026-11-21 audit).
      */
     public static List<String> logLong(List<NopGitCommit> commits) {
         List<String> lines = new ArrayList<>();
@@ -313,10 +359,18 @@ public final class GitOutputFormatter {
             if (i > 0)
                 lines.add("");
             lines.add("commit " + commit.id());
+            if (commit.parentIds().size() >= 2) {
+                lines.add("Merge: " + commit.parentIds().stream()
+                        .map(p -> p.substring(0, Math.min(7, p.length())))
+                        .reduce((a, b) -> a + " " + b).orElse(""));
+            }
             lines.add("Author: " + commit.authorName() + " <" + commit.authorEmail() + ">");
             lines.add("Date:   " + gitDate(commit.commitTime()));
             lines.add("");
-            for (String messageLine : commit.fullMessage().split("\n", -1)) {
+            String message = commit.fullMessage();
+            while (message.endsWith("\n") || message.endsWith("\r"))
+                message = message.substring(0, message.length() - 1);
+            for (String messageLine : message.split("\n", -1)) {
                 if (messageLine.isEmpty()) {
                     lines.add("");
                 } else {

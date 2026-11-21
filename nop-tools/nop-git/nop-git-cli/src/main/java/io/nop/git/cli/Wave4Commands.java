@@ -32,7 +32,7 @@ final class Wave4Commands {
     // P2
     // ------------------------------------------------------------------
 
-    static int checkout(CliContext ctx, List<String> args) {
+    static int checkout(CliContext ctx, List<String> args, boolean isSwitch) {
         boolean create = false;
         boolean pathMode = false;
         String branch = null;
@@ -66,6 +66,18 @@ final class Wave4Commands {
                 ctx.err().println("Already on '" + branch + "'");
                 return EXIT_OK;
             }
+            // unknown ref: native checkout treats it as a pathspec miss (exit
+            // 1), switch as an invalid reference (exit 128) — audit bug #7
+            if (!create && svc.resolveRevision(branch) == null
+                    && !isLocalBranch(svc, branch)) {
+                if (isSwitch) {
+                    ctx.err().println("fatal: invalid reference: " + branch);
+                    return EXIT_FATAL;
+                }
+                ctx.err().println("error: pathspec '" + branch
+                        + "' did not match any file(s) known to git");
+                return EXIT_FAILURE;
+            }
             svc.checkout(branch, create);
             ctx.err().println(create
                     ? "Switched to a new branch '" + branch + "'"
@@ -74,6 +86,11 @@ final class Wave4Commands {
         } catch (NopGitException e) {
             return GitCompatCli.nativeFatal(ctx, e);
         }
+    }
+
+    private static boolean isLocalBranch(io.nop.git.api.IGitRepositoryService svc, String name) {
+        return svc.branchList().stream()
+                .anyMatch(ref -> ref.shortName().equals(name) || ref.name().endsWith("/" + name));
     }
 
     static int reset(CliContext ctx, List<String> args) {
@@ -94,7 +111,13 @@ final class Wave4Commands {
         }
         try (var svc = ctx.openRepo()) {
             svc.reset(mode, rev);
-            return EXIT_OK; // native reset is silent on non-tty
+            if (mode == GitResetMode.HARD) {
+                // native prints the new HEAD to stdout (audit bug #4)
+                String head = svc.resolveRevision("HEAD");
+                String subject = headSubject(svc, head);
+                ctx.out().println("HEAD is now at " + abbrev(head) + " " + subject);
+            }
+            return EXIT_OK;
         } catch (NopGitException e) {
             return GitCompatCli.nativeFatal(ctx, e);
         }
@@ -209,6 +232,12 @@ final class Wave4Commands {
                     return EXIT_OK;
                 }
                 case "pop", "apply" -> {
+                    // native: empty stash prints the bare message to stderr and
+                    // exits 1, without the fatal: prefix (audit bug #5)
+                    if (svc.stashList().isEmpty()) {
+                        ctx.err().println("No stash entries found.");
+                        return EXIT_FAILURE;
+                    }
                     svc.stashPop();
                     return EXIT_OK;
                 }
@@ -352,7 +381,30 @@ final class Wave4Commands {
                 dir = arg;
             }
         }
-        File target = new File(ctx.workDir(), dir);
+        File target;
+        try {
+            target = new File(ctx.workDir(), dir).getCanonicalFile();
+        } catch (java.io.IOException e) {
+            target = new File(ctx.workDir(), dir).getAbsoluteFile();
+        }
+        boolean existing = bare
+                ? new File(target, "HEAD").exists()
+                : new File(target, ".git").exists();
+        if (existing) {
+            // native re-init keeps the existing repo and reports it (audit
+            // bug #11); an --initial-branch value is ignored with a warning
+            if (branch != null)
+                ctx.err().println("warning: re-init: ignored --initial-branch=" + branch);
+            ctx.out().println("Reinitialized existing Git repository in "
+                    + (bare ? target.getPath() + "/" : new File(target, ".git").getPath() + "/"));
+            return EXIT_OK;
+        }
+        if (branch == null) {
+            // native falls back to the init.defaultBranch config chain
+            // (system -> global), defaulting to master (audit bug #12);
+            // the JGit config chain lives behind the core adapter
+            branch = JGitRepositoryService.defaultBranchFromConfig();
+        }
         if (bare) {
             // bare layout: HEAD/refs/objects live at the top level, no worktree
             try {
@@ -361,12 +413,12 @@ final class Wave4Commands {
                 return GitCompatCli.nativeFatal(ctx, e);
             }
             ctx.out().println("Initialized empty Git repository in "
-                    + target.getAbsolutePath() + "/");
+                    + target.getPath() + "/");
             return EXIT_OK;
         }
         try (var svc = JGitRepositoryService.init(target, branch)) {
             ctx.out().println("Initialized empty Git repository in "
-                    + new File(target, ".git").getAbsolutePath() + "/");
+                    + new File(target, ".git").getPath() + "/");
             return EXIT_OK;
         } catch (NopGitException e) {
             return GitCompatCli.nativeFatal(ctx, e);
@@ -433,6 +485,16 @@ final class Wave4Commands {
         String remote = positional.isEmpty() ? "origin" : positional.get(0);
         String refspec = positional.size() > 1 ? positional.get(1) : null;
         try (var svc = ctx.openRepo()) {
+            // native reports "Everything up-to-date" on stderr when the remote
+            // tracking ref already matches the local tip (audit bug #9)
+            String branch = refspec != null && !refspec.isEmpty()
+                    ? refspec.split(":")[0] : svc.currentBranch();
+            String tracking = svc.resolveRevision("refs/remotes/" + remote + "/" + branch);
+            String head = svc.resolveRevision("HEAD");
+            if (tracking != null && tracking.equals(head)) {
+                ctx.err().println("Everything up-to-date");
+                return EXIT_OK;
+            }
             svc.push(remote, refspec, setUpstream);
             return EXIT_OK;
         } catch (NopGitException e) {
@@ -456,7 +518,14 @@ final class Wave4Commands {
         String remote = positional.isEmpty() ? "origin" : positional.get(0);
         String branch = positional.size() > 1 ? positional.get(1) : null;
         try (var svc = ctx.openRepo()) {
+            String before = svc.resolveRevision("HEAD");
             svc.pull(remote, branch);
+            String after = svc.resolveRevision("HEAD");
+            // native reports "Already up to date." on stdout when the merge
+            // does not move HEAD (audit bug #10)
+            if (before != null && before.equals(after)) {
+                ctx.out().println("Already up to date.");
+            }
             return EXIT_OK;
         } catch (NopGitException e) {
             return GitCompatCli.nativeFatal(ctx, e);

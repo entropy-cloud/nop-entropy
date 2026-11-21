@@ -18,10 +18,11 @@ nop-tools/nop-git/
 
 ## 二、CLI 部署（AI 工具当系统 Git 用）
 
-1. `mvn -pl nop-tools/nop-git/nop-git-cli package` 产出 `nop-git-cli.jar`（shade 自包含）。
-2. 把 `nop-git-cli/bin/git` 放入 PATH 优先目录（同目录或 `../target/` 自动定位 jar；`NOP_GIT_HOME`/`NOP_GIT_JAVA` 可覆盖）。
+1. 一键打包部署：`nop-tools/nop-git/bin/package-git.sh [target-dir]`（默认 `~/nop-git`，与 package-ib.sh 同机制：shade 自包含 `nop-git-cli.jar` + `nop-git-server.jar` + `bin/git` wrapper + `bin/nop-git-server` + README 用户手册）。
+2. `export PATH="$HOME/nop-git/bin:$PATH"` 后即当系统 git 用（dev 布局 `nop-git-cli/bin/git` 同目录或 `../target/` 自动定位 jar；`NOP_GIT_HOME`/`NOP_GIT_JAVA` 可覆盖）。
 3. 行为契约（design 02）：无 ANSI 色；退出码 0/1/128/129；未实现子命令 `git: 'xxx' is not a nop-git command.`；`--version` 输出配置的伪装版本（默认 2.45.0，须为真实存在的 git 版本）。
-4. 已支持子命令：P0/P1（status/diff/add/commit/log/branch/rev-parse/config）+ P2（checkout/switch/reset/clean/restore/rm/mv/stash）+ P3（init -b/remote/push/fetch/pull/clone/merge/rebase/cherry-pick/worktree）。P0/P1 输出与原生 git 逐字节对齐（live-parity 46 例 + golden 41 例钉死）。
+4. 已支持子命令：P0/P1（status 含 pathspec 过滤/diff/add 含 pathspec 校验/commit -m/log 含 -n/branch --show-current/rev-parse 含 --is-inside-work-tree/config）+ P2（checkout/switch/reset/clean/restore/rm/mv/stash）+ P3（init -b/remote/push/fetch/pull/clone/merge/rebase/cherry-pick/worktree）。输出与原生 git 对齐（live-parity 46 例 + golden 41 例 + `RealGitRepoBugTest` 真实 git 建仓回归 12 例钉死）。
+5. 已知功能缺口（未实现）：`tag`/`show`/`ls-files`/`branch -v/-a/-r`/`log -<num>`/`--graph`/`--stat`/`rm -r`/`remote get-url`/`config` 全局链读取；平台限制：macOS Apple-git 系统级 `init.defaultbranch` 不在 JGit 配置链内（`init` 显式 `-b` 可避开）。详见 `~/nop-git/README.md` 用户手册。
 
 ## 三、Java API（IGitRepositoryService）
 
@@ -64,6 +65,7 @@ int port = server.start();
 
 - `CliParityTest`：46 例与真实 git 逐字节对拍（dual-fixture，确定性 pinned ident）。
 - `GoldenFileTest`：41 例 golden（无 git 环境兜底）。
+- `RealGitRepoBugTest`：12 例回归，全部用真实系统 git 建仓——专钉「JGit fixture 探测不到」的缺陷面（如 JGit commit message 不带尾随 `\n`，曾使 log 尾空行缺陷逃过 golden/parity 双基线）。
 - `Wave4CliTest`/`CliPolicyTest`/`AiToolSmokeTest`/`GitPolicyEngineTest`/`NopGitHttpServerIntegrationTest`。
 - 构建验证走 nop-ib（`ib test -pl :nop-git-core -pl :nop-git-cli -pl :nop-git-server -pl :nop-git-ioc`）。
 

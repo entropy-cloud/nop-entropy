@@ -115,6 +115,26 @@ public final class JGitRepositoryService implements IGitRepositoryService {
                 Path.of(canonicalRoot(workDir))));
     }
 
+    /**
+     * Resolve the effective {@code init.defaultBranch} from the JGit config
+     * chain (system, then user); {@code null} when unset anywhere (caller
+     * falls back to git's built-in master). Exposed for the CLI init command,
+     * which must not import JGit directly (ArchitecturePillarTest).
+     */
+    public static String defaultBranchFromConfig() {
+        try {
+            var reader = org.eclipse.jgit.util.SystemReader.getInstance();
+            var systemConfig = reader.getSystemConfig();
+            String branch = systemConfig == null ? null
+                    : systemConfig.getString("init", null, "defaultBranch");
+            if (branch == null)
+                branch = reader.getUserConfig().getString("init", null, "defaultBranch");
+            return branch;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public static void initBare(File dir, String defaultBranch) {
         JdkBaseline.requireBaseline();
         if (dir == null)

@@ -176,8 +176,8 @@ public final class GitCompatCli {
             case "branch" -> BranchCommand.run(context, args);
             case "rev-parse" -> RevParseCommand.run(context, args);
             case "config" -> ConfigCommand.run(context, args);
-            case "checkout" -> Wave4Commands.checkout(context, args);
-            case "switch" -> Wave4Commands.checkout(context, args);
+            case "checkout" -> Wave4Commands.checkout(context, args, false);
+            case "switch" -> Wave4Commands.checkout(context, args, true);
             case "reset" -> Wave4Commands.reset(context, args);
             case "clean" -> Wave4Commands.clean(context, args);
             case "restore" -> Wave4Commands.restore(context, args);
@@ -248,6 +248,12 @@ public final class GitCompatCli {
      */
     static int nativeFatal(CliContext ctx, NopGitException e) {
         String message = e.getMessage();
+        if (message != null && message.startsWith("merge: ")) {
+            // native merge prints "merge: <ref> - not something we can merge"
+            // without the fatal: prefix and exits 1 (audit bug #6)
+            ctx.err().println(message);
+            return EXIT_FAILURE;
+        }
         if (message != null && message.startsWith("policy denied:")) {
             ctx.err().println("fatal: " + message);
             return EXIT_FAILURE;
