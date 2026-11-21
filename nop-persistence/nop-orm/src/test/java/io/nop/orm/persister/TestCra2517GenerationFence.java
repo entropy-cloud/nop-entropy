@@ -183,4 +183,31 @@ public class TestCra2517GenerationFence {
         assertTrue(!fence.tryAcquireRepair("k1", g1), "旧快照（已被首次回填推进）CAS 必败");
         assertTrue(!fence.tryAcquireRepair("k1", g1 - 1_000_000L), "历史旧世代 CAS 必败");
     }
+
+    /**
+     * plan 2587 前提探针（审查裁定：先验证底账判断「触顶 clear 后孤儿 fence CAS 放行迟到回填」
+     * 是否真实存在）：clear 整体清空后 fence 重建走 alloc 单调分配器，新 entry 初始世代严格大于
+     * 全部历史已发放世代——持 clear 前旧 readGen 的孤儿迟到回填 CAS 必败。
+     * 探针结论：底账判断不成立（缺陷不存在），本项按裁定撤销修复、保留本钉为防回归勘误证据。
+     */
+    @Test
+    public void testPlan2587_probe_capClearOrphanFenceCannotPassCas() throws Exception {
+        GenerationFence fence = new GenerationFence();
+        long orphanGen = fence.snapshot("orphan-key");
+
+        // 模拟容量触顶整体 clear（GenerationFence.fenceFor 内部 fences.clear() 的等价状态）
+        Field fencesField = GenerationFence.class.getDeclaredField("fences");
+        fencesField.setAccessible(true);
+        ((java.util.concurrent.ConcurrentHashMap<?, ?>) fencesField.get(fence)).clear();
+
+        // clear 后重建 entry：epoch 单调递增，新世代严格大于孤儿快照
+        long rebuiltGen = fence.snapshot("orphan-key");
+        assertTrue(rebuiltGen > orphanGen, "clear 后重建 fence 的初始世代必须严格大于历史已发放世代");
+
+        // 孤儿 fence（clear 前旧 readGen）的迟到回填 CAS 必败——放行面不存在
+        assertTrue(!fence.tryAcquireRepair("orphan-key", orphanGen),
+                "前提探针：clear 后旧 readGen 孤儿回填 CAS 必败（若本断言红则缺陷成立，需按 key 清孤儿 WeakReference）");
+        // 新鲜世代回填正常执行（对照）
+        assertTrue(fence.tryAcquireRepair("orphan-key", rebuiltGen), "clear 后新鲜快照回填必须成功");
+    }
 }

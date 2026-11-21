@@ -32,6 +32,7 @@ public class RegexSearcher {
     // 测试接缝（同包可见）：钉住路径选择（接线验证）
     int fullScanCount;
     int candidateScanCount;
+    int lineScanCount;
 
     public RegexSearcher(String regex, boolean ignoreCase) {
         this(regex, ignoreCase, StandardCharsets.UTF_8);
@@ -40,14 +41,18 @@ public class RegexSearcher {
     /**
      * @param charset 整文件/候选行解码与 prefilter 必须字面量编码的统一口径
      *                （plan 2575 Phase E2，设计文档 03 决策 3；UTF-8 外的 charset 下
-     *                偏移映射按该 charset 实际字节长度计算——plan 2575 R5）
+     *                 偏移映射按该 charset 实际字节长度计算——plan 2575 R5）
      */
     public RegexSearcher(String regex, boolean ignoreCase, Charset charset) {
         int flags = ignoreCase ? Pattern.CASE_INSENSITIVE : 0;
         this.pattern = Pattern.compile(regex, flags);
         this.charset = charset == null ? StandardCharsets.UTF_8 : charset;
+        // plan 2587：含行终止构造（含字符类内转义，如 a[\n]b）的 pattern 必须走逐行路径——
+        // rg 行模式按 \n 切行后逐行匹配，跨行匹配不可能；整文件路径（原始语义）会产出
+        // rg 不可能给出的跨行命中（分叉）。
+        this.crossLineSafe = !RegexLiteralExtractor.mayMatchAcrossLines(regex);
         String literal = null;
-        if (!RegexLiteralExtractor.mayMatchAcrossLines(regex)) {
+        if (crossLineSafe) {
             literal = RegexLiteralExtractor.extract(regex);
         }
         this.requiredLiteral = literal != null
@@ -55,22 +60,62 @@ public class RegexSearcher {
                 : null;
     }
 
+    private final boolean crossLineSafe;
+
     /**
      * 在整文件映射上执行正则搜索。
      *
      * @return 按起始偏移升序的字节域命中区间
      */
     public List<ByteSpan> findAll(MemorySegment seg, long size) {
-        if (requiredLiteral == null) {
-            fullScanCount++;
-            return findAllWholeFile(seg, size);
+        if (requiredLiteral != null) {
+            candidateScanCount++;
+            return findAllCandidateLines(seg, size);
         }
-        candidateScanCount++;
-        return findAllCandidateLines(seg, size);
+        if (!crossLineSafe) {
+            // plan 2587：跨行风险构造（\s \n [^…] 及字符类内行终止转义）→ 逐行匹配，
+            // 语义对齐 rg 行模式（命中必不含 \n）
+            lineScanCount++;
+            return findAllByLines(seg, size);
+        }
+        fullScanCount++;
+        return findAllWholeFile(seg, size);
     }
 
     /**
-     * 整文件解码路径（原始语义）。
+     * plan 2587：逐行匹配路径——整文件解码后按 {@code \n} 切行（行内容不含 {@code \n}，与
+     * rg 行模式切行一致），逐行跑 pattern；命中偏移 = 行起始字节偏移 + 行内偏移。
+     * {@code ^ $} 在行边界锚定（rg 行模式语义），跨行命中不可能出现。
+     */
+    private List<ByteSpan> findAllByLines(MemorySegment seg, long size) {
+        String content = decode(seg, size);
+        CharsetOffsetMap wholeMap = new CharsetOffsetMap(content, charset);
+        List<ByteSpan> spans = new ArrayList<>();
+        int len = content.length();
+        int lineStart = 0;
+        while (true) {
+            int nl = content.indexOf('\n', lineStart);
+            int lineEnd = nl < 0 ? len : nl;
+            int lineStartByte = wholeMap.byteOffsetOf(lineStart);
+            if (lineEnd > lineStart) {
+                String line = content.substring(lineStart, lineEnd);
+                CharsetOffsetMap offsets = new CharsetOffsetMap(line, charset);
+                Matcher matcher = pattern.matcher(line);
+                while (matcher.find()) {
+                    spans.add(new ByteSpan(lineStartByte + offsets.byteOffsetOf(matcher.start()),
+                            lineStartByte + offsets.byteOffsetOf(matcher.end())));
+                }
+            }
+            if (nl < 0) {
+                break;
+            }
+            lineStart = nl + 1;
+        }
+        return spans;
+    }
+
+    /**
+     * 整文件解码路径（原始语义，仅跨行安全 pattern 使用）。
      */
     private List<ByteSpan> findAllWholeFile(MemorySegment seg, long size) {
         String content = decode(seg, size);

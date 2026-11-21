@@ -497,4 +497,9 @@ public interface OrmErrors {
                     + "entity={entityName},operation={operation}。读路径不受影响",
             ARG_ENTITY_NAME, ARG_OPERATION);
 
+    // ---- plan 2587：裸异常收敛（原 OrmSessionImpl 构造路径裸 IllegalStateException） ----
+
+    ErrorCode ERR_ORM_MODEL_ALREADY_CLOSED = define("nop.err.orm.model-already-closed",
+            "orm model already closed: cannot create session");
+
 }

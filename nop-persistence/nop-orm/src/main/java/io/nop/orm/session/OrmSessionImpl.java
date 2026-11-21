@@ -135,8 +135,9 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         this.env = env;
         this.loadedOrmModel = env.getLoadedOrmModel();
         // 2.3-C1-004（plan 2552 裁定 B）：引用计数递增与关闭判定原子化——close 后放弃会话创建
+        // plan 2587：裸 IllegalStateException 收敛为 OrmException + 错误码
         if (!this.loadedOrmModel.tryIncRefIfOpen()) {
-            throw new IllegalStateException("orm model already closed: cannot create session");
+            throw new OrmException(OrmErrors.ERR_ORM_MODEL_ALREADY_CLOSED);
         }
         this.cache = stateless ? new StatelessOrmSessionEntityCache(this) :
                 (loadedOrmModel.isAnyEntityUseTenant() ? new TenantOrmSessionEntityCache(this) : new OrmSessionEntityCache(this));

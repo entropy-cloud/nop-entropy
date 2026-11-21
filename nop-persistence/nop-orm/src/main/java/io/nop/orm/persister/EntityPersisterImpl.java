@@ -631,6 +631,15 @@ public class EntityPersisterImpl implements IEntityPersister {
                     // ROLLBACK/UNKNOWN：缓存无需失效（未提交），仅清理。两路均防 txn key 泄漏。
                     pendingTxnEvictKeys.remove(t);
                 }
+
+                @Override
+                public void onClose(ITransaction closed) {
+                    // plan 2587：事务未走 commit/rollback 终态即 close（放弃路径）时，
+                    // close 路径同步清理聚合状态——pendingTxnEvictKeys 以强引用 ITransaction 为
+                    // key，缺此清理将随放弃事务泄漏（含闭包捕获的 Set 与本 listener 注册）。
+                    // 未提交 evict 的缓存失效语义与 ROLLBACK 路径一致：无需失效，仅清理。
+                    pendingTxnEvictKeys.remove(t);
+                }
             });
             return set;
         });

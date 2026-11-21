@@ -60,16 +60,30 @@ public class RegexPrefilterEquivalenceTest {
 
     @Test
     public void testCrossLinePatternFallsBackToWholeFile() {
-        // 钉子：跨行风险 pattern（\s 可匹配 LF）必须回退整文件路径且结果一致
+        // plan 2587 裁定改写（原 2574 钉「跨行 pattern 回退整文件路径、可产出跨行命中」作废）：
+        // 跨行风险 pattern（\s 可匹配 LF）改走逐行路径——rg 行模式按 \n 切行后逐行匹配，
+        // 跨行命中不可能出现（对拍 parity：rg 行模式下 middle\s*end 跨行 0 命中）
         byte[] data = "start middle\nend tail\nnothing".getBytes(StandardCharsets.UTF_8);
         RegexSearcher searcher = new RegexSearcher("middle\\s*end", false);
         List<RegexSearcher.ByteSpan> spans = searcher.findAll(seg(data), data.length);
-        assertEquals(1, spans.size());
-        assertTrue(searcher.fullScanCount > 0, "跨行 pattern 应回退整文件路径");
+        assertEquals(0, spans.size(), "rg 行模式下跨行命中不可能出现（缺陷态整文件路径产出 phantom 命中 -> 红）");
+        assertTrue(searcher.lineScanCount > 0, "跨行 pattern 必须走逐行路径（rg 行模式语义）");
         assertEquals(0, searcher.candidateScanCount, "跨行 pattern 不得走候选行路径");
-        List<RegexSearcher.ByteSpan> expected =
-                wholeFileExpected(new String(data, StandardCharsets.UTF_8), "middle\\s*end", false);
-        assertEquals(expected, spans);
+        assertEquals(0, searcher.fullScanCount, "跨行 pattern 不得走整文件路径");
+    }
+
+    /**
+     * plan 2587 对照钉：跨行风险 pattern 的行内命中必须保留（逐行路径不得丢行内真命中）——
+     * middle + 空格 + end 同行时 rg 行模式正常命中 1 次。
+     */
+    @Test
+    public void testCrossLinePatternKeepsInLineHitsUnderLineScan() {
+        byte[] data = "start middle end tail\nnothing".getBytes(StandardCharsets.UTF_8);
+        RegexSearcher searcher = new RegexSearcher("middle\\s*end", false);
+        List<RegexSearcher.ByteSpan> spans = searcher.findAll(seg(data), data.length);
+        assertEquals(1, spans.size(), "行内真命中必须保留");
+        assertEquals(6, spans.get(0).byteStart());
+        assertEquals(16, spans.get(0).byteEnd());
     }
 
     @Test

@@ -251,13 +251,9 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
                 }
             });
         } finally {
-            // 无论是否异步返回，这里都可以清空map了（capturedActions 已 swap 持有本轮快照——
-            // flush 窗口内 enqueue 落入新 actionMap 不丢失，2.3-C2-009）
-            actionMap.clear();
-            // 2.3-C3-003（plan 2553 裁定 G）：this 前缀修正——原局部变量遮蔽使字段永不清、
-            // 跨 flush 重放已消费的延迟任务
-            this.delayTasks = null;
-            this.collectionActions = null;
+            // plan 2587 裁定：flush 窗口内重入 enqueue（含 delay task 吞异常路径 runDelayTasks
+            // 触发的追加）落入 swap 后的新容器——finally 不清空新容器，移交下一轮 flush 执行，
+            // 不再静默丢弃。capturedActions 持有本轮快照，与字段容器互不干扰。
             this.flushing = false;
         }
     }

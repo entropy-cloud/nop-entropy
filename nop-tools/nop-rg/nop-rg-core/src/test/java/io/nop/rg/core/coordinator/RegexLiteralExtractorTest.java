@@ -97,4 +97,70 @@ public class RegexLiteralExtractorTest {
         assertFalse(RegexLiteralExtractor.mayMatchAcrossLines("foo\\d+bar"));
         assertFalse(RegexLiteralExtractor.mayMatchAcrossLines("^start[0-9]end$"));
     }
+
+    // ---------------- plan 2587 钉：字符类内行终止构造 ----------------
+
+    /**
+     * plan 2587 钉（审查裁定钉子口径）：正字符类内的行终止构造必须被 mayMatchAcrossLines 检出。
+     * 缺陷态（原实现复用 skipClass 整体跳过类内容）：三断言红。
+     * 变异探针：回退 skipClassScanLineTerminators 接线（改回 skipClass）→ 本钉必红。
+     */
+    @Test
+    public void testPlan2587_lineTerminatorEscapesInsideCharClassRejected() {
+        assertTrue(RegexLiteralExtractor.mayMatchAcrossLines("a[\\n]b"),
+                "字符类内 \\n 转义必须拒绝预滤（rg 行模式下该 pattern 0 命中）");
+        assertTrue(RegexLiteralExtractor.mayMatchAcrossLines("a[\\x0A]b"),
+                "字符类内 \\x 转义可能编码 LF，必须拒绝预滤");
+        assertTrue(RegexLiteralExtractor.mayMatchAcrossLines("a[\\012]b"),
+                "字符类内八进制转义（\\012=LF）必须拒绝预滤");
+        assertTrue(RegexLiteralExtractor.mayMatchAcrossLines("a[\\rb]"),
+                "字符类内 \\r 转义必须拒绝预滤");
+        assertTrue(RegexLiteralExtractor.mayMatchAcrossLines("a[\nb]"),
+                "字符类内真实行终止字符必须拒绝预滤");
+
+        // 对照：类内不含行终止构造的正类保持安全（不过度拒绝）
+        assertFalse(RegexLiteralExtractor.mayMatchAcrossLines("a[0-9]b"));
+        assertFalse(RegexLiteralExtractor.mayMatchAcrossLines("a[\\d]b"));
+        assertFalse(RegexLiteralExtractor.mayMatchAcrossLines("a[\\]]b"));
+    }
+
+    /**
+     * plan 2587 钉：extract 对含行终止构造的字符类不把类内容拼进 literal run——
+     * 类前/类后的顶层 run 各自独立提取，类内容（\n 等）绝不出现。
+     */
+    @Test
+    public void testPlan2587_extractDoesNotConcatenateClassContentAcrossRuns() {
+        // 类内容 "\n" 不得进入任何 run
+        assertEquals("bc", RegexLiteralExtractor.extract("a[\\n]bc"));
+        assertEquals("a", RegexLiteralExtractor.extract("a[\\x0A]b"));
+        String fromOctal = RegexLiteralExtractor.extract("ab[\\012]cd");
+        assertTrue("ab".equals(fromOctal) || "cd".equals(fromOctal),
+                "两侧独立 run 取最长，类内容不得拼接: " + fromOctal);
+        assertFalse(RegexLiteralExtractor.extract("x[\\n]y").contains("\n"),
+                "literal run 不得含类内行终止构造字符");
+    }
+
+    /**
+     * plan 2587 接线钉（guide rule 23）：含字符类内行终止构造的 pattern 经 RegexSearcher
+     * 必须路由到逐行路径（rg 行模式语义）——跨行内容不得产出命中（rg 行模式 0 命中对齐）。
+     * 缺陷态：预滤误判单行安全 + literal 提取走候选行路径（同样 0 命中）或整文件路径
+     * （跨行命中 → 分叉红）；本钉同时断言路由计数，防路径选择回归。
+     */
+    @Test
+    public void testPlan2587_searcherRoutesClassLineTerminatorToLineScan() throws Exception {
+        byte[] bytes = "xa\nyb\nab\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.lang.foreign.MemorySegment seg = java.lang.foreign.MemorySegment.ofArray(bytes);
+
+        io.nop.rg.core.coordinator.RegexSearcher searcher =
+                new io.nop.rg.core.coordinator.RegexSearcher("a[\\n]b", false);
+        java.lang.reflect.Field lineScan = io.nop.rg.core.coordinator.RegexSearcher.class.getDeclaredField("lineScanCount");
+        lineScan.setAccessible(true);
+        java.lang.reflect.Field candidateScan = io.nop.rg.core.coordinator.RegexSearcher.class.getDeclaredField("candidateScanCount");
+        candidateScan.setAccessible(true);
+
+        assertEquals(0, searcher.findAll(seg, bytes.length).size(),
+                "rg 行模式下 a[\\n]b 不可能命中（跨行内容不得产出命中）");
+        assertEquals(1, lineScan.get(searcher), "必须路由到逐行路径（缺陷态走候选行路径）");
+        assertEquals(0, candidateScan.get(searcher), "不得走候选行路径（含行终止构造的类不可提取可靠 literal）");
+    }
 }

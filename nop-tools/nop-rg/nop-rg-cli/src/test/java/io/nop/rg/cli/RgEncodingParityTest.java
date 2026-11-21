@@ -219,4 +219,54 @@ public class RgEncodingParityTest {
             }
         }
     }
+
+    /**
+     * plan 2587 对拍钉：跨行字符类构造（正类内 \n / \x0A 转义、pattern 内真实 CR 字符）与
+     * native rg 行模式完全一致。rg 行模式按 \n 切行——{@code a[\n]b}、{@code a[\x0A]b}
+     * 双方均为 0 命中（跨行匹配不可能，勿追求非零命中假目标）；{@code a<CR>b}（真实 CR
+     * 是行内普通字符）双方各命中 1 行。缺陷态：预滤漏检字符类内行终止构造 → 整文件路径
+     * 产出 rg 不可能给出的跨行命中 → 红。
+     */
+    @Test
+    public void testCrossLineCharClassParityWithRg() throws Exception {
+        assertTrue(rgAvailable(), "R6 硬门禁：系统 rg 不可用时对拍不算达成（不允许 skipped）");
+        // 语料布景：
+        // 行1 "xa" / 行2 "yb"：为 a[\n]b 制造跨线潜在匹配面（错误实现会 phantom 命中）
+        // 行3 "mid a\rb end"：行内真实 CR，a<CR>b 应命中
+        // 行4 "ab"：无 \n 构造，任何实现都不得命中 a[\n]b
+        byte[] corpus = ("xa\nyb\nmid a\rb end\nab\n").getBytes(StandardCharsets.UTF_8);
+        Files.write(tempDir.resolve("crossline.txt"), corpus);
+
+        // 三用例：前两者双方 0 命中，第三者双方 1 命中
+        String[][] cases = {
+                {"a[\\n]b"},
+                {"a[\\x0A]b"},
+                {"a\r"},
+        };
+        for (String[] c : cases) {
+            String pattern = c[0];
+            RunResult ours = runNopRg("--no-ignore", "--json", pattern, tempDir.toString());
+            RunResult theirs = runRg(tempDir, pattern);
+
+            List<Msg> o = parseMatches(ours.stdout());
+            List<Msg> t = parseMatches(theirs.stdout());
+            o.sort(null);
+            t.sort(null);
+            assertEquals(t.size(), o.size(),
+                    "pattern=" + pattern + " 命中条数与 rg 不一致:\nours=" + o + "\nrg=" + t);
+            for (int i = 0; i < t.size(); i++) {
+                assertEquals(t.get(i).path(), o.get(i).path(), pattern + " path@" + i);
+                assertEquals(t.get(i).lineNo(), o.get(i).lineNo(), pattern + " lineNo@" + i);
+            }
+            // 钉子口径校准：a[\n]b / a[\x0A]b 双方必须恰好 0 命中（否则布景或实现失效）
+            if (!pattern.contains("\r")) {
+                assertEquals(0, t.size(), "rg 行模式下 " + pattern + " 应 0 命中（对拍自检）");
+            }
+        }
+
+        // a<CR>b 必须非空命中（防「实现恒空」假绿）：rg 侧 + ours 侧同时校准
+        RunResult oursCR = runNopRg("--no-ignore", "--json", "a\r", tempDir.toString());
+        assertEquals(1, parseMatches(oursCR.stdout()).size(),
+                "行内真实 CR 场景 nop-rg 必须命中（防恒空假绿）");
+    }
 }

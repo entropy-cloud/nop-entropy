@@ -135,12 +135,52 @@ public final class RegexLiteralExtractor {
                 return true;
             }
             if (c == '[') {
-                i = skipClass(regex, i);
+                // plan 2587（审计 nop-rg Major）：字符类内也要扫描行终止构造——原实现整体跳过类
+                // 内容（复用 skipClass），a[\n]b / a[\x0A]b / a[\012]b 等正类内转义漏检，
+                // 候选行预滤误判单行安全 → 结果与 rg 行模式分叉。
+                int end = skipClassScanLineTerminators(regex, i);
+                if (end < 0) {
+                    return true;
+                }
+                i = end;
                 continue;
             }
             i++;
         }
         return false;
+    }
+
+    /**
+     * 字符类内行终止构造扫描：返回类结束 ']' 之后的位置；类内含
+     * {@code \n \r \x… \0…}（转义）或真实行终止字符时返回 -1（= 拒绝预滤）。
+     */
+    private static int skipClassScanLineTerminators(String regex, int start) {
+        int i = start + 1;
+        int len = regex.length();
+        // 首字符 ']' 为字面量（POSIX 惯例）
+        if (i < len && regex.charAt(i) == ']') {
+            i++;
+        }
+        while (i < len) {
+            char c = regex.charAt(i);
+            if (c == '\\' && i + 1 < len) {
+                char next = regex.charAt(i + 1);
+                if (next == 'n' || next == 'r' || next == 'x'
+                        || (next >= '0' && next <= '9')) {
+                    return -1;
+                }
+                i += 2;
+                continue;
+            }
+            if (c == '\n' || c == '\r' || c == '\u0085' || c == '\u2028' || c == '\u2029') {
+                return -1;
+            }
+            if (c == ']') {
+                return i + 1;
+            }
+            i++;
+        }
+        return len;
     }
 
     private static void keepBest(StringBuilder best, StringBuilder run) {

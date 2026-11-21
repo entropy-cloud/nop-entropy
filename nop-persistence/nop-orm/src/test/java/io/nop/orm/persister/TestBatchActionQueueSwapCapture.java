@@ -71,4 +71,50 @@ public class TestBatchActionQueueSwapCapture extends AbstractOrmTestCase {
             return null;
         });
     }
+
+    /**
+     * plan 2587 钉：flush 窗口内重入 enqueue「移交下一轮」——finally 不清空新容器。
+     * delay task 在 flush 窗口内追加动作但不重入 flush；下一轮 flush 必须执行该动作。
+     * 缺陷态（2587 前）：finally 无条件清空新容器 → 追加动作静默丢失 → 本钉红。
+     */
+    @Test
+    public void testReentrantEnqueueCarriedToNextFlushRound() {
+        orm().runInSession((IOrmSession session) -> {
+            IEntityDao<SimsCollege> dao = daoProvider().daoFor(SimsCollege.class);
+
+            SimsCollege first = dao.newEntity();
+            first.setCollegeId("211");
+            first.setCollegeName("College211");
+            first.setIntro("intro211");
+            first.setShortName("N211");
+            dao.saveEntity(first);
+
+            IBatchActionQueue queue = ((IOrmSessionImplementor) session).getBatchActionQueue(null);
+
+            queue.addDelayTask("2587-carry-next-round", () -> {
+                // flush 窗口内重入追加（落入 swap 后的新容器），但【不】重入 flush——
+                // 缺陷态下 finally 清空新容器 → 静默丢失；修复后移交下一轮
+                SimsCollege second = dao.newEntity();
+                second.setCollegeId("212");
+                second.setCollegeName("College212");
+                second.setIntro("intro212");
+                second.setShortName("N212");
+                ((IOrmSessionImplementor) session).flushSave(second);
+            });
+
+            // 第一轮 flush：提交 201，delay task 同步执行并追加 202 到新容器
+            session.flush();
+            // 下一轮 flush：必须执行移交下来的 202（缺陷态下被 finally 清空 → 无任何回调）
+            queue.flush();
+            return null;
+        });
+
+        orm().runInSession((IOrmSession session) -> {
+            assertNotNull(daoProvider().daoFor(SimsCollege.class).getEntityById("211"),
+                    "常规动作必须持久化");
+            assertNotNull(daoProvider().daoFor(SimsCollege.class).getEntityById("212"),
+                    "flush 窗口内追加的动作必须由下一轮 flush 执行（缺陷态随 finally 清空静默丢失 -> 红）");
+            return null;
+        });
+    }
 }

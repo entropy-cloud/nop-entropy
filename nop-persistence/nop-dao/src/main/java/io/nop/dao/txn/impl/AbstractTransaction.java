@@ -35,6 +35,7 @@ import static io.nop.api.core.context.ContextProvider.thenOnContext;
 import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
 import static io.nop.dao.DaoErrors.ARG_TXN_GROUP;
 import static io.nop.dao.DaoErrors.ARG_TXN_ID;
+import static io.nop.dao.DaoErrors.ERR_TXN_ALREADY_FINISHED;
 import static io.nop.dao.DaoErrors.ERR_TXN_ALREADY_STARTED;
 import static io.nop.dao.DaoErrors.ERR_TXN_COMMIT_FAIL;
 import static io.nop.dao.DaoErrors.ERR_TXN_DUPLICATE_SUB_TRANSACTION;
@@ -73,7 +74,9 @@ public abstract class AbstractTransaction implements ITransaction {
     private void requireStateOpen() {
         TxnState st = state.get();
         if (st != TxnState.OPEN) {
-            throw newError(ERR_TXN_ALREADY_STARTED).param("state", st.name());
+            // plan 2587：状态机误用（终态后再操作）语义为「已结束」，复用 ERR_TXN_ALREADY_FINISHED
+            //（open 双开仍属「已启动」，保留 ERR_TXN_ALREADY_STARTED）
+            throw newError(ERR_TXN_ALREADY_FINISHED).param("state", st.name());
         }
     }
 
@@ -220,7 +223,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
         // 2.3-C2-016：状态门控——仅 OPEN 可进入 rollback
         if (!state.compareAndSet(TxnState.OPEN, TxnState.ROLLING_BACK))
-            throw newError(ERR_TXN_ALREADY_STARTED).param("state", state.get().name());
+            // plan 2587：终态后 rollback 属「已结束」误用，不再误报「已启动」
+            throw newError(ERR_TXN_ALREADY_FINISHED).param("state", state.get().name());
 
         beforeRollback(error);
 
@@ -347,7 +351,9 @@ public abstract class AbstractTransaction implements ITransaction {
         }
         if (!state.compareAndSet(TxnState.OPEN, TxnState.COMMITTING)
                 && !state.compareAndSet(TxnState.NEW, TxnState.COMMITTING))
-            throw newError(ERR_TXN_ALREADY_STARTED).param("state", st.name());
+            // plan 2587：终态后再 commit 属「已结束」误用（COMMITTED 重复提交已在上方 WARN no-op），
+            // 不再误报「已启动」
+            throw newError(ERR_TXN_ALREADY_FINISHED).param("state", st.name());
 
         // 2.3-C2-016（Fix+Decision ①）：markRollbackOnly 后 commit 由抛错改为自动 rollback 语义
         //（用户可见语义变更——载体断言显式覆盖）
@@ -496,9 +502,16 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void close() {
+        // plan 2587：close 门——任意状态 CAS 到 CLOSED，双 close no-op（close 多经 IoHelper.safeClose
+        // 在 finally 调用，不得抛异常；并发 close/commit 下仅首个 close 执行关闭回调与 doClose）
+        TxnState prev = state.getAndUpdate(s -> TxnState.CLOSED);
+        if (prev == TxnState.CLOSED) {
+            LOG.info("nop.dao.txn.close-already-closed:txn={}", this);
+            return;
+        }
+
         LOG.info("nop.dao.txn.close:txn={}", this);
 
-        state.set(TxnState.CLOSED);
         invokeCloseListener();
         closeSubTransactions();
         doClose();
