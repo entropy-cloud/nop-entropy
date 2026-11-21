@@ -23,6 +23,11 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_INVALID_SCHEDULER_CONFIG = define("nop.err.wf.invalid-scheduler-config",
             "Invalid workflow scheduler config: {configName}={configValue}", ARG_CONFIG_NAME, ARG_CONFIG_VALUE);
 
+    // plan 2585 Phase 2：扫描 SPI 参数校验改 NopException + 错误码（原裸 IllegalArgumentException）
+    String ARG_SCAN_BATCH_SIZE = "scanBatchSize";
+    ErrorCode ERR_WF_INVALID_SCAN_BATCH_SIZE = define("nop.err.wf.invalid-scan-batch-size",
+            "Workflow scan batch size must be positive: {scanBatchSize}", ARG_SCAN_BATCH_SIZE);
+
     String ARG_WF_NAME = "wfName";
     String ARG_STEP_NAME = "stepName";
     String ARG_ACTION_NAME = "actionName";

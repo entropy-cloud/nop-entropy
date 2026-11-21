@@ -71,23 +71,30 @@ public class TestWfTaskScannerFencing extends BaseTestCase {
                     (proxy, method, args) -> {
                         int argCount = args == null ? 0 : args.length;
                         switch (method.getName() + "/" + argCount) {
-                            case "findDueActivatedSteps/2": {
+                            case "findDueActivatedSteps/3": {
                                 fetchCalls.incrementAndGet();
-                                Timestamp cursor = (Timestamp) args[1];
-                                if (cursor != null)
-                                    cursorsReceived.add(cursor);
+                                Timestamp cursorTime = (Timestamp) args[1];
+                                String cursorStepId = (String) args[2];
+                                if (cursorTime != null)
+                                    cursorsReceived.add(cursorTime);
                                 Timestamp now = new Timestamp(System.currentTimeMillis());
                                 List<WorkflowStepRecordBean> ret = new ArrayList<>();
                                 for (WorkflowStepRecordBean step : steps.values()) {
                                     Timestamp due = dueTimes.get(step.getStepId());
                                     if (due == null || due.after(now))
                                         continue;
-                                    if (cursor != null && !due.after(cursor))
+                                    // plan 2585 二元组游标谓词模拟：((eq due and gt stepId) or gt due)
+                                    if (cursorTime != null
+                                            && (due.before(cursorTime)
+                                            || (due.equals(cursorTime)
+                                            && (cursorStepId == null
+                                            || step.getStepId().compareTo(cursorStepId) <= 0))))
                                         continue;
                                     ret.add(step);
                                 }
                                 int batchSize = (Integer) args[0];
-                                ret.sort(Comparator.comparing(WorkflowStepRecordBean::getDueTime));
+                                ret.sort(Comparator.comparing(WorkflowStepRecordBean::getDueTime)
+                                        .thenComparing(WorkflowStepRecordBean::getStepId));
                                 if (ret.size() > batchSize)
                                     return ret.subList(0, batchSize);
                                 return ret;
@@ -98,17 +105,27 @@ public class TestWfTaskScannerFencing extends BaseTestCase {
                                 if (method.isDefault())
                                     return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, args);
                                 return new ArrayList<>(steps.values());
-                            case "findRemindActivatedSteps/2": {
+                            case "findRemindActivatedSteps/3": {
                                 fetchCalls.incrementAndGet();
+                                Timestamp cursorTime = (Timestamp) args[1];
+                                String cursorStepId = (String) args[2];
                                 List<WorkflowStepRecordBean> ret = new ArrayList<>();
                                 for (WorkflowStepRecordBean step : steps.values()) {
-                                    if (step.getRemindTime() == null)
+                                    Timestamp remind = step.getRemindTime();
+                                    if (remind == null)
                                         continue;
-                                    if (args[1] != null && !step.getRemindTime().after((Timestamp) args[1]))
+                                    // plan 2585 二元组游标谓词模拟（与 due 半区同构）
+                                    if (cursorTime != null
+                                            && (remind.before(cursorTime)
+                                            || (remind.equals(cursorTime)
+                                            && (cursorStepId == null
+                                            || step.getStepId().compareTo(cursorStepId) <= 0))))
                                         continue;
                                     ret.add(step);
                                 }
                                 int batchSize = (Integer) args[0];
+                                ret.sort(Comparator.comparing(WorkflowStepRecordBean::getRemindTime)
+                                        .thenComparing(WorkflowStepRecordBean::getStepId));
                                 if (ret.size() > batchSize)
                                     return ret.subList(0, batchSize);
                                 return ret;
@@ -447,5 +464,41 @@ public class TestWfTaskScannerFencing extends BaseTestCase {
                 sim.cursorsReceived.get(0));
         // 全部 3 条候选在预算内被分批消费
         assertEquals(3, sim.dueInvocations.get());
+    }
+
+    /**
+     * plan 2585 Phase 2 钉（同毫秒游标 tie-breaker）：多条候选共享同一毫秒 dueTime 且超批时，
+     * 二元组游标 (dueTime, stepId) 经 stepId tie-breaker 逐批推进，全部候选被消费
+     * （缺陷态：单值游标 gt dueTime 使后续同毫秒行整批跳过/死循环 → 红）。
+     */
+    @Test
+    public void testSameMillisecondDueTime_tieBreakerCursorConsumesAll() {
+        FencingStoreSim sim = new FencingStoreSim();
+        Timestamp sameMs = new Timestamp(System.currentTimeMillis() - 10_000L);
+        int total = 5;
+        for (int i = 0; i < total; i++) {
+            WorkflowStepRecordBean record = dueRecord("wf-same-ms", "step-" + i, sameMs);
+            sim.steps.put(record.getStepId(), record);
+            sim.dueTimes.put(record.getStepId(), sameMs);
+        }
+
+        WfTaskScanner scanner = new WfTaskScanner() {
+            @Override
+            int getScanBatchSize() {
+                return 2;
+            }
+        };
+        scanner.setWorkflowStore(sim.asStore());
+        scanner.setWorkflowManager(managerReturning(sim.steps.values().iterator().next()));
+        scanner.setWorkflowService(serviceSim(sim, r -> null));
+        scanner.setOrmTemplate(ormTemplateProxy());
+
+        scanner.scanDueTasks();
+
+        // 全部同毫秒候选分批消费完毕（缺陷态：旧游标下第 2 批起谓词 gt dueTime
+        // 永不命中剩余同毫秒行 → 死循环/跳批 → 红）
+        assertEquals(total, sim.dueInvocations.get(), "all same-millisecond due steps must be consumed");
+        // 每批游标时间恒为同毫秒值（tie-breaker 由 stepId 承担）
+        assertTrue(sim.fetchCalls.get() >= 3, "must advance through multiple batches");
     }
 }

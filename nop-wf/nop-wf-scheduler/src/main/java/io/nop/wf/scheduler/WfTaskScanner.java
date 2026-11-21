@@ -136,8 +136,27 @@ public class WfTaskScanner {
             throw new NopException(NopWfCoreErrors.ERR_WF_INVALID_SCHEDULER_CONFIG)
                     .param(NopWfCoreErrors.ARG_CONFIG_NAME, "nop.wf.scheduler.action-deadline-ms")
                     .param(NopWfCoreErrors.ARG_CONFIG_VALUE, getActionDeadlineMs());
+        checkDeadlineVsLease();
         registerScanGauges();
         resolveNodeId();
+    }
+
+    /**
+     * plan 2585 Phase 2：装配期校验 deadline 与 lease 的配比——action-deadline-ms 大于
+     * scan-lease-ms 时，due action 在租约过期后仍可能继续占用（他节点可重复抢占同一步骤，
+     * fencing 单飞失效窗口 = deadline - lease）。deadline<=0（禁用）不校验。
+     * 取 WARN 而非 fail-fast：该配比只放大重复执行风险面，不破坏状态机正确性
+     * （引擎侧 status 守卫兜底），避免存量部署启动失败。
+     */
+    private void checkDeadlineVsLease() {
+        long deadlineMs = getActionDeadlineMs();
+        long leaseMs = getScanLeaseMs();
+        if (deadlineMs > 0 && leaseMs > 0 && deadlineMs > leaseMs) {
+            LOG.warn("nop.wf.scheduler.action-deadline-exceeds-scan-lease:deadlineMs={},leaseMs={}; "
+                    + "a due action may keep running after its scan lease expires, "
+                    + "allowing another node to re-claim the same step",
+                    deadlineMs, leaseMs);
+        }
     }
 
     /**
@@ -266,7 +285,9 @@ public class WfTaskScanner {
 
         // 毒步骤连续失败轮次计数（有界 cap，裁定④）
         Map<String, Integer> failCounts = new HashMap<>();
-        Timestamp cursor = null;
+        // plan 2585 Phase 2：二元组游标 (dueTime, stepId)——同毫秒 dueTime 超批不再整批跳过
+        Timestamp cursorTime = null;
+        String cursorStepId = null;
         int scanned = 0;
         // W-01(b)（MA-06 残留面裁定 E）：最近一轮 due 扫描观测（每轮重置）
         DUE_SCAN_SCANNED.set(0);
@@ -278,7 +299,8 @@ public class WfTaskScanner {
                 break;
             }
 
-            List<? extends IWorkflowStepRecord> batch = workflowStore.findDueActivatedSteps(batchSize, cursor);
+            List<? extends IWorkflowStepRecord> batch =
+                    workflowStore.findDueActivatedSteps(batchSize, cursorTime, cursorStepId);
             if (batch == null || batch.isEmpty())
                 break;
 
@@ -290,10 +312,11 @@ public class WfTaskScanner {
 
             if (batch.size() < batchSize)
                 break;
-            Timestamp last = batch.get(batch.size() - 1).getDueTime();
-            if (last == null)
+            IWorkflowStepRecord last = batch.get(batch.size() - 1);
+            if (last.getDueTime() == null || last.getStepId() == null)
                 break;
-            cursor = last;
+            cursorTime = last.getDueTime();
+            cursorStepId = last.getStepId();
         }
     }
 
@@ -461,7 +484,9 @@ public class WfTaskScanner {
         // W-01(a)（MA-06 残留面裁定 E）：remind 半区毒步骤连续失败轮次计数（与 due 半区
         // failCounts 同构，有界 cap 同款）
         Map<String, Integer> failCounts = new HashMap<>();
-        Timestamp cursor = null;
+        // plan 2585 Phase 2：二元组游标 (remindTime, stepId)，与 due 半区同构同修
+        Timestamp cursorTime = null;
+        String cursorStepId = null;
         int scanned = 0;
 
         while (true) {
@@ -470,7 +495,8 @@ public class WfTaskScanner {
                 break;
             }
 
-            List<? extends IWorkflowStepRecord> batch = workflowStore.findRemindActivatedSteps(batchSize, cursor);
+            List<? extends IWorkflowStepRecord> batch =
+                    workflowStore.findRemindActivatedSteps(batchSize, cursorTime, cursorStepId);
             if (batch == null || batch.isEmpty())
                 break;
 
@@ -481,10 +507,11 @@ public class WfTaskScanner {
 
             if (batch.size() < batchSize)
                 break;
-            Timestamp last = batch.get(batch.size() - 1).getRemindTime();
-            if (last == null)
+            IWorkflowStepRecord last = batch.get(batch.size() - 1);
+            if (last.getRemindTime() == null || last.getStepId() == null)
                 break;
-            cursor = last;
+            cursorTime = last.getRemindTime();
+            cursorStepId = last.getStepId();
         }
     }
 

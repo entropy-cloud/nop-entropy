@@ -142,19 +142,23 @@ public interface IWorkflowStore {
     List<? extends IWorkflowStepRecord> findRemindActivatedSteps();
 
     /**
-     * plan 2514 MA-05（裁定④）：到期步骤分批查询（R02 分批范式）。返回按 dueTime 升序的至多
-     * batchSize 条 ACTIVATED 到期步骤；cursorDueTime 非空时只返回 dueTime 严格大于该值的
-     * 步骤（分页游标推进）。缺省实现保留全量语义，由支持分批的 store 覆盖。
+     * plan 2514 MA-05（裁定④）：到期步骤分批查询（R02 分批范式）。返回按 (dueTime, stepId)
+     * 升序的至多 batchSize 条 ACTIVATED 到期步骤；游标 (cursorDueTime, cursorStepId) 非空时
+     * 只返回严格大于该二元组的步骤（plan 2585 Phase 2：二元组游标消除同毫秒 dueTime 超批
+     * 时整批跳过——谓词形状 ((eq dueTime and gt stepId) or gt dueTime)）。
+     * 缺省实现保留全量语义，由支持分批的 store 覆盖。
      */
-    default List<? extends IWorkflowStepRecord> findDueActivatedSteps(int batchSize, Timestamp cursorDueTime) {
+    default List<? extends IWorkflowStepRecord> findDueActivatedSteps(int batchSize, Timestamp cursorDueTime,
+                                                                      String cursorStepId) {
         return findDueActivatedSteps();
     }
 
     /**
-     * plan 2514 MA-05（裁定④）：提醒步骤分批查询，与 {@link #findDueActivatedSteps(int, Timestamp)}
-     * 同构（按 remindTime 升序 + 游标推进）。
+     * plan 2514 MA-05（裁定④）：提醒步骤分批查询，与 {@link #findDueActivatedSteps(int,
+     * Timestamp, String)} 同构（plan 2585 Phase 2：(remindTime, stepId) 二元组游标同修）。
      */
-    default List<? extends IWorkflowStepRecord> findRemindActivatedSteps(int batchSize, Timestamp cursorRemindTime) {
+    default List<? extends IWorkflowStepRecord> findRemindActivatedSteps(int batchSize, Timestamp cursorRemindTime,
+                                                                         String cursorStepId) {
         return findRemindActivatedSteps();
     }
 

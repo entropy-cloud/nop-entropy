@@ -76,6 +76,8 @@ txn().afterCommit(null, () -> {
 - **二次 commit = no-op + WARN**（`nop.warn.dao.txn-commit-after-committed`）——不再重复触发 afterCommit/afterCompletion 监听器（原形态的监听器重复通知缺陷已消除）。
 - **commit 的 doCommit 抛错**：监听器仍收 `afterCompletion(UNKNOWN)`，事务尽力置 ROLLED_BACK 后抛 `ERR_TXN_COMMIT_FAIL`（原始异常在 cause）。
 - **提交快照开始后 addSubTransaction 显式拒绝**（`nop.err.dao.txn.late-sub-transaction`）——提交期迟到的子事务注册不再静默丢写。
+- **状态机误用错误码 = `ERR_TXN_ALREADY_FINISHED`**（plan 2587）：终态（COMMITTED/ROLLED_BACK/CLOSED）后再 `commit()`/`rollback()` 抛该码并附 `state` 参数；`open()` 双开仍为 `ERR_TXN_ALREADY_STARTED`。
+- **`close()` 任意状态 CAS 到 CLOSED，双 close no-op**（plan 2587）——第二次 `close()` 不重复触发 onClose 监听器、不重跑 `doClose`；任何状态下调用都不抛异常（`close` 经 `IoHelper.safeClose` 在 finally 调用）。
 - **`FutureHelper.bindCancel(promise, future)` 收紧**：仅当 promise 以 `CancellationException` 终结时才 cancel 关联 future；正常/异常完结不再连带取消（原「任意完结即取消」的误取消面已修复——依赖旧行为清理排队任务的调用方需自行取消）。
 
 ## 锁租约/超时对象的时间语义（R4-32，plan 2566）

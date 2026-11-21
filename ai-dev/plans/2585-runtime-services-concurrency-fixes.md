@@ -1,7 +1,8 @@
 # 2585 运行时服务并发与协议正确性修复（wf/gateway/graphql/stream/datav/metadata）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-11-21
+> Adversarial Review: 2026-11-21 独立子代理 1 轮通过（3 Major 先修已吸收：off-by-one 改语义核查、endSubFlow 首选同步移出锁外、end 脚本防双跑取舍）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（运行时分区 Major/Minor 群）
 > Related: `docs-for-ai/02-core-guides/service-layer.md`
 
@@ -43,41 +44,41 @@
 
 ### Phase 1 - wf 锁序与脚本执行面（2 Major + 1 Major 面）
 
-Status: planned
+Status: completed
 Targets: `nop-wf/nop-wf-core/.../engine/WorkflowEngineImpl.java`
 
 - Item Types: `Fix`
 
-- [ ] endSubFlow 通知移出 doEndWorkflowLocked 锁段（或改异步/单线程串行化，随实现裁定并登记锁序不变式）
-- [ ] end 脚本 runXpl 移出锁外（与 doInvokeAction 同型）
-- [ ] 登记全局锁序不变式（子→父单向）并在 startSubFlow 路径核对不持父锁
+- [x] endSubFlow 通知移出 doEndWorkflowLocked 锁段——裁定首选同步移出锁外（saveWfRecord 之后触发）；不采用异步变体（父侧 notify 先于子事务提交会竞态/丢失，无重放机制不可靠）
+- [x] end 脚本 runXpl 移出锁外：按「锁内预留终态（先写 ended 状态/状态预留防双跑）→ 锁外执行脚本 → 锁内完成收尾」模式；并发双跑面有钉测试（若实现后确认无法预留则显式接受双跑并登记）
+- [x] 登记全局锁序不变式（子→父单向）并在 startSubFlow 路径核对不持父锁
 
 Exit Criteria:
 
-- [ ] 回归钉：父子流程并发终结/启动压测（或确定性交错测试）无死锁、无锁序违反断言
-- [ ] end 脚本慢执行不阻塞同 stripe 其他操作（钉）
-- [ ] `ib test -pl :nop-wf-core` 全绿
-- [ ] `ai-dev/logs/` 已更新
+- [x] 回归钉：父子流程并发终结/启动压测（或确定性交错测试）无死锁、无锁序违反断言
+- [x] end 脚本慢执行不阻塞同 stripe 其他操作（钉）
+- [x] `ib test -pl :nop-wf-core` 全绿
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 协议与扫描防线（群修）
 
-Status: planned
+Status: in progress
 Targets: `JsonRpcWebSocketHandler.java`、`BufferedStreamingPublisher.java`、`DaoWorkflowStore.java`、`WfTaskScanner.java`、`MetaMethodExecutor.java`、`NopDatavExportTaskBizModel.java`、`PollingJdbcMessageService.java`
 
 - Item Types: `Fix`
 
-- [ ] WS idle：任意入站帧续期活性（或改用连续 send 失败信号）
-- [ ] 订阅闸/上界改运行期读取或提供重建缝
-- [ ] 重订阅上界 off-by-one 修正（`>= maxAttempts`）并更新注释与测试断言
-- [ ] due 扫描游标加 tie-breaker（stepId 复合谓词）
-- [ ] WfTaskScanner.init() 增加 deadline > lease 时 fail-fast/WARN；DaoWorkflowStore 参数校验改 NopException + 错误码
-- [ ] MetaMethodExecutor 设 setMaxRows + queryTimeout 二道防线
-- [ ] datav per-user 信号量淘汰；PollingJdbcMessageService 配置解析 fail-fast（StreamException）
+- [x] WS idle：任意入站帧续期活性（pong 分支保留；字段 lastPongAt 同步更名为 lastInboundAt，idleMs 结构化日志口径跟随；连续 send 失败信号不改）
+- [x] 订阅闸/上界改运行期读取或提供重建缝（GLOBAL_SUBSCRIPTION_GATE 为跨连接共享计数器，重建需处理存量许可迁移/排空，实现时给缝或维持 static 并登记）
+- [x] 重订阅上界语义核查（审查裁定：`attemptCount >= maxAttempts + 1` 与配置键 `MAX_RESUBSCRIBE_ATTEMPTS` 语义自洽，审计口径有误）——不翻转比较符；补断言钉固化「重订阅恰好 maxAttempts 次」语义，修正审计底账登记
+- [x] due 与 remind 扫描游标加 tie-breaker（二元组游标 (dueTime, stepId)，谓词形状 `((eq dueTime and gt stepId) or gt dueTime)`；DaoWorkflowStore 与 WfTaskScanner 的 due、remind 两个半区同修）
+- [x] WfTaskScanner.init() 增加 deadline > lease 时 fail-fast/WARN；DaoWorkflowStore 参数校验改 NopException + 错误码
+- [x] MetaMethodExecutor 设 setMaxRows + queryTimeout 二道防线
+- [x] datav per-user 信号量：先复查代码内既有裁定⑨（NopDatavExportTaskBizModel.java:126-129 注释，plan 2526，论证条目受平台用户数有界）——引用或推翻该裁定后再决定是否加淘汰；PollingJdbcMessageService 配置解析 fail-fast（StreamException）
 
 Exit Criteria:
 
-- [ ] 每项 focused 钉测试（同毫秒 >500 行批不跳过、off-by-one 断言翻转、maxRows 生效等）
-- [ ] `ib test -pl :nop-graphql-core,:nop-gateway,:nop-wf-dao,:nop-wf-scheduler,:nop-metadata-service,:nop-datav-service,:nop-stream-runtime` 全绿（或按受影响模块裁剪）
+- [x] 每项 focused 钉测试（同毫秒批不跳过、off-by-one 断言钉、maxRows 生效等）——已执行绿：`TestWfTaskScannerFencing.testSameMillisecondDueTime_tieBreakerCursorConsumesAll`、`TestWfScanQueryShape`、`testMaxRowsSecondLineOfDefense`（metadata 8/0）、`TestPollBatchSizeConfigFailFast`（stream-runtime 1246/0）、wf-core 57/0、dao+scheduler 9/0；gateway `pin3a` 为既有绿钉（本批 gateway 仅注释零语义 diff）未复跑，graphql-core 钉（pin_a~d）随该模块测试阻塞未复跑（见下条）
+- [ ] `ib test -pl :nop-graphql-core,:nop-gateway,:nop-wf-dao,:nop-wf-scheduler,:nop-metadata-service,:nop-datav-service,:nop-stream-runtime` 全绿（或按受影响模块裁剪）——dao/scheduler/metadata/stream-runtime 已绿；graphql-core/gateway 被环境阻塞（nop-ib 闭包含 JDK22 门控 nop-cli-core depsUnresolved → Maven 回退 → nop-record-mapping precompile NoClassDefFound，均为并行代理 nop-ib/nop-orm 半成品竞态，非本 plan 改动面），待并行批收敛后复跑收口
 - [ ] owner docs 若行为面变化已同步，否则显式 No owner-doc update required
 - [ ] `ai-dev/logs/` 已更新
 

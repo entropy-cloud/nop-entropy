@@ -73,6 +73,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
@@ -131,6 +132,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     // 引擎绝不直接引用 DaoWorkflowStore 具体类。锁序声明见设计文档 §3.1：
     // 禁止在 withWfLock 段内调用会获取其他 wf 条带锁的引擎入口（跨 wf 互调经 runXpl
     // 无锁窗自然无环）。
+    //
+    // plan 2585 Phase 1 全局锁序不变式（子→父单向）：跨 wf 条带锁嵌套仅允许
+    // 「持子锁 → 取父锁」方向（子流程终结通知 notifySubFlowEnd 的父侧段），禁止
+    // 「持父锁 → 取子锁」反向嵌套。核对结论：startSubFlow 启动的新子流程 wfId 为 null，
+    // withWfLock 对 null id 直通不取子锁（plan 2514 :232-233 注释同口径），故父侧迁移段/
+    // join 段内启动子流程不构成父→子锁嵌套；子流程终结的 endSubFlow 通知已移出
+    // doEndWorkflow 锁段（reserveEndWorkflowLocked 只做终态预留，通知在锁外触发）。
+    // 单向序成立 → 无环 → 无死锁面。
 
     private <T> T withWfLock(IWorkflowImplementor wf, Supplier<T> action) {
         String wfId = wf == null ? null : wf.getWfId();
@@ -815,18 +824,23 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public void kill(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         LOG.info("nop.wf.kill:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
 
-        // MA-02（裁定①）：kill 驱动的终结段（killSteps + doEndWorkflow）纳入 wf 条带锁
-        withWfLock(wf, () -> {
-            doKill(wf, args, ctx);
-            return null;
-        });
+        WfRuntime wfRt = newWfRuntime(wf, ctx);
+
+        // MA-02（裁定①）：killSteps 驱动段纳入 wf 条带锁。
+        // plan 2585 Phase 1：终结段（doEndWorkflow）移出锁外——锁内只做 kill + markEnd，
+        // end 脚本与子流程通知在锁释放后执行，避免子→父通知在锁内嵌套取父锁。
+        boolean killed = withWfLock(wf, () -> doKill(wf, wfRt, args, ctx));
+
+        if (killed) {
+            doEndWorkflow(NopWfCoreConstants.WF_STATUS_KILLED, wfRt);
+            wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_KILL);
+        }
     }
 
-    private void doKill(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
+    private boolean doKill(IWorkflowImplementor wf, WfRuntime wfRt, Map<String, Object> args, IServiceContext ctx) {
         if (wf.isEnded())
-            return;
+            return false;
 
-        WfRuntime wfRt = newWfRuntime(wf, ctx);
         initArgs(wfRt, args);
         checkManageAuth(wfRt);
 
@@ -835,11 +849,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         killSteps(wfRt);
 
         wfRt.markEnd();
-        wfRt.delayExecute(() -> {
-            doEndWorkflow(NopWfCoreConstants.WF_STATUS_KILLED, wfRt);
-        });
-
-        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_KILL);
+        return true;
     }
 
     @Override
@@ -1754,21 +1764,26 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     void checkEnd(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
-        // MA-02（裁定① 流程终结站点）：checkEnd 全段纳入 wf 条带锁——willEnd/isAllStepsHistory
-        // 判定与 doEndWorkflow 原子化，双实例并发 checkEnd 时终结恰好一次（wf.isEnded() 复检在锁内）。
-        withWfLock(wf, () -> {
-            doCheckEnd(wfRt, wf);
-            return null;
-        });
+        // MA-02（裁定① 流程终结站点）：willEnd/isAllStepsHistory 判定段纳入 wf 条带锁，
+        // 双实例并发 checkEnd 时终结恰好一次（wf.isEnded() 复检在锁内）。
+        // plan 2585 Phase 1：终结本体（doEndWorkflow）移出判定锁段，在锁释放后执行。
+        boolean bEnd = withWfLock(wf, () -> doCheckEnd(wfRt, wf));
+        if (bEnd) {
+            this.doEndWorkflow(NopWfCoreConstants.WF_STATUS_COMPLETED, wfRt);
+        }
     }
 
-    private void doCheckEnd(WfRuntime wfRt, IWorkflowImplementor wf) {
+    /**
+     * 锁内终结判定段。返回 true 表示本调用决定终结该流程（调用方随后在锁外执行
+     * {@link #doEndWorkflow}）；返回 false 表示流程已终结或未满足终结条件。
+     */
+    private boolean doCheckEnd(WfRuntime wfRt, IWorkflowImplementor wf) {
         // 如果工作流实例上的状态位没有结束，但是所有流程步骤都已经结束，则自动将整个工作流结束
         if (!wf.isEnded() && wf.isStarted()) {
             // 锁内重读已提交实例状态：另一请求可能已在本请求快照固化后完成终结
             refreshWfStatusFromStore(wf);
             if (wf.isEnded())
-                return;
+                return false;
 
             IWorkflowRecord wfRecord = wf.getRecord();
             boolean bEnd = wfRt.willEnd();
@@ -1779,29 +1794,54 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 bEnd = true;
                 LOG.info("nop.wf.auto-end-since-all-steps-finished:wfName={},wfRecord={}", wfRecord.getWfName(), wfRecord);
             }
-            if (bEnd) {
-                this.doEndWorkflow(NopWfCoreConstants.WF_STATUS_COMPLETED, wfRt);
-            }
+            return bEnd;
         }
+        return false;
     }
 
+    /**
+     * plan 2585 Phase 1（end 脚本出锁 + endSubFlow 出锁）三段式终结：
+     * <ol>
+     * <li>锁内预留终态（{@link #reserveEndWorkflowLocked}）：锁内复检 isEnded 防双跑，
+     * 先写 ended 状态落盘（预留终态），此后任何并发终结到达都看到 isEnded 短路；</li>
+     * <li>锁外执行用户 end 脚本与子流程结束通知（endSubFlow 同步触发父侧
+     * notifySubFlowEnd，取父锁时不再持本 wf 条带锁——子→父单向锁序）；</li>
+     * <li>锁外触发 AFTER_END 事件收尾。</li>
+     * </ol>
+     * 取舍：end 脚本在终态预留之后执行，脚本抛异常时流程已终结而脚本副作用丢失——
+     * 以防双跑为优先（plan Phase 1 裁定）。
+     */
     void doEndWorkflow(int status, WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
-        // MA-02（裁定① saveWfRecord 6 调用点覆盖，终结写点）：终结段纳入 wf 条带锁 + 锁内
-        // 复检 isEnded（checkEnd 与 kill 两路终态驱动在此汇合，双到达只落盘一次）
-        withWfLock(wf, () -> {
-            doEndWorkflowLocked(status, wfRt, wf);
-            return null;
-        });
+        AtomicBoolean reserved = new AtomicBoolean(false);
+        WfEndModel endModel = withWfLock(wf, () -> reserveEndWorkflowLocked(status, wfRt, wf, reserved));
+        if (!reserved.get())
+            return;
+
+        // 锁外：用户 end 脚本可长执行，持锁将封锁同 wf 全部操作（裁定① 不变式投影）
+        if (endModel != null) {
+            runXpl(endModel.getSource(), wfRt);
+        }
+
+        // 锁外：子流程结束通知父流程（notifySubFlowEnd 内取父 wf 条带锁）
+        this.endSubFlow(wf, status, wfRt);
+
+        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_END);
     }
 
-    private void doEndWorkflowLocked(int status, WfRuntime wfRt, IWorkflowImplementor wf) {
+    /**
+     * 锁内终态预留段（MA-02 裁定① saveWfRecord 6 调用点覆盖，终结写点；plan 2585
+     * Phase 1 改名自 doEndWorkflowLocked）。仅在预留成功时置位 reserved；end 脚本与
+     * 子流程通知均不在本段执行（见 {@link #doEndWorkflow}）。
+     */
+    private WfEndModel reserveEndWorkflowLocked(int status, WfRuntime wfRt, IWorkflowImplementor wf,
+                                                AtomicBoolean reserved) {
         if (wf.isEnded())
-            return;
+            return null;
 
         refreshWfStatusFromStore(wf);
         if (wf.isEnded())
-            return;
+            return null;
 
         LOG.info("nop.wf.end-workflow:wfName={},status={},wf={}", wf.getWfName(), status, wf.getRecord());
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_END);
@@ -1813,14 +1853,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfModel wfModel = (WfModel) wf.getModel();
         WfEndModel endModel = wfModel.getEnd();
 
-        if (endModel != null) {
-            runXpl(endModel.getSource(), wfRt);
-        }
+        // 预留终态：先落盘 ended 状态防双跑，用户 end 脚本移至锁外执行
         wfRt.saveWfRecord(status);
+        reserved.set(true);
 
-        this.endSubFlow(wf, status, wfRt);
-
-        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_END);
+        return endModel;
     }
 
     void endSubFlow(IWorkflowImplementor wf, int status, WfRuntime wfRt) {

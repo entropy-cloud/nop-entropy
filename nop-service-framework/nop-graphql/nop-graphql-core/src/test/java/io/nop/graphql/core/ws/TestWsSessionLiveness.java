@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 2.3-C8-009（plan 2551 裁定 J）钉：WS 会话活性面（承载 C10-015）。
- * pin-a：pong 记账——METHOD_PONG 更新 lastPongAt（原空分支红）；
+ * pin-a：pong 记账——METHOD_PONG 更新 lastInboundAt（plan 2585 Phase 2 更名自 lastPongAt）；
  * pin-b：连续发送失败（3 次）→ 主动断连（close 路径触发，不再仅 WARN）；
  * pin-c：onThrowable 清理 activeOperations（原仅注销 keepAlive 的泄漏面）。
  */
@@ -81,15 +81,43 @@ public class TestWsSessionLiveness extends BaseTestCase {
     public void pin_a_pongUpdatesBookkeeping() throws Exception {
         LivenessSession session = new LivenessSession();
         JsonRpcWebSocketHandler handler = newHandler(session);
-        long before = field(handler, "lastPongAt");
+        long before = field(handler, "lastInboundAt");
         Thread.sleep(20);
 
         JsonRpcRequest pong = new JsonRpcRequest();
         pong.setMethod("pong");
         handler.onMessage(pong);
 
-        assertTrue(field(handler, "lastPongAt") > before,
-                "METHOD_PONG must update lastPongAt (was an empty branch)");
+        assertTrue(field(handler, "lastInboundAt") > before,
+                "METHOD_PONG must update lastInboundAt (was an empty branch)");
+    }
+
+    /**
+     * plan 2585 Phase 2 钉：任意入站帧（标准 graphql-ws 客户端的 subscribe/complete 等
+     * 协议帧，非自定义 pong）同样续期活性——idle 判定不再误杀标准客户端。
+     */
+    @Test
+    public void pin_d_anyInboundFrameRenewsLiveness() throws Exception {
+        LivenessSession session = new LivenessSession();
+        JsonRpcWebSocketHandler handler = newHandler(session);
+        long before = field(handler, "lastInboundAt");
+        Thread.sleep(20);
+
+        // 原始文本入站路径（onMessage(String)）——标准客户端的 subscribe 帧
+        handler.onMessage("{\"id\":\"op-1\",\"method\":\"TestObj__bizGet\",\"params\":{}}");
+        assertTrue(field(handler, "lastInboundAt") > before,
+                "any inbound frame (subscribe) must renew liveness bookkeeping");
+
+        long afterSubscribe = field(handler, "lastInboundAt");
+        Thread.sleep(20);
+
+        // JsonRpcRequest 直入路径（协议解析后的 complete 帧）
+        JsonRpcRequest complete = new JsonRpcRequest();
+        complete.setId("op-1");
+        complete.setMethod("complete");
+        handler.onMessage(complete);
+        assertTrue(field(handler, "lastInboundAt") > afterSubscribe,
+                "any inbound frame (complete) must renew liveness bookkeeping");
     }
 
     @Test

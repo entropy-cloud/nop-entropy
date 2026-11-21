@@ -44,12 +44,24 @@ import java.util.Map;
  * <p><b>错误面不泄漏 SQL 全文</b>（设计 §3.5）：执行失败 param 只携带
  * methodId/methodName 与错误类别，不回显 SQL 与参数值（沿事件快照脱敏与 sqlHash 先例）。
  *
- * <p>结果行数由方法作者经 SQL（LIMIT）自行控制，执行器不再截断（沿 custom_sql
- * 无行数上限的同一契约：SQL 是作者声明的只读查询）。
+ * <p>结果行数由方法作者经 SQL（LIMIT）自行控制；plan 2585 Phase 2 增设二道防线兜底
+ * （作者漏写 LIMIT / 慢查询挂死连接）：JDBC {@code setMaxRows} 行数硬上限 +
+ * {@code setQueryTimeout} 执行超时——防线只截断 JDBC 层返回，不改变方法 SQL 语义契约。
  */
 public class MetaMethodExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MetaMethodExecutor.class);
+
+    /**
+     * plan 2585 Phase 2 二道防线：单次方法执行结果行数硬上限（作者 LIMIT 之外的兜底截断）。
+     */
+    public static final int MAX_ROWS = 10_000;
+
+    /**
+     * plan 2585 Phase 2 二道防线：单次方法执行 JDBC 层超时（秒）——慢/挂死查询不再无限
+     * 占用连接池连接。
+     */
+    public static final int QUERY_TIMEOUT_SECONDS = 60;
 
     private final IMetaDataSourceConnectionProcessor connectionService;
     private final TableReferenceExecutor tableRefExecutor;
@@ -106,6 +118,9 @@ public class MetaMethodExecutor {
         LOG.info("MetaMethodExecutor SQL executed: methodId={}, sqlHash={}",
                 method.getMethodId(), MetaQualityRuleExecutor.sqlHashOf(sql));
         try (PreparedStatement st = conn.prepareStatement(sql)) {
+            // plan 2585 Phase 2 二道防线：行数上限 + 执行超时（作者 SQL 未写 LIMIT/超时时兜底）
+            st.setMaxRows(MAX_ROWS);
+            st.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
             int idx = 1;
             for (Object value : argValues) {
                 st.setObject(idx++, value);

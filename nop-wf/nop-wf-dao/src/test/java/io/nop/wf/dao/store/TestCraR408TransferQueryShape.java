@@ -98,12 +98,14 @@ public class TestCraR408TransferQueryShape {
     @Test
     public void dueRemindScanQueries_untouched() {
         // 禁触边界对照：2514 due/remind 查询形状与本批 transfer 形状独立——二者字段形态不同
-        //（timeProp 游标 vs stepId 游标），证明未发生形状改写交叉
+        //（timeProp 游标 vs stepId 游标），证明未发生形状改写交叉。
+        // plan 2585 Phase 2：timeProp 游标升级 (time, stepId) 二元组（orderBy 补 stepId
+        // tie-breaker），本断言只锚定 timeProp 字段仍居首
         DaoWorkflowStore store = newStore();
-        QueryBean due = store.buildDueScanQuery(100, null);
+        QueryBean due = store.buildDueScanQuery(100, null, null);
         assertTrue(String.valueOf(due.getOrderBy()).contains("dueTime"),
                 "2514 due scan shape untouched (orderBy dueTime)");
-        QueryBean remind = store.buildRemindScanQuery(100, null);
+        QueryBean remind = store.buildRemindScanQuery(100, null, null);
         assertTrue(String.valueOf(remind.getOrderBy()).contains("remindTime"),
                 "2514 remind scan shape untouched (orderBy remindTime)");
     }

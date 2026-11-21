@@ -157,7 +157,19 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
         if (raw == null || raw.isBlank()) {
             return DEFAULT_POLL_BATCH_SIZE;
         }
-        return Integer.parseInt(raw.trim());
+        // plan 2585 Phase 2：配置解析 fail-fast（类型化 StreamException，非裸 NumberFormatException）
+        final int parsed;
+        try {
+            parsed = Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    POLL_BATCH_SIZE_KEY + " must be an integer, got: " + raw);
+        }
+        if (parsed <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    POLL_BATCH_SIZE_KEY + " must be > 0 (single-poll batch limit): " + parsed);
+        }
+        return parsed;
     }
 
     private static java.util.concurrent.ThreadFactory namedFactory(String name) {

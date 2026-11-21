@@ -35,7 +35,7 @@
 ### Minor（40+，摘要归组）
 
 - 错误处理规范偏离（裸 IllegalArgumentException/NPE/NFE/NumberFormatException，应 NopException+ErrorCode）：nop-ai（DefaultOrphanRecoveryHandler.java:113-127 等）、nop-orm（OrmSessionImpl.java:139）、nop-wf-dao（DaoWorkflowStore 分批入口）、nop-stream-runtime（PollingJdbcMessageService.java:155-160）、nop-git（server/Main.java:16）、nop-ib（TestCommand.java:423 NPE）
-- 边界/off-by-one：gateway 重订阅上界 maxAttempts+1（BufferedStreamingPublisher.java:650）；wf due 扫描同毫秒游标整批跳过（DaoWorkflowStore.java:290-296 + WfTaskScanner.java:293）；clean 无 -f 静默、stash apply 误 drop、worktree prune 无视 locked（nop-git）
+- 边界/off-by-one：gateway 重订阅上界 maxAttempts+1（BufferedStreamingPublisher.java:650）【2026-11-21 plan 2585 勘误：对抗审查裁定本条 off-by-one 口径有误——配置键 CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS 语义为「重订阅次数上界」，总 attempt 数 = 1 首发 + maxAttempts 次重订阅，`attemptCount >= maxAttempts + 1` 与键语义自洽，非缺陷，比较符不翻转；钉 = TestStreamResubscribeBound.pin3a】；wf due 扫描同毫秒游标整批跳过（DaoWorkflowStore.java:290-296 + WfTaskScanner.java:293）；clean 无 -f 静默、stash apply 误 drop、worktree prune 无视 locked（nop-git）
 - 资源/内存：echarts ThreadLocal Context 无关闭钩子、resizeCanvas 画布累积、PdfImageRenderer.renderAll 全页光栅 OOM、datav per-user 信号量 map 无淘汰、AgentSessionLifecycle terminalStatuses 无界、pdf ImageCensus 空吞异常+大图内存放大
 - 并发/一致性与语义：GenerationFence 触顶 clear 回填窄窗（nop-orm）、pendingTxnEvictKeys 泄漏、AbstractTransaction close 无 CAS 门、rollback-only commit 语义变更未登记迁移、WS 订阅闸类加载定格、review ack 静默、BoundedStreamPublisher 吞 RejectedExecutionException、WfTaskScanner deadline>lease 无装配校验、GitIocFactory policyPath 配置静默失效、config 裸读与 commit 口径不一致
 - nop-ib 可观测性：生产路径 System.err debug 输出、缓存指纹缺 JDK/运行器维度、/v1/run 请求体无上限、QUEUED 取消不 notify
@@ -56,7 +56,16 @@
 ## Open Questions
 
 - [ ] nop-git HTTP 服务的部署形态（是否仅本机/可信网络使用）决定 B2 修复取认证方案还是仅默认 loopback；需 owner 裁定。
-- [ ] AbstractTransaction rollback-only commit 语义变更是否有外部调用方依赖抛错语义（plan 2587 内核查）。
+- [x] AbstractTransaction rollback-only commit 语义变更是否有外部调用方依赖抛错语义（plan 2587 内核查）。
+  结论（2026-11-21，plan 2587 执行时核查）：grep 全仓无外部调用方依赖该抛错语义——`ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT` 仅 AbstractTransaction 自身（sync beforeCommit :379 / commitAsync :405 保留点）与 `TestTransactionStateCas`（裁定载体钉）引用；sync commit 主路径自动 rollback 语义无调用方破绽。分叉已作为已知行为登记于 `docs-for-ai/03-runbooks/transaction-boundaries.md`（事务对象状态机语义节），双路径钉覆盖（TestTransactionStateCas#pin_2587_e）。
+
+## Erratum（2026-11-21，plan 2587 执行期勘误）
+
+- 「GenerationFence 触顶 clear 回填窄窗」（并发/一致性分组）：**缺陷不成立，撤销**。前提探针钉
+  （nop-orm `TestCra2517GenerationFence#testPlan2587_probe_capClearOrphanFenceCannotPassCas`）验证：
+  clear 后 fence 重建走 per-persister 单调分配器（epoch.incrementAndGet()*1_000_000），新 entry 初始
+  世代严格大于全部历史已发放世代，持 clear 前旧 readGen 的孤儿迟到回填 CAS 必败——原 finding 描述的
+  「孤儿 fence CAS 放行迟到回填」路径不存在。按 plan 2587 审查裁定撤销该项修复，探针钉保留为防回归勘误证据。
 
 ## References
 

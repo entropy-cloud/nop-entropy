@@ -647,6 +647,10 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
                 // 2.3-C3-004：重订阅次数上界——attemptCount 含首次；重订阅序号 = attemptCount。
                 // 超上界（maxAttempts>0 且已发起数 ≥ 上界）不再重订阅，原样转发错误终态
                 // （无上界时保持现行无限重订阅语义）。
+                // plan 2585 Phase 2 语义核查裁定：attemptCount >= maxAttempts + 1 与配置键
+                // CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS 语义自洽——键语义是「重订阅次数
+                // 上界」（总 attempt 数 = 1 次首发 + maxAttempts 次重订阅），比较符不翻转；
+                // 审计底账 off-by-one 口径有误（TestStreamResubscribeBound.pin3a 钉固化）
                 if (maxAttempts > 0 && attemptCount >= maxAttempts + 1) {
                     LOG.warn("nop.gateway.streaming-resubscribe-exhausted:routeId={},attempts={},maxAttempts={}",
                             route.getId(), attemptCount, maxAttempts);

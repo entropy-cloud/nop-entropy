@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!-- plan 2585 Phase 1 锁序钉测试模型：子流程，end 带 output，终结时向父流程回传结果 -->
+
+    <start startStepName="wf-start"/>
+
+    <actions>
+        <action displayName="审批" name="sp">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <end>
+        <output name="result" displayName="审批结果">
+            <source>1</source>
+        </output>
+    </end>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp"/>
+            </ref-actions>
+        </step>
+    </steps>
+</workflow>

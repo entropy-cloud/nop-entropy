@@ -94,12 +94,13 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     private int maxActiveOperations = readConfiguredMaxActiveOperations();
 
     /**
-     * 2.3-C8-009（plan 2551 裁定 J）：会话活性记账——lastPongAt（pong 记账，原
-     * METHOD_PONG 空分支）+ 连续发送失败计数（连续 3 次即断连，不再仅 WARN）。
+     * 2.3-C8-009（plan 2551 裁定 J）：会话活性记账——lastInboundAt（plan 2585 Phase 2
+     * 改名自 lastPongAt：任意入站帧续期活性，不再以自定义 JSON-RPC pong 为唯一依据，
+     * 标准 graphql-ws 客户端不被误杀断连）+ 连续发送失败计数（连续 3 次即断连，不再仅 WARN）。
      * volatile：keepAlive 扫描线程与消息线程跨线程读写。
      * plan 2572 P4：单调域（域内仅做差值 idle 判定；墙钟回拨会误触发/漏触发 idle 断连）。
      */
-    volatile long lastPongAt = CoreMetrics.nanoTime();
+    volatile long lastInboundAt = CoreMetrics.nanoTime();
     volatile int consecutiveSendFailures;
     volatile long lastKeepAliveAt;
 
@@ -107,6 +108,11 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * 2.3-C8-007（plan 2551 裁定 H②）：跨连接全局订阅闸（单一机制）——
      * HighWatermarkSemaphore（键 nop.graphql.ws.global-max-subscriptions，缺省 10000；
      * ≤0=null=不设上界档旁路）。validSubscription 前全局 tryAcquire、订阅终止 release。
+     *
+     * <p>plan 2585 Phase 2 裁定登记：维持 static（类加载期定格）。运行期重建需处理存量
+     * 许可迁移/排空（旧闸上在途订阅的 release 会落到旧实例、新闸计数失真），且闸语义是
+     * 进程级资源上界而非每请求配置——重建缝收益不抵迁移复杂度，登记为 accepted residual；
+     * 若未来需要运行期调档，必须实现「旧闸 drain 等待存量归零 → 新闸切换」的重建协议。
      */
     static final HighWatermarkSemaphore GLOBAL_SUBSCRIPTION_GATE =
             buildGlobalSubscriptionGate();
@@ -182,6 +188,9 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
 
     @Override
     public void onMessage(String text) {
+        // plan 2585 Phase 2：任意入站帧续期活性——idle 判定不再依赖自定义 pong 帧，
+        // 标准 graphql-ws 客户端（subscribe/complete/ping 等协议帧）同样续期
+        lastInboundAt = CoreMetrics.nanoTime();
         if (LOG.isDebugEnabled()) {
             LOG.debug("<<< " + text);
         }
@@ -293,8 +302,9 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                     handlePing(id);
                     break;
                 case METHOD_PONG:
-                    // 2.3-C8-009（plan 2551 裁定 J②）：pong 记账——原空分支使 idle 超时判定无依据
-                    lastPongAt = CoreMetrics.nanoTime();
+                    // 2.3-C8-009（plan 2551 裁定 J②）：pong 分支保留（plan 2585：入站续期
+                    // 已前移至 onMessage 入口，此处幂等刷新，兼容仅发 pong 的自定义客户端）
+                    lastInboundAt = CoreMetrics.nanoTime();
                     break;
                 case METHOD_UNSUBSCRIBE:
                     handleUnsubscribe(request);
@@ -578,14 +588,15 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     protected void sendKeepAlive() {
         lastKeepAliveAt = CoreMetrics.nanoTime();
         // 2.3-C8-009（plan 2551 裁定 J③）：idle 超时判定——超过阈值（键
-        // nop.graphql.ws.idle-timeout，缺省 120s；≤0=关档）未见 pong 即主动断开
-        // （复用 onClose 清理路径：订阅取消+注册表清扫）。共享扫描线程只做判定，不阻塞。
+        // nop.graphql.ws.idle-timeout，缺省 120s；≤0=关档）未见任何入站帧即主动断开
+        // （plan 2585 Phase 2：活性依据由 pong 改为任意入站帧；复用 onClose 清理路径：
+        // 订阅取消+注册表清扫）。共享扫描线程只做判定，不阻塞。
         Integer idleTimeoutSec = GraphQLConfigs.CFG_GRAPHQL_WS_IDLE_TIMEOUT_SECONDS.get();
         if (idleTimeoutSec != null && idleTimeoutSec > 0
-                && lastPongAt > 0
-                && lastKeepAliveAt - lastPongAt > TimeUnit.SECONDS.toNanos(idleTimeoutSec)) {
+                && lastInboundAt > 0
+                && lastKeepAliveAt - lastInboundAt > TimeUnit.SECONDS.toNanos(idleTimeoutSec)) {
             LOG.warn("nop.websocket.idle-timeout:session={},idleMs={}", session,
-                    lastKeepAliveAt - lastPongAt);
+                    lastKeepAliveAt - lastInboundAt);
             closeSession();
             return;
         }

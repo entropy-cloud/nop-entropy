@@ -341,6 +341,25 @@ public class TestNopMetaEntityMethodInvoke extends JunitBaseTestCase {
         assertFalse(rendered.contains("SELECT"), "error surface must not contain SQL text: " + rendered);
     }
 
+    /**
+     * plan 2585 Phase 2 钉：maxRows 二道防线生效——方法 SQL 未写 LIMIT 时，JDBC
+     * setMaxRows 硬上限截断返回行数（作者漏写 LIMIT 时不放任全量物化）。
+     */
+    @Test
+    public void testMaxRowsSecondLineOfDefense() {
+        String hostId = newHostEntity("ent-m3-max");
+        // 20001 行候选 > MAX_ROWS(10000)，且 SQL 不含 LIMIT——兜底防线必须截断
+        daoSaveMethod("mtd-m3-max", hostId, "maxRowsMethod",
+                "SELECT X AS V FROM SYSTEM_RANGE(1, 20001)", null, null);
+        GraphQLResponseBean resp = invokeMethod(hostId, "maxRowsMethod", Map.of());
+        assertFalse(resp.hasError(), "bounded query should not error: "
+                + (resp.hasError() ? resp.getErrors() : ""));
+        assertTrue(resp.getData().toString()
+                        .contains("rowCount=" + io.nop.metadata.service.method.MetaMethodExecutor.MAX_ROWS),
+                "JDBC setMaxRows must cap rows at MAX_ROWS (second line of defense): "
+                        + resp.getData().toString().substring(0, Math.min(200, resp.getData().toString().length())));
+    }
+
     private void setUserContext(String userId, String... roles) {
         UserContextImpl userContext = new UserContextImpl();
         userContext.setUserId(userId);

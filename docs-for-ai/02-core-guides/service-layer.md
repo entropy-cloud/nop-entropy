@@ -393,7 +393,7 @@ BizModel 异步 action（`callActionAsync` 及其执行链）的线程上下文�
 - **JWKS 定位器**（`JWKPublicKeyLocator`）：kid 未命中走**单飞共享拉取**（在飞 future，monitor 不跨 IdP RTT）+ 显式超时（5s 缺省）；失败 grace——保留旧钥、不占速率窗（`lastRequestTime` 仅成功推进），无旧钥才 fail。
 - **流式聚合上界**（`OpenAiDeltaAccumulator`）：content 与每个 tool-call arguments 缓冲分别受字节上界（键 `nop.gateway.streaming.accumulate-max-bytes`，缺省 2MB），超限截断 + 一次性 WARN + 截断标记；`onStreamError` 清理 accumulator 引用。
 - **WS 订阅准入**（`JsonRpcWebSocketHandler`）：单连接上界配置化（键 `nop.graphql.ws.max-active-operations`，缺省 1000）+ 跨连接全局闸 `HighWatermarkSemaphore`（键 `nop.graphql.ws.global-max-subscriptions`，缺省 10000，≤0=不设上界档）——validSubscription 前 tryAcquire、终止清理点 release。
-- **WS 会话活性**：连续 3 次发送失败即复用 onClose 清理路径断连；pong 记账（`lastPongAt`）+ idle 超时断开（键 `nop.graphql.ws.idle-timeout`，缺省 120s，≤0=关档）；`onThrowable` 补订阅清理。
+- **WS 会话活性**：连续 3 次发送失败即复用 onClose 清理路径断连；活性记账（`lastInboundAt`，plan 2585 Phase 2 更名自 `lastPongAt`：任意入站帧续期，idle 判定不再以自定义 pong 为唯一依据，标准 graphql-ws 客户端不被误杀）+ idle 超时断开（键 `nop.graphql.ws.idle-timeout`，缺省 120s，≤0=关档）；`onThrowable` 补订阅清理。
 - **流控分桶**（`DefaultFlowControlRunner`）：按 `resourceType:resource` 分桶的 IRateLimiter（原语零换型）——invoker/fetcher 双消耗站点不再共享同桶（1+K 稀释消除）；setter 置新速率重建全部桶。
 - **JWT 密钥热路径**（`JwtAuthTokenProvider`）：`keySnapshot` volatile 不可变快照（整表替换发布，`legacyKey` 并入快照）+ 锁外快检 DCL——每认证请求不再串行过单例监视器。
 - **SSE 透传快径**（`StreamingProcessor`）：无流元素变换档（`hasStreamElementTransform()==false`——拦截器无 onStreamElement 覆写且路由无映射）下 String 元素免 parse/再 serialize 往返，线缆字节与上游一致；带变换路由维持现路径。

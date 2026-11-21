@@ -7,6 +7,7 @@
  */
 package io.nop.wf.dao.store;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.FilterBeans;
@@ -51,6 +52,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import static io.nop.wf.core.NopWfCoreErrors.ARG_SCAN_BATCH_SIZE;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_INVALID_SCAN_BATCH_SIZE;
 
 public class DaoWorkflowStore extends AbstractWorkflowStore {
     private static final Logger LOG = LoggerFactory.getLogger(DaoWorkflowStore.class);
@@ -220,8 +224,10 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
                                                                          int batchSize, String cursorStepId) {
         // plan 2541 W-02（1.5-MA-07，裁定 D）：游标分页投影 2514 findDueActivatedSteps 分批范式
         //（transfer 场景无时间序字段，以稳定主键 stepId 作游标）——大 owner 全量载入改按批消费
+        // plan 2585 Phase 2：参数校验改 NopException + 错误码（原裸 IllegalArgumentException）
         if (batchSize <= 0)
-            throw new IllegalArgumentException("batchSize must be positive, got " + batchSize);
+            throw new NopException(ERR_WF_INVALID_SCAN_BATCH_SIZE)
+                    .param(ARG_SCAN_BATCH_SIZE, batchSize);
         return stepDao().findAllByQuery(buildTransferScanQuery(ownerId, wfIds, batchSize, cursorStepId));
     }
 
@@ -263,57 +269,75 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
 
     @Override
     public List<? extends IWorkflowStepRecord> findDueActivatedSteps() {
-        return stepDao().findAllByQuery(buildDueScanQuery(null, null));
+        return stepDao().findAllByQuery(buildDueScanQuery(null, null, null));
     }
 
     @Override
     public List<? extends IWorkflowStepRecord> findRemindActivatedSteps() {
-        return stepDao().findAllByQuery(buildRemindScanQuery(null, null));
+        return stepDao().findAllByQuery(buildRemindScanQuery(null, null, null));
     }
 
     /**
-     * plan 2514 MA-05（裁定④）：due 扫描分批查询形状——limit(batchSize) + orderBy(dueTime asc)
-     * + 游标谓词（dueTime &gt; cursor），消费侧按游标推进，消除全量驻留。C10-008 查询形状
-     * 断言载体（包内可见供测试核验 limit/orderBy 存在）。
+     * plan 2514 MA-05（裁定④）：due 扫描分批查询形状——limit(batchSize) + orderBy(dueTime asc,
+     * stepId asc) + 二元组游标谓词。C10-008 查询形状断言载体（包内可见供测试核验
+     * limit/orderBy 存在）。
+     *
+     * <p>plan 2585 Phase 2：游标升级为 (dueTime, stepId) 二元组——同毫秒 dueTime 超批时
+     * 旧单值游标（gt dueTime）整批跳过；谓词形状
+     * {@code ((eq dueTime and gt stepId) or gt dueTime)}，orderBy 补 stepId tie-breaker
+     * 保证游标序与返回序一致。
      */
-    QueryBean buildDueScanQuery(Integer batchSize, Timestamp cursorDueTime) {
-        return buildScanQuery(NopWfStepInstance.PROP_NAME_dueTime, batchSize, cursorDueTime);
+    QueryBean buildDueScanQuery(Integer batchSize, Timestamp cursorDueTime, String cursorStepId) {
+        return buildScanQuery(NopWfStepInstance.PROP_NAME_dueTime, batchSize, cursorDueTime, cursorStepId);
     }
 
     /**
-     * plan 2514 MA-05（裁定④）：remind 扫描分批查询形状，与 due 半区同构同修。
+     * plan 2514 MA-05（裁定④）：remind 扫描分批查询形状，与 due 半区同构同修
+     * （plan 2585 Phase 2：(remindTime, stepId) 二元组游标同修）。
      */
-    QueryBean buildRemindScanQuery(Integer batchSize, Timestamp cursorRemindTime) {
-        return buildScanQuery(NopWfStepInstance.PROP_NAME_remindTime, batchSize, cursorRemindTime);
+    QueryBean buildRemindScanQuery(Integer batchSize, Timestamp cursorRemindTime, String cursorStepId) {
+        return buildScanQuery(NopWfStepInstance.PROP_NAME_remindTime, batchSize, cursorRemindTime, cursorStepId);
     }
 
-    private QueryBean buildScanQuery(String timeProp, Integer batchSize, Timestamp cursorTime) {
+    private QueryBean buildScanQuery(String timeProp, Integer batchSize, Timestamp cursorTime, String cursorStepId) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
         query.addFilter(FilterBeans.le(timeProp, CoreMetrics.currentTimestamp()));
         if (cursorTime != null) {
-            // 分页游标：上批末条 time 为下批下界谓词（严格大于），无全量物化
-            query.addFilter(FilterBeans.gt(timeProp, cursorTime));
+            // plan 2585 Phase 2 二元组分页游标：严格大于 (cursorTime, cursorStepId)，
+            // 无全量物化；同毫秒同游标时间的行经 stepId tie-breaker 不再整批跳过
+            query.addFilter(FilterBeans.or(
+                    FilterBeans.and(
+                            FilterBeans.eq(timeProp, cursorTime),
+                            FilterBeans.gt(NopWfStepInstance.PROP_NAME_stepId, cursorStepId)),
+                    FilterBeans.gt(timeProp, cursorTime)));
         }
         if (batchSize != null) {
             query.setLimit(batchSize);
         }
         query.addOrderField(timeProp, false);
+        // tie-breaker：同 timeProp 值内按 stepId 升序，保证游标序与返回序一致
+        query.addOrderField(NopWfStepInstance.PROP_NAME_stepId, false);
         return query;
     }
 
     @Override
-    public List<? extends IWorkflowStepRecord> findDueActivatedSteps(int batchSize, Timestamp cursorDueTime) {
+    public List<? extends IWorkflowStepRecord> findDueActivatedSteps(int batchSize, Timestamp cursorDueTime,
+                                                                     String cursorStepId) {
+        // plan 2585 Phase 2：公共 SPI 参数校验改 NopException + 错误码（原裸 IllegalArgumentException）
         if (batchSize <= 0)
-            throw new IllegalArgumentException("batchSize must be positive, got " + batchSize);
-        return stepDao().findAllByQuery(buildDueScanQuery(batchSize, cursorDueTime));
+            throw new NopException(ERR_WF_INVALID_SCAN_BATCH_SIZE)
+                    .param(ARG_SCAN_BATCH_SIZE, batchSize);
+        return stepDao().findAllByQuery(buildDueScanQuery(batchSize, cursorDueTime, cursorStepId));
     }
 
     @Override
-    public List<? extends IWorkflowStepRecord> findRemindActivatedSteps(int batchSize, Timestamp cursorRemindTime) {
+    public List<? extends IWorkflowStepRecord> findRemindActivatedSteps(int batchSize, Timestamp cursorRemindTime,
+                                                                        String cursorStepId) {
         if (batchSize <= 0)
-            throw new IllegalArgumentException("batchSize must be positive, got " + batchSize);
-        return stepDao().findAllByQuery(buildRemindScanQuery(batchSize, cursorRemindTime));
+            throw new NopException(ERR_WF_INVALID_SCAN_BATCH_SIZE)
+                    .param(ARG_SCAN_BATCH_SIZE, batchSize);
+        return stepDao().findAllByQuery(buildRemindScanQuery(batchSize, cursorRemindTime, cursorStepId));
     }
 
     // ==================== plan 2514 MA-23（裁定⑥）扫描抢占 fencing ====================
