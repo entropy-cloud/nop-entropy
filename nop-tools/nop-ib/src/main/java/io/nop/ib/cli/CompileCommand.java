@@ -149,11 +149,17 @@ public final class CompileCommand {
 
         if (plan.getCompileFiles().isEmpty() && plan.getDownstreamCandidates().isEmpty()
                 && plan.getCompileModules().isEmpty()) {
+            warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
             String line = json ? JsonOut.write(feedback) : "nothing to compile";
             out.println(line);
             log.line(line);
             return Commands.EXIT_OK;
         }
+        // the executor silently no-ops (compiled: []) when no planned module has
+        // compile files — an existing java path that planned to nothing is the
+        // fake-green shape, surface it before the quiet outcome line
+        if (plan.getCompileFiles().isEmpty())
+            warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
 
         // wave 12 (design 08): declared codegen tasks run in the fast path —
         // before-compile before javac, after-compile after; any failure delegates
@@ -182,6 +188,10 @@ public final class CompileCommand {
         Map<String, Object> diags = new LinkedHashMap<>();
         executor.getDiagnostics().forEach(diags::put);
         feedback.put("diagnostics", diags);
+        // a green compile with zero compiled modules (every planned source vanished
+        // between plan and executor) is indistinguishable from fake green — surface it
+        if (outcome.isSuccess() && outcome.getCompiledModules().isEmpty())
+            warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
         String human = json ? JsonOut.write(feedback)
                 : "compiled: " + outcome.getCompiledModules();
         if (!outcome.isSuccess()) {
@@ -211,6 +221,30 @@ public final class CompileCommand {
             }
         });
         return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+    }
+
+    /**
+     * Silent-empty plan diagnostic: when the given paths all exist on disk but the
+     * plan produced nothing to compile (no compile files / modules / downstream),
+     * the most likely cause is missing or stale model/module facts (e.g. the
+     * daemon cached a model that predates the module). Never fail — but never
+     * stay silent either: a quiet empty plan reads as fake green.
+     */
+    private static void warnWhenPlannedToNothing(IbEngine engine, List<String> changed,
+                                                 Map<String, Object> feedback, boolean json,
+                                                 PrintWriter out, PrintWriter err, RunLog log) {
+        List<String> existingJava = changed.stream()
+                .filter(p -> p.endsWith(".java"))
+                .filter(p -> Files.isRegularFile(engine.getRepoRoot().resolve(p)))
+                .toList();
+        if (existingJava.isEmpty())
+            return;
+        String warn = "paths exist but nothing to compile — model/module facts missing? "
+                + existingJava;
+        feedback.put("warning", warn);
+        String line = json ? JsonOut.write(Map.of("warning", warn)) : "[nop-ib] warning: " + warn;
+        out.println(line);
+        log.line(line);
     }
 
     /**
