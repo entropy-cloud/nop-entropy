@@ -30,6 +30,9 @@ public final class DefaultGitPolicyEngine implements IGitPolicyEngine {
     // session-scoped approvals: when the CLI guard resolves a review, the
     // facade re-evaluation of the same request must not prompt again
     private final java.util.Set<String> approvedRequests = new java.util.HashSet<>();
+    // how each review was resolved (env|interactive), recorded in the audit
+    // line so an environment-driven approval stays visible (plan 2582)
+    private final java.util.Map<String, String> reviewSources = new java.util.HashMap<>();
 
     public DefaultGitPolicyEngine(GitPolicyConfig config, Path projectRoot,
                                   java.io.Reader input, LongSupplier clockNanos,
@@ -57,6 +60,25 @@ public final class DefaultGitPolicyEngine implements IGitPolicyEngine {
      */
     public static IGitPolicyEngine load(Path projectRoot, Appendable reviewOut) {
         List<GitPolicyConfig> layers = GitPolicyLoader.loadLayers(projectRoot);
+        if (layers.isEmpty())
+            return new InactiveEngine();
+        return new DefaultGitPolicyEngine(GitPolicyConfig.merge(layers), projectRoot,
+                new BufferedReader(new java.io.InputStreamReader(System.in,
+                        StandardCharsets.UTF_8)),
+                System::nanoTime,
+                reviewOut);
+    }
+
+    /**
+     * Load with a custom project-layer policy file (plan 2582: custom policy
+     * paths, e.g. the nop-git-ioc policyPath configuration, must be honored);
+     * the user-home layer stays in the chain.
+     */
+    public static IGitPolicyEngine load(Path projectRoot, Path projectPolicyFile,
+                                        Appendable reviewOut) {
+        List<GitPolicyConfig> layers = GitPolicyLoader.loadLayers(projectRoot,
+                Path.of(System.getProperty("user.home"), ".nop-git", "policy.yaml"),
+                projectPolicyFile);
         if (layers.isEmpty())
             return new InactiveEngine();
         return new DefaultGitPolicyEngine(GitPolicyConfig.merge(layers), projectRoot,
@@ -248,8 +270,14 @@ public final class DefaultGitPolicyEngine implements IGitPolicyEngine {
         String key = request.rawCommand() + "|" + verdict.reason();
         if (approvedRequests.contains(key))
             return true; // already approved in this engine session
-        if ("1".equals(System.getenv("NOP_GIT_REVIEW_APPROVED")))
-            return true; // unattended approval via the external approval flow
+        if ("1".equals(System.getenv("NOP_GIT_REVIEW_APPROVED"))) {
+            // unattended approval via the external approval flow (plan 2582
+            // hardening): single-request scope only — it is never added to
+            // the session approval set, and the audit line records
+            // reviewSource=env so the daemon cannot silently self-approve
+            reviewSources.put(key, "env");
+            return true;
+        }
 
         int timeoutSeconds = config.reviewTimeoutSeconds() == null ? 30
                 : config.reviewTimeoutSeconds();
@@ -269,8 +297,10 @@ public final class DefaultGitPolicyEngine implements IGitPolicyEngine {
                 else {
                     String line = stdin.readLine();
                     boolean approved = "yes".equalsIgnoreCase(line == null ? "" : line.trim());
-                    if (approved)
+                    if (approved) {
                         approvedRequests.add(key);
+                        reviewSources.put(key, "interactive");
+                    }
                     return approved;
                 }
             } catch (IOException e) {
@@ -301,6 +331,11 @@ public final class DefaultGitPolicyEngine implements IGitPolicyEngine {
         json.append(",\"remote\":\"").append(escape(request.remote())).append('"');
         json.append(",\"matchedRuleIds\":").append(jsonArray(verdict.matchedRuleIds()));
         json.append(",\"verdict\":\"").append(verdict.effect()).append('"');
+        // plan 2582: how a required review was resolved stays in the audit
+        String reviewSource = reviewSources
+                .get(request.rawCommand() + "|" + verdict.reason());
+        if (reviewSource != null)
+            json.append(",\"reviewSource\":\"").append(reviewSource).append('"');
         if (mode() == GitPolicyMode.OBSERVE) {
             json.append(",\"hypotheticalEffect\":\"").append(enforceHypothetical(request)).append('"');
         }
@@ -355,6 +390,11 @@ public final class DefaultGitPolicyEngine implements IGitPolicyEngine {
     }
 
     private boolean isProtectedBranch(String branch) {
+        // plan 2582: a wildcard refspec target ("*") may touch any protected
+        // branch, so it is treated as protected whenever any pattern exists
+        // (strictest handling; no pattern means nothing can be protected)
+        if ("*".equals(branch))
+            return !config.protectedBranches().patterns().isEmpty();
         return config.protectedBranches().patterns().stream()
                 .anyMatch(pattern -> globMatches(pattern, branch));
     }

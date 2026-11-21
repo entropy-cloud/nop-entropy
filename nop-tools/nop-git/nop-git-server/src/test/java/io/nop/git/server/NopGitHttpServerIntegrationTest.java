@@ -69,6 +69,7 @@ class NopGitHttpServerIntegrationTest {
         ProcessBuilder pb = new ProcessBuilder(real);
         pb.directory(dir.toFile());
         pb.environment().put("GIT_CONFIG_GLOBAL", "/dev/null");
+        pb.environment().put("GIT_TERMINAL_PROMPT", "0");
         pb.redirectErrorStream(true);
         Process process = pb.start();
         String out;
@@ -130,5 +131,117 @@ class NopGitHttpServerIntegrationTest {
         GitResult delete = git(work, "push", "origin", ":master");
         assertNotEquals(0, delete.exit(), "delete of master must be rejected");
         assertTrue(delete.output().contains("protected branch"), delete.output());
+    }
+
+    // ------------------------------------------------------------------
+    // plan 2582: default loopback binding, token access control, non-heads
+    // ref protection
+    // ------------------------------------------------------------------
+
+    @Test
+    void loopbackIsTheDefaultBinding() throws Exception {
+        // the running server's connector must be bound to the loopback host
+        var connectorField = NopGitHttpServer.class.getDeclaredField("server");
+        connectorField.setAccessible(true);
+        org.eclipse.jetty.server.Server jetty =
+                (org.eclipse.jetty.server.Server) connectorField.get(server);
+        assertTrue(jetty.getConnectors().length > 0, "server has connectors");
+        for (var connector : jetty.getConnectors()) {
+            var host = ((org.eclipse.jetty.server.ServerConnector) connector).getHost();
+            assertEquals("127.0.0.1", host, "default binding must be loopback");
+        }
+    }
+
+    @Test
+    void tokenAuthRejectsUnauthorizedWritesAndAcceptsAuthorizedOnes() throws Exception {
+        Path root = base.resolve("token-repos");
+        Path origin = root.resolve("proj");
+        Files.createDirectories(origin);
+        try (Git g = Git.init().setDirectory(origin.toFile())
+                .setInitialBranch("master").call()) {
+            Files.writeString(origin.resolve("a.txt"), "one\n");
+            PersonIdent ident = new PersonIdent("Fixture User", "fixture@example.com",
+                    new Date(1700000000000L), TimeZone.getTimeZone("GMT+08:00"));
+            g.add().addFilepattern(".").call();
+            g.commit().setMessage("base").setAuthor(ident).setCommitter(ident).call();
+        }
+        NopGitHttpServer tokenServer = new NopGitHttpServer(
+                GitServerConfig.of(0, root, "s3cret"));
+        int tokenPort = tokenServer.start();
+        try {
+            Path work = base.resolve("token-work");
+            // clone without the token: rejected (401) before the endpoint
+            GitResult noAuth = git(base, "clone",
+                    "http://127.0.0.1:" + tokenPort + "/proj.git",
+                    work.toAbsolutePath().toString());
+            assertNotEquals(0, noAuth.exit(), "unauthenticated clone must be rejected");
+
+            // with the bearer token everything works, including push
+            GitResult authClone = git(base,
+                    "-c", "http.extraHeader=Authorization: Bearer s3cret",
+                    "clone", "http://127.0.0.1:" + tokenPort + "/proj.git",
+                    work.toAbsolutePath().toString());
+            assertEquals(0, authClone.exit(), "authorized clone failed: " + authClone.output());
+            Files.writeString(work.resolve("b.txt"), "hello\n");
+            assertEquals(0, git(work, "add", ".").exit());
+            assertEquals(0, git(work, "commit", "-m", "authed").exit());
+            assertEquals(0, git(work, "checkout", "-b", "dev").exit());
+            GitResult authPush = git(work,
+                    "-c", "http.extraHeader=Authorization: Bearer s3cret",
+                    "push", "origin", "dev");
+            assertEquals(0, authPush.exit(), "authorized push failed: " + authPush.output());
+
+            // an unauthenticated push from a second clone of the plain server
+            // would be a different registry; here the rejection path is the
+            // unauthorized clone above plus a direct write attempt
+            GitResult wrongToken = git(work,
+                    "-c", "http.extraHeader=Authorization: Bearer wrong",
+                    "push", "origin", "dev:dev2");
+            assertNotEquals(0, wrongToken.exit(), "wrong-token push must be rejected");
+        } finally {
+            tokenServer.stop();
+        }
+    }
+
+    @Test
+    void protectedTagsRejectDeletionAndRewrite() {
+        // plan 2582: non-heads refs are inside the protection perimeter —
+        // deletion and forced rewrite of a protected tag name are rejected
+        var hook = new ProtectedBranchPreReceiveHook(
+                java.util.List.of("main", "master", "release/*", "stable"));
+        var delete = new org.eclipse.jgit.transport.ReceiveCommand(
+                org.eclipse.jgit.lib.ObjectId.zeroId(),
+                org.eclipse.jgit.lib.ObjectId.zeroId(),
+                "refs/tags/stable", org.eclipse.jgit.transport.ReceiveCommand.Type.DELETE);
+        var rewrite = new org.eclipse.jgit.transport.ReceiveCommand(
+                org.eclipse.jgit.lib.ObjectId.fromString(
+                        "0123456789abcdef0123456789abcdef01234567"),
+                org.eclipse.jgit.lib.ObjectId.fromString(
+                        "fedcba9876543210fedcba9876543210fedcba98"),
+                "refs/tags/stable", org.eclipse.jgit.transport.ReceiveCommand.Type.UPDATE_NONFASTFORWARD);
+        hook.onPreReceive(null, java.util.List.of(delete, rewrite));
+        assertEquals(org.eclipse.jgit.transport.ReceiveCommand.Result.REJECTED_OTHER_REASON,
+                delete.getResult());
+        assertTrue(delete.getMessage().contains("protected tag"), delete.getMessage());
+        assertEquals(org.eclipse.jgit.transport.ReceiveCommand.Result.REJECTED_OTHER_REASON,
+                rewrite.getResult());
+        assertTrue(rewrite.getMessage().contains("protected tag"), rewrite.getMessage());
+    }
+
+    @Test
+    void nonProtectedTagDeletionStillPasses() {
+        var hook = new ProtectedBranchPreReceiveHook(
+                java.util.List.of("main", "master", "release/*"));
+        var command = new org.eclipse.jgit.transport.ReceiveCommand(
+                org.eclipse.jgit.lib.ObjectId.zeroId(),
+                org.eclipse.jgit.lib.ObjectId.zeroId(),
+                "refs/tags/tmp-build", org.eclipse.jgit.transport.ReceiveCommand.Type.DELETE);
+        try {
+            hook.onPreReceive(null, java.util.List.of(command));
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+        assertEquals(org.eclipse.jgit.transport.ReceiveCommand.Result.NOT_ATTEMPTED,
+                command.getResult());
     }
 }

@@ -62,7 +62,8 @@ public interface IGitRepositoryService extends AutoCloseable {
 ## 四、HTTP Git 服务层（可选）
 
 - 技术选型：JGit `GitServlet` + `RepositoryResolver<HttpServletRequest>`，解析时 `incrementOpen()` 管理生命周期；**push 需显式设 ReceivePackFactory（GitServlet 默认只服务 fetch，落地裁定 plan 2580）**；浏览器直接访问返回 404 是正常行为（只处理智能协议路径）。
-- **服务端必须独立部署推送保护**：CLI/API 层策略引擎保护的是本地 AI 操作；HTTP 端点的完整性由 `PreReceiveHook` 保护——对 push 的 ref 更新做保护分支直推/强推/删除校验，两者互补不互替。
+- **服务端必须独立部署推送保护**：CLI/API 层策略引擎保护的是本地 AI 操作；HTTP 端点的完整性由 `PreReceiveHook` 保护——对 push 的 ref 更新做保护分支直推/强推/删除校验，两者互补不互替。保护覆盖面（plan 2582 裁定）：`refs/heads/` 之外，`refs/tags/<protected>` 的删除与非快进改写同样拒绝；其余命名空间（refs/notes、自定义 refs）不受限。
+- **默认绑定与访问控制（plan 2582 裁定）**：服务默认只绑定 loopback（127.0.0.1）；`GitServerConfig.bindAllInterfaces=true` 为显式放开全网卡。访问控制采用 bearer token（二选一裁定，弃 read-only 开关）：配置 `token` 后所有请求必须携带 `Authorization: Bearer <token>`（git 客户端经 `-c http.extraHeader=...` 传递），否则 401；未配置 token 时依赖 loopback 默认绑定兜底。Main 入口对应 `--bind-all` / `--token <value>`，端口解析失败按 CLI 规范输出 `fatal:` 行并退出 128。
 - 部署形态：独立可执行（内嵌 HTTP 容器）或挂入已有 Nop 服务；仓库注册表由配置声明仓库根目录映射。
 
 ## 五、拒绝了什么

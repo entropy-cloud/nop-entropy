@@ -119,25 +119,28 @@ evaluate(request):
 | 原始写法 | 归一化为 |
 |---|---|
 | `-f`（push/clean 上下文） | `--force` |
-| `--force-with-lease[=<ref>]` | `--force-with-lease` |
+| `--force-with-lease[=<ref>]` | `--force` + `--force-with-lease`（plan 2582：refspec 形态的 force 携带 force 语义，分支保护必须看到） |
+| refspec `+` 前缀（`+main:main` 等） | 剥离 `+` 并归一出 `--force`；目标分支取 refspec 目标侧（plan 2582：refspec 形态的 force 与裸 flag 同权） |
+| 通配 refspec（含 `*`） | 目标分支记为 `*`，任一保护模式存在时按受保护处理（最严格，plan 2582） |
+| `push` 无 refspec | 目标分支回填为当前分支（`push -u origin` 是合法操作，且不绕过保护分支） |
 | `--hard` / `--mixed` / `--soft` / `--keep` | 各自保留（reset mode 族，互不代换） |
 | `-fd` / `-f -d` / `--force --directories` | `--force` + `--directories` 两个规范 flag |
 | `-D` | `--delete --force`（branch 上下文） |
 | `-d` | branch 上下文 → `--delete`；clean 上下文 → `--directories`（按命令查表） |
 
-归一化发生在策略评估**之前**，策略配置只写规范 flag。
+归一化发生在策略评估**之前**，策略配置只写规范 flag；单一实现点在 `GitRequests`（CLI 与 API 门面共用，别名表不可漂移）。CLI operation 命名与门面归一表一致（`switch`→`checkout`、`worktree <sub>`→`worktree-<sub>`）。
 
 ## 四、review 的实现方式
 
 - **交互式终端**：输出待执行命令、命中规则 ID、风险原因，读取标准输入确认（`yes` 继续，其余视为拒绝）。
-- **无人值守**：检查环境变量 `NOP_GIT_REVIEW_APPROVED=1`（由外部审批流程设置）；或 `review_timeout_seconds`（默认 30s）超时后降级为 deny，错误信息说明 `review timed out, operation denied`。
+- **无人值守**：检查环境变量 `NOP_GIT_REVIEW_APPROVED=1`（由外部审批流程设置）；或 `review_timeout_seconds`（默认 30s）超时后降级为 deny，错误信息说明 `review timed out, operation denied`。plan 2582 加固：env 通道只具**单次请求作用域**（不进入会话级已批准集合），且审计行标注 `reviewSource=env`（交互批准标注 `interactive`），守护进程无法静默自批。
 - **不提供自动批准全部 review 的开关**（vision §四 non-goals）：放宽只能把具体规则显式改为 allow。
 - review 降级策略可配置：`review_unattended: deny`（默认）。
 
 ## 五、observe 模式与审计
 
 - `mode: observe` 时所有操作放行，审计记录额外携带 `hypothetical_effect`（enforce 模式下会是什么裁决）与命中规则 ID。
-- 审计记录（JSON Lines，一行一条）：`timestamp`、`repoPath`、`rawCommand`、`normalizedOperation`、`flags`、`paths`、`remote`、`matchedRuleIds`、`verdict`、`hypotheticalEffect`（仅 observe）、`outcome`（exit code / 成败）。
+- 审计记录（JSON Lines，一行一条）：`timestamp`、`repoPath`、`rawCommand`、`normalizedOperation`、`flags`、`paths`、`remote`、`matchedRuleIds`、`verdict`、`reviewSource`（review 被解决时）、`hypotheticalEffect`（仅 observe）、`outcome`（exit code / 成败）。
 - 用途：策略上线前先 observe 运行一段 AI 工作流，统计实际操作分布，修正过严/遗漏的规则，再切 `enforce`。
 
 ## 六、拦截点

@@ -42,19 +42,26 @@ public class GitIocFactory {
 
     /**
      * Open the repository containing the given working directory with a
-     * policy engine loaded from {@code <workDir>/<policyPath>}.
+     * policy engine loaded from {@code <workDir>/<policyPath>} (plan 2582:
+     * the configured policy path is honored, not silently ignored).
      */
     public IGitRepositoryService openRepository(File workDir) {
         Path root = workDir.toPath().toAbsolutePath().normalize();
         var engine = io.nop.git.policy.DefaultGitPolicyEngine.load(
-                root, new java.io.PrintWriter(System.err, true));
+                root, root.resolve(policyPath),
+                new java.io.PrintWriter(System.err, true));
         return IGitRepositoryService.open(workDir, engine);
     }
 
     /**
-     * Initialize a new repository with the configured default branch.
+     * Initialize a new repository with the configured default branch; the
+     * policy engine honors the configured {@code policyPath} (plan 2582).
      */
     public IGitRepositoryService initRepository(File workDir) {
-        return IGitRepositoryService.init(workDir, defaultBranch);
+        Path root = workDir.toPath().toAbsolutePath().normalize();
+        var engine = io.nop.git.policy.DefaultGitPolicyEngine.load(
+                root, root.resolve(policyPath),
+                new java.io.PrintWriter(System.err, true));
+        return IGitRepositoryService.init(workDir, defaultBranch, engine);
     }
 }

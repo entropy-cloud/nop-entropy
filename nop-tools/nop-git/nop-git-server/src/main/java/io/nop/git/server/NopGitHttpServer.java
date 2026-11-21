@@ -51,8 +51,20 @@ public class NopGitHttpServer {
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
         context.addServlet(new ServletHolder(gitServlet), "/*");
+        // plan 2582: bearer-token access control when a token is configured
+        if (config.token() != null)
+            context.addFilter(new org.eclipse.jetty.ee11.servlet.FilterHolder(
+                    new BearerTokenFilter(config.token())), "/*",
+                    java.util.EnumSet.of(jakarta.servlet.DispatcherType.REQUEST));
 
-        server = new Server(config.port());
+        // plan 2582: loopback binding by default; remote exposure is an
+        // explicit opt-in through bindAllInterfaces
+        server = new Server();
+        org.eclipse.jetty.server.ServerConnector connector =
+                new org.eclipse.jetty.server.ServerConnector(server);
+        connector.setPort(config.port());
+        connector.setHost(config.bindAllInterfaces() ? null : "127.0.0.1");
+        server.addConnector(connector);
         server.setHandler(context);
         try {
             server.start();
@@ -60,6 +72,37 @@ public class NopGitHttpServer {
             throw new NopGitException("cannot start HTTP git server: " + e.getMessage(), e);
         }
         return server.getURI().getPort();
+    }
+
+    /**
+     * Access control (plan 2582): when a token is configured, every request
+     * must carry {@code Authorization: Bearer <token>} (git clients pass it
+     * via {@code -c http.extraHeader=...}); anything else gets 401 before the
+     * smart protocol endpoint is reached.
+     */
+    static class BearerTokenFilter implements jakarta.servlet.Filter {
+
+        private final String token;
+
+        BearerTokenFilter(String token) {
+            this.token = token;
+        }
+
+        @Override
+        public void doFilter(jakarta.servlet.ServletRequest request,
+                             jakarta.servlet.ServletResponse response,
+                             jakarta.servlet.FilterChain chain)
+                throws java.io.IOException, jakarta.servlet.ServletException {
+            String header = ((jakarta.servlet.http.HttpServletRequest) request)
+                    .getHeader("Authorization");
+            if (header == null || !header.equals("Bearer " + token)) {
+                ((jakarta.servlet.http.HttpServletResponse) response)
+                        .sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED,
+                                "authentication required");
+                return;
+            }
+            chain.doFilter(request, response);
+        }
     }
 
     public void stop() {

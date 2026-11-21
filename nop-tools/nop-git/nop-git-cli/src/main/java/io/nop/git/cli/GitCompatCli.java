@@ -39,6 +39,22 @@ public final class GitCompatCli {
     }
 
     /**
+     * CLI operation names are normalized to the facade operation table
+     * (plan 2582: alias drift let policy rules be bypassed — {@code switch}
+     * must evaluate as {@code checkout}, {@code worktree remove} as
+     * {@code worktree-remove}, ...). The sub-command of grouped commands is
+     * part of the operation name, not a path.
+     */
+    static String canonicalOperation(String command, List<String> args) {
+        return switch (command) {
+            case "switch" -> "checkout";
+            case "worktree" -> args.isEmpty() ? "worktree"
+                    : "worktree-" + args.get(0);
+            default -> command;
+        };
+    }
+
+    /**
      * CLI-level policy guard: deny audits and exits 1 with the native-style
      * fatal line; review resolves through the engine (env/interactive/timeout)
      * and exits 1 when not approved. Allow/approved passes through — the
@@ -46,13 +62,24 @@ public final class GitCompatCli {
      */
     private static int policyGuard(CliContext ctx, io.nop.git.policy.IGitPolicyEngine engine,
                                    String command, List<String> args) {
-        var builder = io.nop.git.policy.GitRequests.builder(command,
+        String operation = canonicalOperation(command, args);
+        var builder = io.nop.git.policy.GitRequests.builder(operation,
                 io.nop.git.policy.GitRequests.canonicalPath(ctx.workDir()), command + " " + String.join(" ", args));
-        for (String arg : args) {
-            if (arg.startsWith("--")) {
+        boolean firstPositional = true;
+        for (int i = 0; i < args.size(); i++) {
+            String arg = args.get(i);
+            if ("worktree".equals(command) && i == 0)
+                continue; // sub-command: already folded into the operation name
+            if (arg.startsWith("-")) {
                 builder.flag(arg);
-            } else if (arg.startsWith("-")) {
-                builder.flag(arg);
+            } else if ("push".equals(operation) && firstPositional) {
+                // "git push <remote> <refspec>": the first positional is the
+                // remote, the rest are refspecs with force normalization
+                // (plan 2582: a bare refspec must not fall into path rules)
+                builder.remote(arg, null);
+                firstPositional = false;
+            } else if ("push".equals(operation)) {
+                builder.refspec(arg);
             } else {
                 builder.path(arg);
             }

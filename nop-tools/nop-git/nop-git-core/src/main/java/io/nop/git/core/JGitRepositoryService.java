@@ -674,10 +674,15 @@ public final class JGitRepositoryService implements IGitRepositoryService {
         var builder = GitRequests.builder("push", repoPath(),
                 "push " + remote + " " + (refspec == null ? "" : refspec));
         builder.remote(remote, repository.getConfig().getString("remote", remote, "url"));
-        if (refspec != null && refspec.contains(":")) {
-            builder.targetBranch(refspec.split(":")[1]);
-        } else if (refspec != null && !refspec.isEmpty()) {
-            builder.targetBranch(refspec);
+        if (refspec != null && !refspec.isEmpty()) {
+            // force-semantic normalization single point (plan 2582): the
+            // refspec path handles "+", wildcards and refs/heads/ prefixes
+            builder.refspec(refspec);
+        } else {
+            // no refspec ("push -u origin"): native pushes the current
+            // branch, so the guard evaluates against it (plan 2582: legal
+            // operation, must not bypass the protected-branch guard)
+            builder.targetBranch(Wave4Ops.currentBranchOrNull(repository));
         }
         guarded(builder.build(), () -> {
             Wave4Ops.push(repository, remote, refspec, setUpstream);

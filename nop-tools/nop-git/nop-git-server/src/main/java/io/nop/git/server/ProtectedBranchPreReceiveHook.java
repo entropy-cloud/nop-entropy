@@ -39,26 +39,53 @@ public class ProtectedBranchPreReceiveHook implements PreReceiveHook {
     public void onPreReceive(ReceivePack receivePack, Collection<ReceiveCommand> commands) {
         for (ReceiveCommand command : commands) {
             String ref = command.getRefName();
-            if (!ref.startsWith(Constants.R_HEADS))
-                continue;
-            String branch = ref.substring(Constants.R_HEADS.length());
-            if (!isProtected(branch))
-                continue;
-            switch (command.getType()) {
-                case DELETE -> reject(command, "deletion of protected branch '" + branch
-                        + "' is not allowed");
-                case UPDATE_NONFASTFORWARD -> reject(command, "force push to protected branch '"
-                        + branch + "' is not allowed");
-                case UPDATE -> {
-                    // allow fast-forward updates only when the branch is new;
-                    // direct pushes to existing protected branches are denied
-                    if (branchHasCommits(receivePack.getRepository(), ref)) {
-                        reject(command, "direct push to protected branch '" + branch
-                                + "' is not allowed");
-                    }
+            if (ref.startsWith(Constants.R_HEADS)) {
+                guardBranch(receivePack, command, ref,
+                        ref.substring(Constants.R_HEADS.length()));
+            } else if (ref.startsWith(Constants.R_TAGS)) {
+                // plan 2582: non-heads refs are protected too (delete tags etc.)
+                guardTag(command, ref, ref.substring(Constants.R_TAGS.length()));
+            }
+            // other namespaces (refs/notes, custom refs) stay unregulated
+        }
+    }
+
+    private void guardBranch(ReceivePack receivePack, ReceiveCommand command,
+                             String ref, String branch) {
+        if (!isProtected(branch))
+            return;
+        switch (command.getType()) {
+            case DELETE -> reject(command, "deletion of protected branch '" + branch
+                    + "' is not allowed");
+            case UPDATE_NONFASTFORWARD -> reject(command, "force push to protected branch '"
+                    + branch + "' is not allowed");
+            case UPDATE -> {
+                // allow fast-forward updates only when the branch is new;
+                // direct pushes to existing protected branches are denied
+                if (branchHasCommits(receivePack.getRepository(), ref)) {
+                    reject(command, "direct push to protected branch '" + branch
+                            + "' is not allowed");
                 }
-                default -> {
-                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    /**
+     * Plan 2582: protected tag names reject deletion outright; a forced
+     * (non-fast-forward) rewrite of an existing protected tag is rejected as
+     * well. Creation and fast-forward updates pass.
+     */
+    private void guardTag(ReceiveCommand command, String ref, String tag) {
+        if (!isProtected(tag))
+            return;
+        switch (command.getType()) {
+            case DELETE -> reject(command, "deletion of protected tag '" + tag
+                    + "' is not allowed");
+            case UPDATE_NONFASTFORWARD -> reject(command, "rewrite of protected tag '"
+                    + tag + "' is not allowed");
+            default -> {
             }
         }
     }

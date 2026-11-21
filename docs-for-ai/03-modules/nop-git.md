@@ -40,9 +40,9 @@ try (IGitRepositoryService svc = IGitRepositoryService.open(workDir, policyEngin
 ## 四、策略配置
 
 - 位置：`<repo>/.nop-git/policy.yaml` → `~/.nop-git/policy.yaml` → 内置默认；两层都缺省时引擎**非激活**（零拦截零审计）。
-- 语义（design 03）：五维（操作/选项/分支/路径/远程）+ scopes；deny 优先；`observe` 只记录（审计带 hypotheticalEffect）/`enforce` 真实拦截；review 三通道（`NOP_GIT_REVIEW_APPROVED=1`/交互确认/超时降级 deny，prompt 走 stderr）。
+- 语义（design 03）：五维（操作/选项/分支/路径/远程）+ scopes；deny 优先；`observe` 只记录（审计带 hypotheticalEffect）/`enforce` 真实拦截；review 三通道（`NOP_GIT_REVIEW_APPROVED=1`/交互确认/超时降级 deny，prompt 走 stderr）。env 通道为单次请求作用域，审计行标注 `reviewSource=env`/`interactive`。
 - 审计：`.nop-git/audit.log`（JSON Lines，单行含 outcome）。
-- 选项归一化在评估前（`-f`→`--force` 等，`-d` 按命令定表）。
+- 选项归一化在评估前（`-f`→`--force` 等，`-d` 按命令定表）；force 语义归一单点在 `GitRequests`（plan 2582）：refspec `+` 前缀、`--force-with-lease[=ref]` 均归一出 `--force`；通配 refspec 目标记 `*` 按受保护处理；`push` 无 refspec 回填当前分支（`push -u origin` 合法）。CLI operation 与门面归一表一致（`switch`→`checkout`、`worktree <sub>`→`worktree-<sub>`）。
 
 ## 五、HTTP 服务（可选）
 
@@ -50,10 +50,11 @@ try (IGitRepositoryService svc = IGitRepositoryService.open(workDir, policyEngin
 NopGitHttpServer server = new NopGitHttpServer(GitServerConfig.of(0, repoRoot));
 int port = server.start();
 // http://127.0.0.1:<port>/<name>.git 智能协议端点；push 已启用（ReceivePackFactory）
-// 服务端分支保护：ProtectedBranchPreReceiveHook（main/master/release/* 直推/force/删除拒绝）
+// 服务端分支保护：ProtectedBranchPreReceiveHook（main/master/release/* 直推/force/删除拒绝，
+// refs/tags 受保护名的删除/改写同样拒绝）
 ```
 
-浏览器 GET 返回 404 属正常（只服务智能协议）。
+浏览器 GET 返回 404 属正常（只服务智能协议）。默认只绑定 loopback；`GitServerConfig.of(port, root, token)` 启用 bearer token 访问控制（请求须带 `Authorization: Bearer <token>`，git 客户端用 `-c http.extraHeader=...`），全网卡绑定需显式 `bindAllInterfaces=true`（plan 2582）。`Main` 入口：`nop-git-server <port> <repoRoot> [--bind-all] [--token <value>]`，端口解析错误输出 `fatal:` 行退出 128。`nop-git-ioc` 的 `policyPath` 配置生效（custom 项目层策略文件，用户层仍在链上）。
 
 ## 六、IoC 集成
 

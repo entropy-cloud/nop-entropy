@@ -241,11 +241,13 @@ final class Wave4Ops {
                     cmd = cmd.add(refspec);
             }
             if (setUpstream) {
+                // plan 2582: no refspec means the current branch ("push -u
+                // origin" is a legal operation, never an NPE)
                 String branch = refspec == null || refspec.isEmpty()
                         ? currentBranch(repository) : refspec.split(":")[0];
                 // upstream mapping recorded below (JGit PushCommand has no setSetUpstream)
                 // remember upstream mapping for pull convenience
-                if (!refspec.contains(":")) {
+                if (refspec == null || refspec.isEmpty() || !refspec.contains(":")) {
                     repository.getConfig().setString("branch", branch, "remote", remote);
                     repository.getConfig().setString("branch", branch, "merge",
                             "refs/heads/" + branch);
@@ -396,7 +398,7 @@ final class Wave4Ops {
         }
     }
 
-    private static String currentBranchOrNull(Repository repository) {
+    static String currentBranchOrNull(Repository repository) {
         try {
             return repository.getBranch();
         } catch (IOException e) {

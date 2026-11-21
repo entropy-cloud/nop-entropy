@@ -125,4 +125,102 @@ class CliPolicyTest {
         assertEquals(1, exit);
         assertTrue(err.toString(StandardCharsets.UTF_8).contains("policy denied"));
     }
+
+    // ------------------------------------------------------------------
+    // plan 2582: bypass-path regression nails (deny asserted per path)
+    // ------------------------------------------------------------------
+
+    private static final String PROTECTED_PUSH_POLICY = """
+            mode: enforce
+            default_effect: deny
+            operations:
+              allow: [status, diff, log, branch, rev-parse, config, add, commit, push, fetch]
+            option_rules:
+              - operation: push
+                deny_flags: ["--force", "--force-with-lease", "--mirror", "--delete"]
+            protected_branches:
+              patterns: ["main", "master", "release/*"]
+              rules:
+                allow_direct_push: false
+                allow_force_push: false
+                allow_delete: false
+            audit_log: ".nop-git/audit.log"
+            review_timeout_seconds: 0
+            """;
+
+    @Test
+    void cliRefspecPlusPrefixIsDenied() throws Exception {
+        Path repo = repoWithPolicy(PROTECTED_PUSH_POLICY);
+        int exit = run(repo, "push", "origin", "+master:master");
+        assertEquals(1, exit);
+        assertTrue(err.toString(StandardCharsets.UTF_8).contains("policy denied"),
+                err.toString(StandardCharsets.UTF_8));
+        String audit = Files.readString(repo.resolve(".nop-git/audit.log"));
+        assertTrue(audit.contains("\"outcome\":\"denied\""));
+        assertTrue(audit.contains("--force"), "refspec + must surface as --force in audit");
+    }
+
+    @Test
+    void cliForceWithLeaseOnProtectedBranchIsDenied() throws Exception {
+        Path repo = repoWithPolicy(PROTECTED_PUSH_POLICY);
+        int exit = run(repo, "push", "--force-with-lease", "origin", "master");
+        assertEquals(1, exit);
+        assertTrue(err.toString(StandardCharsets.UTF_8).contains("policy denied"));
+    }
+
+    @Test
+    void cliMissingRefspecIsDeniedOnProtectedCurrentBranch() throws Exception {
+        Path repo = repoWithPolicy(PROTECTED_PUSH_POLICY);
+        // current branch master (protected), "push origin" without refspec
+        int exit = run(repo, "push", "origin");
+        assertEquals(1, exit);
+        assertTrue(err.toString(StandardCharsets.UTF_8).contains("policy denied"),
+                err.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void cliWildcardRefspecIsDenied() throws Exception {
+        Path repo = repoWithPolicy(PROTECTED_PUSH_POLICY);
+        int exit = run(repo, "push", "origin", "refs/heads/*:refs/heads/*");
+        assertEquals(1, exit);
+        assertTrue(err.toString(StandardCharsets.UTF_8).contains("policy denied"));
+    }
+
+    @Test
+    void cliSwitchAliasNormalizesToCheckoutOperation() throws Exception {
+        Path repo = repoWithPolicy("""
+                mode: enforce
+                default_effect: deny
+                operations:
+                  allow: [status, diff, log, branch, rev-parse, config, add, commit]
+                  deny: [checkout]
+                audit_log: ".nop-git/audit.log"
+                review_timeout_seconds: 0
+                """);
+        IGitRepositorySmokeHelper.initRepo(repo);
+        // 'switch' used to bypass a checkout deny through operation-name drift
+        int exit = run(repo, "switch", "master");
+        assertEquals(1, exit);
+        assertTrue(err.toString(StandardCharsets.UTF_8).contains("policy denied"),
+                err.toString(StandardCharsets.UTF_8));
+        String audit = Files.readString(repo.resolve(".nop-git/audit.log"));
+        assertTrue(audit.contains("\"normalizedOperation\":\"checkout\""));
+    }
+
+    @Test
+    void cliWorktreeSubcommandNormalizesOperationName() throws Exception {
+        Path repo = repoWithPolicy("""
+                mode: enforce
+                default_effect: deny
+                operations:
+                  allow: [status, diff, log, branch, rev-parse, config, add, commit, worktree-list]
+                audit_log: ".nop-git/audit.log"
+                review_timeout_seconds: 0
+                """);
+        IGitRepositorySmokeHelper.initRepo(repo);
+        // default_effect deny: raw 'worktree list' as operation would be denied;
+        // normalized worktree-list is allowed
+        int exit = run(repo, "worktree", "list");
+        assertEquals(0, exit, err.toString(StandardCharsets.UTF_8));
+    }
 }

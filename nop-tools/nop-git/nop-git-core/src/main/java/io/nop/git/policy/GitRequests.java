@@ -58,6 +58,39 @@ public final class GitRequests {
         }
 
         /**
+         * Add a push refspec with force-semantic normalization (plan 2582):
+         * a leading {@code +} is the force flag in refspec form, so it
+         * contributes the canonical {@code --force} flag to the request — the
+         * single normalization point shared by the CLI guard and the facade.
+         * Wildcard refspecs ({@code *}) are handled at the strictest level:
+         * the target is recorded as {@code *} and the engine treats every
+         * pattern as protected. The recorded target branch is the refspec
+         * destination (or source for pure deletions), with the
+         * {@code refs/heads/} prefix stripped.
+         */
+        public Builder refspec(String raw) {
+            if (raw == null || raw.isEmpty())
+                return this;
+            String spec = raw;
+            if (spec.startsWith("+")) {
+                spec = spec.substring(1);
+                flags.addAll(normalizeFlag(operation, "--force"));
+            }
+            if (spec.contains("*")) {
+                targetBranch = "*";
+                return this;
+            }
+            int colon = spec.indexOf(':');
+            String src = colon < 0 ? spec : spec.substring(0, colon);
+            String dst = colon < 0 ? null : spec.substring(colon + 1);
+            String branch = dst == null || dst.isEmpty() ? src : dst;
+            if (branch.startsWith("refs/heads/"))
+                branch = branch.substring("refs/heads/".length());
+            targetBranch = branch;
+            return this;
+        }
+
+        /**
          * Add a user-supplied path; canonicalized (absolute + normalized,
          * relative forms resolved against the repository root) and stored
          * repo-relative so path-rule globs match the rule author's view.
@@ -175,9 +208,11 @@ public final class GitRequests {
             return result;
         }
 
-        // --force-with-lease[=<ref>] folds to the bare form
+        // --force-with-lease[=<ref>] carries force semantics (plan 2582): it
+        // normalizes to the force flag (branch-level protection sees it) while
+        // the lease form itself stays in the flags for option rules
         if (raw.startsWith("--force-with-lease")) {
-            return List.of("--force-with-lease");
+            return List.of("--force", "--force-with-lease");
         }
 
         return switch (raw) {

@@ -78,4 +78,32 @@ class TestGitIocBeans {
         assertTrue(Files.exists(dir.resolve(".git")));
         assertNotNull(dir.resolve(".git"));
     }
+
+    @Test
+    void customPolicyPathIsHonored(@TempDir Path dir) throws Exception {
+        // plan 2582: the configured policyPath must drive the guard. The
+        // standard .nop-git/policy.yaml allows everything; the custom file
+        // denies add — only a custom-path load can deny.
+        Files.createDirectories(dir.resolve("config"));
+        Files.writeString(dir.resolve("config/policy.yaml"),
+                "mode: enforce\noperations:\n  deny: [add]\naudit_log: audit.log\n");
+        GitIocFactory factory = (GitIocFactory) container.getBean("gitIocFactory");
+        factory.setPolicyPath("config/policy.yaml");
+        IGitRepositoryService svc = factory.initRepository(dir.toFile());
+        try {
+            Files.writeString(dir.resolve("f.txt"), "x\n");
+            Throwable thrown = null;
+            try {
+                svc.add(".");
+            } catch (RuntimeException e) {
+                thrown = e;
+            }
+            assertTrue(thrown != null && thrown.getMessage().contains("policy denied"),
+                    "custom policy path must be honored, got: " + thrown);
+            assertTrue(Files.exists(dir.resolve("audit.log")),
+                    "custom policy audit path applies");
+        } finally {
+            svc.close();
+        }
+    }
 }

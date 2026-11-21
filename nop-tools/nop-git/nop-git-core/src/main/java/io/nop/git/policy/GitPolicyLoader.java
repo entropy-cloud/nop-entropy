@@ -36,14 +36,23 @@ public final class GitPolicyLoader {
      * touch the developer's real ~/.nop-git).
      */
     public static List<GitPolicyConfig> loadLayers(Path projectRoot, Path userFile) {
+        return loadLayers(projectRoot, userFile,
+                projectRoot == null ? null
+                        : projectRoot.resolve(".nop-git").resolve("policy.yaml"));
+    }
+
+    /**
+     * Layer loading with explicit project-layer file (plan 2582: custom
+     * policy paths, e.g. the nop-git-ioc {@code policyPath} configuration,
+     * must be honored, not silently ignored).
+     */
+    public static List<GitPolicyConfig> loadLayers(Path projectRoot, Path userFile,
+                                                   Path projectFile) {
         List<GitPolicyConfig> layers = new ArrayList<>();
         if (Files.isRegularFile(userFile))
             layers.add(load(userFile));
-        if (projectRoot != null) {
-            Path projectFile = projectRoot.resolve(".nop-git").resolve("policy.yaml");
-            if (Files.isRegularFile(projectFile))
-                layers.add(load(projectFile));
-        }
+        if (projectFile != null && Files.isRegularFile(projectFile))
+            layers.add(load(projectFile));
         return layers;
     }
 
