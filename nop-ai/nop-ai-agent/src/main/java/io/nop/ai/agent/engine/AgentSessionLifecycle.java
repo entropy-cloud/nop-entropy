@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -74,12 +75,28 @@ public class AgentSessionLifecycle {
             new java.util.concurrent.ConcurrentHashMap<>();
     /**
      * 裁定② 终态语义适配: retained terminal statuses of evicted sessions
-     * (enum only). Bounds = number of terminal sessions since process start —
-     * O(1) tiny entries; unbounded growth is accepted at the same order as
-     * audit counters (CL-IND-01 retention family owns durable retention).
+     * (enum only). Plan 2584 Phase 2 (audit Minor): LRU-bounded at
+     * {@link #TERMINAL_STATUSES_MAX} entries (insertion-order LinkedHashMap);
+     * when full, the OLDEST terminal status is evicted with an INFO — the
+     * degraded semantics is "very old evicted sessions report null terminal
+     * status" (an observability downgrade only; the durable record lives in
+     * the session store / CL-IND-01 retention family).
      */
-    private final java.util.concurrent.ConcurrentHashMap<String, AgentExecStatus> terminalStatuses =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    static final int TERMINAL_STATUSES_MAX = 8192;
+    private final Map<String, AgentExecStatus> terminalStatuses =
+            Collections.synchronizedMap(new LinkedHashMap<>(64, 0.75f, false) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, AgentExecStatus> eldest) {
+                    if (size() > TERMINAL_STATUSES_MAX) {
+                        LOG.info("nop.ai.agent.terminal-status-cache-evict: LRU cap {} reached — "
+                                        + "evicted OLDEST terminal status (sessionId={}); "
+                                        + "getEvictedTerminalStatus degrades to null for it",
+                                TERMINAL_STATUSES_MAX, eldest.getKey());
+                        return true;
+                    }
+                    return false;
+                }
+            });
 
     /** Plan 2519 (裁定①): wire the shared injection-target registry (engine-owned map). */
     public void setInjectionTargetRegistry(

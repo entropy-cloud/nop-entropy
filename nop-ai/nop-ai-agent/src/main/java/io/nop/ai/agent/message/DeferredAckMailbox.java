@@ -89,6 +89,19 @@ public final class DeferredAckMailbox implements IMailbox {
      */
     private final Map<String, Long> keysByCorrelationId = new HashMap<>();
 
+    /**
+     * Plan 2584 Phase 2 (audit Minor): deliveryIds removed by the stale
+     * in-flight sweep, so a late {@code ack}/{@code nack} on a swept id is
+     * observably distinguishable from an unknown id (bounded FIFO, guarded by
+     * {@link #lock}).
+     */
+    private final java.util.ArrayDeque<Long> sweptDeliveryIds = new java.util.ArrayDeque<>();
+    /** Plan 2584 Phase 2: count of late ack/nack attempts on swept deliveryIds. */
+    private final AtomicLong sweptAckNackCount = new AtomicLong();
+
+    /** Bound on the swept-deliveryId recall window (diagnostic only). */
+    static final int SWEPT_IDS_RECALL_CAPACITY = 256;
+
     private final Object lock = new Object();
 
     /**
@@ -184,6 +197,13 @@ public final class DeferredAckMailbox implements IMailbox {
         synchronized (lock) {
             MailboxEntry entry = inFlight.remove(deliveryId);
             if (entry == null) {
+                // Plan 2584 Phase 2: a miss on an id the stale sweep already
+                // replayed/dead-lettered is WARNed + counted, not silent
+                if (wasSwept(deliveryId)) {
+                    sweptAckNackCount.incrementAndGet();
+                    LOG.warn("DeferredAckMailbox: ack on deliveryId={} ignored — the entry was "
+                            + "already replayed by the stale in-flight sweep", deliveryId);
+                }
                 return false;
             }
             // Entry is permanently removed (ACKED). No need to retain it.
@@ -204,6 +224,12 @@ public final class DeferredAckMailbox implements IMailbox {
             sweepStaleInFlight(CoreMetrics.currentTimeMillis());
             MailboxEntry entry = inFlight.remove(deliveryId);
             if (entry == null) {
+                // Plan 2584 Phase 2: swept-id nack is WARNed + counted, not silent
+                if (wasSwept(deliveryId)) {
+                    sweptAckNackCount.incrementAndGet();
+                    LOG.warn("DeferredAckMailbox: nack on deliveryId={} ignored — the entry was "
+                            + "already replayed by the stale in-flight sweep", deliveryId);
+                }
                 return false;
             }
             if (requeue) {
@@ -351,6 +377,12 @@ public final class DeferredAckMailbox implements IMailbox {
         }
         for (MailboxEntry e : stale) {
             inFlight.remove(e.getDeliveryId());
+            // Plan 2584 Phase 2: remember the swept id (bounded FIFO) so a late
+            // ack/nack on it is observably WARNed + counted instead of silent
+            sweptDeliveryIds.addLast(e.getDeliveryId());
+            while (sweptDeliveryIds.size() > SWEPT_IDS_RECALL_CAPACITY) {
+                sweptDeliveryIds.pollFirst();
+            }
             String key = e.getEnvelope().getCorrelationId();
             if (e.getDeliveryCount() >= maxDeliveryAttempts) {
                 MailboxEntry dead = new MailboxEntry(
@@ -434,5 +466,19 @@ public final class DeferredAckMailbox implements IMailbox {
      */
     public int getDeadLetterCapacity() {
         return deadLetterCapacity;
+    }
+
+    /** Must hold {@link #lock}. */
+    private boolean wasSwept(long deliveryId) {
+        return sweptDeliveryIds.contains(deliveryId);
+    }
+
+    /**
+     * Plan 2584 Phase 2 (audit Minor): test/observability accessor — number of
+     * late ack/nack attempts that landed on a deliveryId already replayed by
+     * the stale in-flight sweep.
+     */
+    public long getSweptAckNackCount() {
+        return sweptAckNackCount.get();
     }
 }

@@ -142,12 +142,32 @@ final class BoundedStreamPublisher<T> implements Flow.Publisher<T>, Flow.Subscri
         try {
             executor.execute(this::drainTask);
         } catch (Throwable e) {
-            // 提交失败：复位守卫，保留缓冲由后续 offer/request/close 重试
+            // Plan 2584 Phase 2 (audit Minor): 提交失败不再静默——复位守卫后
+            // 首次失败 WARN（缓冲保留，后续 offer/request/close 重试）；持续
+            // 失败说明 executor 已不可用，closeExceptionally fail-loud，下游
+            // onError 显式终止，而不是无限悬挂在缓冲上。
+            boolean failLoud;
             synchronized (this) {
                 delivering = false;
+                submissionFailures++;
+                failLoud = submissionFailures >= 2;
+            }
+            if (failLoud) {
+                closeExceptionally(new IllegalStateException(
+                        "BoundedStreamPublisher: executor repeatedly rejected delivery tasks"
+                                + " — failing the stream loudly", e));
+            } else {
+                LOG.warn("BoundedStreamPublisher: executor rejected the delivery task"
+                        + " (buffer retained for retry; sustained rejection fails the stream)", e);
             }
         }
     }
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(BoundedStreamPublisher.class);
+
+    /** 连续 executor 提交失败计数（guard by this；成功投递后不复位——持续失败即 fail-loud）。 */
+    private int submissionFailures;
 
     /** 投递任务（executor 线程）：持锁取快照 → 出锁投递 → 循环补取（与 flow drain 同型）。 */
     private void drainTask() {
@@ -229,6 +249,20 @@ final class BoundedStreamPublisher<T> implements Flow.Publisher<T>, Flow.Subscri
             cancelled = true;
             buffer.clear();
             // 终态不再交付（Flow 规范：取消后 publisher 停止发送）
+        }
+    }
+
+    /** Package-private test/inspection seam (plan 2584): terminal-error state. */
+    boolean isTerminated() {
+        synchronized (this) {
+            return terminated;
+        }
+    }
+
+    /** Package-private test/inspection seam (plan 2584): the terminal error, if any. */
+    Throwable terminalError() {
+        synchronized (this) {
+            return error;
         }
     }
 

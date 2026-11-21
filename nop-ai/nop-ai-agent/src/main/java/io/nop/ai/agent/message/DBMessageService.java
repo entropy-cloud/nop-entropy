@@ -24,6 +24,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -688,6 +689,13 @@ public class DBMessageService implements IMessageService, AutoCloseable {
      * so consume/release writes are conditioned on it — a stale (old-generation)
      * consumer write is rejected instead of clobbering the newer claim.
      *
+     * <p>Plan 2584 Phase 1 (audit nop-ai Major 2): the generation is now read
+     * on the SAME connection inside the SAME transaction as the claim UPDATE
+     * (zero-dialect-dependency; no RETURNING/OUTPUT). Pre-fix the UPDATE and
+     * the gen SELECT ran on two independent auto-commit connections — a stale
+     * sweep + re-claim interleaving between them made the first consumer's
+     * delivery task carry the SECOND claim's generation (fencing mispair).
+     *
      * @return the new claim generation, or -1 if the message was claimed by
      *         another consumer in the meantime
      */
@@ -705,34 +713,56 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
         }
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, AiAgentMessageTable.STATUS_CLAIMED);
-            ps.setString(2, consumerId);
-            ps.setTimestamp(3, CoreMetrics.currentTimestamp());
-            ps.setString(4, sid);
-            ps.setInt(5, AiAgentMessageTable.STATUS_PENDING);
-            if (tenant != null) {
-                ps.setString(6, tenant);
-            }
-            if (ps.executeUpdate() <= 0) {
-                return -1;
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                long claimed;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, AiAgentMessageTable.STATUS_CLAIMED);
+                    ps.setString(2, consumerId);
+                    ps.setTimestamp(3, CoreMetrics.currentTimestamp());
+                    ps.setString(4, sid);
+                    ps.setInt(5, AiAgentMessageTable.STATUS_PENDING);
+                    if (tenant != null) {
+                        ps.setString(6, tenant);
+                    }
+                    claimed = ps.executeUpdate() > 0 ? 1L : -1L;
+                }
+                if (claimed < 0) {
+                    conn.commit();
+                    return -1;
+                }
+                long gen = readClaimGeneration(conn, sid, tenant);
+                conn.commit();
+                return gen;
+            } catch (SQLException e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    LOG.error("nop.ai.agent.message.db-claim-rollback-error:sid={}", sid, rollbackEx);
+                }
+                throw e;
+            } finally {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException resetEx) {
+                    LOG.debug("nop.ai.agent.message.db-claim-autocommit-reset-failed", resetEx);
+                }
             }
         } catch (SQLException e) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to claim message " + sid);
         }
-        return readClaimGeneration(sid, tenant);
     }
 
-    private long readClaimGeneration(String sid, String tenant) {
+    /** Read CLAIM_GEN on the caller's (claim-transaction) connection. Must hold the claim tx. */
+    private long readClaimGeneration(Connection conn, String sid, String tenant) throws SQLException {
         String sql = "SELECT " + AiAgentMessageTable.COL_CLAIM_GEN
                 + " FROM " + AiAgentMessageTable.TABLE_NAME
                 + " WHERE " + AiAgentMessageTable.COL_SID + " = ?";
         if (tenant != null) {
             sql += TenantSql.whereTenant(AiAgentMessageTable.COL_TENANT_ID);
         }
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, sid);
             if (tenant != null) {
                 ps.setString(2, tenant);
@@ -740,8 +770,6 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getLong(1) : -1L;
             }
-        } catch (SQLException e) {
-            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "DBMessageService: failed to read claim generation for message " + sid);
         }
     }
 
@@ -915,35 +943,76 @@ public class DBMessageService implements IMessageService, AutoCloseable {
         insertSql += ")";
 
         try (Connection conn = dataSource.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                ps.setString(1, row.sid);
-                ps.setString(2, row.topic != null ? row.topic : "unknown");
-                ps.setString(3, row.messageBody);
-                ps.setString(4, truncateReason(effectiveReason));
-                ps.setInt(5, row.deliveryAttempts);
-                ps.setTimestamp(6, CoreMetrics.currentTimestamp());
-                if (tenant != null) {
-                    ps.setString(7, tenant);
+            // Plan 2584 Phase 1 (audit nop-ai Major 1): the DLQ INSERT and the
+            // main-table UPDATE now commit as ONE transaction on a single
+            // connection. Pre-fix they auto-committed independently — an INSERT
+            // success followed by an UPDATE failure left the poison message
+            // PENDING forever, and every poll retried the DLQ INSERT against
+            // the DLQ primary key, so the redelivery cap never took effect.
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                    ps.setString(1, row.sid);
+                    ps.setString(2, row.topic != null ? row.topic : "unknown");
+                    ps.setString(3, row.messageBody);
+                    ps.setString(4, truncateReason(effectiveReason));
+                    ps.setInt(5, row.deliveryAttempts);
+                    ps.setTimestamp(6, CoreMetrics.currentTimestamp());
+                    if (tenant != null) {
+                        ps.setString(7, tenant);
+                    }
+                    ps.executeUpdate();
+                } catch (SQLIntegrityConstraintViolationException dupKey) {
+                    // Idempotent dead-lettering: the DLQ row already exists
+                    // (a dead-letter run that crashed between the legacy
+                    // INSERT and UPDATE, or a concurrent racer). The message
+                    // IS dead-lettered — proceed to advance the main-row
+                    // status instead of retrying forever against the PK.
+                    LOG.warn("nop.ai.message.dlq-duplicate:sid={}, attempts={}, consumerId={}"
+                                    + " — DLQ row already present, advancing main-row status only",
+                            row.sid, row.deliveryAttempts, consumerId);
                 }
-                ps.executeUpdate();
-            }
-            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                ps.setInt(1, AiAgentMessageTable.STATUS_DEAD_LETTER);
-                ps.setString(2, row.sid);
-                if (tenant != null) {
-                    ps.setString(3, tenant);
+                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                    ps.setInt(1, AiAgentMessageTable.STATUS_DEAD_LETTER);
+                    ps.setString(2, row.sid);
+                    if (tenant != null) {
+                        ps.setString(3, tenant);
+                    }
+                    ps.executeUpdate();
                 }
-                ps.executeUpdate();
+                conn.commit();
+                dlqDropCount.incrementAndGet();
+                LOG.warn("nop.ai.message.dlq-drop:sid={}, attempts={}, reason={}, consumerId={}",
+                        row.sid, row.deliveryAttempts, effectiveReason, consumerId);
+            } catch (SQLException e) {
+                // Single-transaction rollback: no partial DLQ/main-table split
+                // state. The message stays PENDING so the normal redelivery
+                // path (and the cap re-check) retries dead-lettering — never
+                // silently lost.
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    LOG.error("nop.ai.agent.message.db-dlq-rollback-error:sid={}", row.sid, rollbackEx);
+                }
+                LOG.error("nop.ai.agent.message.db-dlq-error:sid={}", row.sid, e);
+            } finally {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException resetEx) {
+                    LOG.debug("nop.ai.agent.message.db-dlq-autocommit-reset-failed", resetEx);
+                }
             }
-            dlqDropCount.incrementAndGet();
-            LOG.warn("nop.ai.message.dlq-drop:sid={}, attempts={}, reason={}, consumerId={}",
-                    row.sid, row.deliveryAttempts, effectiveReason, consumerId);
         } catch (SQLException e) {
-            // DLQ insert failed: leave the message PENDING so the normal
-            // redelivery path (and the cap re-check) retries dead-lettering —
-            // never silently lost.
+            // Connection acquisition failed: leave the message PENDING so the
+            // normal redelivery path (and the cap re-check) retries — never
+            // silently lost.
             LOG.error("nop.ai.agent.message.db-dlq-error:sid={}", row.sid, e);
         }
+    }
+
+    /** Test hook (plan 2584 Phase 1 regression pins): invoke deadLetter directly. */
+    void deadLetterForTest(String sid, String topic, int deliveryAttempts, String reason) {
+        deadLetter(new MessageRow(sid, topic, "{\"payload\":\"test\"}", deliveryAttempts), reason);
     }
 
     private static String truncateReason(String reason) {

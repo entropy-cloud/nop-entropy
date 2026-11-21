@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_STATE;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.api.secure.SecureDefault;
@@ -111,8 +112,10 @@ public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
     }
 
     public void setResumeMaxAttempts(int resumeMaxAttempts) {
+        // Plan 2584 Phase 2 (audit nop-ai Minor): typed error, no bare IAE
         if (resumeMaxAttempts <= 0) {
-            throw new IllegalArgumentException("resumeMaxAttempts must be positive, got: " + resumeMaxAttempts);
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "DefaultOrphanRecoveryHandler: resumeMaxAttempts must be positive, got: " + resumeMaxAttempts);
         }
         this.resumeMaxAttempts = resumeMaxAttempts;
     }
@@ -123,7 +126,8 @@ public class DefaultOrphanRecoveryHandler implements IOrphanRecoveryHandler {
 
     public void setResumeBackoffBaseMs(long resumeBackoffBaseMs) {
         if (resumeBackoffBaseMs < 0) {
-            throw new IllegalArgumentException("resumeBackoffBaseMs must be >= 0, got: " + resumeBackoffBaseMs);
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "DefaultOrphanRecoveryHandler: resumeBackoffBaseMs must be >= 0, got: " + resumeBackoffBaseMs);
         }
         this.resumeBackoffBaseMs = resumeBackoffBaseMs;
     }

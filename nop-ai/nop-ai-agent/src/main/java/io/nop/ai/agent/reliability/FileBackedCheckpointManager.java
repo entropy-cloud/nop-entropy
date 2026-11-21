@@ -288,10 +288,14 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
      */
     @Override
     public void purgeTerminal(String sessionId) {
-        remove(sessionId);
+        // Plan 2584 Phase 2 (audit Minor): null check BEFORE any use — the
+        // pre-fix order (remove() first, null check after) still reached
+        // sessionDirPath(null) on the null path, which throws instead of
+        // being the documented no-op.
         if (sessionId == null) {
             return;
         }
+        remove(sessionId);
         Path journalFile = sessionDirPath(sessionId).resolve(JOURNAL_FILE_NAME);
         Path snapshotFile = sessionDirPath(sessionId).resolve(SNAPSHOT_FILE_NAME);
         for (Path file : List.of(journalFile, snapshotFile)) {
@@ -339,7 +343,13 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
                 return;
             }
             if (truncated) {
-                rewriteJournal(journalFile, sessionId, list);
+                // Plan 2584 Phase 1 (audit nop-ai Major 3): the rewrite lives in
+                // CheckpointJournalWriter and takes the SAME ioLock as append —
+                // the pre-fix dual-lock shape (rotateLock here vs ioLock in the
+                // writer) let a concurrent append be clobbered by the rewrite.
+                // The ioLock is global (briefly blocks other sessions' appends);
+                // rotation is low-frequency, magnitude adjudicated acceptable.
+                journalWriter.rewriteJournal(journalFile, sessionId, list);
                 LOG.info("nop.ai.agent.checkpoint-journal-rotate: journal rotated (ring-truncated "
                         + "oldest; cap entries={}, bytes={}): sessionId={}",
                         journalMaxEntries, journalMaxBytes, sessionId);
@@ -349,26 +359,6 @@ public class FileBackedCheckpointManager implements ICheckpointManager {
 
     private static final org.slf4j.Logger LOG =
             org.slf4j.LoggerFactory.getLogger(FileBackedCheckpointManager.class);
-
-    /** Rewrite the journal file with only the retained checkpoints. */
-    private void rewriteJournal(Path journalFile, String sessionId, List<Checkpoint> retained) {
-        try {
-            StringBuilder sb = new StringBuilder();
-            sb.append("# Checkpoint Journal - ").append(sessionId).append("\n\n");
-            synchronized (retained) {
-                for (Checkpoint cp : retained) {
-                    sb.append(CheckpointJournalWriter.serializeSection(cp));
-                }
-            }
-            Files.writeString(journalFile, sb.toString());
-        } catch (IOException e) {
-            // Rotation is a retention measure — a failed rewrite must not
-            // break the checkpoint write path. The file keeps its old content
-            // (superset); the in-memory truncation already bounded the heap.
-            LOG.warn("nop.ai.agent.checkpoint-journal-rotate: journal rewrite failed "
-                    + "(in-memory truncation retained): sessionId={}", sessionId, e);
-        }
-    }
 
     /**
      * Plan 2519 (裁定⑥ 增量面): compaction-completed session eviction — for a

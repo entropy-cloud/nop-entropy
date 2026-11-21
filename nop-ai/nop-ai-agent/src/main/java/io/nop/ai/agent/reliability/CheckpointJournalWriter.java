@@ -34,15 +34,40 @@ import java.time.Instant;
  * nothing more; it does not span snapshot writes (those serialize in
  * {@code CheckpointSnapshotWriter}'s own lock).
  *
+ * <p><b>Plan 2584 Phase 1 (audit nop-ai Major 3)</b>: rotation rewrite now
+ * lives in this writer ({@link #rewriteJournal}) and takes the SAME
+ * {@code ioLock} as append — the pre-fix dual-lock shape (manager
+ * {@code rotateLock} vs writer {@code ioLock}) allowed a concurrent append to
+ * be clobbered by the rewrite. The ioLock is a global single monitor, so a
+ * rotation briefly blocks appends of OTHER sessions; rotation is low-frequency
+ * (retention cap traversal only) and the blocking window is bounded —
+ * adjudicated acceptable. The rewrite itself is crash-atomic: content is
+ * written to a temp file in the same directory and moved into place with
+ * {@link java.nio.file.StandardCopyOption#ATOMIC_MOVE} (falling back to a
+ * plain move when the filesystem does not support atomic moves), so a crash
+ * mid-write can never leave a truncated journal.
+ *
  * <p><b>Append-only semantics</b>: if the file does not exist it is created
- * with the header. Existing content is never overwritten — every write uses
- * {@link StandardOpenOption#APPEND}.
+ * with the header. Existing content is only overwritten by
+ * {@link #rewriteJournal} (rotation), never by append.
  */
 public final class CheckpointJournalWriter {
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(CheckpointJournalWriter.class);
 
     private static final String HEADER_PREFIX = "# Checkpoint Journal - ";
 
     private final Object ioLock = new Object();
+
+    /**
+     * Test seam (plan 2584 Phase 1 regression pins): invoked inside the
+     * {@code ioLock} critical section of {@link #rewriteJournal} after the
+     * lock is held, before content is built. Lets a test deterministically
+     * hold the rewrite inside the lock (concurrent-append pin) or inject a
+     * mid-write failure (journal-untouched pin). Production code never sets it.
+     */
+    volatile Runnable rewriteInsideLockHookForTest;
 
     /**
      * Append a single checkpoint as a {@code ## CP-NNN} section. Creates the
@@ -72,6 +97,88 @@ public final class CheckpointJournalWriter {
             } catch (IOException e) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL, e).param(ARG_DETAIL, "CheckpointJournalWriter.appendCheckpoint: failed to append to " + journalFile
                                 + ": " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Rewrite the journal file with ONLY the retained checkpoints (rotation
+     * truncation). Plan 2584 Phase 1: moved from {@code FileBackedCheckpoint-
+     * Manager} into this writer so the rewrite serializes on the SAME
+     * {@code ioLock} as {@link #appendCheckpoint} — a concurrent append can
+     * never be lost to the rewrite (it blocks until the rewrite completes and
+     * is appended afterwards; its checkpoint stays in the manager's retained
+     * list anyway).
+     *
+     * <p>Crash-atomic publication: the content is written to a temp file in
+     * the journal's directory, then moved onto the journal with
+     * {@code ATOMIC_MOVE} ({@code AtomicMoveNotSupportedException} falls back
+     * to a plain replace). A failure at ANY point (serialization, temp write,
+     * move) leaves the previous journal file untouched — the file keeps its
+     * old (superset) content and stays readable; only a WARN is emitted since
+     * rotation is a retention measure that must not break the checkpoint
+     * write path (in-memory truncation already bounded the heap).
+     *
+     * @param journalFile the per-session journal.md path; never null
+     * @param sessionId   the session id used in the file header; may be null
+     * @param retained    the checkpoints to keep, in order; never null
+     */
+    public void rewriteJournal(Path journalFile, String sessionId, java.util.List<Checkpoint> retained) {
+        if (journalFile == null) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalWriter.rewriteJournal: journalFile must not be null");
+        }
+        if (retained == null) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "CheckpointJournalWriter.rewriteJournal: retained must not be null");
+        }
+        synchronized (ioLock) {
+            Path tempFile = null;
+            try {
+                // test hook inside the guarded block: an injected failure must
+                // be treated like any mid-rewrite failure (journal preserved)
+                Runnable hook = rewriteInsideLockHookForTest;
+                if (hook != null) {
+                    hook.run();
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.append(HEADER_PREFIX).append(sessionId != null ? sessionId : "anonymous").append("\n\n");
+                synchronized (retained) {
+                    for (Checkpoint cp : retained) {
+                        sb.append(serializeSection(cp));
+                    }
+                }
+                Path fileName = journalFile.getFileName() != null
+                        ? journalFile.getFileName() : journalFile.toAbsolutePath().getFileName();
+                tempFile = journalFile.resolveSibling(
+                        fileName.toString() + ".rewrite-" + java.util.UUID.randomUUID() + ".tmp");
+                Files.write(tempFile, sb.toString().getBytes(StandardCharsets.UTF_8),
+                        StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+                        StandardOpenOption.TRUNCATE_EXISTING);
+                try {
+                    Files.move(tempFile, journalFile,
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    tempFile = null;
+                } catch (java.nio.file.AtomicMoveNotSupportedException fallback) {
+                    // filesystem without atomic-move support: plain replace
+                    Files.move(tempFile, journalFile,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    tempFile = null;
+                }
+            } catch (Exception e) {
+                // Rotation is a retention measure — a failed rewrite must not
+                // break the checkpoint write path. The file keeps its old
+                // content (superset); the in-memory truncation already bounded
+                // the heap.
+                LOG.warn("nop.ai.agent.checkpoint-journal-rotate: journal rewrite failed "
+                        + "(previous journal preserved): file={}, reason={}", journalFile, e.toString());
+                if (tempFile != null) {
+                    try {
+                        Files.deleteIfExists(tempFile);
+                    } catch (IOException cleanupEx) {
+                        LOG.debug("nop.ai.agent.checkpoint-journal-rotate: temp cleanup failed: {}",
+                                cleanupEx.toString());
+                    }
+                }
             }
         }
     }

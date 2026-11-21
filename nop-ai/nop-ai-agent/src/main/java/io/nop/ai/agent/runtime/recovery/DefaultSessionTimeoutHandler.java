@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime.recovery;
 
+import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
+import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
 import io.nop.ai.agent.NopAiAgentException;
@@ -140,8 +142,10 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
     }
 
     public void setCancelMaxAttempts(int cancelMaxAttempts) {
+        // Plan 2584 Phase 2 (audit nop-ai Minor): typed error, no bare IAE
         if (cancelMaxAttempts <= 0) {
-            throw new IllegalArgumentException("cancelMaxAttempts must be positive, got: " + cancelMaxAttempts);
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "DefaultSessionTimeoutHandler: cancelMaxAttempts must be positive, got: " + cancelMaxAttempts);
         }
         this.cancelMaxAttempts = cancelMaxAttempts;
     }
@@ -152,7 +156,8 @@ public class DefaultSessionTimeoutHandler implements ISessionTimeoutHandler {
 
     public void setCancelBackoffBaseMs(long cancelBackoffBaseMs) {
         if (cancelBackoffBaseMs < 0) {
-            throw new IllegalArgumentException("cancelBackoffBaseMs must be >= 0, got: " + cancelBackoffBaseMs);
+            throw new NopAiAgentException(ERR_AGENT_INVALID_ARGUMENT).param(ARG_DETAIL,
+                    "DefaultSessionTimeoutHandler: cancelBackoffBaseMs must be >= 0, got: " + cancelBackoffBaseMs);
         }
         this.cancelBackoffBaseMs = cancelBackoffBaseMs;
     }
