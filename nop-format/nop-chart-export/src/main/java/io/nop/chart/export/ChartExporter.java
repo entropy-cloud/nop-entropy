@@ -35,6 +35,11 @@ public class ChartExporter implements IChartExporter {
     public static final String FORMAT_PNG = "png";
     public static final String FORMAT_SVG = "svg";
 
+    /**
+     * 画布像素乘积上限（plan 2586）：防止超大 width*height 触发整幅光栅 OOM。
+     */
+    public static final long MAX_CANVAS_PIXELS = 16_000_000L;
+
     private final ChartTypeRendererRegistry rendererRegistry;
     private final EChartsRenderer chartRenderer;
 
@@ -66,7 +71,6 @@ public class ChartExporter implements IChartExporter {
         }
 
         try {
-            applyTimeout(options);
             validateNotCancelled(progress);
 
             // Step 1: resolve series data from the model's cell references.
@@ -118,25 +122,16 @@ public class ChartExporter implements IChartExporter {
     private byte[] render(Object option, ChartExportOptions options) {
         String optionJson = JsonTool.stringify(option);
         String format = options.getFormat();
+        // 请求级超时（plan 2586）：经渲染链传参，不再改写引擎全局状态；≤0 用引擎默认
+        long timeoutMs = options.getTimeoutSeconds() * 1000L;
         if (FORMAT_SVG.equalsIgnoreCase(format))
-            return chartRenderer.renderSvg(optionJson, options.getWidth(), options.getHeight())
+            return chartRenderer.renderSvg(optionJson, options.getWidth(), options.getHeight(), timeoutMs)
                     .getBytes(StandardCharsets.UTF_8);
         if (!FORMAT_PNG.equalsIgnoreCase(format))
             throw new NopException(ChartExportErrors.ERR_CHART_RENDER_FAILED)
                     .param(ChartExportErrors.ARG_REASON,
                             "unsupported export format '" + format + "' (png | svg)");
-        return chartRenderer.renderPng(optionJson, options.getWidth(), options.getHeight());
-    }
-
-    /**
-     * D28: the engine timeout is a global setting; apply the export option only when
-     * it differs so report assemblies (WI7/WI8) that configured a custom font mapper
-     * via EchartsEngine.configure are not reset.
-     */
-    private void applyTimeout(ChartExportOptions options) {
-        long timeoutMs = options.getTimeoutSeconds() * 1000L;
-        if (timeoutMs > 0 && timeoutMs != io.nop.chart.echarts.engine.EchartsEngine.get().getRenderTimeoutMs())
-            io.nop.chart.echarts.engine.EchartsEngine.configureTimeout(timeoutMs);
+        return chartRenderer.renderPng(optionJson, options.getWidth(), options.getHeight(), timeoutMs);
     }
 
     private void validateNotCancelled(IProgressCallback progress) {
@@ -172,5 +167,11 @@ public class ChartExporter implements IChartExporter {
             throw new NopException(ChartExportErrors.ERR_INVALID_DIMENSIONS)
                     .param(ChartExportErrors.ARG_WIDTH, width)
                     .param(ChartExportErrors.ARG_HEIGHT, height);
+        if ((long) width * height > MAX_CANVAS_PIXELS)
+            throw new NopException(ChartExportErrors.ERR_INVALID_DIMENSIONS)
+                    .param(ChartExportErrors.ARG_WIDTH, width)
+                    .param(ChartExportErrors.ARG_HEIGHT, height)
+                    .param(ChartExportErrors.ARG_REASON, "canvas pixel product " + (long) width * height
+                            + " exceeds limit " + MAX_CANVAS_PIXELS);
     }
 }

@@ -19,8 +19,8 @@
 
 ## 双入口
 
-1. **option JSON 直通**：`io.nop.chart.echarts.render.EChartsRenderer.renderPng(optionJson, width, height)` / `renderSvg(...)`。入口即 ECharts option（JSON 字符串），引擎 normalize 会剥离交互件（toolbox/tooltip/brush/dataZoom/timeline）。
-2. **ChartModel 入口**：`io.nop.chart.export.ChartExporter implements IChartExporter`——`exportToImage(ChartModel, ICellRefResolver[, ChartExportOptions])`。管线：validate → ChartDataResolver 解析系列数据 → ChartTypeRendererRegistry 按 ChartType 选 option builder → JSON → 引擎。ChartExportOptions 支持 format(png|svg)/width/height/backgroundColor/timeoutSeconds/maxDataSize/progressCallback。
+1. **option JSON 直通**：`io.nop.chart.echarts.render.EChartsRenderer.renderPng(optionJson, width, height[, timeoutMs])` / `renderSvg(...[, timeoutMs])`。入口即 ECharts option（JSON 字符串），引擎 normalize 会剥离交互件（toolbox/tooltip/brush/dataZoom/timeline）。带 `timeoutMs` 的重载为请求级超时（≤0 用引擎默认；plan 2586 起超时随调用传参，全局态不再被改写）。
+2. **ChartModel 入口**：`io.nop.chart.export.ChartExporter implements IChartExporter`——`exportToImage(ChartModel, ICellRefResolver[, ChartExportOptions])`。管线：validate → ChartDataResolver 解析系列数据 → ChartTypeRendererRegistry 按 ChartType 选 option builder → JSON → 引擎。ChartExportOptions 支持 format(png|svg)/width/height/backgroundColor/timeoutSeconds/maxDataSize/progressCallback；`timeoutSeconds` 经渲染链传参生效（不触碰全局），width*height 乘积上限 `ChartExporter.MAX_CANVAS_PIXELS`（16M px，超出 `ERR_INVALID_DIMENSIONS` fail-loud）。
 
 适配语义要点（完整裁定见仓库 ai-dev/plans/ 下 2364 计划的 D28–D40 裁定编号）：grouping 全值映射（standard=clustered 别名）、百分比堆积数据预变换、trendLine linear→markLine（其余类型叠加虚线系列）、combo 按系列级 type 分派（缺失 fail-fast）、散点线可见性由系列 spPr a:ln 的 noFill 表达（shapeStyle.border）。
 
@@ -30,7 +30,7 @@
 
 - `EchartsEngine.configure(textMeasurer, renderTimeoutMs, timerPumpMaxRounds)` 全局注入（静态单例吃不到 IoC，报表装配在启动时调用一次）。
 - 泛族字体（sans-serif 等）映射可注入；中文必须可覆盖，缺字体显式报错（不静默 fallback）。
-- 仅调超时用 `EchartsEngine.configureTimeout(ms)`（不重置字体配置）。
+- 超时不再有全局可变入口（`configureTimeout` 已移除，plan 2586）：请求级超时经 `renderPng/renderSvg/renderCanvas/renderSvg` 的 `timeoutMs` 参数传递；引擎挂 JVM shutdown hook 关闭全部存活 Context 与超时调度线程，shutdown 后调度线程自愈重建。
 
 ## 报表接入（opt-in）
 

@@ -6,11 +6,15 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +28,8 @@ import java.util.Map;
  * + 文档机械化统计。
  */
 public final class ImageCensus {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ImageCensus.class);
 
     public static final class Options {
         private File outputDir;
@@ -91,7 +97,8 @@ public final class ImageCensus {
                     long sizeKb = img.getStream().getLength() / 1024;
                     entries.add(new ImageCensusEntry(seq, fileName, p, w, h, sizeKb, area, keep, repeated));
                 } catch (IOException e) {
-                    // 无法解析的 XObject：跳过（非静默——调用方可检查 seq 连续性）
+                    // 无法解析的 XObject：跳过但记录 warn（plan 2586：不再静默吞异常）
+                    LOG.warn("skip unresolvable image XObject on page {}: {}", p, String.valueOf(e), e);
                 }
             }
         }
@@ -99,11 +106,20 @@ public final class ImageCensus {
         return new Result(entries, buildDocStats(doc, entries));
     }
 
+    /**
+     * 流式 digest（plan 2586：不再整流 toByteArray，防大图 OOM）。
+     */
     private static String contentHash(PDImageXObject img) {
         try {
-            byte[] bytes = img.getStream().toByteArray();
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(bytes);
+            try (InputStream in = img.createInputStream()) {
+                DigestInputStream din = new DigestInputStream(in, md);
+                byte[] buf = new byte[8192];
+                while (din.read(buf) != -1) {
+                    // drain
+                }
+            }
+            byte[] digest = md.digest();
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) sb.append(String.format("%02x", b));
             return sb.toString();

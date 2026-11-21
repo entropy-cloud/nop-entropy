@@ -27,9 +27,24 @@ public class EChartsRenderer {
 
     /**
      * 渲染为 PNG（D19：编码字节在 Renderer 内产出，WI7 dataURL 与 WI8 PdfImageHelper 直接消费）。
+     * 超时取引擎默认值。
      */
     public byte[] renderPng(String optionJson, int width, int height) {
-        BufferedImage image = renderCanvas(normalize(optionJson), width, height);
+        BufferedImage image = renderCanvas(normalize(optionJson), width, height, 0);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(image, "png", out);
+        } catch (IOException e) {
+            throw new NopChartEchartsException("PNG encoding failed", e);
+        }
+        return out.toByteArray();
+    }
+
+    /**
+     * 请求级超时 PNG 渲染（plan 2586：超时只作用于本次调用，timeoutMs≤0 用引擎默认）。
+     */
+    public byte[] renderPng(String optionJson, int width, int height, long timeoutMs) {
+        BufferedImage image = renderCanvas(normalize(optionJson), width, height, timeoutMs);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             ImageIO.write(image, "png", out);
@@ -43,11 +58,18 @@ public class EChartsRenderer {
      * 渲染为 SVG 字符串（D16：ssr:true + 强制 animation:false + cssAnimation:false）。
      */
     public String renderSvg(String optionJson, int width, int height) {
-        return engine.renderSvg(normalize(optionJson), width, height);
+        return renderSvg(optionJson, width, height, 0);
     }
 
-    private BufferedImage renderCanvas(String normalizedOptionJson, int width, int height) {
-        return engine.renderCanvas(normalizedOptionJson, width, height).image();
+    /**
+     * 请求级超时 SVG 渲染。
+     */
+    public String renderSvg(String optionJson, int width, int height, long timeoutMs) {
+        return engine.renderSvg(normalize(optionJson), width, height, timeoutMs);
+    }
+
+    private BufferedImage renderCanvas(String normalizedOptionJson, int width, int height, long timeoutMs) {
+        return engine.renderCanvas(normalizedOptionJson, width, height, timeoutMs).image();
     }
 
     /**

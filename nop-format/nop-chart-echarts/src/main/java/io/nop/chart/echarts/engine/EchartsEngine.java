@@ -37,7 +37,9 @@ public class EchartsEngine {
         return instance;
     }
 
-    /** D14/D23 配置面：静态单例吃不到 NopIoC 注入，IoC bean 接线归 WI7-8 报表装配。 */
+    /**
+     * D14/D23 配置面：静态单例吃不到 NopIoC 注入，IoC bean 接线归 WI7-8 报表装配。
+     */
     public static void configure(TextMeasurer textMeasurer, long renderTimeoutMs, int timerPumpMaxRounds) {
         EchartsEngine engine = instance;
         engine.textMeasurer = textMeasurer;
@@ -45,25 +47,43 @@ public class EchartsEngine {
         engine.timerPumpMaxRounds = timerPumpMaxRounds;
     }
 
-    /**
-     * plan 2364 D28 最小缝：仅调整全局渲染超时（毫秒），不触碰 textMeasurer 与
-     * timerPumpMaxRounds（避免把 WI7/WI8 报表装配注入的字体配置打回默认）。全局
-     * last-write-wins：并发异值导出以最后一次调用为准。
-     */
-    public static void configureTimeout(long renderTimeoutMs) {
-        instance.renderTimeoutMs = renderTimeoutMs;
+    static {
+        // 引擎为 static 单例非 IoC bean：挂 JVM shutdown hook 回收 ThreadLocal Context 与调度线程
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> instance.shutdown(), "echarts-engine-shutdown"));
     }
 
     private final Engine sharedEngine = Engine.newBuilder()
             .option("engine.WarnInterpreterOnly", "false")
             .build();
-    private final ScheduledExecutorService timeoutScheduler =
-            Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "echarts-render-timeout");
-                t.setDaemon(true);
-                return t;
-            });
+    private volatile ScheduledExecutorService timeoutScheduler = newTimeoutScheduler();
+
+    private static ScheduledExecutorService newTimeoutScheduler() {
+        return Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "echarts-render-timeout");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    /**
+     * shutdown 后重建调度线程（static 单例自愈：shutdown 可被测试/运维触发而不永久失效）。
+     */
+    private ScheduledExecutorService scheduler() {
+        ScheduledExecutorService s = timeoutScheduler;
+        if (s.isShutdown()) {
+            synchronized (this) {
+                if (timeoutScheduler.isShutdown())
+                    timeoutScheduler = newTimeoutScheduler();
+                s = timeoutScheduler;
+            }
+        }
+        return s;
+    }
     private final ThreadLocal<Context> contextHolder = new ThreadLocal<>();
+    /**
+     * 存活 Context 注册表：shutdown 时统一关闭（ThreadLocal Context 无其他回收路径）。
+     */
+    private final java.util.Set<Context> liveContexts = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     private final AtomicLong echartsEvalCount = new AtomicLong();
     private final AtomicLong renderCount = new AtomicLong();
     private final AtomicLong contextRebuildCount = new AtomicLong();
@@ -95,9 +115,17 @@ public class EchartsEngine {
 
     /**
      * canvas 渲染：装配桥与 echarts，setOption 后 pump 到静默，返回 root 画布图像。
+     * 超时取引擎默认值（请求级超时用带 timeoutMs 的重载，不再改全局状态）。
      */
     public BufferedImageHolder renderCanvas(String normalizedOptionJson, int width, int height) {
-        return renderCanvasSeam(normalizedOptionJson, width, height, null);
+        return renderCanvasSeam(normalizedOptionJson, width, height, null, false, renderTimeoutMs);
+    }
+
+    /**
+     * 请求级超时渲染：超时只作用于本次调用（plan 2586：并发导出互相隔离）。
+     */
+    public BufferedImageHolder renderCanvas(String normalizedOptionJson, int width, int height, long timeoutMs) {
+        return renderCanvasSeam(normalizedOptionJson, width, height, null, false, resolveTimeout(timeoutMs));
     }
 
     /**
@@ -115,9 +143,14 @@ public class EchartsEngine {
      */
     BufferedImageHolder renderCanvasSeam(String normalizedOptionJson, int width, int height,
                                          String preRenderScript, boolean keepAlive) {
+        return renderCanvasSeam(normalizedOptionJson, width, height, preRenderScript, keepAlive, renderTimeoutMs);
+    }
+
+    BufferedImageHolder renderCanvasSeam(String normalizedOptionJson, int width, int height,
+                                         String preRenderScript, boolean keepAlive, long timeoutMs) {
         Context context = contextForCurrentThread();
         renderCount.incrementAndGet();
-        ScheduledFuture<?> timeoutTask = scheduleTimeout(context);
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(context, timeoutMs);
         try {
             Value bindings = context.getBindings(JS_LANG);
             EchartsBridge bridge = new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer), timerPumpMaxRounds);
@@ -131,7 +164,7 @@ public class EchartsEngine {
             closeCurrentContext();
             if (e.isInterrupted() || e.isCancelled())
                 throw new NopChartEchartsException(
-                        "echarts render timed out after " + renderTimeoutMs + "ms", e);
+                        "echarts render timed out after " + timeoutMs + "ms", e);
             throw new NopChartEchartsException("echarts JS execution failed: " + e.getMessage(), e);
         } finally {
             // D21：instances$1 主注册表强引用 chart（dist:30282）——每渲染必须 dispose 防泄漏
@@ -143,18 +176,30 @@ public class EchartsEngine {
 
     /**
      * SVG 渲染（D16）：ssr:true + 强制 animation:false + renderToSVGString。
+     * 超时取引擎默认值；请求级超时用带 timeoutMs 的重载。
      */
     public String renderSvg(String normalizedOptionJson, int width, int height) {
-        return renderSvgSeam(normalizedOptionJson, width, height, null);
+        return renderSvgSeam(normalizedOptionJson, width, height, null, renderTimeoutMs);
+    }
+
+    /**
+     * 请求级超时 SVG 渲染（plan 2586：并发导出互相隔离）。
+     */
+    public String renderSvg(String normalizedOptionJson, int width, int height, long timeoutMs) {
+        return renderSvgSeam(normalizedOptionJson, width, height, null, resolveTimeout(timeoutMs));
     }
 
     /**
      * D14 包私有测试缝（同 renderCanvasSeam）。
      */
     String renderSvgSeam(String normalizedOptionJson, int width, int height, String preRenderScript) {
+        return renderSvgSeam(normalizedOptionJson, width, height, preRenderScript, renderTimeoutMs);
+    }
+
+    String renderSvgSeam(String normalizedOptionJson, int width, int height, String preRenderScript, long timeoutMs) {
         Context context = contextForCurrentThread();
         renderCount.incrementAndGet();
-        ScheduledFuture<?> timeoutTask = scheduleTimeout(context);
+        ScheduledFuture<?> timeoutTask = scheduleTimeout(context, timeoutMs);
         try {
             Value bindings = context.getBindings(JS_LANG);
             EchartsBridge bridge = new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer), timerPumpMaxRounds);
@@ -168,7 +213,7 @@ public class EchartsEngine {
             closeCurrentContext();
             if (e.isInterrupted() || e.isCancelled())
                 throw new NopChartEchartsException(
-                        "echarts render timed out after " + renderTimeoutMs + "ms", e);
+                        "echarts render timed out after " + timeoutMs + "ms", e);
             throw new NopChartEchartsException("echarts JS execution failed: " + e.getMessage(), e);
         } finally {
             disposeActiveChart(context);
@@ -227,7 +272,14 @@ public class EchartsEngine {
                     sb.append("\\u2029");
                     break;
                 default:
-                    sb.append(ch);
+                    // 控制字符统一 unicode 转义兜底（plan 2586：转义覆盖不全的字面量注入面）。
+                    // 注意转义层级：0x20 以下字符在 JSON 字符串内本身非法，必须产出 JSON 级
+                    // unicode 转义（JS 字面量内为双反斜杠 + u + 4 位十六进制），JSON.parse 才能接受
+                    if (ch < 0x20) {
+                        sb.append(String.format("\\\\u%04x", (int) ch));
+                    } else {
+                        sb.append(ch);
+                    }
             }
         }
         sb.append("\")");
@@ -240,6 +292,7 @@ public class EchartsEngine {
             return context;
         context = buildContext();
         contextHolder.set(context);
+        liveContexts.add(context);
         return context;
     }
 
@@ -297,13 +350,21 @@ public class EchartsEngine {
         Context context = contextHolder.get();
         if (context != null) {
             contextHolder.remove();
+            liveContexts.remove(context);
             context.close(true);
             contextRebuildCount.incrementAndGet();
         }
     }
 
-    private ScheduledFuture<?> scheduleTimeout(Context context) {
-        return timeoutScheduler.schedule(() -> {
+    /**
+     * 请求级超时 ≤0 视为非法，回退引擎默认（plan 2586）。
+     */
+    private long resolveTimeout(long timeoutMs) {
+        return timeoutMs > 0 ? timeoutMs : renderTimeoutMs;
+    }
+
+    private ScheduledFuture<?> scheduleTimeout(Context context, long timeoutMs) {
+        return scheduler().schedule(() -> {
             try {
                 // interrupt(Duration) 为 cancel+close 语义（25.2.4 仅此签名）；Duration 是「等待安全点」
                 // 上限——ZERO 会不中断直接抛 TimeoutException，须给足等待（5s）再强制中断
@@ -311,7 +372,32 @@ public class EchartsEngine {
             } catch (TimeoutException e) {
                 LOG.debug("interrupt timed out waiting for guest safe point", e);
             }
-        }, renderTimeoutMs, TimeUnit.MILLISECONDS);
+        }, timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 包私有测试缝：存活 Context 数（shutdown 无残留断言）。
+     */
+    int liveContextCountForTest() {
+        return liveContexts.size();
+    }
+
+    /**
+     * 回收全部存活 Context 与超时调度线程（JVM shutdown hook 挂载点；
+     * 引擎为 static 单例非 IoC bean，bean 化待 WI7-8 另议）。
+     */
+    public void shutdown() {
+        for (Context context : liveContexts) {
+            try {
+                context.close(true);
+            } catch (Exception e) {
+                LOG.debug("context close failed on shutdown", e);
+            }
+        }
+        liveContexts.clear();
+        // 当前线程的 ThreadLocal 若持有已关闭 Context 必须移除，否则后续渲染复用死 Context
+        contextHolder.remove();
+        timeoutScheduler.shutdownNow();
     }
 
     private String echartsSource() {

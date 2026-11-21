@@ -302,42 +302,43 @@ public class PdfDoc implements Closeable {
 
     public PdfDoc selectPages(List<Integer> pages) {
         int totalPages = getNumberOfPages();
-
-        PDDocument ret = new PDDocument();
-
+        List<Integer> wanted = new ArrayList<>();
         for (int pageNum : pages) {
-            if (pageNum >= 1 && pageNum <= totalPages) {
-                // 注意：PDFBox 3.x中getPage方法可能返回的是不可变页面对象
-                // 需要根据实际情况处理
-                PDPage page = this.doc.getPage(pageNum - 1);
-                ret.addPage(page);
-            }
+            if (pageNum >= 1 && pageNum <= totalPages)
+                wanted.add(pageNum);
         }
-        return new PdfDoc(ret);
+        return deepCopySelected(wanted::contains);
     }
 
     public PdfDoc selectPageRange(int firstPage, int lastPage) {
         int totalPages = getNumberOfPages();
-
-        PDDocument ret = new PDDocument();
-
-        for (int pageNum = firstPage; pageNum <= lastPage; pageNum++) {
-            if (pageNum >= 1 && pageNum <= totalPages) {
-                // 注意：PDFBox 3.x中getPage方法可能返回的是不可变页面对象
-                // 需要根据实际情况处理
-                PDPage page = this.doc.getPage(pageNum - 1);
-                ret.addPage(page);
-            }
-        }
-        return new PdfDoc(ret);
+        return deepCopySelected(pageNum -> pageNum >= 1 && pageNum <= totalPages
+                && pageNum >= firstPage && pageNum <= lastPage);
     }
 
     public PdfDoc selectPage(int pageNum) {
+        int totalPages = getNumberOfPages();
+        return deepCopySelected(p -> p == pageNum && pageNum >= 1 && pageNum <= totalPages);
+    }
+
+    /**
+     * 深拷贝页选取：appendDocument 是 PDFBox 3.x 中经 merge() 验证的 COS 深拷贝路径；
+     * importPage 仅浅拷页字典，源文档关闭后派生文档不可用、盖章会污染已导出页，故不采用。
+     * 整体拷贝后移除未选中页；异常路径关闭新建文档。
+     */
+    private PdfDoc deepCopySelected(java.util.function.IntPredicate keep) {
         PDDocument ret = new PDDocument();
-        if (pageNum >= 1 && pageNum <= getNumberOfPages()) {
-            ret.addPage(this.doc.getPage(pageNum - 1));
+        try {
+            new PDFMergerUtility().appendDocument(ret, this.doc);
+            for (int i = ret.getNumberOfPages() - 1; i >= 0; i--) {
+                if (!keep.test(i + 1))
+                    ret.removePage(i);
+            }
+            return new PdfDoc(ret);
+        } catch (Exception e) {
+            IoHelper.safeClose(ret);
+            throw NopException.adapt(e);
         }
-        return new PdfDoc(ret);
     }
 
     public void splitIntoPages(File dir) {

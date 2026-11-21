@@ -18,7 +18,6 @@ import io.nop.api.core.annotations.orm.SingleSession;
 import jakarta.inject.Inject;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.report.service.NopReportConfigs;
 import io.nop.report.service.auth.NopReportAuthChecker;
 
 import java.time.LocalDate;
@@ -48,7 +47,8 @@ public class NopReportCacheBizModel {
                                    @Name("bizDate") LocalDate bizDate) {
         reportPathAuth(reportPath);
         NopReportResultFile record = resultCache.getOrGenerate(reportPath, renderType, params, bizDate);
-        java.io.File file = new java.io.File(NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get(), record.getFilePath());
+        // filePath 可能是绝对路径（缓存关闭时落在临时目录），否则按缓存目录拼接
+        java.io.File file = NopReportResultCache.resolveRecordFile(record);
         io.nop.core.resource.impl.FileResource resource = new io.nop.core.resource.impl.FileResource(file);
         return new WebContentBean(mimeType(renderType), resource.toFile(), record.getFileName(), false);
     }

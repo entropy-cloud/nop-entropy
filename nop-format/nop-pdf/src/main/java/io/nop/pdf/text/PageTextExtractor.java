@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import static io.nop.pdf.core.PdfErrors.ARG_PAGE;
 import static io.nop.pdf.core.PdfErrors.ERR_PDF_GARBLED_TEXT;
+import static io.nop.pdf.core.PdfErrors.ERR_PDF_PAGE_EXTRACT_IO;
 import static io.nop.pdf.core.PdfErrors.ERR_PDF_SCANNED_PAGE;
 
 /**
@@ -44,11 +45,16 @@ public final class PageTextExtractor {
         for (int p = 1; p <= nPages; p++) {
             PDPage page = doc.getPage(p - 1);
             Extraction extraction = extractPage(doc, p, opts);
+            // plan 2586：IO 故障与扫描判定解耦——抽取 IO 失败 fail-loud（带页码），不误标为扫描页
+            if (extraction.ioFailed()) {
+                throw new NopException(ERR_PDF_PAGE_EXTRACT_IO)
+                        .param(ARG_PAGE, p).param("cause", extraction.error());
+            }
             // charCount 基于锚前原始文本（锚拼接后恒>0，会导致扫描判定失效——执行偏差）
-            int rawCharCount = extraction.text == null ? 0 : extraction.text.trim().length();
-                        String text = anchorPage(p, extraction.text, opts.getMode());
+            int rawCharCount = extraction.text() == null ? 0 : extraction.text().trim().length();
+            String text = anchorPage(p, extraction.text(), opts.getMode());
 
-            PageTextResult result = new PageTextResult(p, text, rawCharCount, extraction.fffdCount, extraction.unmappedCount);
+            PageTextResult result = new PageTextResult(p, text, rawCharCount, extraction.fffdCount(), extraction.unmappedCount());
             if (rawCharCount == 0) {
                 if (opts.getScanPolicy() == PageTextOptions.ScanPolicy.SKIP) {
                     result.setScanned(true);
@@ -58,11 +64,11 @@ public final class PageTextExtractor {
                 }
             }
             if (opts.getFffdPolicy() != PageTextOptions.FffdPolicy.OFF
-                    && extraction.fffdCount > opts.getFffdThreshold()) {
+                    && extraction.fffdCount() > opts.getFffdThreshold()) {
                 if (opts.getFffdPolicy() == PageTextOptions.FffdPolicy.ERROR)
                     throw new NopException(ERR_PDF_GARBLED_TEXT)
                             .param(ARG_PAGE, p)
-                            .param("fffdCount", extraction.fffdCount);
+                            .param("fffdCount", extraction.fffdCount());
                 // WARN policy：留 stats，由调用方按 getFffdCount 观测
             }
             pages.add(result);
@@ -92,7 +98,7 @@ public final class PageTextExtractor {
                 for (int i = 0; i < raw.length(); i++)
                     if (raw.charAt(i) == '\uFFFD')
                         fffd++;
-                return new Extraction(text, fffd, stripper.getUnmappedCount());
+                return new Extraction(text, fffd, stripper.getUnmappedCount(), false, null);
             }
             StripTextStripper stripper = new StripTextStripper();
             stripper.setStartPage(pageNo);
@@ -103,10 +109,10 @@ public final class PageTextExtractor {
             text = WHITESPACE_RUN.matcher(text).replaceAll(" ").trim();
             if (text.length() > opts.getMaxChars())
                 text = text.substring(0, opts.getMaxChars());
-            return new Extraction(text, stripper.getFffdCount(), stripper.getUnmappedCount());
+            return new Extraction(text, stripper.getFffdCount(), stripper.getUnmappedCount(), false, null);
         } catch (IOException e) {
-            // pdfio：坏页 → 空串（扫描检测仍按 hasContents 判定）
-            return new Extraction("", 0, 0);
+            // plan 2586：IO 故障不再吞成空串（会被误判为扫描页），标记 ioFailed 由调用方 fail-loud
+            return new Extraction("", 0, 0, true, String.valueOf(e));
         }
     }
 
@@ -114,6 +120,6 @@ public final class PageTextExtractor {
         return CONTROL_CHARS.matcher(text).replaceAll("");
     }
 
-    private record Extraction(String text, int fffdCount, int unmappedCount) {
+    private record Extraction(String text, int fffdCount, int unmappedCount, boolean ioFailed, String error) {
     }
 }

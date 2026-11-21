@@ -8,6 +8,7 @@
 package io.nop.xlang.debug.web;
 
 import io.nop.api.core.auth.IActionAuthChecker;
+import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopLoginException;
@@ -90,6 +91,11 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
     private final String connectionId;
 
     private volatile String boundUserId;
+    /**
+     * plan 2586：保留认证完整用户上下文——session open 权限检查传入带用户的 SecurityContext，
+     * 不再传 null。
+     */
+    private volatile IUserContext boundUser;
     private volatile boolean authenticated;
     private volatile boolean closed;
     private int violations;
@@ -103,7 +109,9 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
 
         String userId;
         try {
-            userId = runtime.authenticate(debugToken);
+            IUserContext user = runtime.authenticateUser(debugToken);
+            boundUser = user;
+            userId = user == null ? null : user.getUserId();
         } catch (NopLoginException e) {
             LOG.info("nop.xlang.debug-web.auth-failed:conn={}", connectionId);
             userId = null;
@@ -280,7 +288,10 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
         // checker 缺失 = fail-closed 拒绝。拒绝语义：-32000 错误响应 + 4403 关闭
         //（前端既有 onclose 4403 终态分支天然兼容，D1 additive 登记见 01-ws-protocol.md）
         IActionAuthChecker checker = runtime.authChecker();
-        if (checker == null || !checker.isPermitted(DEBUG_SESSION_PERMISSION, null)) {
+        // plan 2586：传带用户身份的 SecurityContext（复用 ReplAccessGuard.Context 承载形态），
+        // 权限 checker 可审计 actor；不再传 null
+        ISecurityContext securityContext = boundUser == null ? null : new ReplAccessGuard.Context(boundUser);
+        if (checker == null || !checker.isPermitted(DEBUG_SESSION_PERMISSION, securityContext)) {
             throw new DebugProtocolException(-32000,
                     ERR_XLANG_DEBUGGER_PERMISSION_DENIED.getErrorCode(),
                     "debug session permission denied", null, (short) 4403);

@@ -54,7 +54,12 @@ public class EchartsBridge {
         if (width <= 0 || height <= 0)
             throw new NopChartEchartsException("canvas resize to non-positive size: " + width + "x" + height);
         Java2DCanvas next = new Java2DCanvas((int) width, (int) height, measurer.textMeasurer());
-        canvases.add(next);
+        // plan 2586：resize 后旧画布从登记表移除（zrender 已换绑），避免渲染期画布累积
+        int idx = canvases.indexOf(canvas);
+        if (idx >= 0)
+            canvases.set(idx, next);
+        else
+            canvases.add(next);
         return next;
     }
 

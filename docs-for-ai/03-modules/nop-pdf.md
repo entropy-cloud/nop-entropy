@@ -34,6 +34,7 @@ nop-pdf 是基于 Apache PDFBox 3.0.8 的通用 PDF 工具箱，能力覆盖三�
 | 合并（多 PDF → 一，COS 深拷贝） | ✅ | PdfDoc.merge |
 | 追加页（append） | ✅ | PdfDoc.append |
 | 拆分导出（exportPages，先校验后委托） | ✅ | PdfDoc.exportPages |
+| 页选取（selectPages/selectPageRange/selectPage，COS 深拷贝语义） | ✅ | PdfDoc（plan 2586：appendDocument 整体深拷后移除未选中页；源文档关闭后派生文档仍可保存/盖章） |
 | 盖章（文本/图片，指定页指定位置，旋转/透明度） | ✅ | PdfDoc.stampText/stampImage |
 | 水印（文字/图片，全页缺省 45°/0.25） | ✅ | PdfDoc.watermarkText/watermarkImage |
 | 追加页码（{page}/{pages} 占位符） | ✅ | PdfDoc.appendPageNumbers |

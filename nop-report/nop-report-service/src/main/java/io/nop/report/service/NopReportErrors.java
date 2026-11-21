@@ -1,12 +1,18 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.report.service;
 
-public interface NopReportErrors{
-	
+import io.nop.api.core.exceptions.ErrorCode;
+
+import static io.nop.api.core.exceptions.ErrorCode.define;
+
+public interface NopReportErrors {
+    String ARG_REPORT_PATH = "reportPath";
+
+    /**
+     * plan 2586：auth checker 未装配时 fail-closed（拒绝服务），不再静默跳过授权。
+     */
+    ErrorCode ERR_REPORT_AUTH_CHECKER_MISSING =
+            define("nop.err.report.auth-checker-missing",
+                    "No IReportAuthChecker is registered: report access check for [{reportPath}] cannot be " +
+                            "performed and the request is denied (fail-closed).",
+                    ARG_REPORT_PATH);
 }

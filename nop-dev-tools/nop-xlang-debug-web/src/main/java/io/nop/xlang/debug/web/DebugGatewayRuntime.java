@@ -260,11 +260,18 @@ public class DebugGatewayRuntime {
 
     /** 认证便捷方法：返回 userId 或 null（未登录）。NopLoginException 由调用方捕获映射 4401。 */
     public String authenticate(String debugToken) {
+        IUserContext ctx = authenticateUser(debugToken);
+        return ctx == null ? null : ctx.getUserId();
+    }
+
+    /**
+     * 认证并保留完整用户上下文（plan 2586：权限检查需携带用户身份的 SecurityContext）。
+     * NopLoginException 由调用方捕获映射 4401。
+     */
+    public IUserContext authenticateUser(String debugToken) {
         IUserContext ctx = authenticator.authenticate(debugToken);
-        if (ctx == null)
-            return null;
         // userId 为 null 视为未登录（plan 2471 审计 F2：String.valueOf 会产出 "null"
         // 字符串身份，多个无 id 用户将共享 boundUserId）
-        return ctx.getUserId();
+        return ctx == null || ctx.getUserId() == null ? null : ctx;
     }
 }

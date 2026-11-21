@@ -70,16 +70,16 @@ class EchartsEngineTest {
     }
 
     @Test
-    void configureTimeoutChangesOnlyTheTimeout() {
-        // plan 2364 D28：configureTimeout 只改全局超时，不触碰 font/pump 配置
+    void requestLevelTimeoutIsIsolatedFromGlobal() {
+        // plan 2586：请求级超时只作用于本次调用——全局默认值不被污染（并发导出互不覆盖）
         long original = engine.getRenderTimeoutMs();
-        try {
-            EchartsEngine.configureTimeout(1234);
-            assertEquals(1234, EchartsEngine.get().getRenderTimeoutMs());
-        } finally {
-            EchartsEngine.configureTimeout(original);
-        }
-        assertEquals(original, EchartsEngine.get().getRenderTimeoutMs());
+        assertEquals(original, engine.getRenderTimeoutMs(),
+                "global default timeout must stay untouched by request-level overloads");
+        // 请求级超时为 0/负数 → 回退引擎默认，正常渲染成功
+        BufferedImage image = engine.renderCanvas(BAR_OPTION, 300, 200, 0).image();
+        assertEquals(300, image.getWidth());
+        assertEquals(original, engine.getRenderTimeoutMs(),
+                "global default timeout must not be mutated by request-level render");
     }
 
     @Test
@@ -98,6 +98,39 @@ class EchartsEngineTest {
         BufferedImage image = engine.renderCanvas(BAR_OPTION, 300, 200).image();
         assertEquals(300, image.getWidth());
         assertNotEquals(0, image.getRGB(150, 100));
+    }
+
+    @Test
+    void jsonAsJsExpressionEscapesControlChars() {
+        // plan 2586 钉：控制字符统一 unicode 转义兜底（转义覆盖不全的字面量注入面）
+        String withCtrl = "{\"a\":\"x" + '\u0001' + "y\"}";
+        String expr = EchartsEngine.jsonAsJsExpression(withCtrl);
+        assertTrue(expr.contains("\\\\u0001"),
+                "control char must be JSON-level escaped, got: " + expr);
+        // 渲染成功 = 转义后的字面量在 JS 侧合法
+        BufferedImage image = engine.renderCanvas(withCtrl, 300, 200).image();
+        assertEquals(300, image.getWidth());
+    }
+
+    @Test
+    void requestLevelTimeoutInterruptsInfiniteLoopOnly() {
+        // plan 2586 钉：请求级超时打断本次渲染；引擎与后续渲染不受污染
+        NopChartEchartsException ex = assertThrows(NopChartEchartsException.class,
+                () -> engine.renderCanvasSeam(BAR_OPTION, 300, 200, "while(true){}", false, 150));
+        assertTrue(ex.getMessage().contains("timed out"), "got: " + ex.getMessage());
+        BufferedImage image = engine.renderCanvas(BAR_OPTION, 300, 200).image();
+        assertEquals(300, image.getWidth());
+    }
+
+    @Test
+    void shutdownClosesAllContextsAndEngineRecovers() {
+        // plan 2586 钉：shutdown 后无 Context 残留；单例可自愈（调度线程重建）继续渲染
+        engine.renderCanvas(BAR_OPTION, 300, 200);
+        assertTrue(engine.liveContextCountForTest() >= 1, "render must register its context");
+        engine.shutdown();
+        assertEquals(0, engine.liveContextCountForTest(), "no Context residue after shutdown");
+        BufferedImage image = engine.renderCanvas(BAR_OPTION, 300, 200).image();
+        assertEquals(300, image.getWidth());
     }
 
     @Test

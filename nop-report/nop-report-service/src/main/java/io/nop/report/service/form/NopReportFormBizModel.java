@@ -71,8 +71,9 @@ public class NopReportFormBizModel {
                                                            @Name("paramName") String paramName,
                                                            @Name("dependsValues") Map<String, Object> dependsValues) {
         List<XptParamModel> params = requireParams(reportPath);
+        // null-safe 匹配（plan 2586：paramName / param.getName() 任一为 null 不再 NPE）
         XptParamModel param = params.stream()
-                .filter(p -> p.getName().equals(paramName))
+                .filter(p -> java.util.Objects.equals(p.getName(), paramName))
                 .findFirst()
                 .orElseThrow(() -> new NopException(ReportParamErrors.ERR_REPORT_PARAM_UNKNOWN)
                         .param(ReportParamErrors.ARG_PARAM_NAME, paramName));
@@ -86,8 +87,10 @@ public class NopReportFormBizModel {
         if (param.getOptionsSql() != null) {
             if (param.getQuerySpace() != null) {
                 IReportAuthChecker authChecker = IReportAuthChecker.get();
-                if (authChecker != null)
-                    authChecker.checkDataSourceAccess(param.getQuerySpace());
+                if (authChecker == null)
+                    throw new NopException(io.nop.report.service.NopReportErrors.ERR_REPORT_AUTH_CHECKER_MISSING)
+                            .param(io.nop.report.service.NopReportErrors.ARG_REPORT_PATH, reportPath);
+                authChecker.checkDataSourceAccess(param.getQuerySpace());
             }
             return sqlOptions(param);
         }
@@ -96,10 +99,13 @@ public class NopReportFormBizModel {
     }
 
     private List<XptParamModel> requireParams(String reportPath) {
-        // 入口边界授权（WI1 语义修订：引擎内部不校验，由对外 action 显式调用）
+        // 入口边界授权（WI1 语义修订：引擎内部不校验，由对外 action 显式调用）；
+        // plan 2586：checker 缺失 fail-closed，不得静默跳过授权
         IReportAuthChecker authChecker = IReportAuthChecker.get();
-        if (authChecker != null)
-            authChecker.checkReportAccess(reportPath);
+        if (authChecker == null)
+            throw new NopException(io.nop.report.service.NopReportErrors.ERR_REPORT_AUTH_CHECKER_MISSING)
+                    .param(io.nop.report.service.NopReportErrors.ARG_REPORT_PATH, reportPath);
+        authChecker.checkReportAccess(reportPath);
 
         ExcelWorkbook workbook = reportEngine.getXptModel(reportPath);
         XptWorkbookModel model = workbook.getModel();

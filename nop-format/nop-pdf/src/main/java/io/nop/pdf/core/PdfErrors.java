@@ -36,4 +36,9 @@ public interface PdfErrors {
     ErrorCode ERR_PDF_GARBLED_TEXT = ErrorCode.define("nop.err.pdf.garbled-text",
             "第{page}页乱码字符(U+FFFD)数超过阈值:fffdCount={fffdCount}。PDF可能缺少正确的ToUnicode映射",
             ARG_PAGE, ARG_FFFD_COUNT);
+
+    ErrorCode ERR_PDF_PAGE_EXTRACT_IO = ErrorCode.define("nop.err.pdf.page-extract-io",
+            "Failed to extract text of page {page} due to IO error: {cause}. " +
+                    "This is not a scanned-page condition and must not be treated as one.",
+            ARG_PAGE, "cause");
 }

@@ -223,6 +223,72 @@ public class TestReportResultCache extends JunitAutoTestCase {
         }
     }
 
+    /**
+     * 回归钉（plan 2586）：开关关闭时文件必须落在临时目录，缓存目录不得新增任何文件。
+     */
+    @Test
+    public void testDisabledCacheWritesTempDirNotCacheDir() {
+        init();
+        String cacheDirPath = NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get();
+        java.io.File cacheDir = new java.io.File(cacheDirPath);
+        java.util.Set<String> before = listFiles(cacheDir);
+
+        AppConfig.getConfigProvider().updateConfigValue(NopReportConfigs.CFG_REPORT_RESULT_CACHE_ENABLED, false);
+        try {
+            NopReportResultFile record = resultCache.getOrGenerate(TEMPLATE, "html", Map.of(), null);
+            java.io.File file = NopReportResultCache.resolveRecordFile(record);
+            assertTrue(file.isAbsolute(), "disabled cache record must carry absolute temp path");
+            assertTrue(file.exists(), "generated file must exist");
+            assertTrue(!file.getAbsolutePath().startsWith(cacheDir.getAbsolutePath()),
+                    "file must not be in cache dir");
+            assertEquals(before, listFiles(cacheDir), "cache dir must not gain new files");
+            assertTrue(renderCount.get() >= 1);
+        } finally {
+            AppConfig.getConfigProvider().updateConfigValue(NopReportConfigs.CFG_REPORT_RESULT_CACHE_ENABLED, true);
+        }
+    }
+
+    java.util.Set<String> listFiles(java.io.File dir) {
+        java.util.Set<String> ret = new java.util.HashSet<>();
+        File[] files = dir.listFiles();
+        if (files != null)
+            for (File f : files)
+                ret.add(f.getName());
+        return ret;
+    }
+
+    /**
+     * 回归钉（plan 2586）：同 key 并发下载必须去重——只渲染一次、落一条记录、最终文件完整。
+     */
+    @Test
+    public void testConcurrentGenerateDedup() throws Exception {
+        init();
+        int threads = 6;
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+        try {
+            java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+            java.util.List<java.util.concurrent.Future<NopReportResultFile>> futures = new java.util.ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return resultCache.getOrGenerate(TEMPLATE, "html", Map.of("cc", "1"), null);
+                }));
+            }
+            start.countDown();
+            java.util.Set<String> sids = new java.util.HashSet<>();
+            for (java.util.concurrent.Future<NopReportResultFile> f : futures) {
+                NopReportResultFile record = f.get(30, java.util.concurrent.TimeUnit.SECONDS);
+                assertEquals(NopReportResultCache.STATUS_DONE, record.getStatus());
+                sids.add(record.getSid());
+            }
+            assertEquals(1, sids.size(), "concurrent same-key calls must share one record");
+            assertEquals(1, renderCount.get(), "concurrent same-key calls must render once");
+            assertEquals(1, countRecords());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
     @Test
     public void testAsyncGenerateAndPoll() {
         init();

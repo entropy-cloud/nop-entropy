@@ -24,10 +24,16 @@ import io.nop.report.dao.entity.NopReportResultFile;
 import jakarta.inject.Inject;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 报表结果文件缓存（见 ai-dev/design/nop-report/result-cache.md）。
@@ -50,6 +56,11 @@ public class NopReportResultCache {
 
     @Inject
     IJdbcTemplate jdbcTemplate;
+
+    /**
+     * 进程内同 key 并发去重锁（单 JVM 语义；多实例去重需 DB 唯一约束，超出本轮范围）。
+     */
+    private final ConcurrentHashMap<String, Object> keyLocks = new ConcurrentHashMap<>();
 
     /**
      * 测试与 IoC 用：替换引擎（spy 计数渲染次数）。
@@ -86,11 +97,15 @@ public class NopReportResultCache {
         String cacheKey = cacheKey(renderType, params, bizDate);
         String normalizedParams = JsonTool.stringify(params == null ? Map.of() : params);
 
-        NopReportResultFile cached = findDone(rptId, cacheKey);
-        if (cached != null)
-            return cached;
+        // 进程内锁：同 key 并发下载只生成一次（锁内二次查重）
+        Object lock = keyLocks.computeIfAbsent(rptId + ":" + cacheKey, k -> new Object());
+        synchronized (lock) {
+            NopReportResultFile cached = findDone(rptId, cacheKey);
+            if (cached != null)
+                return cached;
 
-        return generate(reportPath, rptId, renderType, cacheKey, normalizedParams, bizDate, params);
+            return generate(reportPath, rptId, renderType, cacheKey, normalizedParams, bizDate, params);
+        }
     }
 
     /**
@@ -185,15 +200,65 @@ public class NopReportResultCache {
         ExcelWorkbook workbook = reportEngine.getXptModel(reportPath);
         ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, renderType);
 
-        java.io.File dir = new java.io.File(NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get());
-        if (!dir.exists())
-            dir.mkdirs();
+        java.io.File dir = targetDir();
         java.io.File file = new java.io.File(dir, record.getFilePath());
-        FileResource resource = new FileResource(file);
-        output.generateToResource(resource, scopeWithParams(params));
+        if (!file.getParentFile().exists())
+            file.getParentFile().mkdirs();
+        // 临时文件渲染 + 原子改名：并发/中断不会把半成品留在最终路径
+        java.io.File tmp = new java.io.File(file.getParentFile(),
+                file.getName() + "." + UUID.randomUUID() + ".tmp");
+        try {
+            FileResource resource = new FileResource(tmp);
+            output.generateToResource(resource, scopeWithParams(params));
+            renameFile(tmp, file);
+        } finally {
+            if (tmp.exists())
+                tmp.delete();
+        }
 
+        if (!cacheEnabled()) {
+            // 开关关闭：文件落在临时目录且记录不入库，filePath 记实际绝对路径供 download 定位
+            record.setFilePath(file.getAbsolutePath());
+        }
         record.setFileName(file.getName());
         record.setFileLength((long) file.length());
+    }
+
+    /**
+     * 开关开启 = 缓存目录；关闭 = 系统临时目录（不向缓存目录产生孤儿文件）。
+     */
+    java.io.File targetDir() {
+        String path = cacheEnabled() ? NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get()
+                : System.getProperty("java.io.tmpdir") + "/nop-report-result";
+        java.io.File dir = new java.io.File(path);
+        if (!dir.exists())
+            dir.mkdirs();
+        return dir;
+    }
+
+    /**
+     * 解析记录文件：filePath 为绝对路径（缓存关闭时的临时目录产物）直接用；否则按缓存目录拼接。
+     */
+    public static java.io.File resolveRecordFile(NopReportResultFile record) {
+        java.io.File file = new java.io.File(record.getFilePath());
+        if (!file.isAbsolute())
+            file = new java.io.File(NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get(), record.getFilePath());
+        return file;
+    }
+
+    private static void renameFile(java.io.File tmp, java.io.File file) {
+        try {
+            Files.move(tmp.toPath(), file.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            try {
+                Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                throw NopException.adapt(ex);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
     }
 
     private io.nop.core.lang.eval.IEvalScope scopeWithParams(Map<String, Object> params) {
@@ -212,8 +277,7 @@ public class NopReportResultCache {
         List<NopReportResultFile> list = daoProvider.daoFor(NopReportResultFile.class).findAllByExample(probe);
         for (NopReportResultFile record : list) {
             if (!StringHelper.isEmpty(record.getFilePath())) {
-                IResource resource = new FileResource(new java.io.File(
-                        NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get(), record.getFilePath()));
+                IResource resource = new FileResource(resolveRecordFile(record));
                 if (resource.exists())
                     resource.delete();
             }

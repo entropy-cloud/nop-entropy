@@ -98,24 +98,40 @@ public class NopReportDataSecurityProvider implements IReportDataSecurityProvide
         List<MaskRule> maskRules = new ArrayList<>();
         Object rulesNode = root == null ? null : root.get("rules");
         if (rulesNode instanceof List) {
+            int index = 0;
             for (Object item : (List<Object>) rulesNode) {
                 Map<String, Object> map = (Map<String, Object>) item;
                 RowRule r = new RowRule();
                 r.reportPathPrefix = str(map.get("reportPathPrefix"));
                 r.dsName = str(map.get("dsName"));
                 r.rowCondition = str(map.get("rowCondition"));
+                if (StringHelper.isEmpty(r.rowCondition))
+                    throw new NopException(ReportDataSecErrors.ERR_REPORT_DATA_SEC_RULE_FIELD_REQUIRED)
+                            .param(ReportDataSecErrors.ARG_RULE_INDEX, index)
+                            .param(ReportDataSecErrors.ARG_FIELD_NAME, "rowCondition");
                 rowRules.add(r);
+                index++;
             }
         }
         Object masksNode = root == null ? null : root.get("masks");
         if (masksNode instanceof List) {
+            int index = 0;
             for (Object item : (List<Object>) masksNode) {
                 Map<String, Object> map = (Map<String, Object>) item;
                 MaskRule m = new MaskRule();
                 m.dsName = str(map.get("dsName"));
                 m.field = str(map.get("field"));
                 m.type = str(map.get("type"));
+                if (StringHelper.isEmpty(m.field))
+                    throw new NopException(ReportDataSecErrors.ERR_REPORT_DATA_SEC_RULE_FIELD_REQUIRED)
+                            .param(ReportDataSecErrors.ARG_RULE_INDEX, index)
+                            .param(ReportDataSecErrors.ARG_FIELD_NAME, "field");
+                if (StringHelper.isEmpty(m.type))
+                    throw new NopException(ReportDataSecErrors.ERR_REPORT_DATA_SEC_RULE_FIELD_REQUIRED)
+                            .param(ReportDataSecErrors.ARG_RULE_INDEX, index)
+                            .param(ReportDataSecErrors.ARG_FIELD_NAME, "type");
                 maskRules.add(m);
+                index++;
             }
         }
         return new DataSecRules(rowRules, maskRules);
