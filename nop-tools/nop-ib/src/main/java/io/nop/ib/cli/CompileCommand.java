@@ -195,10 +195,14 @@ public final class CompileCommand {
         String human = json ? JsonOut.write(feedback)
                 : "compiled: " + outcome.getCompiledModules();
         if (!outcome.isSuccess()) {
-            // after-compile tasks are pointless on a red compile; report and fail
+            // after-compile tasks are pointless on a red compile; report and fail.
+            // diagnostics must be emitted on the failure path too — the success-path
+            // block below is behind this early return, and a red compile without its
+            // javac diagnostics reads as a silent exit 1 (coblab-rpg 2026-11-22 defect).
             feedback.put("tasks", taskRunner.getRecord());
             out.println(human);
             log.line(human);
+            emitDiagnostics(executor, json, err, log);
             return Commands.EXIT_FAILED;
         }
         taskExit = runTriggerTasks(engine, model, plan.getCompileModules(),
@@ -212,6 +216,13 @@ public final class CompileCommand {
         // javac diagnostics + the run summary go to the run log in BOTH modes:
         // a compile failure must be fully readable after the process is gone
         log.line(human);
+        emitDiagnostics(executor, json, err, log);
+        return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+    }
+
+    /** javac diagnostics to stderr (human mode) and the run log (both modes). */
+    private static void emitDiagnostics(IncrementalCompileExecutor executor, boolean json,
+                                        PrintWriter err, RunLog log) {
         executor.getDiagnostics().forEach((m, d) -> {
             if (!d.isEmpty()) {
                 String block = "--- " + m + " ---\n" + String.join("\n", d);
@@ -220,7 +231,6 @@ public final class CompileCommand {
                 log.line(block);
             }
         });
-        return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
     }
 
     /**
