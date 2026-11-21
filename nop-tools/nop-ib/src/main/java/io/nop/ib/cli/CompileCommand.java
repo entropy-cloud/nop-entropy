@@ -69,7 +69,10 @@ public final class CompileCommand {
                     return Commands.EXIT_USAGE;
                 }
                 List<Path> sourceDirs = new ArrayList<>();
-                sourceDirs.add(engine.getRepoRoot().resolve(module.getSourceDir()));
+                // aggregator/packaging=pom modules may declare no source roots at
+                // all — skip silently, they simply contribute no fast-path files
+                if (module.getSourceDir() != null)
+                    sourceDirs.add(engine.getRepoRoot().resolve(module.getSourceDir()));
                 // wave 11 audit fix: test sources must be in scope too — a stale
                 // target/test-classes silently served old bytecode (fake green)
                 if (module.getTestSourceDir() != null)
@@ -91,16 +94,26 @@ public final class CompileCommand {
                         }
                     }
                 }
-                if (changed.isEmpty()) {
-                    // module with no main/test sources: nothing to fast-path compile
-                    return Commands.EXIT_OK;
-                }
+            }
+            // plan 2583: module-with-no-sources must NOT short-circuit the whole
+            // -pl enumeration — the old in-loop early exit made
+            // `-pl <no-source-parent>,<has-source-child>` return OK having
+            // silently skipped the child's compile (fake green). Judge once,
+            // after the full enumeration.
+            if (changed.isEmpty()) {
+                // no module in scope has main/test sources: nothing to fast-path compile
+                return Commands.EXIT_OK;
             }
         } else {
             changed = GitChanges.changedPaths(engine.getRepoRoot());
         }
 
         PlanResult plan = engine.planner().plan(changed, engine.stalenessReason(), allowPartial);
+        // plan 2588: publish the compile selection size for job progress polls
+        io.nop.ib.service.ProgressRegistry.update(engine.getRepoRoot(), Map.of(
+                "stage", "compile",
+                "compileFilesTotal", plan.getCompileFiles().size(),
+                "compileModulesTotal", plan.getCompileModules().size()));
         Map<String, Object> feedback = new LinkedHashMap<>();
         feedback.put("ok", true);
 
@@ -118,7 +131,7 @@ public final class CompileCommand {
             StringBuilder mout = new StringBuilder();
             StringBuilder merr = new StringBuilder();
             int code = fallback.compileModules(plan.getCompileModules().isEmpty()
-                            ? List.of(model.moduleForPath(changed.get(0)).getArtifactId())
+                            ? List.of(owningModuleOf(engine, model, changed.get(0)))
                             : plan.getCompileModules(), mout, merr);
             feedback.put("fallback", Map.of("required", true,
                     "reason", plan.getFallbackReason(), "delegated", true, "exit", code));
@@ -155,6 +168,12 @@ public final class CompileCommand {
         IncrementalCompileExecutor executor = new IncrementalCompileExecutor(
                 model, engine.getUnitStore());
         IncrementalCompileExecutor.CompileOutcome outcome = executor.compile(plan);
+        // plan 2583 (audit B3 fix): the executor persisted refreshed unit indexes
+        // for every compiled module — drop the engine's in-process index cache so
+        // the SAME invocation's later stages (test selection, --cache fingerprints)
+        // and any follow-up request read the fresh indexes, never the pre-compile
+        // snapshot (new test classes were invisible to the selection set).
+        engine.refreshIndexesIfModelChanged();
         Map<String, Object> fallbackInfo = new LinkedHashMap<>();
         fallbackInfo.put("required", false);
         fallbackInfo.put("reason", null);
@@ -195,8 +214,21 @@ public final class CompileCommand {
     }
 
     /**
-     * Runs the declared tasks of {@code trigger} for the modules in scope (design
-     * 08 §三). First failure delegates the whole build to Maven with the task
+     * plan 2583: explicit owner resolution for the Maven delegation of an
+     * out-of-scope changed path — {@code moduleForPath} returning null used to
+     * surface as a bare NPE; fail loudly with a named-path message instead.
+     */
+    static String owningModuleOf(IbEngine engine, IbModel model, String repoRelPath) {
+        IbModule module = model.moduleForPath(repoRelPath);
+        if (module == null)
+            throw new io.nop.ib.NopIbException(
+                    "cannot map changed path to a reactor module: " + repoRelPath
+                            + " (repo root " + engine.getRepoRoot() + ")");
+        return module.getArtifactId();
+    }
+
+    /**
+     * Runs the declared tasks of {@code trigger} for the modules in scope (design     * 08 §三). First failure delegates the whole build to Maven with the task
      * failure as the explicit reason (IB-T6) — the record (executed/skipped/failed
      * entries) stays visible in the feedback JSON either way.
      */

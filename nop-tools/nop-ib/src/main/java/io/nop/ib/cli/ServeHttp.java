@@ -30,6 +30,18 @@ import java.util.concurrent.Executors;
 public final class ServeHttp {
     public static final int DEFAULT_PORT = 8188;
     public static final int HANDLER_THREADS = 16;
+    /** plan 2588: dedicated long-poll pool; read endpoints stay on the main pool. */
+    public static final int LONG_POLL_THREADS = 4;
+    /**
+     * plan 2588 (user adjudication 2026-11-21): waitMs is minute-level by
+     * default — absent = block up to 1 minute (AI tool calls default to a
+     * 120s read timeout, so the server must return well inside it); the upper
+     * clamp is 5 minutes, covering a typical check/compile in one blocking
+     * call. waitMs=0 stays a pure snapshot. logTail clamp.
+     */
+    public static final long MAX_WAIT_MS = 300_000L;
+    public static final long DEFAULT_WAIT_MS = 60_000L;
+    public static final int MAX_LOG_TAIL = 500;
 
     private ServeHttp() {
     }
@@ -43,11 +55,36 @@ public final class ServeHttp {
                 return t;
             });
             server.setExecutor(pool);
+            // plan 2588: long polls wait OUTSIDE the main handler pool — a fixed
+            // 4-thread pool bounded by a permit, so a full long-poll pool makes
+            // /v1/job return an immediate snapshot instead of queueing, and the
+            // read endpoints (health/jobs/queue) can never be starved
+            ExecutorService longPoll = Executors.newFixedThreadPool(LONG_POLL_THREADS, r -> {
+                Thread t = new Thread(r, "nop-ib-longpoll");
+                t.setDaemon(true);
+                return t;
+            });
+            java.util.concurrent.Semaphore longPollPermits = new java.util.concurrent.Semaphore(LONG_POLL_THREADS);
             server.createContext("/v1/run", ex -> safe(ex, err, () -> handleRun(core, ex)));
             server.createContext("/v1/jobs", ex -> safe(ex, err, () -> handleJobs(core, ex)));
             server.createContext("/v1/queue", ex -> safe(ex, err, () -> handleQueue(core, ex)));
             server.createContext("/v1/health", ex -> safe(ex, err, () -> handleHealth(core, ex)));
-            server.createContext("/v1/job", ex -> safe(ex, err, () -> handleJob(core, ex)));
+            server.createContext("/v1/job", ex -> {
+                // long-poll hands the exchange to its own pool: this handler
+                // returns before the response is written, so closing stays with
+                // whoever actually replied
+                try {
+                    handleJob(core, ex, longPoll, longPollPermits);
+                } catch (Exception e) {
+                    err.println("http handler error: " + e);
+                    try {
+                        reply(ex, 500, Map.of("error", String.valueOf(e)));
+                    } catch (IOException ignored) {
+                        // headers already sent — nothing left to reply with
+                    }
+                    ex.close();
+                }
+            });
             server.createContext("/v1/help", ex -> safe(ex, err, () -> handleHelp(ex)));
             server.start();
             Map<String, Object> hello = new LinkedHashMap<>();
@@ -99,13 +136,24 @@ public final class ServeHttp {
                 "body", Map.of("projectDir", "repo root | module dir | symlink (normalized to one lane)",
                         "cmd", "status|plan|compile|test|check|model|clean|mvn",
                         "args", "CLI arg list, e.g. [\"--paths\",\"src/Foo.java\",\"--json\"]",
-                        "wait", "true (blocking) | false (returns job id)")));
+                        "wait", "true (blocking) | false (returns job id)",
+                        "clientRequestId", "optional idempotency key; a retry with the same "
+                                + "(projectDir, clientRequestId) returns the existing job "
+                                + "with replayed:true instead of queueing again")));
         m.put("endpoints", Map.of(
-                "GET /v1/job/{id}", "job result: {state, exit, payload, stderr}",
-                "GET /v1/jobs?limit=N", "recent job summaries (exit/durationMs)",
+                "GET /v1/job/{id}", "job result: {state, exit, payload, stderr, logPath}; "
+                        + "optional waitMs=N (absent=60s default; 0=pure snapshot; clamp 300000; "
+                        + "long poll: returns HTTP 200 intermediate "
+                        + "{id,state,phase:queued|running,queueAhead,elapsedMs,progress?,logPath,"
+                        + "waitedMs} — never an error; loop until terminal) and logTail=N (0..500 "
+                        + "lines of the job log)",
+                "GET /v1/jobs?limit=N&state=S", "recent job summaries (exit/durationMs); "
+                        + "state filters queued|running|done|failed|cancelled",
                 "GET /v1/queue", "per-project lanes: {root, depth, runningCmd, pending}",
                 "GET /v1/health", "service vitals",
-                "DELETE /v1/job/{id}", "cancel a QUEUED job (running jobs cannot cancel)"));
+                "DELETE /v1/job/{id}", "cancel a QUEUED or RUNNING job — running cancel kills "
+                        + "the registered child process tree (descendants first) and marks the "
+                        + "job cancelled (exit=-1); terminal jobs return 409 already-terminal"));
         m.put("exitCodes", Map.of("0", "ok", "1", "build/test failed", "3", "usage/config error",
                 "6", "partial", "75", "fallback Maven process timeout"));
         m.put("semantics", List.of(
@@ -131,7 +179,18 @@ public final class ServeHttp {
             reply(ex, 405, Map.of("error", "POST only"));
             return;
         }
-        String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        String body;
+        try {
+            // plan 2583: read-side cap — readAllBytes on an unbounded body let a
+            // single request OOM the service before any size check ran
+            body = readBodyLimited(ex, ServiceCore.MAX_PAYLOAD_BYTES);
+        } catch (IOException e) {
+            // the cap error text IS the 413 diagnostic payload (no logging layer
+            // here) — full trace goes to the handler-err stream for server logs
+            err.println("http body-cap rejection: " + e);
+            reply(ex, 413, Map.of("error", String.valueOf(e)));
+            return;
+        }
         Map<String, Object> req;
         try {
             req = JsonIn.readAsMap(body);
@@ -151,10 +210,13 @@ public final class ServeHttp {
             for (Object o : l)
                 args.add(String.valueOf(o));
         boolean wait = !Boolean.FALSE.equals(req.get("wait"));
+        // plan 2588: optional idempotency key — AI-side timeout retries with the
+        // same key hit the existing job instead of queueing a duplicate build
+        String clientRequestId = str(req.get("clientRequestId"));
 
         BuildJob job;
         try {
-            job = core.submit(projectDir, cmd, args, wait);
+            job = core.submit(projectDir, cmd, args, wait, clientRequestId);
         } catch (IllegalArgumentException e) {
             reply(ex, 400, Map.of("error", String.valueOf(e)));
             return;
@@ -164,27 +226,148 @@ public final class ServeHttp {
         }
         if (wait)
             core.await(job);
-        reply(ex, 200, jobSnapshot(job));
+        Map<String, Object> snap = jobSnapshot(job);
+        if (job.replayed)
+            snap.put("replayed", true);
+        reply(ex, 200, snap);
     }
 
+    /**
+     * plan 2583: bounded body read — reads at most {@code limit + 1} bytes and
+     * rejects with an explicit error when the limit is exceeded (HTTP caller
+     * gets 413 from the handleRun guard).
+     */
+    static String readBodyLimited(HttpExchange ex, int limit) throws IOException {
+        byte[] bytes = ex.getRequestBody().readNBytes(limit + 1);
+        if (bytes.length > limit)
+            throw new IOException("request body exceeds the "
+                    + limit + " byte payload limit");
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    /** Overload kept for the stdio/test surface: no long polling. */
     static void handleJob(ServiceCore core, HttpExchange ex) throws IOException {
+        handleJob(core, ex, null, null);
+    }
+
+    /**
+     * plan 2588: GET /v1/job/{id}?waitMs=N&logTail=N — long poll with an
+     * explicit intermediate state (design 09 §2) or a pure snapshot when
+     * waitMs=0 is a pure snapshot; absent waits 60s; DELETE cancels QUEUED and RUNNING jobs.
+     */
+    static void handleJob(ServiceCore core, HttpExchange ex,
+                          java.util.concurrent.ExecutorService longPoll,
+                          java.util.concurrent.Semaphore longPollPermits) throws IOException {
         String path = ex.getRequestURI().getPath(); // /v1/job/{id}
         String id = path.substring(path.lastIndexOf('/') + 1);
         BuildJob job = core.job(id);
         if (job == null) {
-            reply(ex, 404, Map.of("error", "unknown job: " + id));
+            replyAndClose(ex, 404, Map.of("error", "unknown job: " + id));
             return;
         }
-        switch (ex.getRequestMethod().toUpperCase(java.util.Locale.ROOT)) {
-            case "GET" -> reply(ex, 200, jobSnapshot(job));
-            case "DELETE" -> {
-                String result = core.cancel(id);
-                if (!"cancelled".equals(result))
-                    reply(ex, 409, Map.of("result", result));
-                else
-                    reply(ex, 200, Map.of("result", "cancelled", "id", id));
+        String method = ex.getRequestMethod().toUpperCase(java.util.Locale.ROOT);
+        if ("DELETE".equals(method)) {
+            String result = core.cancel(id);
+            if (!"cancelled".equals(result))
+                replyAndClose(ex, 409, Map.of("result", result));
+            else
+                replyAndClose(ex, 200, Map.of("result", "cancelled", "state", "cancelled", "id", id));
+            return;
+        }
+        if (!"GET".equals(method)) {
+            replyAndClose(ex, 405, Map.of("error", "GET or DELETE only"));
+            return;
+        }
+        // plan 2588 (user adjudication): absent waitMs = DEFAULT_WAIT_MS (1 min);
+        // explicit waitMs=0 stays a pure snapshot; upper clamp 5 minutes
+        long waitMs = DEFAULT_WAIT_MS;
+        int logTail = 0;
+        String query = ex.getRequestURI().getRawQuery();
+        if (query != null) {
+            for (String pair : query.split("&")) {
+                if (pair.startsWith("waitMs=")) {
+                    try {
+                        waitMs = Long.parseLong(pair.substring("waitMs=".length()));
+                    } catch (NumberFormatException e) {
+                        replyAndClose(ex, 400, Map.of("error", "waitMs must be an integer"));
+                        return;
+                    }
+                } else if (pair.startsWith("logTail=")) {
+                    try {
+                        logTail = Integer.parseInt(pair.substring("logTail=".length()));
+                    } catch (NumberFormatException e) {
+                        replyAndClose(ex, 400, Map.of("error", "logTail must be an integer"));
+                        return;
+                    }
+                } else if (!pair.isEmpty()) {
+                    // closure gate: unknown query params are explicit 400s, never ignored
+                    replyAndClose(ex, 400, Map.of("error", "unsupported query parameter: "
+                            + pair + " (supported: waitMs, logTail)"));
+                    return;
+                }
             }
-            default -> reply(ex, 405, Map.of("error", "GET or DELETE only"));
+        }
+        waitMs = Math.max(0, Math.min(waitMs, MAX_WAIT_MS));
+        logTail = Math.max(0, Math.min(logTail, MAX_LOG_TAIL));
+        final long fWaitMs = waitMs;
+        final int fLogTail = logTail;
+
+        if (fWaitMs <= 0 || job.isTerminal()) {
+            // pure snapshot (waitMs=0 or a finished job)
+            replyAndClose(ex, 200, snapshotWithTail(job, fLogTail));
+            return;
+        }
+        // long poll: needs the dedicated pool; without it fall back to snapshot
+        if (longPoll == null || longPollPermits == null) {
+            replyAndClose(ex, 200, core.pendingSnapshot(job, 0));
+            return;
+        }
+        if (!longPollPermits.tryAcquire()) {
+            // pool saturated: return the immediate snapshot, never queue
+            replyAndClose(ex, 200, core.pendingSnapshot(job, 0));
+            return;
+        }
+        longPoll.execute(() -> {
+            long t0 = System.currentTimeMillis();
+            try {
+                core.waitForChange(job, fWaitMs);
+                long waited = System.currentTimeMillis() - t0;
+                if (job.isTerminal())
+                    replyAndClose(ex, 200, snapshotWithTail(job, fLogTail));
+                else
+                    replyAndClose(ex, 200, core.pendingSnapshot(job, waited));
+            } catch (Exception e) {
+                try {
+                    reply(ex, 500, Map.of("error", String.valueOf(e)));
+                } catch (IOException ignored) {
+                    // client gone
+                }
+                ex.close();
+            } finally {
+                longPollPermits.release();
+            }
+        });
+    }
+
+    /** terminal snapshot plus the requested log tail (≤ {@link #MAX_LOG_TAIL}). */
+    private static Map<String, Object> snapshotWithTail(BuildJob job, int logTail) {
+        Map<String, Object> snap = jobSnapshot(job);
+        if (logTail > 0 && job.logFile != null) {
+            String tail = logTail(job.logFile, logTail);
+            if (tail != null)
+                snap.put("logTail", tail);
+        }
+        return snap;
+    }
+
+    /** last N lines of the job log, or null when the file is absent/unreadable. */
+    static String logTail(java.nio.file.Path file, int lines) {
+        try {
+            List<String> all = java.nio.file.Files.readAllLines(file, StandardCharsets.UTF_8);
+            int from = Math.max(0, all.size() - lines);
+            return String.join("\n", all.subList(from, all.size()));
+        } catch (IOException e) {
+            return null;
         }
     }
 
@@ -197,16 +380,18 @@ public final class ServeHttp {
         reply(ex, 200, Map.of("lanes", core.queueLanes()));
     }
 
-    /** wave 11 observability: GET /v1/jobs?limit=N — recent job summaries. */
+    /** wave 11 observability: GET /v1/jobs?limit=N&state=S — recent job summaries. */
     static void handleJobs(ServiceCore core, HttpExchange ex) throws IOException {
         if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
             reply(ex, 405, Map.of("error", "GET only"));
             return;
         }
         int limit = ServiceCore.DEFAULT_JOBS_LIMIT;
+        String state = null;
+        java.util.Set<String> allowed = java.util.Set.of("queued", "running", "done", "failed", "cancelled");
         String query = ex.getRequestURI().getRawQuery();
         if (query != null)
-            for (String pair : query.split("&"))
+            for (String pair : query.split("&")) {
                 if (pair.startsWith("limit=")) {
                     try {
                         limit = Integer.parseInt(pair.substring("limit=".length()));
@@ -214,8 +399,20 @@ public final class ServeHttp {
                         reply(ex, 400, Map.of("error", "limit must be an integer"));
                         return;
                     }
+                } else if (pair.startsWith("state=")) {
+                    state = pair.substring("state=".length());
+                    if (!allowed.contains(state)) {
+                        reply(ex, 400, Map.of("error",
+                                "state must be one of " + allowed));
+                        return;
+                    }
+                } else if (!pair.isEmpty()) {
+                    reply(ex, 400, Map.of("error", "unsupported query parameter: "
+                            + pair + " (supported: limit, state)"));
+                    return;
                 }
-        reply(ex, 200, Map.of("jobs", core.recentJobs(limit)));
+            }
+        reply(ex, 200, Map.of("jobs", core.recentJobs(limit, state)));
     }
 
     static void handleHealth(ServiceCore core, HttpExchange ex) throws IOException {
@@ -268,5 +465,11 @@ public final class ServeHttp {
         try (OutputStream os = ex.getResponseBody()) {
             os.write(bytes);
         }
+    }
+
+    /** reply + close for /v1/job, whose handler owns the exchange lifecycle. */
+    private static void replyAndClose(HttpExchange ex, int code, Map<String, Object> body) throws IOException {
+        reply(ex, code, body);
+        ex.close();
     }
 }

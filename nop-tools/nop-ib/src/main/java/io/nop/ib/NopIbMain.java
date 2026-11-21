@@ -62,6 +62,17 @@ public class NopIbMain {
      */
     public static int run(String[] args, IbEngine injectedEngine, java.nio.file.Path repoRoot,
                           PrintStream out, PrintStream err) {
+        return run(args, injectedEngine, repoRoot, out, err, 0);
+    }
+
+    /**
+     * plan 2583: service entry carrying the per-job test worker budget override
+     * as an explicit parameter (design 07 §2.3). The old static
+     * {@code setWorkerBudgetOverride} was overwritten by concurrent service
+     * jobs; the value now travels with the invocation. CLI callers pass 0.
+     */
+    public static int run(String[] args, IbEngine injectedEngine, java.nio.file.Path repoRoot,
+                          PrintStream out, PrintStream err, int testWorkerBudgetOverride) {
         if (args.length == 0) {
             usage(err);
             return 3;
@@ -182,7 +193,7 @@ public class NopIbMain {
                 case "check":
                     return TestCommand.test(engine, positional, plModules, explicitClasses,
                             allowPartial, json, "check".equals(cmd), onFallback, rerunFailed, runner,
-                            useCache, forceRun, noCompile,
+                            useCache, forceRun, noCompile, testWorkerBudgetOverride,
                             new java.io.PrintWriter(out, true), new java.io.PrintWriter(err, true));
                 case "serve":
                     return ServeCommand.serve(engine, positional, out, err);

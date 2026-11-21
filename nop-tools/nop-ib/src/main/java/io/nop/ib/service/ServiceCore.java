@@ -46,6 +46,17 @@ public final class ServiceCore {
     private final ProjectQueue queue;
     private final JobBudget budget;
     private final int cores;
+    /**
+     * plan 2583 test seam: the CLI invocation (default {@link NopIbMain#run}).
+     * Pins record the per-job budget the core hands to each invocation.
+     */
+    CliRunner cli = NopIbMain::run;
+
+    /** shape of {@code NopIbMain.run(args, engine, root, out, err, workerBudget)}. */
+    interface CliRunner {
+        int run(String[] args, IbEngine engine, Path root,
+                java.io.PrintStream out, java.io.PrintStream err, int workerBudget);
+    }
     /** injectable clock for the TTL pins; millis since epoch. */
     private final LongSupplier clock;
     private final long engineIdleTtlMillis;
@@ -102,8 +113,12 @@ public final class ServiceCore {
             t.setDaemon(true);
             return t;
         });
-        this.reaper.scheduleWithFixedDelay(this::reapIdleEngines,
-                REAP_PERIOD_MILLIS, REAP_PERIOD_MILLIS, TimeUnit.MILLISECONDS);
+        this.reaper.scheduleWithFixedDelay(() -> {
+            reapIdleEngines();
+            // plan 2588: terminal jobs and their log files are pruned on the
+            // periodic reaper — cleanup never waits for the next submit
+            registry.prune();
+        }, REAP_PERIOD_MILLIS, REAP_PERIOD_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     private static long ttlFromSystem() {
@@ -119,6 +134,18 @@ public final class ServiceCore {
      * immediately, for wait=true it should then call {@link #await(BuildJob)}.
      */
     public BuildJob submit(String projectDir, String cmd, List<String> args, boolean wait) {
+        return submit(projectDir, cmd, args, wait, null);
+    }
+
+    /**
+     * plan 2588 idempotent submit (design 09 §2): an optional clientRequestId
+     * dedupes retries against the key (repoRoot, clientRequestId) — an existing
+     * non-terminal job is returned as-is (replayed=true, nothing re-enqueued),
+     * a terminal one is returned as the replayable snapshot. The old overload
+     * keeps its exact behavior.
+     */
+    public BuildJob submit(String projectDir, String cmd, List<String> args, boolean wait,
+                           String clientRequestId) {
         if (!ALLOWED_CMDS.contains(cmd))
             throw new IllegalArgumentException("unsupported service cmd: " + cmd
                     + " (allowed: " + ALLOWED_CMDS + ")");
@@ -134,15 +161,30 @@ public final class ServiceCore {
         } catch (Exception e) {
             throw new IllegalArgumentException("not a Maven project: " + projectDir, e);
         }
-        BuildJob job = registry.create(projectDir, cmd, root, args, wait);
+        if (clientRequestId != null) {
+            BuildJob existing = registry.findIdempotent(root, clientRequestId);
+            if (existing != null) {
+                existing.replayed = true;
+                return existing;
+            }
+        }
+        BuildJob job = registry.create(projectDir, cmd, root, args, wait, clientRequestId);
+        job.logFile = jobLogFile(root, job.id);
+        ProgressRegistry.watch(root, job);
         boolean accepted = queue.submit(job, () -> execute(job));
         if (!accepted) {
+            ProgressRegistry.unwatch(job);
             registry.cancel(job); // lane full: explicit rejection, mark cancelled
             throw new IllegalStateException("queue full for project " + projectDir
                     + " (limit " + ProjectQueue.MAX_QUEUE + ")");
         }
         registry.prune();
         return job;
+    }
+
+    /** plan 2588: durable per-job log location (dir created lazily on first write). */
+    static Path jobLogFile(Path root, String jobId) {
+        return root.resolve(".nop-ib").resolve("jobs").resolve(jobId + ".log");
     }
 
     /** The one execution path: budget → override → NopIbMain.run on the job root. */
@@ -152,13 +194,17 @@ public final class ServiceCore {
                 return; // cancelled while queued — explicit, not a silent no-op
             job.state = BuildJob.State.RUNNING;
             job.startedAt = System.currentTimeMillis();
+            job.thread = Thread.currentThread();
+            job.notifyAll(); // plan 2588 wakeup: QUEUED→RUNNING wakes long-poll
         }
+        // plan 2588: durable per-job log — stdout+stderr tee with stream markers
+        JobLog jobLog = new JobLog(job.logFile);
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(buf, true, StandardCharsets.UTF_8);
+        PrintStream out = new PrintStream(new LineTee(buf, jobLog, "[out] "), true, StandardCharsets.UTF_8);
         // stdout carries the --json payload; stderr diagnostics (Maven fallback
         // warnings etc.) are captured separately — merging them breaks the JSON
         ByteArrayOutputStream errBuf = new ByteArrayOutputStream();
-        PrintStream errOut = new PrintStream(errBuf, true, StandardCharsets.UTF_8);
+        PrintStream errOut = new PrintStream(new LineTee(errBuf, jobLog, "[err] "), true, StandardCharsets.UTF_8);
         List<String> allArgs = new ArrayList<>();
         allArgs.add(job.cmd);
         allArgs.add("--json");
@@ -167,18 +213,24 @@ public final class ServiceCore {
         int perJobWorkers = 0;
         try {
             perJobWorkers = budget.acquire();
-            io.nop.ib.cli.TestCommand.setWorkerBudgetOverride(perJobWorkers);
-            try {
-                job.exit = NopIbMain.run(allArgs.toArray(new String[0]),
-                        engineFor(job.repoRoot), job.repoRoot, out, errOut);
-            } finally {
-                io.nop.ib.cli.TestCommand.setWorkerBudgetOverride(0);
+            // plan 2583: the per-job worker budget travels as an explicit
+            // parameter through NopIbMain.run → TestCommand.test — the old
+            // static override was overwritten/cleared by concurrent jobs and
+            // silently read by whichever module-pool thread happened to run.
+            int code = cli.run(allArgs.toArray(new String[0]),
+                    engineFor(job.repoRoot), job.repoRoot, out, errOut, perJobWorkers);
+            // plan 2588: a running-cancel owns the terminal state (exit=-1) —
+            // the winding-down invocation must not overwrite it
+            if (job.state == BuildJob.State.RUNNING) {
+                job.exit = code;
+                job.state = code == Commands.EXIT_OK ? BuildJob.State.DONE : BuildJob.State.FAILED;
             }
-            job.state = job.exit == Commands.EXIT_OK ? BuildJob.State.DONE : BuildJob.State.FAILED;
         } catch (Exception e) {
-            job.exit = Commands.EXIT_FAILED;
-            job.error = String.valueOf(e);
-            job.state = BuildJob.State.FAILED;
+            if (job.state == BuildJob.State.RUNNING) {
+                job.exit = Commands.EXIT_FAILED;
+                job.error = String.valueOf(e);
+                job.state = BuildJob.State.FAILED;
+            }
         } finally {
             budget.release();
             job.finishedAt = System.currentTimeMillis();
@@ -192,9 +244,67 @@ public final class ServiceCore {
             String stderrText = errBuf.toString(StandardCharsets.UTF_8).trim();
             if (!stderrText.isEmpty())
                 job.stderr = stderrText;
+            jobLog.close();
+            // plan 2588: progress facts are O(roots) and overwritten next build;
+            // the job itself leaves the long-poll watcher list
+            ProgressRegistry.unwatch(job);
+            // terminal state set (or CANCELLED already written by the cancel
+            // path — never overwritten here); wake await/long-poll waiters
             synchronized (job) {
                 job.notifyAll();
             }
+        }
+    }
+
+    /**
+     * plan 2588 tee: forwards every byte to the in-memory payload buffer while
+     * writing whole lines to the job log with a stream marker — the payload
+     * contract stays byte-exact, the log gains readable provenance.
+     */
+    private static final class LineTee extends java.io.OutputStream {
+        private final ByteArrayOutputStream mirror;
+        private final JobLog log;
+        private final String marker;
+        private final ByteArrayOutputStream line = new ByteArrayOutputStream();
+
+        LineTee(ByteArrayOutputStream mirror, JobLog log, String marker) {
+            this.mirror = mirror;
+            this.log = log;
+            this.marker = marker;
+        }
+
+        @Override
+        public void write(int b) {
+            mirror.write(b);
+            line.write(b);
+            if (b == '\n')
+                flushLine();
+        }
+
+        @Override
+        public void write(byte[] src, int off, int len) {
+            mirror.write(src, off, len);
+            int start = off;
+            for (int i = off; i < off + len; i++)
+                if (src[i] == '\n') {
+                    line.write(src, start, i - start + 1);
+                    flushLine();
+                    start = i + 1;
+                }
+            if (start < off + len)
+                line.write(src, start, off + len - start);
+        }
+
+        private void flushLine() {
+            String text = line.toString(StandardCharsets.UTF_8).trim();
+            line.reset();
+            if (!text.isEmpty())
+                log.line(marker, text);
+        }
+
+        @Override
+        public void close() {
+            flushLine();
         }
     }
 
@@ -213,6 +323,55 @@ public final class ServiceCore {
         return job;
     }
 
+    /**
+     * plan 2588 long-poll wait: blocks up to {@code waitMs} (segmented waits on
+     * the job monitor) until the job reaches a terminal state. Wakeup points:
+     * terminal finally, QUEUED cancel (plan 2583), QUEUED→RUNNING transition
+     * and progress updates (both new in plan 2588).
+     */
+    public void waitForChange(BuildJob job, long waitMs) {
+        long deadline = System.currentTimeMillis() + waitMs;
+        synchronized (job) {
+            while (!job.isTerminal()) {
+                long left = deadline - System.currentTimeMillis();
+                if (left <= 0)
+                    return;
+                try {
+                    job.wait(Math.min(left, 1000));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * plan 2588: intermediate long-poll state with the position in the lane.
+     * queueAhead counts same-root jobs still queued ahead of this one (lane is
+     * FIFO by queuedAt).
+     */
+    public Map<String, Object> pendingSnapshot(BuildJob job, long waitedMs) {
+        int queueAhead = 0;
+        if (job.state == BuildJob.State.QUEUED) {
+            long jobSeq = seqOf(job);
+            for (BuildJob j : registry.all())
+                if (j.repoRoot.equals(job.repoRoot) && j.state == BuildJob.State.QUEUED
+                        && seqOf(j) < jobSeq)
+                    queueAhead++;
+        }
+        return job.pendingSnapshot(queueAhead, waitedMs);
+    }
+
+    /** lane order tie-break: queuedAt can tie within one millisecond. */
+    private static long seqOf(BuildJob job) {
+        try {
+            return Long.parseLong(job.id.substring("job-".length()));
+        } catch (NumberFormatException e) {
+            return Long.MAX_VALUE;
+        }
+    }
+
     public BuildJob job(String id) {
         return registry.get(id);
     }
@@ -222,10 +381,26 @@ public final class ServiceCore {
         return registry;
     }
 
-    /** @return null on cancel, JobRegistry.CANNOT_CANCEL_RUNNING otherwise. */
+    /**
+     * plan 2588: QUEUED cancel stays a registry no-op wake; RUNNING cancel is
+     * collaborative — kill the root's whole registered process tree (children
+     * first via descendants(), then the direct child), interrupt the job
+     * thread, and mark the job CANCELLED with exit=-1 and a fail-loud log
+     * record. Terminal jobs answer {@code already-terminal}.
+     */
     public String cancel(String id) {
         BuildJob job = registry.get(id);
-        return job == null ? "unknown-job" : registry.cancel(job);
+        if (job == null)
+            return "unknown-job";
+        if (job.state == BuildJob.State.RUNNING) {
+            int killed = ProcessTracker.killAll(job.repoRoot);
+            Thread t = job.thread;
+            if (t != null)
+                t.interrupt();
+            registry.markCancelled(job, killed);
+            return "cancelled";
+        }
+        return registry.cancel(job);
     }
 
     public List<Map.Entry<String, Integer>> queueSnapshot() {
@@ -268,9 +443,10 @@ public final class ServiceCore {
     /**
      * wave 11 observability: the most recent {@code limit} jobs (default
      * {@link #DEFAULT_JOBS_LIMIT}), newest submission first, as compact
-     * summaries — no payloads.
+     * summaries — no payloads. plan 2588: optional state filter
+     * (queued|running|done|failed|cancelled; null = all).
      */
-    public List<Map<String, Object>> recentJobs(int limit) {
+    public List<Map<String, Object>> recentJobs(int limit, String stateFilter) {
         if (limit <= 0)
             limit = DEFAULT_JOBS_LIMIT;
         limit = Math.min(limit, MAX_JOBS_LIMIT);
@@ -283,11 +459,19 @@ public final class ServiceCore {
         });
         List<Map<String, Object>> out = new ArrayList<>();
         for (BuildJob j : all) {
+            if (stateFilter != null
+                    && !j.state.name().toLowerCase(java.util.Locale.ROOT).equals(stateFilter))
+                continue;
             if (out.size() >= limit)
                 break;
             out.add(j.summary());
         }
         return out;
+    }
+
+    /** Old signature kept: no state filter. */
+    public List<Map<String, Object>> recentJobs(int limit) {
+        return recentJobs(limit, null);
     }
 
     /**
@@ -330,7 +514,8 @@ public final class ServiceCore {
         return removed;
     }
 
-    public Map<String, Object> health() {
+    /** synchronized (plan 2583): engines.size() reads the guarded LRU map. */
+    public synchronized Map<String, Object> health() {
         reapIdleEngines();
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("version", NopIbMain.VERSION);

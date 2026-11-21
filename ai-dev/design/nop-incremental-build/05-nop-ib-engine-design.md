@@ -209,7 +209,7 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 - 写产物（fast-path compile）/ Maven 委托 → `.mvn/build.lock` 排他锁（与 `mvnq` 同一文件、同一语义；Maven 委托不外层嵌套取锁——mvnq 自己取同一把锁，嵌套即自死锁）；
 - junit-fork 测试路径不取锁（wave6 6A-5 B-1 裁定：只读 target/classes、写每进程独立临时文件，非共享资源写者；取锁会串行化并行模块 sweep。compile-vs-test 跨进程竞争只可能产生假红，方向 fail-safe）；
 - 只读（`status/plan/model show`）→ 不取锁，但必须容忍并报告"检测到 Maven 构建持有锁"；
-- Maven 委托超时：默认 **600s**（`nop.ib.maven.timeout` 分钟数可覆盖；2026-11-20 收紧——原 3600s 让锁饥饿委托占住 lane 1 小时不可观测），超时杀进程并在 stderr 写显式 `maven delegation timed out`；
+- Maven 委托超时：默认 **600s**（`nop.ib.maven.timeout` 分钟数可覆盖；2026-11-20 收紧——原 3600s 让锁饥饿委托占住 lane 1 小时不可观测）。2026-11-21 语义收紧：超时由**带 timeout 的 `waitFor` 主导**（输出由独立 daemon 泵线程排空——旧的 read-to-EOF-then-wait 让 readLine 永久阻塞、超时不可达），`destroyForcibly` 后泵线程带超时 join；超时返回 **75**（EXIT_LOCK_TIMEOUT，原为死值 1）且 err 透传上报。另：本 JVM 内全部 Maven 委托经共享信号量串行化（`nop.ib.mavenConcurrency` 可放宽，默认 1）——并行 `-pl` sweep 不再对同一 worktree 派生多个并发 `mvn -am`；
 - 进程内并发：模块级串行 + 模块间有界并行；编译执行器实例按构建侧做法池化（编译器/file manager 非线程安全）。
 
 ## 八、状态、缓存与失效
@@ -227,7 +227,7 @@ affectedTests(M) := { t ∈ tests(M) | closure(t) ∩ changed(MainClasses) ≠ �
 ### 测试结果缓存契约（默认开启，2026-11-20 裁定）
 
 - **只缓存绿**：`junit-fork` 执行且 exit=0 才写入；红结果写入即作废既有绿条目（预存红天然每次真跑）。
-- **命中条件**：模块指纹逐字节一致。指纹 = 模块单元索引全部 (class, contentHash, abiDigest) + 传递依赖模块的 ABI digest 表 + externalArtifacts + surefire 全部 facts（argLine/skip/includes/excludes/groups/excludedGroups/系统属性/env）。任一成分缺失（索引缺失、模型过期、依赖模块无索引）→ 指纹 null → **不命中**（fail-safe，不静默跳过）。
+- **命中条件**：模块指纹逐字节一致。指纹 = 模块单元索引全部 (class, contentHash, abiDigest) + 传递依赖模块的 ABI digest 表 + externalArtifacts + surefire 全部 facts（argLine/skip/includes/excludes/groups/excludedGroups/系统属性/env）+ 运行时维度（nop-ib 版本、JDK 版本，2026-11-21 加入——跨 ib/JDK 版本的旧 GREEN 不命中）。任一成分缺失（索引缺失、模型过期、依赖模块无索引）→ 指纹 null → **不命中**（fail-safe，不静默跳过）。
 - **显式性**：命中输出 kind=`cached-up-to-date` + JSON `cached:true` + advisory warning（点名 `--force` 逃逸）；不冒充执行结果。
 - **不可见输入披露**：外部环境（DB/容器/host 状态、环境变量）不在指纹内——cached 绿的环境失效由 `--force` 兜底；依赖模块无索引时其 ABI 变化不入指纹（reactor 内依赖正常有索引；外部 jar 由 externalArtifacts 兜底）。
 - **默认开启**（2026-11-20 裁定，原 wave9 opt-in 语义翻转）：`test`/`check` 未显式给参即启用缓存；命中必披露 `cached:true`/advisory warning（不冒充执行结果），`--no-cache` 恢复 run-always，`--force` 单次绕过命中。指纹不命中即真跑——默认翻转的安全前提是"不命中即执行"的 fail-safe 方向。

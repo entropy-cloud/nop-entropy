@@ -57,7 +57,7 @@ nop-wf 是独立工作流引擎，不依赖 nop-task。
 
 ### wf 实例条带锁（五站点判定-迁移原子化）
 
-同一 wf 实例的「组完成判定 → 组迁移 → 落盘」段经 **wfInstanceId 级进程内条带锁**（64 槽，`IWorkflowStore.withWfLock` 接口暴露、`DaoWorkflowStore` 实现）串行化，锁内经 store 重读兄弟步骤最新已提交状态（每请求 `WorkflowImpl` 步骤快照互不可见的竞态由此闭合）。覆盖五站点：组迁移、流程自动终结（checkEnd）、join 实例查建、用户 action（锁段收窄：`runXpl` 本体不持锁、执行前锁内状态双检 + 迁移段重取锁终检，状态已迁移即以 `ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS` 拒绝第二到达者）、子流结束回滚重放。**跨进程残留边界**：条带锁只覆盖单 JVM；多节点部署下跨请求互斥退化为 DB 乐观锁，多节点 + 关键审批流场景的幂等要求由应用层承接（DB 级 `SELECT FOR UPDATE` 为未启用的备选）。**实例线程封闭**：`WorkflowImpl`/`WorkflowStepImpl` 为每请求新建、不保证实例级线程安全，禁止跨请求/跨线程持有。
+同一 wf 实例的「组完成判定 → 组迁移 → 落盘」段经 **wfInstanceId 级进程内条带锁**（64 槽，`IWorkflowStore.withWfLock` 接口暴露、`DaoWorkflowStore` 实现）串行化，锁内经 store 重读兄弟步骤最新已提交状态（每请求 `WorkflowImpl` 步骤快照互不可见的竞态由此闭合）。覆盖五站点：组迁移、流程自动终结（checkEnd）、join 实例查建、用户 action（锁段收窄：`runXpl` 本体不持锁、执行前锁内状态双检 + 迁移段重取锁终检，状态已迁移即以 `ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS` 拒绝第二到达者）、子流结束回滚重放。**全局锁序不变式（plan 2585 Phase 1，子→父单向）**：跨 wf 条带锁嵌套仅允许「持子锁 → 取父锁」方向（子流程终结通知 `notifySubFlowEnd` 的父侧段；TO_END 内联 checkEnd 为合法残余），禁止「持父锁 → 取子锁」反向嵌套——`startSubFlow` 启动的新子流程 `wfId` 为 null，`withWfLock` 直通不取子锁，父→子嵌套结构性不存在。流程终结三段式：锁内预留终态（`reserveEndWorkflowLocked`，先落盘 ended 状态防双跑）→ 锁外执行用户 end 脚本与子流程通知（`endSubFlow` 同步触发父侧通知，取父锁时不持子锁）→ 锁外 AFTER_END 收尾；end 脚本慢执行不阻塞同 stripe 其他操作。**跨进程残留边界**：条带锁只覆盖单 JVM；多节点部署下跨请求互斥退化为 DB 乐观锁，多节点 + 关键审批流场景的幂等要求由应用层承接（DB 级 `SELECT FOR UPDATE` 为未启用的备选）。**实例线程封闭**：`WorkflowImpl`/`WorkflowStepImpl` 为每请求新建、不保证实例级线程安全，禁止跨请求/跨线程持有。
 
 ### WfTaskScanner fencing（R12 族平台语义权威）
 
@@ -65,7 +65,7 @@ due/remind 扫描以 **DB 条件 UPDATE 抢占**为事前 fencing：`NopWfStepIn
 
 ### 扫描分批与毒步骤收敛
 
-due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推进（无全量载入），单轮扫描受时间预算约束；键 `nop.wf.scheduler.scan-batch-size`（缺省 500，`<=0` 装配期 fail-fast）、`nop.wf.scheduler.scan-time-budget-ms`（缺省 30000，`<0` fail-fast，`0`=单批即止）。due action 执行失败的毒步骤按指数退避推进 dueTime（`now + min(60s × 2^n, 1h)`）退出本轮扫描集，扫描集有界收敛；**`dueTime` 兼作「下次重试时间」字段（退避记账载体）**。
+due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc, stepId asc)` 分页游标推进（plan 2585 Phase 2：(dueTime, stepId) 二元组游标，谓词 `((eq dueTime and gt stepId) or gt dueTime)`——同毫秒 dueTime 超批不再整批跳过；无全量载入），单轮扫描受时间预算约束；键 `nop.wf.scheduler.scan-batch-size`（缺省 500，`<=0` 装配期 fail-fast）、`nop.wf.scheduler.scan-time-budget-ms`（缺省 30000，`<0` fail-fast，`0`=单批即止）。due action 执行失败的毒步骤按指数退避推进 dueTime（`now + min(60s × 2^n, 1h)`）退出本轮扫描集，扫描集有界收敛；**`dueTime` 兼作「下次重试时间」字段（退避记账载体）**。
 
 **remind 半区退避与扫描观测（plan 2541 W-01，MA-06 残留面裁定 E）**：remind listener 执行失败同样按指数退避推进 `remindTime`（`now + min(60s × 2^n, 1h)`，直发限定列集 UPDATE）**持久化退出工作集**（与 due 半区收敛语义等价）；`remindTime` 的引擎侧唯一写入点=scanner 退避推进（业务侧写入仍可注入扫描集）。due 扫描观测：gauge `nop.wf.scheduler.due-scan-scanned`（最近一轮消费条数）/`nop.wf.scheduler.due-scan-failures`（最近一轮失败条数）。`dueTimeExpr` 配置存在而 `dueAction` 缺失的步骤在扫描期 WARN 显式化（每轮一次——部署盲区/VFS 热更新漂移可见；不做模型加载期硬失败）。测试锚点：`nop-wf-scheduler` `TestCraR408ScannerRemindBackoff`。
 

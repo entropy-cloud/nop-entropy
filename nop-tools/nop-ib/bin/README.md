@@ -50,6 +50,15 @@ curl -s "http://127.0.0.1:8188/v1/jobs?limit=20"     # 最近 job 摘要（exit/
 curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/runningCmd/pending
 ```
 
+### 异步 Job API（长轮询 / 进度 / 运行中取消 / 任务日志，design 09）
+
+- **幂等 submit**：请求体可选 `clientRequestId`——AI 侧超时重试带同一 key（绑 projectDir）不会重复排队；命中时返回既有 job 并标 `replayed:true`。
+- **长轮询**：`GET /v1/job/{id}?waitMs=N&logTail=N`。`waitMs` clamp [0,60000]，未终态等满后返回 HTTP 200 中间态 `{id,state,phase:queued|running,queueAhead,elapsedMs,progress?,logPath,waitedMs}`（**不是错误**，AI 侧循环调用直到终态）；`waitMs=0` 纯快照。`logTail=N` 附带任务日志尾部 N 行（clamp 500）。
+- **进度**：job 进行中快照/中间态带 `progress`（test 报 `modulesDone/modulesTotal`，compile 报编译选择集规模）。
+- **任务日志**：每个 job 落盘 `{repoRoot}/.nop-ib/jobs/{id}.log`（stdout `[out]` / stderr `[err]` 双流带标记），路径在 `logPath`；job prune（终态 10 分钟）时同步删除文件。
+- **运行中取消**：`DELETE /v1/job/{id}` 对 QUEUED 与 RUNNING 均有效——RUNNING 走协作式取消：树终止该 job 登记的全部子进程（含 surefire 孙进程）+ 中断 job 线程，置 `cancelled`（exit=-1），日志尾写取消记录；终态 job 返回 409 `already-terminal`。
+- 长轮询走独立 4 线程小池：占满时 `/v1/job` 立即返回纯快照（`waitedMs=0`），读端点（health/jobs/queue）永不被饿死。
+
 - `cmd` 白名单：`status | plan | compile | test | check | model | clean | mvn`
 - `projectDir` 可以是仓库根、**子模块目录**或 **symlink 别名**——服务统一归一到 reactor 根（同项目只有一条构建队列，杜绝并发踩踏）
 - payload 与 CLI `--json` 同构（NDJSON 序列）；`exit` 字段即构建结果：`0` 成功 / `1` 失败 / `3` 用法或配置错误 / `6` partial / `75` 回退 Maven 进程超时

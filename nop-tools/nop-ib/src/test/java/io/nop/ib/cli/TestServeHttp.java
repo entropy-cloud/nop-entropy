@@ -30,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * error codes (400 invalid input, 404 unknown job, 409 cancel-running), and
  * the wait=true path riding the same ServiceCore submission path as async.
  */
+
+@SuppressWarnings("unchecked")
 class TestServeHttp {
     private static Path repo;
     private static ServiceCore core;
@@ -136,8 +138,22 @@ class TestServeHttp {
         assertEquals(409, HTTP.send(HttpRequest.newBuilder()
                 .uri(URI.create("http://127.0.0.1:" + port + "/v1/job/" + id))
                 .DELETE().build(), HttpResponse.BodyHandlers.ofString()).statusCode(),
-                "DELETE on a finished job is cannot-cancel-running (409)");
+                "DELETE on a finished job is already-terminal (409)");
         assertEquals(404, get("/v1/job/nope").statusCode(), "unknown job is 404");
+    }
+
+    /** plan 2583 pin: an over-limit request body is rejected 413 at READ time. */
+    @Test
+    void oversizedBodyRejectedWith413() throws Exception {
+        byte[] big = new byte[ServiceCore.MAX_PAYLOAD_BYTES + 1];
+        java.util.Arrays.fill(big, (byte) 'x');
+        HttpResponse<String> res = HTTP.send(HttpRequest.newBuilder()
+                .uri(URI.create("http://127.0.0.1:" + port + "/v1/run"))
+                .POST(HttpRequest.BodyPublishers.ofByteArray(big)).build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertEquals(413, res.statusCode(),
+                "body over the payload cap must be rejected before any processing");
+        assertTrue(res.body().contains("payload limit"), res.body());
     }
 
     /** health exposes version/cores/workerBudget/activeJobs (design 07 §2.1). */
@@ -154,6 +170,7 @@ class TestServeHttp {
 
     /** wave 11: GET /v1/jobs returns recent job summaries, limit honored, 400 on bad limit. */
     @Test
+    @SuppressWarnings("unchecked")
     void jobsEndpointReturnsSummariesWithLimit() throws Exception {
         // ensure at least one finished job exists (earlier tests submitted some)
         post("/v1/run", "{\"projectDir\":\"" + repo + "\",\"cmd\":\"status\",\"wait\":true}");
@@ -192,7 +209,7 @@ class TestServeHttp {
         Map<String, Object> run = (Map<String, Object>) body.get("run");
         assertNotNull(run.get("body"), "run contract present");
         Map<String, Object> endpoints = (Map<String, Object>) body.get("endpoints");
-        for (String ep : List.of("GET /v1/job/{id}", "GET /v1/jobs?limit=N", "GET /v1/queue",
+        for (String ep : List.of("GET /v1/job/{id}", "GET /v1/jobs?limit=N&state=S", "GET /v1/queue",
                 "GET /v1/health", "DELETE /v1/job/{id}"))
             assertTrue(endpoints.containsKey(ep), "endpoint documented: " + ep);
         Map<String, Object> tasks = (Map<String, Object>) body.get("tasksDeclaration");
@@ -206,6 +223,7 @@ class TestServeHttp {
 
     /** wave 11: /v1/queue lanes expose root, depth, runningCmd (null when idle). */
     @Test
+    @SuppressWarnings("unchecked")
     void queueEndpointExposesLaneDepthAndRunningCmd() throws Exception {
         HttpResponse<String> res = get("/v1/queue");
         assertEquals(200, res.statusCode());

@@ -22,6 +22,21 @@ public final class MavenFallback {
     private final Path repoRoot;
     private final Duration timeout;
 
+    /**
+     * plan 2583: in-process concurrency gate for ALL Maven delegations of this
+     * JVM (service process included). Default serial: the parallel `-pl` module
+     * sweep used to derive one concurrent `mvn -am` process per module against
+     * the same worktree (write race). Override with nop.ib.mavenConcurrency.
+     */
+    private static final java.util.concurrent.Semaphore MAVEN_GATE =
+            new java.util.concurrent.Semaphore(
+                    Math.max(1, Integer.getInteger("nop.ib.mavenConcurrency", 1)));
+
+    /** test seam: how many delegation permits are currently held. */
+    static int gateAvailablePermits() {
+        return MAVEN_GATE.availablePermits();
+    }
+
     public Duration getTimeout() {
         return timeout;
     }
@@ -51,8 +66,9 @@ public final class MavenFallback {
     public int delegate(String mavenArgs, Appendable out, Appendable err) {
         // wave 11 owner adjudication: the mvnq wrapper (and its build.lock) is
         // no longer invoked — ib controls concurrency in-process (design 07 §三).
-        // Maven location: explicit system property nop.ib.maven wins, then the
-        // project's mvnw wrapper, then plain mvn from PATH (defect 24 pin).
+        // plan 2583: all in-process Maven delegations share one gate (default
+        // serial) so the parallel `-pl` test sweep cannot derive several
+        // concurrent `mvn -am` builds against the same worktree.
         Path mvnw = repoRoot.resolve("mvnw");
         List<String> cmd = new ArrayList<>();
         String configured = System.getProperty("nop.ib.maven");
@@ -73,24 +89,53 @@ public final class MavenFallback {
             if (!arg.isBlank())
                 cmd.add(arg);
         try {
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.directory(repoRoot.toFile());
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            try (var reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    out.append(line).append('\n');
+            MAVEN_GATE.acquireUninterruptibly();
+            try {
+                ProcessBuilder pb = new ProcessBuilder(cmd);
+                pb.directory(repoRoot.toFile());
+                pb.redirectErrorStream(true);
+                Process process = pb.start();
+                // plan 2588: registered while alive so a running-cancel can tree-
+                // kill the delegation (mvn forks its own children)
+                io.nop.ib.service.ProcessTracker.register(repoRoot, process);
+                try {
+                    // plan 2583: output is pumped by a daemon thread so a chatty or
+                    // hung Maven can never block the reader and defeat waitFor's
+                    // timeout (the old read-to-EOF-then-wait made the timeout
+                    // unreachable). waitFor is the authority.
+                    Thread pump = new Thread(() -> {
+                        try (var reader = new java.io.BufferedReader(
+                                new java.io.InputStreamReader(process.getInputStream(),
+                                        java.nio.charset.StandardCharsets.UTF_8))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                out.append(line).append('\n');
+                            }
+                        } catch (IOException ignored) {
+                            // stream torn down with the process (timeout destroy) —
+                            // partial output is already appended
+                        }
+                    }, "nop-ib-maven-pump");
+                    pump.setDaemon(true);
+                    pump.start();
+                    boolean finished = process.waitFor(timeout.toSeconds(), TimeUnit.SECONDS);
+                    if (!finished) {
+                        process.destroyForcibly();
+                        // bounded join: never leak the pump thread, never hang here
+                        pump.join(5_000L);
+                        err.append("maven delegation timed out after ")
+                                .append(String.valueOf(timeout.toSeconds())).append("s: ")
+                                .append(mavenArgs).append('\n');
+                        return EXIT_LOCK_TIMEOUT;
+                    }
+                    pump.join(5_000L);
+                    return process.exitValue();
+                } finally {
+                    io.nop.ib.service.ProcessTracker.unregister(repoRoot, process);
                 }
+            } finally {
+                MAVEN_GATE.release();
             }
-            boolean finished = process.waitFor(timeout.toSeconds() + 60, TimeUnit.SECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                err.append("maven delegation timed out\n");
-                return 1;
-            }
-            return process.exitValue();
         } catch (IOException e) {
             throw new NopIbException("failed to launch maven delegation: " + mavenArgs, e);
         } catch (InterruptedException e) {

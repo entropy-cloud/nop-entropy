@@ -1,7 +1,8 @@
 # 2583 nop-ib 正确性修复：索引陈旧假绿 + 并发预算 + Maven 委托超时
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-11-21
+> Adversarial Review: 2026-11-21 独立子代理 1 轮通过（2 先修已吸收：失效点=CompileCommand、预算改参数传递）
 > Source: `ai-dev/analysis/2026-11/2026-11-21-monthly-new-code-deep-audit.md`（B3 + nop-ib Major/Minor 群）
 > Related: `ai-dev/design/nop-incremental-build/` 系列 design 文档
 
@@ -41,43 +42,43 @@
 
 ### Phase 1 - 假绿根除（B3 + compile -pl 早退）
 
-Status: planned
+Status: done
 Targets: `IbEngine.java`、`IncrementalCompileExecutor.java`、`TestCommand.java`、`CompileCommand.java`
 
 - Item Types: `Fix`
 
-- [ ] 编译执行完成后对受影响模块 invalidate engine.indexCache（回调或显式失效接口）
-- [ ] `compile -pl` 无源模块早退判断移出循环，循环后统一判定
-- [ ] `model.moduleForPath` null 时显式 NopIbException（TestCommand.java:423、CompileCommand.java:121）
+- [x] 编译执行完成后失效索引：失效点=CompileCommand（:155-157 编译返回后复用既有 `engine.refreshIndexesIfModelChanged()` 或受影响模块逐个 remove），不给 IncrementalCompileExecutor 加回调签名
+- [x] `compile -pl` 无源模块早退判断移出循环，循环后统一判定
+- [x] `model.moduleForPath` null 时显式 NopIbException（TestCommand.java:423、CompileCommand.java:121）
 
 Exit Criteria:
 
-- [ ] 回归钉：同一 check 调用内"预编译新增测试类 → 选择集包含该类"；`--cache` 指纹在编译后反映新 contentHash
-- [ ] 回归钉：`-pl <无源parent>,<有源child>` 实际编译 child（变异探针红绿）
-- [ ] `ib test -pl :nop-ib` 全绿
-- [ ] `ai-dev/logs/` 已更新
+- [x] 回归钉：同一 check 调用内"预编译新增测试类 → 选择集包含该类"；`--cache` 指纹在编译后反映新 contentHash
+- [x] 回归钉：`-pl <无源parent>,<有源child>` 实际编译 child（变异探针红绿）
+- [x] `ib test -pl :nop-ib` 全绿
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 并发预算与 Maven 委托治理
 
-Status: planned
+Status: done
 Targets: `ServiceCore.java`、`TestCommand.java`、`MavenFallback.java`、`TestCacheStore.java`、`ServeHttp.java`
 
 - Item Types: `Fix | Feature`
 
-- [ ] workerBudgetOverride 改 per-job 传递（ThreadLocal 或参数），消除全局静态互踩
-- [ ] MavenFallback：独立线程泵输出 + 带 timeout 的 waitFor 主导；超时返回 75；err 文本透传上报（runSurefire/runMavenModuleTest 接收并输出）
-- [ ] 进程内 Maven 委托共享信号量串行化（或并行分支禁用并发 `-am` 委托，随实现裁定）
-- [ ] 缓存指纹掺入 nop-ib 版本 + JDK 版本维度
-- [ ] `/v1/run` 请求体限读（对齐响应侧 8MB）；QUEUED 取消 notifyAll；health() engines 计数线程安全化
-- [ ] 生产路径 `System.err.println("nop-ib debug:…")` 挂 debug 开关
+- [x] workerBudgetOverride 改 per-job 参数传递（workerBudget() 的调用方显式传值），消除全局静态互踩；不采用 ThreadLocal（moduleTestPool 共享线程会让其静默失效且钉子测不出）
+- [x] MavenFallback：独立 daemon 线程泵输出 + 带 timeout 的 waitFor 主导；destroyForcibly 后 join 泵线程（带超时防线程泄漏）；超时返回 75；err 文本透传上报
+- [x] 进程内 Maven 委托共享信号量串行化（或并行分支禁用并发 `-am` 委托，随实现裁定）
+- [x] 缓存指纹掺入 nop-ib 版本 + JDK 版本维度
+- [x] `/v1/run` 请求体限读（把 ServiceCore 请求 payload 8MB 上限前移到读取侧，防无界 readAllBytes OOM）；QUEUED 取消 notifyAll；health() engines 计数线程安全化
+- [x] 生产路径 `System.err.println("nop-ib debug:…")` 挂 debug 开关
 
 Exit Criteria:
 
-- [ ] 回归钉：两并发 job 预算互不覆盖（TestCommand override 断言）；Maven 超时路径返回 75 且 err 包含 timeout 信息（变异探针：移除泵线程 → 钉子必红）
-- [ ] 指纹维度变更后旧 GREEN 不命中（显式测试）
-- [ ] `ib test -pl :nop-ib` 全绿；`~/nop-ib/bin/package-ib.sh` 重打包 + 服务冒烟（/v1/health、一次真实 check）
-- [ ] design 07/相关 owner doc 如行为面变化已同步（否则显式 No owner-doc update required）
-- [ ] `ai-dev/logs/` 已更新
+- [x] 回归钉：两并发 job 预算互不覆盖（TestCommand override 断言）；Maven 超时路径返回 75 且 err 包含 timeout 信息（变异探针：移除泵线程 → 钉子必红）
+- [x] 指纹维度变更后旧 GREEN 不命中（显式测试）
+- [x] `ib test -pl :nop-ib` 全绿；`~/nop-ib/bin/package-ib.sh` 重打包 + 服务冒烟（/v1/health、一次真实 check）
+- [x] design 07/相关 owner doc 如行为面变化已同步（否则显式 No owner-doc update required）
+- [x] `ai-dev/logs/` 已更新
 
 ## Closure Gates
 
@@ -105,9 +106,13 @@ Exit Criteria:
 ## Closure
 
 Status Note:
-Completed:
+2026-11-21 实施完成（Phase 1 + Phase 2 全部 in-scope 项）。测试：`ib test -pl :nop-ib --force` 180/180 全绿（新增回归钉 9 个测试方法：TestPostCompileIndexRefresh×2、TestPlNoSourceModuleNoShortCircuit×1、TestMavenFallbackTimeout×2、TestTestCacheStore×2、TestServiceCore×2（concurrentJobsKeepIndependentBudgets / cancelOfQueuedJobWakesAwaiters））。服务重打包 + 冒烟通过（/v1/health 200；/v1/run check --paths → exit 0，compile fast-path files=1 + 缓存命中披露）。design 05 §7.3/§八 与 design 07 §2.1/§2.3 已同步（参数化预算、限读 413、waitFor 主导超时 + 门闸、指纹运行时维度）。独立 closure audit 与 check-plan-checklist / scan-hollow 留给主控，未执行。
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Evidence:
+- Reviewer / Agent: 待主控安排独立子代理审计
+- Evidence（变异探针，均在本 plan 实施期间实测）:
+  - 探针 1（compile -pl 早退回插）→ `TestPlNoSourceModuleNoShortCircuit.noSourceParentDoesNotSkipSourceChild` 红（"the has-source child module must actually be compiled"）；
+  - 探针 2（MavenFallback 泵线程移除）→ 测试运行整体挂起 >400s 无完成（固定版 ~2s 内以 75 完成）——`TestMavenFallbackTimeout.hungDelegationTimesOutWith75AndErrDetail` 钉必红；
+  - 探针 3（指纹 #dims 行移除）→ `TestTestCacheStore.runtimeDimensionChangeInvalidatesOldGreen` 红（"a changed ib/JDK runtime dimension must change the fingerprint"）。
+  - 三探针均绿→红→还原后复绿；探针期间被变更文件均已还原（最终 `ib test -pl :nop-ib --force` 180/180）。

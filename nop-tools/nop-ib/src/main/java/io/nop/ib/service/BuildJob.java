@@ -29,6 +29,14 @@ public final class BuildJob {
     public volatile long queuedAt = System.currentTimeMillis();
     public volatile long startedAt;
     public volatile long finishedAt;
+    /** plan 2588: durable per-job log ({repoRoot}/.nop-ib/jobs/{id}.log). */
+    public volatile java.nio.file.Path logFile;
+    /** plan 2588: the lane thread running this job (running-cancel interrupt). */
+    volatile Thread thread;
+    /** plan 2588: idempotency key "repoRoot\u0000clientRequestId" (null when absent). */
+    String idemKey;
+    /** plan 2588: submit-response marker — true when an existing job was returned. */
+    public volatile boolean replayed;
 
     BuildJob(String id, String projectDir, String cmd, java.nio.file.Path repoRoot,
              java.util.List<String> args, boolean wait) {
@@ -47,6 +55,11 @@ public final class BuildJob {
         m.put("state", state.name().toLowerCase(java.util.Locale.ROOT));
         m.put("cmd", cmd);
         m.put("projectDir", projectDir);
+        if (logFile != null)
+            m.put("logPath", logFile.toString());
+        Map<String, Object> progress = ProgressRegistry.get(repoRoot);
+        if (progress != null && !isTerminal())
+            m.put("progress", progress);
         if (error != null)
             m.put("error", error);
         if (state == State.DONE || state == State.FAILED) {
@@ -59,6 +72,35 @@ public final class BuildJob {
             m.put("startedAt", startedAt);
             m.put("finishedAt", finishedAt);
         }
+        return m;
+    }
+
+    /** plan 2588: DONE / FAILED / CANCELLED jobs carry their full result. */
+    public boolean isTerminal() {
+        State s = state;
+        return s == State.DONE || s == State.FAILED || s == State.CANCELLED;
+    }
+
+    /**
+     * plan 2588: intermediate state for the long-poll path (design 09 §2) —
+     * explicit queued/running phase, position in the lane, waited time; never
+     * an error and never a reused {@code failed} state. progress facts ride
+     * along when the root has published any.
+     */
+    public Map<String, Object> pendingSnapshot(int queueAhead, long waitedMs) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        boolean running = state == State.RUNNING;
+        m.put("id", id);
+        m.put("state", state.name().toLowerCase(java.util.Locale.ROOT));
+        m.put("phase", running ? "running" : "queued");
+        m.put("queueAhead", queueAhead);
+        m.put("elapsedMs", System.currentTimeMillis() - queuedAt);
+        Map<String, Object> progress = ProgressRegistry.get(repoRoot);
+        if (progress != null)
+            m.put("progress", progress);
+        if (logFile != null)
+            m.put("logPath", logFile.toString());
+        m.put("waitedMs", waitedMs);
         return m;
     }
 

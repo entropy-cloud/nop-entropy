@@ -320,6 +320,11 @@ public final class JUnitWorkerPool {
                 JUnitForkExecutor.applySurefireEnvironment(pb, module);
                 pb.redirectErrorStream(false);
                 process = pb.start();
+                // plan 2588: registered while alive so a running-cancel can
+                // tree-kill the resident worker JVM (teardown goes through
+                // kill() below, which also unregisters)
+                io.nop.ib.service.ProcessTracker.register(
+                        java.nio.file.Path.of(model.getRepoRoot()), process);
                 stdin = new java.io.BufferedWriter(new java.io.OutputStreamWriter(
                         process.getOutputStream(), StandardCharsets.UTF_8));
                 java.io.BufferedReader stdout = new java.io.BufferedReader(new java.io.InputStreamReader(
@@ -422,6 +427,10 @@ public final class JUnitWorkerPool {
 
         void kill() {
             dead = true;
+            // plan 2588: the worker leaves the cancel registry on any teardown
+            if (process != null)
+                io.nop.ib.service.ProcessTracker.unregister(
+                        java.nio.file.Path.of(model.getRepoRoot()), process);
             // stdin may be null when the constructor failed mid-way (setup guard
             // threw after the created-registry initializer ran)
             if (stdin != null) {

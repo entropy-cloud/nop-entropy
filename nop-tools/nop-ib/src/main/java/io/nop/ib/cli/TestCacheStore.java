@@ -47,6 +47,16 @@ import java.util.TreeMap;
 public final class TestCacheStore {
     public static final String CACHE_FILE = "test-cache.json";
 
+    /**
+     * plan 2583: runtime dimensions folded into every fingerprint — nop-ib
+     * version and JDK version. A cache entry recorded under a different ib
+     * build or JVM must never serve a hit (behavioral changes in the runner or
+     * bytecode shape are invisible to the source-level inputs). Package-private
+     * mutable seam so pins can simulate a version change (mutation probe).
+     */
+    static java.util.function.Supplier<String> RUNTIME_DIMS =
+            () -> "ib=" + io.nop.ib.NopIbMain.VERSION + ",jdk=" + Runtime.version().feature();
+
     private final Path file;
     private final Map<String, Map<String, Object>> entries = new LinkedHashMap<>();
 
@@ -134,6 +144,8 @@ public final class TestCacheStore {
             return null;
         IbModel model = engine.model();
         StringBuilder sb = new StringBuilder(64);
+        // 0. runtime dimensions (ib version, JDK version) — plan 2583
+        sb.append("#dims:").append(RUNTIME_DIMS.get()).append('\n');
         // 1. own classes: sorted (class → contentHash → abiDigest)
         Map<String, String[]> own = new TreeMap<>();
         for (var info : index.getClasses().values()) {

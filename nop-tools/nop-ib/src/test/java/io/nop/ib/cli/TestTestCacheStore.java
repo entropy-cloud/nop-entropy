@@ -122,4 +122,44 @@ class TestTestCacheStore {
         assertNotNull(hit);
         assertEquals(233, ((Number) hit.get("tests")).intValue());
     }
+
+    /**
+     * plan 2583 pin: the fingerprint folds in the nop-ib version and JDK
+     * version — a GREEN recorded under a different ib/JDK runtime must NOT
+     * serve a hit (mutation probe: remove the dims line from fingerprint()
+     * and this pin goes red via the first assertion).
+     */
+    @Test
+    void runtimeDimensionChangeInvalidatesOldGreen() throws Exception {
+        engine = setup();
+        installIndexFixture();
+        TestCacheStore store = new TestCacheStore(engine);
+        IbModule mod = engine.model().module("fixture");
+        String fp1 = store.fingerprint(engine, mod);
+        store.record("fixture", fp1, 0, 5, 0, 0, 0);
+        assertNotNull(store.hit("fixture", fp1), "green under the current runtime hits");
+        var original = TestCacheStore.RUNTIME_DIMS;
+        TestCacheStore.RUNTIME_DIMS = () -> "ib=0.0.9-older,jdk=21";
+        try {
+            String fp2 = store.fingerprint(engine, mod);
+            assertNotEquals(fp1, fp2,
+                    "a changed ib/JDK runtime dimension must change the fingerprint");
+            assertNull(store.hit("fixture", fp2),
+                    "a GREEN recorded under the old runtime must not serve a hit");
+        } finally {
+            TestCacheStore.RUNTIME_DIMS = original;
+        }
+        assertEquals(fp1, store.fingerprint(engine, mod),
+                "restored dims → original fingerprint");
+    }
+
+    /** the dims themselves name both the ib version and the JDK version. */
+    @Test
+    void runtimeDimensionsCarryVersionAndJdk() {
+        String dims = TestCacheStore.RUNTIME_DIMS.get();
+        org.junit.jupiter.api.Assertions.assertTrue(dims.contains("ib=" + io.nop.ib.NopIbMain.VERSION),
+                dims);
+        org.junit.jupiter.api.Assertions.assertTrue(dims.contains("jdk=" + Runtime.version().feature()),
+                dims);
+    }
 }

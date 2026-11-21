@@ -110,7 +110,7 @@ class TestAutoCompileBeforeTest {
         try {
             return TestCommand.runTest(engine, paths, pl, classes, false, json,
                     false /*includeCompile: plain `test`, not `check`*/, "maven", false,
-                    "junit", null, false, noCompile, out, err, log);
+                    "junit", null, false, noCompile, 0, out, err, log);
         } finally {
             log.close();
             outBuf = sw.toString();

@@ -143,7 +143,7 @@ class TestServiceCore {
         assertEquals(0, budget.activeJobs());
     }
 
-    /** cancel: queued jobs cancel; running/done jobs answer cannot-cancel-running. */
+    /** cancel: queued jobs cancel; running jobs are routed to the tree-kill path; done jobs answer already-terminal. */
     @Test
     void cancelSemanticsAreExplicit() throws Exception {
         JobRegistry registry = new JobRegistry();
@@ -151,10 +151,10 @@ class TestServiceCore {
         BuildJob queued = registry.create("p", "status", root, List.of(), false);
         assertNull(registry.cancel(queued), "queued job cancels");
         assertEquals(BuildJob.State.CANCELLED, queued.state);
-        BuildJob running = registry.create("p", "status", root, List.of(), false);
-        running.state = BuildJob.State.RUNNING;
-        assertEquals(JobRegistry.CANNOT_CANCEL_RUNNING, registry.cancel(running),
-                "running job cannot be cancelled — explicit, not a silent no-op");
+        BuildJob done = registry.create("p", "status", root, List.of(), false);
+        done.state = BuildJob.State.DONE;
+        assertEquals(JobRegistry.ALREADY_TERMINAL, registry.cancel(done),
+                "terminal job answers already-terminal — explicit, not a silent no-op");
     }
 
     /** unknown cancel target is explicit, and health exposes budget facts. */
@@ -352,5 +352,84 @@ class TestServiceCore {
         Map<String, Object> idle = core.queueLanes().get(0);
         assertEquals(0, ((Number) idle.get("depth")).intValue());
         assertNull(idle.get("runningCmd"));
+    }
+
+    /**
+     * plan 2583 pin: concurrent jobs each receive their OWN compressed worker
+     * budget as an explicit invocation parameter. Pre-fix, a global static
+     * override was shared by all jobs — the second job's compression clobbered
+     * (or premature-cleared) the first job's budget while both were running.
+     * Here job1 parks INSIDE its invocation until job2 has been admitted with
+     * its own (smaller) budget; job1's budget must still be the full share.
+     */
+    @Test
+    void concurrentJobsKeepIndependentBudgets() throws Exception {
+        Path r1 = fixtureProject();
+        Path r2 = fixtureProject();
+        // cores=8 → budget permits = max(2, 8/2) = 4; first job admitted gets
+        // the full 4, the second compresses to permits/active = 2
+        ServiceCore core = new ServiceCore(8);
+        java.util.List<Integer> budgets = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        java.util.concurrent.CountDownLatch job1Started = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch job2Admitted = new java.util.concurrent.CountDownLatch(1);
+        core.cli = (args, engine, root, out, err, workerBudget) -> {
+            budgets.add(workerBudget);
+            if (budgets.size() == 1) {
+                job1Started.countDown();
+                try {
+                    job2Admitted.await(30, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            } else {
+                job2Admitted.countDown();
+            }
+            return 0;
+        };
+        BuildJob j1 = core.submit(r1.toString(), "status", List.of(), true);
+        // deterministic admission order: wait until job1 is RUNNING (budget
+        // acquired) before submitting job2, so job1's share is the full 4
+        assertTrue(job1Started.await(30, java.util.concurrent.TimeUnit.SECONDS),
+                "job1 must start first");
+        BuildJob j2 = core.submit(r2.toString(), "status", List.of(), true);
+        core.await(j1);
+        core.await(j2);
+        assertEquals(2, budgets.size(), "both invocations recorded");
+        assertEquals(4, budgets.get(0),
+                "job1 keeps its full-share budget while job2 runs with its own");
+        assertEquals(2, budgets.get(1),
+                "job2's admission-time compression (permits/active) reaches the invocation");
+    }
+
+    /** plan 2583 pin: cancelling a QUEUED job wakes await() immediately. */
+    @Test
+    void cancelOfQueuedJobWakesAwaiters() throws Exception {
+        Path root = Path.of("/fake/cancel-wake");
+        ProjectQueue lane = new ProjectQueue();
+        ServiceCore core = new ServiceCore(4, lane);
+        JobRegistry registry = core.registry();
+        Object gate = new Object();
+        BuildJob head = registry.create("p", "status", root, List.of(), false);
+        assertTrue(lane.submit(head, () -> {
+            try {
+                synchronized (gate) {
+                    gate.wait();
+                }
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }));
+        BuildJob queued = registry.create("p", "test", root, List.of(), true);
+        assertTrue(lane.submit(queued, () -> { }));
+        long t0 = System.currentTimeMillis();
+        assertNull(core.cancel(queued.id), "queued job cancels");
+        core.await(queued);
+        long waited = System.currentTimeMillis() - t0;
+        assertEquals(BuildJob.State.CANCELLED, queued.state);
+        assertTrue(waited < 5_000,
+                "await must return promptly on cancel (notifyAll), took " + waited + "ms");
+        synchronized (gate) {
+            gate.notifyAll();
+        }
     }
 }

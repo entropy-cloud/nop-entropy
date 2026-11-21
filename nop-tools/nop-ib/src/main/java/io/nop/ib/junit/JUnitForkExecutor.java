@@ -196,11 +196,17 @@ public final class JUnitForkExecutor {
         pb.directory(model.resolve(module.getBasedir())); // cwd = module basedir, 硬约束
         applySurefireEnvironment(pb, module);
         pb.redirectErrorStream(false);
+        // plan 2588: registered while alive so a running-cancel can tree-kill
+        // the fork (surefire-parity batch process)
+        java.nio.file.Path forkRoot = java.nio.file.Path.of(model.getRepoRoot());
+        Process process = null;
         try {
-            Process process = pb.start();
+            process = pb.start();
+            final Process fork = process; // effectively-final view for the pumps
+            io.nop.ib.service.ProcessTracker.register(forkRoot, fork);
             StringBuilder forkErr = new StringBuilder();
             Thread errT = new Thread(() -> {
-                try (var r = process.errorReader(StandardCharsets.UTF_8)) {
+                try (var r = fork.errorReader(StandardCharsets.UTF_8)) {
                     String line;
                     while ((line = r.readLine()) != null)
                         forkErr.append(line).append('\n');
@@ -218,7 +224,7 @@ public final class JUnitForkExecutor {
             java.util.concurrent.atomic.AtomicReference<String> outTail =
                     new java.util.concurrent.atomic.AtomicReference<>("");
             Thread outT = new Thread(() -> {
-                try (var r = process.inputReader(StandardCharsets.UTF_8)) {
+                try (var r = fork.inputReader(StandardCharsets.UTF_8)) {
                     String line;
                     while ((line = r.readLine()) != null) {
                         outTail.accumulateAndGet(line, (cur, l) -> {
@@ -257,6 +263,9 @@ public final class JUnitForkExecutor {
             if (e instanceof InterruptedException)
                 Thread.currentThread().interrupt();
             throw new NopIbException("failed to run junit fork for " + module.getArtifactId(), e);
+        } finally {
+            if (process != null)
+                io.nop.ib.service.ProcessTracker.unregister(forkRoot, process);
         }
     }
 

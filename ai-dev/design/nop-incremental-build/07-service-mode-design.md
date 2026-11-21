@@ -13,7 +13,7 @@
 | IB-S1 | 服务进程是**无状态调度器**：全部构建状态（model.json / 单元索引 / 测试缓存 / last-check）留在各项目 `.nop-ib/` 目录；进程内存只持有 job registry、engine cache 与队列锁 | 崩溃重启零恢复成本——状态在磁盘，重启后同一请求重放即得相同结论（幂等）；"无状态"指服务不持有跨请求必须持久化的构建事实 |
 | IB-S2 | 传输 = JDK 内置 HTTP server（loopback only）+ 既有 stdio JSONL 模式保留；协议复用 CLI 的 JSON 契约（同一 `NopIbMain.run` 入口） | 零新增依赖（nop-ib 不引入 web 框架）；任何语言的调用方（AI agent、编辑器插件、CI 脚本）用 curl 即可；stdio 模式覆盖嵌入场景 |
 | IB-S3 | **同项目串行**：以 repo root 规范路径为键，每个项目同一时刻至多一个构建任务在执行，其余请求排队（FIFO、有界） | 同一 worktree 并发写 `target/` 必然互相踩踏（05 IB-D9 的进程内对应面）；调用方无需自行加锁 |
-| IB-S4 | **双层并行预算**：① 全局 job 并发闸 = 信号量 permits `max(2, cores/2)`，跨项目共享；② 服务执行每个 job 时把该 job 的 worker 预算压为 `max(2, permits / 活跃 job 数)`（经引擎的 worker 预算 override 接缝，CLI 路径不受影响） | 只有 job 数封顶封不住机器负载——单 job 内部还叠着测试 worker / 编译线程；两层合起来才保证"机器上同时活跃的 worker 总数 ≤ cores/2"；单项目运行时（活跃=1）仍可用满其原预算 |
+| IB-S4 | **双层并行预算**：① 全局 job 并发闸 = 信号量 permits `max(2, cores/2)`，跨项目共享；② 服务执行每个 job 时把该 job 的 worker 预算压为 `max(2, permits / 活跃 job 数)`（2026-11-21 起 per-job **显式参数传递**：`ServiceCore.execute → NopIbMain.run(..., workerBudget) → TestCommand.test`；原全局静态 override 字段会被并发 job 互踩/提前清零，已删除。CLI 路径传 0，行为不受影响） | 只有 job 数封顶封不住机器负载——单 job 内部还叠着测试 worker / 编译线程；两层合起来才保证"机器上同时活跃的 worker 总数 ≤ cores/2"；单项目运行时（活跃=1）仍可用满其原预算 |
 | IB-S5 | 异步 job 模型：`run` 请求默认同步等待（简单调用方）；`wait=false` 时立即返回 job id，`GET /v1/job/{id}` 轮询结果；job 记录只存内存（结果本体可由客户端持 job id 取一次） | 多数调用方要的是阻塞语义（等价于跑 mvn）；长任务不占连接；job registry 丢失 = 调用方重发请求，磁盘状态保证幂等 |
 | IB-S6 | 多项目 engine cache：`canonicalPath → IbEngine`，模型/索引已落盘故 cache 仅省重复装载；cache 有界（LRU，默认 8），**驱逐只作用于非 running root**（运行中 job 持强引用）；驱逐后重建无损 | engine 本身无独占资源；驱逐即冷装载，正确性不受影响；禁止驱逐运行中 root 避免同项目双 engine 实例的不一致写路径 |
 
@@ -23,13 +23,23 @@
 
 ```
 POST /v1/run          {"projectDir": "...", "cmd": "test|compile|check|plan|status", "args": [...], "wait": true|false}
-GET  /v1/job/{id}     → {"id", "state": queued|running|done|failed, "exit", "payload", "queuedAt", "startedAt", "finishedAt"}
+GET  /v1/job/{id}     → {"id", "state": queued|running|done|failed|cancelled, "exit", "payload", "queuedAt", "startedAt", "finishedAt"}
 GET  /v1/queue        → 每项目运行中/排队中的 job 计数（可观测）
 GET  /v1/health       → {"version", "cores", "workerBudget", "activeProjects"}
-DELETE /v1/job/{id}   → 取消排队中的 job（running 的 job 不中断，语义 = 构建不可安全半途中断）
+DELETE /v1/job/{id}   → 取消排队中或运行中的 job（RUNNING 走协作式树终止，见 §2.1.1）
 ```
 
-- 回复 payload 与 CLI `--json` 输出同构（同一 RunLog 契约）：CLI stdout 是 NDJSON 序列且字符串可含换行——服务端按 JSON 序列解析（单文档 → 对象，多文档 → 数组），`[nop-ib]` 进度行过滤，stderr 诊断单独放 `stderr` 字段（不混入 payload）；解析失败回退原始字符串并如实标注；payload 超 8MB 截断并附 `truncated:true`；
+### 2.1.1 异步 Job API 扩展（2026-11-21, plan 2588）
+
+§2.1 为基线契约。**异步 Job API——长轮询 / 幂等 submit / 进度 / 任务日志 / 运行中取消——的完整契约与并发语义以 `09-async-job-api-design.md` §二/§三 为准**，此处仅摘要：
+
+- `POST /v1/run` 可选 `clientRequestId`（幂等键绑 repoRoot）：超时重试命中既有 job 时返回 `replayed:true`，不重复排队；
+- `GET /v1/job/{id}?waitMs=N&logTail=N`：waitMs clamp [0,60000]；未终态等满后返回 HTTP 200 中间态 `{id,state,phase,queueAhead,elapsedMs,progress?,logPath,waitedMs}`（非错误）；`waitMs=0` 纯快照；`logTail` 附任务日志尾部（≤500 行）；
+- 任务日志：`{repoRoot}/.nop-ib/jobs/{id}.log`（stdout/stderr 双流带标记 tee），job prune（终态 10 分钟）同步删文件；
+- 运行中取消：DELETE 对 RUNNING job 树终止其登记的全部子进程（含 surefire 孙进程）+ 中断 job 线程，置 `cancelled`（exit=-1）；终态 job 返回 409 `already-terminal`（`cannot-cancel-running` 返回码废止）；
+- 长轮询独立 4 线程小池 + 有界拒绝：超界立即返回纯快照（waitedMs=0），读端点不被饿死。
+
+- 回复 payload 与 CLI `--json` 输出同构（同一 RunLog 契约）：CLI stdout 是 NDJSON 序列且字符串可含换行——服务端按 JSON 序列解析（单文档 → 对象，多文档 → 数组），`[nop-ib]` 进度行过滤，stderr 诊断单独放 `stderr` 字段（不混入 payload）；解析失败回退原始字符串并如实标注；payload 超 8MB 截断并附 `truncated:true`（2026-11-21：8MB 上限同时前移到 `/v1/run` 读取侧——`readNBytes(limit+1)` 限读，超限直接 413，防无界 `readAllBytes` OOM）；
 - HTTP 状态码只表达传输层结果（队列满 = 429）；构建成败看 `exit` 字段（与 CLI 退出码同表：0 成功 / 1 失败 / 6 partial / 75 锁超时）。
 
 ### 2.2 项目身份与排队语义
@@ -53,13 +63,13 @@ on run(projectDir, cmd, args):
   执行时：acquire 全局 worker 信号量 → NopIbMain.run(cmd, args on root) → 释放
 ```
 
-- 排队中的 job 可取消；进入执行后不可取消（返回 `cannot-cancel-running`）；
+- 排队中的 job 可取消（QUEUED wake）；运行中取消见 §2.1.1（plan 2588 起协作式树终止，原 `cannot-cancel-running` 返回码废止）；
 - 相同项目 + 相同参数 + 目标状态可复用（如 `--cache` 命中）时**不合并**请求：每个请求独立入队、独立得到显式结果（cached-up-to-date 也是结果）。合并会让第二个调用方拿到不属于自己的执行语义。
 
 ### 2.3 并行预算
 
 - 全局信号量 permits = `max(2, cores/2)`，系统属性 `nop.ib.serviceWorkerBudget` 覆盖；
-- 服务执行 job 时把单 job 的 worker 预算压为 `max(2, permits / 活跃 job 数)`（**入场时压缩**：已运行 job 保持其入场份额直到结束，瞬态超出以一个 job 的初始份额为界）；经引擎的 worker 预算 override 接缝生效，CLI（非服务）路径不读 override、行为零漂移；单 job 内部调度（worker pool、模块级并行）不变；
+- 服务执行 job 时把单 job 的 worker 预算压为 `max(2, permits / 活跃 job 数)`（**入场时压缩**：已运行 job 保持其入场份额直到结束，瞬态超出以一个 job 的初始份额为界）；以 per-job 显式参数传递生效（2026-11-21，废弃共享静态 override——并发 job 在共享 moduleTestPool 线程上会静默读错值；ThreadLocal 同理不可用），CLI（非服务）路径传 0、行为零漂移；单 job 内部调度（worker pool、模块级并行）不变；
 - 编译执行沿用引擎内既有的"模块间有界并行"；服务层不重复实现模块级调度；
 - `wait=true` 请求与异步 job 走同一提交路径（handler 内等待完成），保证执行语义唯一；HTTP executor 固定小尺寸但有下限（≥ 排队面），长任务不得饿死读端点。
 

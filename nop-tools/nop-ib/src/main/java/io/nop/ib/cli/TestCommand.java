@@ -67,21 +67,33 @@ public final class TestCommand {
     /**
      * Wave 10 service seam (design 07 §2.3): the service layer compresses the
      * effective per-job worker budget to {@code max(2, permits / activeJobs)}
-     * while other projects are running. CLI runs never set the override, so
-     * their behavior is byte-for-byte unchanged. Volatile: set/cleared around
-     * each service job on the job's executor thread; read on the module pool.
+     * while other projects are running. plan 2583: the override travels as a
+     * per-job PARAMETER (NopIbMain.run overload → TestCommand.test → runTest) —
+     * the old global static field was overwritten/cleared by concurrent service
+     * jobs sharing the moduleTestPool threads. CLI runs pass 0, so their
+     * behavior is byte-for-byte unchanged.
      */
-    private static volatile int workerBudgetOverride = 0;
-
-    /** wave 10: public seam for the service layer (io.nop.ib.service). */
-    public static void setWorkerBudgetOverride(int value) {
-        workerBudgetOverride = value;
+    static int workerBudget(int budgetOverride) {
+        return budgetOverride > 0 ? Math.max(2, budgetOverride) : WORKER_BUDGET;
     }
 
-    /** Effective budget: service override (if active) else the CLI constant. */
-    static int workerBudget() {
-        int override = workerBudgetOverride;
-        return override > 0 ? Math.max(2, override) : WORKER_BUDGET;
+    /**
+     * plan 2588 progress: publish modulesDone/modulesTotal for the repo root so
+     * a long-polling client sees the sweep advance. Called from both main
+     * dispatch paths (plan scope and the parallel -pl sweep).
+     */
+    private static void reportProgress(IbEngine engine, int total,
+                                       java.util.concurrent.atomic.AtomicInteger done) {
+        io.nop.ib.service.ProgressRegistry.update(engine.getRepoRoot(), Map.of(
+                "stage", "test",
+                "modulesTotal", total,
+                "modulesDone", done.incrementAndGet()));
+    }
+
+    /** plan 2583: production debug chatter is opt-in (nop.ib.debug=true). */
+    private static void debug(String message) {
+        if (Boolean.getBoolean("nop.ib.debug"))
+            System.err.println("nop-ib debug: " + message);
     }
 
     /**
@@ -158,12 +170,26 @@ public final class TestCommand {
                            boolean includeCompile, String onFallback, boolean rerunFailed,
                            String runner, boolean useCache, boolean forceRun, boolean noCompile,
                            PrintWriter out, PrintWriter err) {
+        return test(engine, paths, plModules, explicitClasses, allowPartial, json,
+                includeCompile, onFallback, rerunFailed, runner, useCache, forceRun, noCompile,
+                0, out, err);
+    }
+
+    /**
+     * plan 2583: service entry with the per-job worker budget override passed
+     * explicitly (no shared static). CLI callers use the overload above with 0.
+     */
+    public static int test(IbEngine engine, List<String> paths, String plModules,
+                           List<String> explicitClasses, boolean allowPartial, boolean json,
+                           boolean includeCompile, String onFallback, boolean rerunFailed,
+                           String runner, boolean useCache, boolean forceRun, boolean noCompile,
+                           int budgetOverride, PrintWriter out, PrintWriter err) {
         RunLog log = RunLog.start(engine.getRepoRoot(), includeCompile ? "check" : "test");
         TestCacheStore cache = useCache ? new TestCacheStore(engine) : null;
         try {
             int code = runTest(engine, paths, plModules, explicitClasses, allowPartial, json,
                     includeCompile, onFallback, rerunFailed, runner, cache, forceRun, noCompile,
-                    out, err, log);
+                    budgetOverride, out, err, log);
             if (cache != null)
                 cache.save();
             log.exitCode(code);
@@ -178,7 +204,7 @@ public final class TestCommand {
                        List<String> explicitClasses, boolean allowPartial, boolean json,
                        boolean includeCompile, String onFallback, boolean rerunFailed,
                        String runner, TestCacheStore cache, boolean forceRun, boolean noCompile,
-                       PrintWriter out, PrintWriter err, RunLog log) {
+                       int budgetOverride, PrintWriter out, PrintWriter err, RunLog log) {
         IbModel model = engine.model();
         List<String> changed = paths != null && !paths.isEmpty() ? paths
                 : (plModules != null ? List.of() : GitChanges.changedPaths(engine.getRepoRoot()));
@@ -289,8 +315,11 @@ public final class TestCommand {
             }
             // fair worker shares (see MODULE_SLOTS): full sweep -> ~4/module like
             // surefire forkCount; small slice -> budget/slots per module
-            java.util.concurrent.Semaphore workerPermits = new java.util.concurrent.Semaphore(workerBudget());
-            int fairShare = Math.max(1, workerBudget() / Math.min(Math.max(moduleIds.size(), 1), MODULE_SLOTS));
+            // plan 2588: sweep progress is reported as modules complete
+            int plTotal = moduleIds.size();
+            java.util.concurrent.atomic.AtomicInteger plDone = new java.util.concurrent.atomic.AtomicInteger();
+            java.util.concurrent.Semaphore workerPermits = new java.util.concurrent.Semaphore(workerBudget(budgetOverride));
+            int fairShare = Math.max(1, workerBudget(budgetOverride) / Math.min(Math.max(moduleIds.size(), 1), MODULE_SLOTS));
             Map<String, TestRun> runByModule = new java.util.concurrent.ConcurrentHashMap<>();
             Map<String, Integer> classCounts = new LinkedHashMap<>();
             Set<String> modelSkipped = new LinkedHashSet<>();
@@ -316,6 +345,7 @@ public final class TestCommand {
                 TestRun run = TestRun.skipped(skippedId, "skipTests=true or no test source (model fact)");
                 report(engine, run, json, out, log);
                 runByModule.put(skippedId, run);
+                reportProgress(engine, plTotal, plDone);
             }
             moduleIds.removeAll(modelSkipped);
             java.util.List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
@@ -338,6 +368,7 @@ public final class TestCommand {
                         run.durationMs = System.currentTimeMillis() - t0;
                         runByModule.put(moduleId, run);
                         report(engine, run, json, out, log);
+                        reportProgress(engine, plTotal, plDone);
                     } finally {
                         workerPermits.release(want);
                     }
@@ -420,7 +451,7 @@ public final class TestCommand {
             // 裸名会被 Maven 解析为相对路径项目而报 do not exist）
             int code = fallback.delegate("-pl " + MavenFallback.plSelectors(
                     plan.getCompileModules().isEmpty()
-                            ? List.of(model.moduleForPath(changed.get(0)).getArtifactId())
+                            ? List.of(CompileCommand.owningModuleOf(engine, model, changed.get(0)))
                             : plan.getCompileModules())
                     + " -am test -q", mout, merr);
             TestRun run = new TestRun("maven-full", null);
@@ -428,6 +459,9 @@ public final class TestCommand {
                     : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
             run.summary = extractSummaries(mout.toString());
             run.output = mout.toString();
+            // plan 2583: delegation stderr (timeout notice) must reach the report
+            if (merr.length() > 0)
+                run.warnings.add("maven delegation stderr: " + merr.toString().trim());
             report(engine, run, json, out, log);
             return run.exitCode;
         }
@@ -442,6 +476,9 @@ public final class TestCommand {
 
         int failures = 0;
         List<TestRun> runs = new ArrayList<>();
+        // plan 2588: sweep progress over the whole plan scope
+        int planTotal = plan.getFullTestModules().size() + plan.getSelectedTests().size();
+        java.util.concurrent.atomic.AtomicInteger planDone = new java.util.concurrent.atomic.AtomicInteger();
         if (!explicitClasses.isEmpty()) {
             return Commands.EXIT_OK; // handled above
         } else {
@@ -452,12 +489,14 @@ public final class TestCommand {
                     continue;
                 if ("true".equals(module.getSurefireSkipTests())) {
                     runs.add(TestRun.skipped(moduleId, "skipTests=true (model fact)"));
+                    reportProgress(engine, planTotal, planDone);
                     continue;
                 }
                 // no test source tree (model fact): nothing exists to miss — skip honestly
                 if (module.getTestSourceDir() == null
                         || !java.nio.file.Files.isDirectory(engine.getRepoRoot().resolve(module.getTestSourceDir()))) {
                     runs.add(TestRun.skipped(moduleId, "no test source directory (model fact)"));
+                    reportProgress(engine, planTotal, planDone);
                     continue;
                 }
                 Path testProducts = module.getTestOutputDir() != null
@@ -467,14 +506,16 @@ public final class TestCommand {
                     // run — delegate a real module build+test to Maven (zero-fake-green)
                     TestRun run = runMavenModuleTest(engine, module, json, out, err);
                     runs.add(run);
+                    reportProgress(engine, planTotal, planDone);
                     if (run.exitCode != Commands.EXIT_OK)
                         failures++;
                     continue;
                 }
                 TestRun run = runModuleMaybeCached(engine, cache, forceRun, module, null,
-                        runner, json, out, err, Math.max(2, Math.min(Runtime.getRuntime().availableProcessors() - 1, workerBudget())));
+                        runner, json, out, err, Math.max(2, Math.min(Runtime.getRuntime().availableProcessors() - 1, workerBudget(budgetOverride))));
                 recordLastFailed(engine, moduleId, run);
                 runs.add(run);
+                reportProgress(engine, planTotal, planDone);
                 if (run.exitCode != Commands.EXIT_OK)
                     failures++;
             }
@@ -483,9 +524,10 @@ public final class TestCommand {
                 if (module == null)
                     continue;
                 TestRun run = runModuleMaybeCached(engine, cache, forceRun, module, e.getValue(),
-                        runner, json, out, err, Math.max(2, Math.min(Runtime.getRuntime().availableProcessors() - 1, workerBudget())));
+                        runner, json, out, err, Math.max(2, Math.min(Runtime.getRuntime().availableProcessors() - 1, workerBudget(budgetOverride))));
                 recordLastFailed(engine, e.getKey(), run);
                 runs.add(run);
+                reportProgress(engine, planTotal, planDone);
                 if (run.exitCode != Commands.EXIT_OK)
                     failures++;
             }
@@ -717,7 +759,7 @@ public final class TestCommand {
         // forks reproduce the failure (missing accumulated state) and per-class
         // pollution checks cannot apply, so the only faithful oracle is the
         // surefire-shaped rerun. Fresh result authoritative either way.
-        System.err.println("nop-ib debug: rerun-gate [" + module.getArtifactId() + "] exit="
+        debug("rerun-gate [" + module.getArtifactId() + "] exit="
                 + fork.exitCode() + " classes=" + (classes == null ? "null" : classes.size())
                 + " failures=" + fork.summary().get("failures"));
         if (fork.exitCode() == 1 && classes != null && !classes.isEmpty()) {
@@ -734,7 +776,7 @@ public final class TestCommand {
             if ("failed-only".equals(System.getProperty("nop.ib.moduleRerunMode"))
                     && failedClassesOf(fork.summary()) != null) {
                 List<String> failedSubset = failedClassesOf(fork.summary());
-                System.err.println("nop-ib debug: rerun E1 failed-only subset, classes="
+                debug("rerun E1 failed-only subset, classes="
                         + failedSubset.size() + " cap=" + rerunCap);
                 long t0 = System.currentTimeMillis();
                 JUnitForkExecutor.ForkResult subset = executor.execute(
@@ -749,7 +791,7 @@ public final class TestCommand {
                     forkWarnings.addAll(subset.warnings());
                     fork = new JUnitForkExecutor.ForkResult(1, fork.summary(), fork.warnings());
                 } else {
-                    System.err.println("nop-ib debug: rerun E1 subset PASSED, executing full fresh fork (fail-safe)");
+                    debug("rerun E1 subset PASSED, executing full fresh fork (fail-safe)");
                     JUnitForkExecutor.ForkResult fresh = executeRerun(
                             executor, module, cp, classes, rerunCap, forkWarnings);
                     forkWarnings.add("E1 divergence probe: subset passed but full fork exit="
@@ -758,10 +800,10 @@ public final class TestCommand {
                     fork = fresh;
                 }
             } else {
-            System.err.println("nop-ib debug: rerun EXECUTING fresh full-module fork, cap=" + rerunCap);
+            debug("rerun EXECUTING fresh full-module fork, cap=" + rerunCap);
             JUnitForkExecutor.ForkResult fresh = executeRerun(
                     executor, module, cp, classes, rerunCap, forkWarnings);
-            System.err.println("nop-ib debug: rerun DONE freshExit=" + fresh.exitCode());
+            debug("rerun DONE freshExit=" + fresh.exitCode());
             // wave6 audit A-1: a rerun-gate TIMEOUT must not overwrite the worker
             // run's collected results (spring-batch-core precedent — the fresh
             // fork's counts-only result replaced 906 executed tests and
@@ -988,8 +1030,13 @@ public final class TestCommand {
         MavenFallback fallback = new MavenFallback(engine.getRepoRoot(),
                 java.time.Duration.ofMinutes(30));
         StringBuilder mout = new StringBuilder();
+        StringBuilder merr = new StringBuilder();
         int code = fallback.delegate("-pl :" + module.getArtifactId() + " -am test -q",
-                mout, new StringBuilder());
+                mout, merr);
+        // plan 2583: delegation diagnostics (timeout notice etc.) reach the run
+        // record — they used to be dropped with a throwaway StringBuilder
+        if (merr.length() > 0)
+            run.warnings.add("maven delegation stderr: " + merr.toString().trim());
         run.output = mout.toString();
         run.exitCode = code == MavenFallback.EXIT_LOCK_TIMEOUT ? Commands.EXIT_LOCK_TIMEOUT
                 : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
@@ -1027,7 +1074,12 @@ public final class TestCommand {
         // no outer lock (wave 11: in-process control; see runMavenModuleTest)
         MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
         StringBuilder mout = new StringBuilder();
-        int code = fallback.delegate(args, mout, new StringBuilder());
+        StringBuilder merr = new StringBuilder();
+        int code = fallback.delegate(args, mout, merr);
+        // plan 2583: delegation diagnostics (timeout notice etc.) reach the run
+        // record — they used to be dropped with a throwaway StringBuilder
+        if (merr.length() > 0)
+            run.warnings.add("maven delegation stderr: " + merr.toString().trim());
         run.output = mout.toString();
         run.exitCode = code == MavenFallback.EXIT_LOCK_TIMEOUT ? Commands.EXIT_LOCK_TIMEOUT
                 : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
