@@ -34,7 +34,7 @@
 |---|---|---|---|
 | `EffectivePomParser` | ib model/，541 行 StAX+DOM | nop-core `XNodeParser` / `XNode.parse`（nop-codegen MavenModelHelper 同款用法） | **迁移** |
 | `JsonOut`/`JsonIn` | ib json/，435 行手写 JSON | nop-core `JsonTool`（parse/parseMap/stringify） | **迁移** |
-| `GlobMatcher` | ib tasks/，~120 行段式 glob（`*`/`?`/`**`，fail-loud 拒正则元字符，`a/**` 吞尾斜杠语义） | nop-commons `AntPathMatcher`（Spring 同族，但边界语义不同：无 fail-loud 拒绝、`a/**` 边界行为有差） | **保留**（design 08 钉死的语义 + 已有回归测试；迁移引入指纹行为漂移风险 > 120 行收益） |
+| `GlobMatcher` | ib tasks/，~120 行段式 glob（`*`/`?`/`**`，fail-loud 拒正则元字符，`**` 吞尾斜杠语义） | ~~初判保留~~ → **引擎下沉 nop-commons `SegmentGlobPathMatcher implements IPathMatcher`**（用户裁定：语义原样迁移、fail-loud 契约留在 ib 侧；语义差异相对 AntPathMatcher 保留在新类的 javadoc 钉中） | **已迁移**（语义零漂移，回归钉 TestSegmentGlobPathMatcherTest 7 例 + ib 203/0） |
 | `FastHash`（XXH64） | ib util/，141 行 | nop-commons `HashHelper`（md5/sha1/sha256/murmur3_64_string——**字符串键** murmur，无字节流 XXH64 等价物） | **保留**（指纹只做 ib 自身状态对比，XXH64 字节流 + 16 位 hex 是实测性能裁定，见 11-21 日志；平台无等价物） |
 | `ModelStore.sha256` | ib model/，MessageDigest 直用 | nop-commons `HashHelper.sha256` | 微（保留亦可，无行为差异；不强迁） |
 | 仓根发现/路径 | ib engine `discoverRepoRoot`（mvnw 标记 + pom 链攀升） | nop-commons `MavenDirHelper`（guessProjectDir 按 classes 目录猜，**语义不同**）、`ProjectDirHelper` | **保留**（ib 的发现规则是服务契约，无平台等价物） |
@@ -76,7 +76,7 @@
 | 1 | `EffectivePomParser` 重写为 XNode 实现，保留 11-21 修复语义与公共签名 | nop-ib |
 | 2 | `JsonOut`/`JsonIn` 删除，全调用点迁 `JsonTool` | nop-ib |
 | 3 | pom 新增 nop-core 依赖 | nop-ib |
-| 4 | GlobMatcher/FastHash/discoverRepoRoot/ServeHttp：保留并记录裁定理由（§三表） | nop-ib |
+| 4 | FastHash/discoverRepoRoot/ServeHttp：保留并记录裁定理由（§三表）；GlobMatcher 引擎经用户裁定下沉 commons `SegmentGlobPathMatcher`（IPathMatcher 实现），ib 侧保留 fail-loud 契约薄壳 | nop-ib + nop-commons |
 | 5 | nop-git 维持零平台依赖（§四 C） | nop-git |
 
 验收门：nop-ib 全模块回归 0 失败 + p1/p2 黑盒端到端 + 重打包 ~/nop-ib 复验。

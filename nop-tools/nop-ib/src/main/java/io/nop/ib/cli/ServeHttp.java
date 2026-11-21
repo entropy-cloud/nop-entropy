@@ -144,12 +144,15 @@ public final class ServeHttp {
                 "GET /v1/job/{id}", "job result: {state, exit, payload, stderr, logPath}; "
                         + "optional waitMs=N (absent=60s default; 0=pure snapshot; clamp 300000; "
                         + "long poll: returns HTTP 200 intermediate "
-                        + "{id,state,phase:queued|running,queueAhead,elapsedMs,progress?,logPath,"
-                        + "waitedMs} — never an error; loop until terminal) and logTail=N (0..500 "
-                        + "lines of the job log)",
+                        + "{id,state,phase:queued|running,queueAhead,queueAheadIds?,runningJobId?,"
+                        + "cmd,queueWaitMs?|runMs?,elapsedMs,progress?,logPath,waitedMs} — never an "
+                        + "error; loop until terminal) and logTail=N (0..500 lines of the job log; "
+                        + "logTail/progress appear only when THIS job is running, never while queued)",
                 "GET /v1/jobs?limit=N&state=S", "recent job summaries (exit/durationMs); "
                         + "state filters queued|running|done|failed|cancelled",
-                "GET /v1/queue", "per-project lanes: {root, depth, runningCmd, pending}",
+                "GET /v1/queue", "per-project lanes: {root, depth, runningCmd, pending}; "
+                        + "depth = QUEUED-only count (excludes the running job); "
+                        + "pending = running + queued total",
                 "GET /v1/health", "service vitals",
                 "DELETE /v1/job/{id}", "cancel a QUEUED or RUNNING job — running cancel kills "
                         + "the registered child process tree (descendants first) and marks the "
@@ -161,6 +164,27 @@ public final class ServeHttp {
                 "cached:true = test cache hit (tests did NOT execute); --force escapes",
                 "compiled:true|false|\"skipped\" = test pre-compile state (--no-compile disables)",
                 "tasks:[{name,kind:skipped|executed|failed}] = declared codegen task outcomes"));
+        m.put("queueing", Map.of(
+                "model", "one serial lane per project (same project FIFO-queues) + "
+                        + "cross-project parallelism within a global worker budget (cores/2)",
+                "capacity", "max 32 queued jobs per project lane; overflow answers HTTP 429",
+                "agentEtiquette", "a queued job's snapshot shows queueAhead/queueAheadIds/"
+                        + "runningJobId — keep polling GET /v1/job/{id}?waitMs=N until terminal; "
+                        + "do NOT resubmit (use clientRequestId to make retries idempotent)",
+                "elapsedFields", "queueWaitMs = time spent queued; runMs = execution time so far; "
+                        + "elapsedMs = time since submit (both phases)",
+                "modelRefreshCost", "model refresh runs several full Maven subprocess passes: "
+                        + "~10s on a small single-module project, minutes on a large reactor, and "
+                        + "can stretch much longer when other Maven processes compete for the "
+                        + "machine — plan its lane time accordingly"));
+        m.put("tasksDeclaration", Map.of(
+                "file", "nop-ib.tasks.json (repo root or any module basedir; module-level same-name overrides root-level)",
+                "shape", "[{name, trigger: before-compile|after-compile, inputs:[glob], outputs:[glob], "
+                        + "exec:{type: java|xscript, mainClass, script?, arguments?, classpathScope: compile|runtime|test(default)}}]",
+                "note", "codegen runs on the ib fast path; fingerprints live under target/nop-ib/tasks (mvn clean removes)"));
+        m.put("onboarding", List.of(
+                "cd <project root> && <dist>/bin/ib model refresh && <dist>/bin/ib model index",
+                "then POST /v1/run with projectDir"));
         m.put("tasksDeclaration", Map.of(
                 "file", "nop-ib.tasks.json (repo root or any module basedir; module-level same-name overrides root-level)",
                 "shape", "[{name, trigger: before-compile|after-compile, inputs:[glob], outputs:[glob], "
@@ -226,7 +250,9 @@ public final class ServeHttp {
         }
         if (wait)
             core.await(job);
-        Map<String, Object> snap = jobSnapshot(job);
+        // non-terminal (wait=false submit): queue-aware snapshot — a queued agent must see
+        // its lane position, never another job's progress/logTail (2026-11-22 audit)
+        Map<String, Object> snap = job.isTerminal() ? jobSnapshot(job) : core.pendingSnapshot(job, 0);
         if (job.replayed)
             snap.put("replayed", true);
         reply(ex, 200, snap);

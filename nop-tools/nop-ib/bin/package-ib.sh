@@ -130,6 +130,15 @@ fi
 
 CMD="$1"; shift
 
+# --quiet is an ib-run flag (suppress the stderr progress channel), never a
+# build arg — strip it from the forwarded argument list
+QUIET=0
+FILTERED=()
+for a in "$@"; do
+  if [[ "$a" == "--quiet" ]]; then QUIET=1; else FILTERED+=("$a"); fi
+done
+ARGS=("${FILTERED[@]}")
+
 if [[ -n "$DIR_OVERRIDE" ]]; then
   PROJECT_DIR="$(cd "$DIR_OVERRIDE" && pwd)"
 else
@@ -142,14 +151,14 @@ if ! curl -sf "$BASE/v1/health" >/dev/null 2>&1; then
   exit 75
 fi
 
-PAYLOAD="$(CMD="$CMD" PROJECT_DIR="$PROJECT_DIR" ARGS="$*" python3 - <<'PY'
+PAYLOAD="$(CMD="$CMD" PROJECT_DIR="$PROJECT_DIR" ARGS="$(IFS=" "; echo "${ARGS[*]}")" python3 - <<'PY'
 import json, os, shlex
 args = shlex.split(os.environ["ARGS"]) if os.environ["ARGS"].strip() else []
 print(json.dumps({
     "projectDir": os.environ["PROJECT_DIR"],
     "cmd": os.environ["CMD"],
     "args": args,
-    "wait": True,
+    "wait": False,
 }))
 PY
 )"
@@ -157,6 +166,75 @@ PY
 HTTP="$(curl -s -X POST "$BASE/v1/run" -d "$PAYLOAD" -w "\n%{http_code}")"
 CODE="$(printf '%s' "$HTTP" | tail -1)"
 RESP="$(printf '%s' "$HTTP" | sed '$d')"
+
+# Submit is async; we poll so a queued agent gets explicit progress on stderr
+# ("queued: N ahead — waiting") instead of a silent blocking curl. --quiet
+# suppresses the progress channel (result summary still prints).
+FINAL="$(QUIET=$QUIET BASE="$BASE" RESP="$RESP" CODE="$CODE" python3 - <<'PY'
+import json, os, subprocess, sys, time
+
+def say(msg):
+    if os.environ.get("QUIET") != "1":
+        print(msg, file=sys.stderr)
+
+base = os.environ["BASE"]
+try:
+    d = json.loads(os.environ["RESP"])
+except Exception:
+    print(os.environ["RESP"], file=sys.stderr)
+    sys.exit(3)
+if str(d.get("error") or ""):
+    print(f"error ({os.environ['CODE']}): {d['error']}", file=sys.stderr)
+    sys.exit(3)
+
+job = d.get("job") or d
+jid = job.get("id") or d.get("id")
+if not jid:
+    print(f"error: no job id in response: {d}", file=sys.stderr)
+    sys.exit(3)
+
+last_state = None
+last_ahead = -1
+last_line = ""
+while True:
+    try:
+        out = subprocess.run(
+            ["curl", "-s", f"{base}/v1/job/{jid}?waitMs=0"],
+            capture_output=True, text=True, timeout=15).stdout
+        d = json.loads(out)
+    except Exception:
+        time.sleep(2)
+        continue
+    state = d.get("state") or ""
+    if state == "queued":
+        ahead = d.get("queueAhead", 0)
+        ahead_ids = d.get("queueAheadIds") or []
+        running = d.get("runningJobId") or "-"
+        wait_ms = d.get("queueWaitMs", 0)
+        line = f"queued: {ahead} job(s) ahead (running: {running}) — waiting, {wait_ms/1000:.0f}s so far"
+        if state != last_state or ahead != last_ahead:
+            say(line)
+        last_state, last_ahead = state, ahead
+    elif state == "running":
+        prog = d.get("progress") or {}
+        phase = prog.get("phase") or prog.get("cmd") or ""
+        run_ms = d.get("runMs", 0)
+        line = f"running: {phase} ({run_ms/1000:.0f}s)".rstrip()
+        if state != last_state or line != last_line:
+            say(line)
+        last_state, last_line = state, line
+    elif state in ("done", "failed", "cancelled"):
+        say(f"finished: {state}")
+        print(json.dumps(d))
+        sys.exit(0)
+    # else: unknown state — keep polling
+    time.sleep(2)
+
+PY
+)"
+
+CODE=0
+RESP="$FINAL"
 
 python3 - "$RESP" "$CODE" <<'PY'
 import json, sys

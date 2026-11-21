@@ -116,9 +116,15 @@ class TestAsyncJobApi {
         gate.countDown();
     }
 
-    /** progress published by the CLI thread is visible in the pending snapshot. */
+    /**
+     * progress published by the CLI thread is visible ONLY to the running job's
+     * snapshot: ProgressRegistry is keyed by repoRoot (lane-wide), so a queued
+     * job surfacing it would read as "my build is already executing" — the
+     * 2026-11-22 live-audit misjudgment. Queued snapshots carry queueWaitMs and
+     * the lane context (queueAheadIds/runningJobId) instead.
+     */
     @Test
-    void progressIsVisibleInPendingSnapshot() throws Exception {
+    void progressVisibleOnlyToRunningJob() throws Exception {
         Path root = Path.of("/fake/progress");
         ProjectQueue lane = new ProjectQueue();
         ServiceCore core = new ServiceCore(4, lane);
@@ -134,14 +140,25 @@ class TestAsyncJobApi {
         }));
         BuildJob job = registry.create("p", "test", root, List.of(), true);
         assertTrue(lane.submit(job, () -> { }));
+        // mirror the production execute() transition (ServiceCore.execute is the
+        // QUEUED→RUNNING point; the test bypasses it via a raw lane runnable)
+        head.state = BuildJob.State.RUNNING;
+        head.startedAt = System.currentTimeMillis();
         // the CLI thread (TestCommand/CompileCommand) publishes under the ROOT key
         ProgressRegistry.update(root, Map.of("stage", "test", "modulesTotal", 7, "modulesDone", 3));
-        Map<String, Object> snap = core.pendingSnapshot(job, 0);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> progress = (Map<String, Object>) snap.get("progress");
-        assertNotNull(progress, "progress facts ride along the intermediate state");
-        assertEquals(7, ((Number) progress.get("modulesTotal")).intValue());
-        assertEquals(3, ((Number) progress.get("modulesDone")).intValue());
+
+        Map<String, Object> queuedSnap = core.pendingSnapshot(job, 0);
+        assertEquals("queued", queuedSnap.get("phase"));
+        assertNull(queuedSnap.get("progress"), "queued job must not see lane-wide progress");
+        assertNull(queuedSnap.get("logTail"), "queued job must not see another job's log tail");
+        assertNotNull(queuedSnap.get("queueWaitMs"), "queued wait time is explicit");
+        assertEquals("test", queuedSnap.get("cmd"));
+        assertEquals(head.id, queuedSnap.get("runningJobId"), "lane head is identified");
+
+        Map<String, Object> runningSnap = core.pendingSnapshot(head, 0);
+        assertEquals("running", runningSnap.get("phase"));
+        assertNotNull(runningSnap.get("progress"), "running job sees its own progress");
+        assertEquals(7, ((Number) ((Map<?, ?>) runningSnap.get("progress")).get("modulesTotal")).intValue());
         gate.countDown();
     }
 

@@ -58,19 +58,26 @@ public final class BuildJob {
         m.put("projectDir", projectDir);
         if (logFile != null)
             m.put("logPath", logFile.toString());
-        Map<String, Object> progress = ProgressRegistry.get(repoRoot);
-        if (progress != null && !isTerminal())
+        boolean running = state == State.RUNNING;
+        // progress/logTail are lane-wide facts (ProgressRegistry is keyed by
+        // repoRoot): a QUEUED job must never surface them — they describe the
+        // OTHER job currently running on this lane and a queued agent reading
+        // them would believe its own build is already executing (live audit
+        // 2026-11-22). Terminal jobs own their result fields instead.
+        Map<String, Object> progress = running ? ProgressRegistry.get(repoRoot) : null;
+        if (progress != null)
             m.put("progress", progress);
-        // diagnosis surface: while the job is queued/running, expose the tail of
-        // the durable log so a long Maven delegation is visibly progressing —
-        // "running" with zero facts is indistinguishable from a hang
-        if (!isTerminal()) {
-            m.put("elapsedMs", System.currentTimeMillis()
-                    - (startedAt > 0 ? startedAt : queuedAt));
+        if (running) {
+            m.put("runMs", System.currentTimeMillis() - startedAt);
             List<String> tail = logTail(logFile, 20);
             if (!tail.isEmpty())
                 m.put("logTail", tail);
+        } else if (!isTerminal()) {
+            m.put("queueWaitMs", System.currentTimeMillis() - queuedAt);
         }
+        if (!isTerminal())
+            m.put("elapsedMs", System.currentTimeMillis()
+                    - (startedAt > 0 ? startedAt : queuedAt));
         if (error != null)
             m.put("error", error);
         if (state == State.DONE || state == State.FAILED) {
@@ -118,25 +125,43 @@ public final class BuildJob {
     /**
      * plan 2588: intermediate state for the long-poll path (design 09 §2) —
      * explicit queued/running phase, position in the lane, waited time; never
-     * an error and never a reused {@code failed} state. progress facts ride
-     * along when the root has published any.
+     * an error and never a reused {@code failed} state. progress/logTail ride
+     * along ONLY when this job itself is running: they are lane-wide facts and
+     * a queued agent reading another job's progress would misread it as its own
+     * execution (live audit 2026-11-22). Queued snapshots carry
+     * {@code queueAheadIds} (oldest first) and the lane's {@code runningJobId}
+     * so a waiting agent can reason about "wait or abandon".
      */
-    public Map<String, Object> pendingSnapshot(int queueAhead, long waitedMs) {
+    public Map<String, Object> pendingSnapshot(int queueAhead, List<String> aheadIds,
+                                               String runningJobId, long waitedMs) {
         Map<String, Object> m = new LinkedHashMap<>();
         boolean running = state == State.RUNNING;
         m.put("id", id);
         m.put("state", state.name().toLowerCase(java.util.Locale.ROOT));
         m.put("phase", running ? "running" : "queued");
         m.put("queueAhead", queueAhead);
-        m.put("elapsedMs", System.currentTimeMillis() - queuedAt);
-        Map<String, Object> progress = ProgressRegistry.get(repoRoot);
+        if (aheadIds != null && !aheadIds.isEmpty())
+            m.put("queueAheadIds", aheadIds);
+        if (!running && runningJobId != null)
+            m.put("runningJobId", runningJobId);
+        m.put("cmd", cmd);
+        long now = System.currentTimeMillis();
+        if (running) {
+            m.put("runMs", now - startedAt);
+        } else {
+            m.put("queueWaitMs", now - queuedAt);
+        }
+        m.put("elapsedMs", now - queuedAt);
+        Map<String, Object> progress = running ? ProgressRegistry.get(repoRoot) : null;
         if (progress != null)
             m.put("progress", progress);
         if (logFile != null)
             m.put("logPath", logFile.toString());
-        List<String> tail = logTail(logFile, 20);
-        if (!tail.isEmpty())
-            m.put("logTail", tail);
+        if (running) {
+            List<String> tail = logTail(logFile, 20);
+            if (!tail.isEmpty())
+                m.put("logTail", tail);
+        }
         m.put("waitedMs", waitedMs);
         return m;
     }

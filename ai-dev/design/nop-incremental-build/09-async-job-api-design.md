@@ -23,7 +23,7 @@
 - `POST /v1/run`：请求体新增可选 `clientRequestId`；`wait` 缺省语义不变（兼容）。响应新增 `replayed`（命中幂等去重时 true）。
 - `GET /v1/job/{id}?waitMs=N&logTail=N`：
   - 终态：现有 snapshot + `logPath`；带 `logTail` 时附 `logTail`（≤500 行字符串）。
-  - 未终态（等满 waitMs）：HTTP 200 + `{id, state, phase:"queued"|"running", queueAhead, elapsedMs, progress?, logPath, waitedMs}`——**不是错误**，AI 侧循环调用直到终态。
+  - 未终态（等满 waitMs）：HTTP 200 + `{id, state, phase:"queued"|"running", queueAhead, queueAheadIds?, runningJobId?, cmd, queueWaitMs?|runMs?, elapsedMs, progress?, logPath, waitedMs}`——**不是错误**，AI 侧循环调用直到终态。排队语义见 10-multi-agent-coordination-design.md：progress/logTail 仅 RUNNING 出现（lane 级事实不泄漏给排队者）；快照与长轮询两种形态字段一致。
 - `DELETE /v1/job/{id}`：QUEUED 取消不变；RUNNING 走协作式取消（上表）；终态返回现有 409 语义。
 - `GET /v1/jobs?limit=N&state=queued|running|done|failed|cancelled`：state 过滤为新增可选参数。
 - `/v1/help` 同步以上全部契约（145→新的自描述完整性口径）。

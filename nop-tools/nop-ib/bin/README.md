@@ -90,10 +90,17 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 ~/nop-ib/bin/ib-run test -pl :module-name
 ~/nop-ib/bin/ib-run model refresh
 ~/nop-ib/bin/ib-run --dir /path/to/project status                  # 显式项目（嵌套/多仓场景必用）
+~/nop-ib/bin/ib-run test -pl :module --quiet                       # 关闭 stderr 进度通道
 ```
 
-- 自动从所在 git 仓推断 `projectDir`（`git rev-parse --show-toplevel`），POST `/v1/run` `wait=true`，透传构建退出码（0/1/3/6/75），失败时打印日志路径与诊断尾部。
+- 自动从所在 git 仓推断 `projectDir`（`git rev-parse --show-toplevel`），异步提交后轮询服务，**排队时在 stderr 显式提示**：`queued: N job(s) ahead (running: job-K) — waiting`、运行期输出 `running: <phase> (Ns)`；结束时打印 `exit=… state=… fallback=…` 与日志路径并透传构建退出码（0/1/3/6/75）。
 - 服务不可达时报错并提示 `bin/start.sh`（exit 75）。`IB_PORT` 可换端口。
+
+### 多 agent 排队协调（要点，详见 /v1/help 的 queueing 节与 design 10）
+
+- 同一项目一次只跑一个构建（FIFO lane，排队上限 32、满则 429）；不同项目按全局预算并行。
+- 排队中的 job 快照含 `queueAhead`/`queueAheadIds`/`runningJobId`/`queueWaitMs`；**绝不携带** `progress`/`logTail`（那是正在运行的 job 的 lane 级事实，泄漏会被误读为自己的执行进度）。
+- **缓存阶梯**：模型新鲜 + 指纹未变 → 测试缓存命中（秒级返回）；有变更 → 快路径增量；模型 stale → 每个排队 job 各付一次全量 Maven 回退（最贵）。**pom 变更后先 `model refresh` 一次再发起批量构建**，把整个 lane 拉回快路径。
 
 ## CLI 直用（不经服务；仅限本地一次性调试，AI 调用方一律走 ib-run/HTTP——CLI 绕过服务队列与并发治理）
 

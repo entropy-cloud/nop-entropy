@@ -356,18 +356,25 @@ public final class ServiceCore {
     /**
      * plan 2588: intermediate long-poll state with the position in the lane.
      * queueAhead counts same-root jobs still queued ahead of this one (lane is
-     * FIFO by queuedAt).
+     * FIFO by queuedAt); aheadIds/runningJobId give a waiting agent the concrete
+     * "who is ahead / who is running" view (2026-11-22 audit gaps 2/3).
      */
     public Map<String, Object> pendingSnapshot(BuildJob job, long waitedMs) {
         int queueAhead = 0;
-        if (job.state == BuildJob.State.QUEUED) {
-            long jobSeq = seqOf(job);
-            for (BuildJob j : registry.all())
-                if (j.repoRoot.equals(job.repoRoot) && j.state == BuildJob.State.QUEUED
-                        && seqOf(j) < jobSeq)
-                    queueAhead++;
+        List<String> aheadIds = new ArrayList<>();
+        String runningJobId = null;
+        long jobSeq = seqOf(job);
+        for (BuildJob j : registry.all()) {
+            if (!j.repoRoot.equals(job.repoRoot))
+                continue;
+            if (j.state == BuildJob.State.RUNNING && runningJobId == null)
+                runningJobId = j.id;
+            else if (j.state == BuildJob.State.QUEUED && seqOf(j) < jobSeq) {
+                queueAhead++;
+                aheadIds.add(j.id);
+            }
         }
-        return job.pendingSnapshot(queueAhead, waitedMs);
+        return job.pendingSnapshot(queueAhead, aheadIds, runningJobId, waitedMs);
     }
 
     /** lane order tie-break: queuedAt can tie within one millisecond. */
