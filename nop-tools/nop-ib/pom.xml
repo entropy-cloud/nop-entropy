@@ -36,6 +36,13 @@
             <artifactId>nop-bytecode</artifactId>
         </dependency>
 
+        <!-- platform reuse (analysis 2026-11-22-nop-ib-nop-git-platform-reuse):
+             XNode/XNodeParser for effective-pom parsing, JsonTool for state documents -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

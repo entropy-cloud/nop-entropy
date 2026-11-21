@@ -1,36 +1,32 @@
 package io.nop.ib.model;
 
+import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.ib.NopIbException;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.stax.StAXSource;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Streams Maven's own effective-pom batch dump into {@link IbModule} facts.
+ * Parses Maven's own effective-pom batch dump into {@link IbModule} facts via
+ * the platform XML stack (analysis 2026-11-22-nop-ib-nop-git-platform-reuse;
+ * this class previously hand-rolled StAX+DOM and both 2026-11-21 single-module
+ * defect roots lived in that coupling — XNodeParser owns the document-shape
+ * robustness instead).
  *
- * <p>The dump (design 05 §5.1, IB-G2 adjudication) is a single XML document with a
- * {@code <projects>} root and one namespaced {@code <project>} element per reactor
- * module. Each project subtree is materialized to a DOM node (worst case ~1MB) so
- * the fact extraction below is plain tree navigation; the document itself is never
- * fully loaded. All paths are already interpolated by Maven; we only convert them
- * repo-relative. We never parse raw pom.xml — this document is Maven's own output.
+ * <p>The dump (design 05 §5.1, IB-G2 adjudication) is either a single XML
+ * document with a namespaced {@code <projects>} root (multi-module reactors,
+ * one {@code <project>} element per module) or a bare namespaced
+ * {@code <project>} document (single-module projects, no trailing content).
+ * The whole tree is materialized by XNodeParser; all paths are already
+ * interpolated by Maven and only converted repo-relative below. We never parse
+ * raw pom.xml — this document is Maven's own output.
  */
 public final class EffectivePomParser {
     private final String repoRoot;
@@ -49,94 +45,63 @@ public final class EffectivePomParser {
     }
 
     public List<IbModule> parse(File dump) {
-        XMLInputFactory inputFactory = XMLInputFactory.newFactory();
-        inputFactory.setProperty(XMLInputFactory.IS_COALESCING, true);
-        inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        try (InputStream in = new FileInputStream(dump)) {
-            XMLStreamReader reader = inputFactory.createXMLStreamReader(in);
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-
-            List<IbModule> modules = new ArrayList<>();
-            // Single-module dumps (help:effective-pom -Doutput on a non-aggregator
-            // project) have a bare <project> root with NO trailing content; the
-            // StAXSource transform of that project then drives the reader past
-            // END_DOCUMENT and the JDK stax impl throws NoSuchElementException on
-            // the next next() call — hasNext() alone is not enough because the
-            // overrun happens inside transform(). Guard both ways (defect: every
-            // single-module project failed model refresh with "END_DOCUMENT
-            // reached").
-            boolean overrun = false;
-            boolean firstStart = true;
-            while (!overrun && reader.hasNext()) {
-                int event;
-                try {
-                    event = reader.next();
-                } catch (java.util.NoSuchElementException e) {
-                    break;
-                }
-                if (event == XMLStreamConstants.START_ELEMENT) {
-                    if (firstStart) {
-                        firstStart = false;
-                        projectsWrapper = reader.getName().getLocalPart().equals("projects");
-                    }
-                }
-                if (event == XMLStreamConstants.START_ELEMENT
-                        && reader.getName().getLocalPart().equals("project")) {
-                    DOMResult result = new DOMResult();
-                    transformerFactory.newTransformer().transform(new StAXSource(reader), result);
-                    Element project = (Element) result.getNode().getFirstChild();
-                    modules.add(parseProject(project));
-                    try {
-                        overrun = !reader.hasNext();
-                    } catch (java.util.NoSuchElementException e) {
-                        overrun = true;
-                    }
-                }
-            }
-            reader.close();
-            if (modules.isEmpty())
-                throw new NopIbException("effective-pom dump contains no project elements: " + dump);
-            return modules;
-        } catch (IOException | XMLStreamException | javax.xml.transform.TransformerException e) {
+        XNode doc;
+        try {
+            doc = XNodeParser.instance().parseFromResource(new FileResource(dump));
+        } catch (Exception e) {
             throw new NopIbException("failed to parse effective-pom dump " + dump, e);
         }
+        if (doc == null)
+            throw new NopIbException("effective-pom dump is empty: " + dump);
+        projectsWrapper = doc.getTagName().equals("projects");
+
+        List<XNode> projects = doc.childrenByTag("project");
+        if (projects.isEmpty() && doc.getTagName().equals("project"))
+            projects = List.of(doc);
+        if (projects.isEmpty())
+            throw new NopIbException("effective-pom dump contains no project elements: " + dump);
+
+        List<IbModule> modules = new ArrayList<>(projects.size());
+        for (XNode project : projects)
+            modules.add(parseProject(project));
+        return modules;
     }
 
-    private IbModule parseProject(Element project) {
+    private IbModule parseProject(XNode project) {
         IbModule mod = new IbModule();
-        mod.setGroupId(text(first(project, "groupId")));
-        mod.setArtifactId(text(first(project, "artifactId")));
-        mod.setVersion(text(first(project, "version")));
-        mod.setPackaging(orDefault(text(first(project, "packaging")), "jar"));
+        mod.setGroupId(text(child(project, "groupId")));
+        mod.setArtifactId(text(child(project, "artifactId")));
+        mod.setVersion(text(child(project, "version")));
+        mod.setPackaging(orDefault(text(child(project, "packaging")), "jar"));
 
-        Element parent = first(project, "parent");
+        XNode parent = child(project, "parent");
         if (parent != null) {
-            String pg = text(first(parent, "groupId"));
-            String pa = text(first(parent, "artifactId"));
+            String pg = text(child(parent, "groupId"));
+            String pa = text(child(parent, "artifactId"));
             mod.setParentGa(pg + ":" + pa);
         }
 
-        Element build = first(project, "build");
+        XNode build = child(project, "build");
         if (build != null) {
-            mod.setSourceDir(rel(text(first(build, "sourceDirectory"))));
-            mod.setTestSourceDir(rel(text(first(build, "testSourceDirectory"))));
-            mod.setOutputDir(rel(text(first(build, "outputDirectory"))));
-            mod.setTestOutputDir(rel(text(first(build, "testOutputDirectory"))));
-            for (Element res : children(first(build, "resources"), "resource"))
+            mod.setSourceDir(rel(text(child(build, "sourceDirectory"))));
+            mod.setTestSourceDir(rel(text(child(build, "testSourceDirectory"))));
+            mod.setOutputDir(rel(text(child(build, "outputDirectory"))));
+            mod.setTestOutputDir(rel(text(child(build, "testOutputDirectory"))));
+            for (XNode res : children(child(build, "resources"), "resource"))
                 addDir(res, mod.getResourceDirs());
-            for (Element res : children(first(build, "testResources"), "testResource"))
+            for (XNode res : children(child(build, "testResources"), "testResource"))
                 addDir(res, mod.getTestResourceDirs());
 
-            Element plugins = first(build, "plugins");
+            XNode plugins = child(build, "plugins");
             if (plugins != null) {
-                for (Element plugin : children(plugins, "plugin")) {
-                    String artifactId = text(first(plugin, "artifactId"));
+                for (XNode plugin : children(plugins, "plugin")) {
+                    String artifactId = text(child(plugin, "artifactId"));
                     switch (artifactId) {
                         case "maven-compiler-plugin":
                             parseCompilerPlugin(plugin, mod);
                             break;
                         case "exec-maven-plugin":
-                            for (Element exe : executions(plugin))
+                            for (XNode exe : executions(plugin))
                                 mod.getExecExecutionIds().add(exeName(exe));
                             break;
                         case "maven-surefire-plugin":
@@ -155,27 +120,27 @@ public final class EffectivePomParser {
         // configuration, leaving the module fact unset (defect 15: such modules
         // were dispatched although Maven skips them)
         if (mod.getSurefireSkipTests() == null) {
-            Element props = first(project, "properties");
+            XNode props = child(project, "properties");
             if (props != null) {
-                String v = text(first(props, "skipTests"));
+                String v = text(child(props, "skipTests"));
                 if (v == null)
-                    v = text(first(props, "skip"));
+                    v = text(child(props, "skip"));
                 if (v == null)
-                    v = text(first(props, "maven.test.skip"));
+                    v = text(child(props, "maven.test.skip"));
                 if (v != null)
                     mod.setSurefireSkipTests(v);
             }
         }
 
-        Element deps = first(project, "dependencies");
+        XNode deps = child(project, "dependencies");
         if (deps != null) {
-            for (Element dep : children(deps, "dependency")) {
+            for (XNode dep : children(deps, "dependency")) {
                 IbModule.DepEdge edge = new IbModule.DepEdge();
-                edge.ga = text(first(dep, "groupId")) + ":" + text(first(dep, "artifactId"));
-                edge.scope = orDefault(text(first(dep, "scope")), "compile");
-                edge.type = orDefault(text(first(dep, "type")), "jar");
-                edge.classifier = text(first(dep, "classifier"));
-                edge.optional = Boolean.parseBoolean(orDefault(text(first(dep, "optional")), "false"));
+                edge.ga = text(child(dep, "groupId")) + ":" + text(child(dep, "artifactId"));
+                edge.scope = orDefault(text(child(dep, "scope")), "compile");
+                edge.type = orDefault(text(child(dep, "type")), "jar");
+                edge.classifier = text(child(dep, "classifier"));
+                edge.optional = Boolean.parseBoolean(orDefault(text(child(dep, "optional")), "false"));
                 mod.getDependencies().add(edge);
             }
         }
@@ -234,19 +199,19 @@ public final class EffectivePomParser {
         return prev == null ? "" : "; also: " + prev;
     }
 
-    private void parseCompilerPlugin(Element plugin, IbModule mod) {
-        Element pluginCfg = first(plugin, "configuration");
-        List<Element> execs = executions(plugin);
+    private void parseCompilerPlugin(XNode plugin, IbModule mod) {
+        XNode pluginCfg = child(plugin, "configuration");
+        List<XNode> execs = executions(plugin);
         boolean anyExecCfg = false;
-        for (Element exe : execs) {
-            if (first(exe, "configuration") != null)
+        for (XNode exe : execs) {
+            if (child(exe, "configuration") != null)
                 anyExecCfg = true;
         }
         if (!execs.isEmpty() && anyExecCfg) {
             // per-execution effective config; fields the execution lacks are filled
             // from the plugin-level config (Maven merge semantics: execution wins)
-            for (Element exe : execs) {
-                Element cfg = first(exe, "configuration");
+            for (XNode exe : execs) {
+                XNode cfg = child(exe, "configuration");
                 if (cfg == null)
                     continue;
                 mod.getCompilerExecs().add(compilerExecFrom(exeName(exe), cfg, pluginCfg));
@@ -257,14 +222,14 @@ public final class EffectivePomParser {
         }
     }
 
-    private IbModule.CompilerExec compilerExecFrom(String id, Element cfg, Element defaults) {
+    private IbModule.CompilerExec compilerExecFrom(String id, XNode cfg, XNode defaults) {
         IbModule.CompilerExec exec = new IbModule.CompilerExec();
         exec.id = id;
-        exec.release = firstNonEmpty(text(first(cfg, "release")), text(first(defaults, "release")));
-        exec.proc = firstNonEmpty(text(first(cfg, "proc")), text(first(defaults, "proc")));
-        Element app = first(cfg, "annotationProcessorPaths");
+        exec.release = firstNonEmpty(text(child(cfg, "release")), text(child(defaults, "release")));
+        exec.proc = firstNonEmpty(text(child(cfg, "proc")), text(child(defaults, "proc")));
+        XNode app = child(cfg, "annotationProcessorPaths");
         if (app == null && defaults != null)
-            app = first(defaults, "annotationProcessorPaths");
+            app = child(defaults, "annotationProcessorPaths");
         exec.annotationProcessorPaths = app != null;
         // check-only processors (error-prone, NullAway, SpotBugs) validate but
         // generate nothing: the fast path compiles with -proc:none, whose output
@@ -274,17 +239,17 @@ public final class EffectivePomParser {
         exec.unsupportedCompilerArgs = hasUnsupportedCompilerArgs(cfg)
                 || (defaults != null && hasUnsupportedCompilerArgs(defaults));
         parseMirrorableArgs(exec, cfg, defaults);
-        exec.source = firstNonEmpty(text(first(cfg, "source")), text(first(defaults, "source")));
-        exec.target = firstNonEmpty(text(first(cfg, "target")), text(first(defaults, "target")));
+        exec.source = firstNonEmpty(text(child(cfg, "source")), text(child(defaults, "source")));
+        exec.target = firstNonEmpty(text(child(cfg, "target")), text(child(defaults, "target")));
         return exec;
     }
 
     private static final Set<String> CHECK_ONLY_PROCESSOR_GROUPS = Set.of(
             "com.google.errorprone", "com.uber.nullaway", "com.github.spotbugs");
 
-    private boolean allPathsCheckOnly(Element app) {
-        for (Element path : children(app, "path")) {
-            Element g = first(path, "groupId");
+    private boolean allPathsCheckOnly(XNode app) {
+        for (XNode path : children(app, "path")) {
+            XNode g = child(path, "groupId");
             if (g == null || !CHECK_ONLY_PROCESSOR_GROUPS.contains(text(g)))
                 return false;
         }
@@ -294,10 +259,10 @@ public final class EffectivePomParser {
     /** -parameters debug metadata: the standard <parameters>true</parameters>
      *  config element, or a free-form compilerArg entry "-parameters" (spring-batch
      *  style). Affects bytecode (MethodParameters attributes) — must be mirrored. */
-    private boolean parametersRequested(Element cfg) {
+    private boolean parametersRequested(XNode cfg) {
         if (cfg == null)
             return false;
-        Element p = first(cfg, "parameters");
+        XNode p = child(cfg, "parameters");
         if (p != null && "true".equalsIgnoreCase(text(p)))
             return true;
         return compilerArgTokens(cfg).contains("-parameters");
@@ -309,20 +274,20 @@ public final class EffectivePomParser {
     private static final Set<String> MIRRORABLE_COMPILER_ARGS = Set.of(
             "-parameters", "-g", "--add-modules", "--enable-preview");
 
-    private List<String> compilerArgTokens(Element cfg) {
+    private List<String> compilerArgTokens(XNode cfg) {
         List<String> tokens = new ArrayList<>();
         if (cfg == null)
             return tokens;
         for (String tag : new String[]{"compilerArgs", "compilerArguments"}) {
-            Element args = first(cfg, tag);
+            XNode args = child(cfg, tag);
             if (args == null)
                 continue;
-            for (Element arg : children(args, "arg")) {
+            for (XNode arg : children(args, "arg")) {
                 String t = text(arg);
                 if (t != null && !t.isBlank())
                     tokens.add(t.trim());
             }
-            for (Element arg : children(args, "compilerArg")) {
+            for (XNode arg : children(args, "compilerArg")) {
                 String t = text(arg);
                 if (t != null && !t.isBlank())
                     tokens.add(t.trim());
@@ -333,7 +298,7 @@ public final class EffectivePomParser {
 
     /** ordered compilerArgs with --add-modules values consumed (token stream model:
      *  "--add-modules" then "jdk.incubator.vector"; "--add-modules=x" single-token form). */
-    private List<String> orderedArgTokens(Element cfg) {
+    private List<String> orderedArgTokens(XNode cfg) {
         List<String> raw = compilerArgTokens(cfg);
         List<String> out = new ArrayList<>();
         for (int i = 0; i < raw.size(); i++) {
@@ -348,8 +313,8 @@ public final class EffectivePomParser {
         return out;
     }
 
-    private void parseMirrorableArgs(IbModule.CompilerExec exec, Element cfg, Element defaults) {
-        for (Element src : new Element[]{defaults, cfg}) {
+    private void parseMirrorableArgs(IbModule.CompilerExec exec, XNode cfg, XNode defaults) {
+        for (XNode src : new XNode[]{defaults, cfg}) {
             if (src == null)
                 continue;
             List<String> tokens = orderedArgTokens(src);
@@ -372,7 +337,7 @@ public final class EffectivePomParser {
      *  module is flagged and routed to Maven (fail-safe, mirrors depsUnresolved
      *  routing). Mirrorable product-affecting args (--add-modules, --enable-preview,
      *  -parameters, -g) are captured and replayed by the fast path instead. */
-    private boolean hasUnsupportedCompilerArgs(Element cfg) {
+    private boolean hasUnsupportedCompilerArgs(XNode cfg) {
         List<String> tokens = orderedArgTokens(cfg);
         for (int i = 0; i < tokens.size(); i++) {
             String t = tokens.get(i);
@@ -390,38 +355,38 @@ public final class EffectivePomParser {
         return a != null && !a.isEmpty() ? a : b;
     }
 
-    private void parseSurefire(Element plugin, IbModule mod) {
-        Element cfg = first(plugin, "configuration");
+    private void parseSurefire(XNode plugin, IbModule mod) {
+        XNode cfg = child(plugin, "configuration");
         if (cfg == null)
             return;
-        mod.setSurefireArgLine(text(first(cfg, "argLine")));
-        String skip = text(first(cfg, "skipTests"));
+        mod.setSurefireArgLine(text(child(cfg, "argLine")));
+        String skip = text(child(cfg, "skipTests"));
         if (skip == null)
-            skip = text(first(cfg, "skip"));
+            skip = text(child(cfg, "skip"));
         mod.setSurefireSkipTests(skip);
-        Element includes = first(cfg, "includes");
+        XNode includes = child(cfg, "includes");
         if (includes != null) {
-            for (Element inc : children(includes, "include")) {
+            for (XNode inc : children(includes, "include")) {
                 String v = text(inc);
                 if (v != null && !v.isBlank())
                     mod.getSurefireIncludes().add(v.trim());
             }
         }
-        String excludedGroups = text(first(cfg, "excludedGroups"));
+        String excludedGroups = text(child(cfg, "excludedGroups"));
         if (excludedGroups != null && !excludedGroups.isBlank())
             mod.setSurefireExcludedGroups(excludedGroups.trim());
         // positive tag filter parity (wave6 6A-2; mirror of defect 27's
         // excludedGroups): surefire runs ONLY the tag-matched subset
-        String groups = text(first(cfg, "groups"));
+        String groups = text(child(cfg, "groups"));
         if (groups != null && !groups.isBlank())
             mod.setSurefireGroups(groups.trim());
         // additionalClasspathElements (wave6 6A-2): external (repo-external)
         // entries are appended to the fork classpath; repo-internal ones are
         // resolved after basedir computation in parseProject (they route the
         // module to surefire — no-intra-project-jar invariant I1)
-        Element acles = first(cfg, "additionalClasspathElements");
+        XNode acles = child(cfg, "additionalClasspathElements");
         if (acles != null) {
-            for (Element el : children(acles, "additionalClasspathElement")) {
+            for (XNode el : children(acles, "additionalClasspathElement")) {
                 String v = text(el);
                 if (v != null && !v.isBlank())
                     mod.getSurefireAdditionalClasspathElements().add(v.trim());
@@ -430,32 +395,32 @@ public final class EffectivePomParser {
         // additionalClasspathDependencies (wave6 6A-2): resolving Maven
         // coordinates to jars is dependency-resolution machinery the fork
         // engine does not replicate — route the module to surefire
-        if (first(cfg, "additionalClasspathDependencies") != null)
+        if (child(cfg, "additionalClasspathDependencies") != null)
             mod.setSurefireUnsupportedReason("additionalClasspathDependencies");
         // non-default workingDirectory (wave6 6A-2): fork cwd is a hard contract
         // (module basedir); a surefire-configured cwd change cannot be mirrored
         // without re-verifying every test's relative-path assumptions
-        String workDir = text(first(cfg, "workingDirectory"));
+        String workDir = text(child(cfg, "workingDirectory"));
         if (workDir != null && !workDir.isBlank())
             mod.setPendingSurefireWorkingDirectory(workDir.trim());
-        Element excludes = first(cfg, "excludes");
+        XNode excludes = child(cfg, "excludes");
         if (excludes != null) {
-            for (Element exc : children(excludes, "exclude")) {
+            for (XNode exc : children(excludes, "exclude")) {
                 String v = text(exc);
                 if (v != null && !v.isBlank())
                     mod.getSurefireExcludes().add(v.trim());
             }
         }
-        Element envVars = first(cfg, "environmentVariables");
+        XNode envVars = child(cfg, "environmentVariables");
         if (envVars != null) {
             Map<String, String> env = new LinkedHashMap<>();
-            for (Element prop : children(envVars, null)) {
-                if (prop.getNodeName().equals("property"))
+            for (XNode prop : envVars.getChildren()) {
+                if (prop.getTagName().equals("property"))
                     continue;
-                String k = text(first(prop, "key"));
-                String v = text(first(prop, "value"));
+                String k = text(child(prop, "key"));
+                String v = text(child(prop, "value"));
                 if (k == null) {
-                    k = prop.getNodeName();
+                    k = prop.getTagName();
                     v = text(prop);
                 }
                 if (k != null && v != null)
@@ -464,66 +429,56 @@ public final class EffectivePomParser {
             if (!env.isEmpty())
                 mod.getSurefireEnvironmentVariables().putAll(env);
         }
-        Element props = first(cfg, "systemPropertyVariables");
+        XNode props = child(cfg, "systemPropertyVariables");
         if (props != null) {
             Map<String, String> map = new LinkedHashMap<>();
-            for (Element prop : children(props, null)) {
+            for (XNode prop : props.getChildren()) {
                 // <property><name>k</name><value>v</value></property> form (wave6
                 // 6A-2): silently dropping it lost facts — ingest like the
                 // element-name form
-                if (prop.getNodeName().equals("property")) {
-                    String k = text(first(prop, "name"));
-                    String v = text(first(prop, "value"));
+                if (prop.getTagName().equals("property")) {
+                    String k = text(child(prop, "name"));
+                    String v = text(child(prop, "value"));
                     if (k != null && v != null)
                         map.put(k, v);
                     continue;
                 }
-                map.put(prop.getNodeName(), text(prop));
+                map.put(prop.getTagName(), text(prop));
             }
             mod.getSurefireSystemProperties().putAll(map);
         }
     }
 
-    private void addDir(Element res, List<String> dirs) {
-        String dir = rel(text(first(res, "directory")));
+    private void addDir(XNode res, List<String> dirs) {
+        String dir = rel(text(child(res, "directory")));
         if (dir != null)
             dirs.add(dir);
     }
 
-    private List<Element> executions(Element plugin) {
-        return children(first(plugin, "executions"), "execution");
+    private List<XNode> executions(XNode plugin) {
+        return children(child(plugin, "executions"), "execution");
     }
 
-    private String exeName(Element exe) {
-        return orDefault(text(first(exe, "id")), "default");
+    private String exeName(XNode exe) {
+        return orDefault(text(child(exe, "id")), "default");
     }
 
-    private Element first(Element parent, String name) {
+    private XNode child(XNode parent, String name) {
         if (parent == null)
             return null;
-        for (Element child : children(parent, name)) {
-            return child;
-        }
-        return null;
+        return parent.childByTag(name);
     }
 
-    private List<Element> children(Element parent, String name) {
-        List<Element> out = new ArrayList<>();
+    private List<XNode> children(XNode parent, String name) {
         if (parent == null)
-            return out;
-        NodeList nodes = parent.getChildNodes();
-        for (int i = 0; i < nodes.getLength(); i++) {
-            Node n = nodes.item(i);
-            if (n instanceof Element && (name == null || n.getNodeName().equals(name)))
-                out.add((Element) n);
-        }
-        return out;
+            return new ArrayList<>();
+        return parent.childrenByTag(name);
     }
 
-    private String text(Element el) {
-        if (el == null)
+    private String text(XNode node) {
+        if (node == null)
             return null;
-        String t = el.getTextContent();
+        String t = node.contentText();
         return t == null ? null : t.trim();
     }
 
