@@ -55,6 +55,16 @@ final class LogCommand {
                         + svc.status().branch() + "' does not have any commits yet");
                 return GitCompatCli.EXIT_FATAL;
             }
+            // unknown rev: the core log() returns an empty list for unresolvable
+            // revs (API contract), but native git fails loudly — a silent empty
+            // log with exit 0 is a fake-green hazard for AI consumers
+            if (svc.resolveRevision(rev) == null) {
+                ctx.err().println("fatal: ambiguous argument '" + rev
+                        + "': unknown revision or path not in the working tree.");
+                ctx.err().println("Use '--' to separate paths from revisions, like this:");
+                ctx.err().println("'git <command> [<revision>...] -- [<file>...]'");
+                return GitCompatCli.EXIT_FATAL;
+            }
             List<NopGitCommit> commits = svc.log(new LogOptions(rev, maxCount));
             List<String> lines = oneline ? logOneline(commits) : logLong(commits);
             lines.forEach(ctx.out()::println);

@@ -34,9 +34,18 @@ import java.util.Map;
  */
 public final class EffectivePomParser {
     private final String repoRoot;
+    /** true when the dump has the multi-module {@code <projects>} wrapper root;
+     *  single-module dumps have a bare {@code <project>} document root instead. */
+    private boolean projectsWrapper;
 
     public EffectivePomParser(String repoRoot) {
         this.repoRoot = repoRoot.endsWith("/") ? repoRoot : repoRoot + "/";
+    }
+
+    /** single-module dumps (bare {@code <project>} root) have no wrapper — the
+     *  one project IS the repo root module, not an aggregator entry. */
+    public boolean hasProjectsWrapper() {
+        return projectsWrapper;
     }
 
     public List<IbModule> parse(File dump) {
@@ -48,16 +57,40 @@ public final class EffectivePomParser {
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
             List<IbModule> modules = new ArrayList<>();
-            while (true) {
-                int event = reader.next();
-                if (event == XMLStreamConstants.END_DOCUMENT)
+            // Single-module dumps (help:effective-pom -Doutput on a non-aggregator
+            // project) have a bare <project> root with NO trailing content; the
+            // StAXSource transform of that project then drives the reader past
+            // END_DOCUMENT and the JDK stax impl throws NoSuchElementException on
+            // the next next() call — hasNext() alone is not enough because the
+            // overrun happens inside transform(). Guard both ways (defect: every
+            // single-module project failed model refresh with "END_DOCUMENT
+            // reached").
+            boolean overrun = false;
+            boolean firstStart = true;
+            while (!overrun && reader.hasNext()) {
+                int event;
+                try {
+                    event = reader.next();
+                } catch (java.util.NoSuchElementException e) {
                     break;
+                }
+                if (event == XMLStreamConstants.START_ELEMENT) {
+                    if (firstStart) {
+                        firstStart = false;
+                        projectsWrapper = reader.getName().getLocalPart().equals("projects");
+                    }
+                }
                 if (event == XMLStreamConstants.START_ELEMENT
                         && reader.getName().getLocalPart().equals("project")) {
                     DOMResult result = new DOMResult();
                     transformerFactory.newTransformer().transform(new StAXSource(reader), result);
                     Element project = (Element) result.getNode().getFirstChild();
                     modules.add(parseProject(project));
+                    try {
+                        overrun = !reader.hasNext();
+                    } catch (java.util.NoSuchElementException e) {
+                        overrun = true;
+                    }
                 }
             }
             reader.close();
@@ -147,10 +180,16 @@ public final class EffectivePomParser {
             }
         }
 
-        // basedir = parent dir of outputDirectory's target segment; fall back to source dir
+        // basedir = parent dir of outputDirectory's target segment; fall back to source dir.
+        // Repo-relative single-module shape: outputDir is "target/classes" with no
+        // leading path (defect: basedir stayed null and ModelRefresher skipped the
+        // module as a root aggregator — 0-module model on every single-module
+        // project). The module lives at the repo root itself.
         String dir = mod.getOutputDir();
         if (dir != null && dir.contains("/target/")) {
             mod.setBasedir(dir.substring(0, dir.lastIndexOf("/target/")));
+        } else if (dir != null && (dir.equals("target/classes") || dir.startsWith("target/"))) {
+            mod.setBasedir("");
         } else if (mod.getSourceDir() != null && mod.getSourceDir().contains("/src/")) {
             mod.setBasedir(mod.getSourceDir().substring(0, mod.getSourceDir().lastIndexOf("/src/")));
         }

@@ -145,6 +145,48 @@ class RealGitRepoBugTest {
         assertTrue(r.stdout().contains("A  \"keep me.txt\""), r.stdout());
     }
 
+    // bug (2026-11-21 live audit): `log <unknown-rev>` must fail natively —
+    // the core log() API returns an empty list for unresolvable revs, but the
+    // CLI surfaced that as a silent empty log with exit 0 (fake-green hazard)
+    @Test
+    void logUnknownRevNativeFatal() throws Exception {
+        Path repo = realRepo("logbadrev", IDENT,
+                "echo a > a.txt && git add -A && git commit -qm base");
+        RunResult r = cli(repo, "log", "badrev");
+        assertEquals(128, r.exit(), r.stderr());
+        assertEquals("fatal: ambiguous argument 'badrev': unknown revision or path"
+                + " not in the working tree.", r.stderr().lines().findFirst().orElse(""));
+        assertEquals("", r.stdout());
+        // sanity: a valid rev still logs fine
+        RunResult ok = cli(repo, "log", "--oneline");
+        assertEquals(0, ok.exit());
+        assertTrue(ok.stdout().contains("base"));
+    }
+
+    // bug (2026-11-21 live audit): combined short-flag clusters like -qm must
+    // commit natively (exit 0) — the explicit -am/-ma handling missed -qm, the
+    // most common AI-tool invocation shape, and exited 129
+    @Test
+    void commitCombinedShortFlagClusters() throws Exception {
+        Path repo = realRepo("commitqm", IDENT,
+                "echo a > a.txt && git add -A && git commit -qm base");
+        assertEquals(0, cli(repo, "log", "--oneline").exit());
+        // staged follow-up commit via -qm
+        Files.writeString(repo.resolve("a.txt"), "b\n");
+        cli(repo, "add", "a.txt");
+        RunResult r = cli(repo, "commit", "-qm", "second");
+        assertEquals(0, r.exit(), r.stderr());
+        assertTrue(r.stdout().startsWith("["), r.stdout());
+        assertTrue(r.stderr().isEmpty(), r.stderr());
+        // -am cluster with attached value stages the tracked modification itself
+        Files.writeString(repo.resolve("a.txt"), "c\n");
+        RunResult r2 = cli(repo, "commit", "-amthird");
+        assertEquals(0, r2.exit(), r2.stderr());
+        // unknown flag inside a cluster still exits usage
+        RunResult bad = cli(repo, "commit", "-qz", "-m", "x");
+        assertEquals(129, bad.exit(), bad.stderr());
+    }
+
     // bug #7: unknown ref checkout/switch use distinct native messages+codes
     @Test
     void checkoutUnknownRefNativeErrors() throws Exception {

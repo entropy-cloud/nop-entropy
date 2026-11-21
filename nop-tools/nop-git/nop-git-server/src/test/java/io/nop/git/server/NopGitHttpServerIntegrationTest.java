@@ -88,6 +88,41 @@ class NopGitHttpServerIntegrationTest {
         }
     }
 
+    /**
+     * Standard bare-repo directory convention: registry roots in the wild hold
+     * repos as {@code <name>.git} directories (git-daemon / git-http-backend
+     * layout). URL {@code /<name>.git} used to resolve to disk {@code <root>/<name>}
+     * only and 403'd on this layout (live audit 2026-11-21).
+     */
+    @Test
+    void servesDotGitBareDirectoryLayout() throws Exception {
+        Path root2 = base.resolve("repos2");
+        Files.createDirectories(root2);
+        Path bare = root2.resolve("proj.git");
+        // bare repo seeded via clone --bare from the worktree repo
+        assertEquals(0, git(base, "clone", "--bare", "-q",
+                base.resolve("repos/proj").toAbsolutePath().toString(),
+                bare.toAbsolutePath().toString()).exit());
+
+        NopGitHttpServer server2 = new NopGitHttpServer(GitServerConfig.of(0, root2));
+        int port2 = server2.start();
+        try {
+            Path work = base.resolve("workdotgit");
+            assertEquals(0, git(base, "clone", "-q",
+                    "http://127.0.0.1:" + port2 + "/proj.git",
+                    work.toAbsolutePath().toString()).exit());
+            Files.writeString(work.resolve("a.txt"), "changed\n");
+            assertEquals(0, git(work, "add", ".").exit());
+            assertEquals(0, git(work, "commit", "-m", "bare layout").exit());
+            assertEquals(0, git(work, "checkout", "-q", "-b", "devdotgit").exit());
+            assertEquals(0, git(work, "push", "origin", "devdotgit").exit());
+            assertEquals(sha(work, "HEAD"),
+                    sha(bare, "refs/heads/devdotgit"));
+        } finally {
+            server2.stop();
+        }
+    }
+
     @Test
     void cloneCommitPushRoundtripOverHttp() throws Exception {
         Path work = base.resolve("work");

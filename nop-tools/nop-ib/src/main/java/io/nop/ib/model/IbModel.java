@@ -174,14 +174,16 @@ public class IbModel {
         return model;
     }
 
-    /** Same-module lookup by repo-relative file path (any file inside the module). */
+    /** Same-module lookup by repo-relative file path (any file inside the module).
+     *  An empty basedir (single-module repo-root project) matches any path; the
+     *  longest-prefix rule still prefers a deeper nested module fact. */
     public IbModule moduleForPath(String relPath) {
         IbModule best = null;
         for (IbModule m : modules) {
             String b = m.getBasedir();
-            if (b == null || b.isEmpty())
+            if (b == null)
                 continue;
-            if (relPath.equals(b) || relPath.startsWith(b + "/")) {
+            if (b.isEmpty() || relPath.equals(b) || relPath.startsWith(b + "/")) {
                 if (best == null || b.length() > best.getBasedir().length())
                     best = m;
             }

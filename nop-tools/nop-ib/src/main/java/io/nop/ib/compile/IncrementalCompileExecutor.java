@@ -87,8 +87,13 @@ public final class IncrementalCompileExecutor {
                     // index source facts are module-relative; compileModule consumes
                     // repo-relative paths
                     List<String> repoRelSources = new ArrayList<>();
-                    for (String moduleRel : recompileSources)
-                        repoRelSources.add(module.getBasedir() + "/" + moduleRel);
+                    for (String moduleRel : recompileSources) {
+                        // empty basedir (repo-root module): no prefix, else the
+                        // path gains a leading slash and stops being repo-relative
+                        String basedir = module.getBasedir();
+                        repoRelSources.add(basedir == null || basedir.isEmpty()
+                                ? moduleRel : basedir + "/" + moduleRel);
+                    }
                     compileModule(module, repoRelSources, outcome, abiChangedByModule);
                     if (!outcome.isSuccess())
                         return outcome;
@@ -128,7 +133,11 @@ public final class IncrementalCompileExecutor {
         List<String> main = new ArrayList<>();
         List<String> test = new ArrayList<>();
         for (String source : repoRelSources) {
-            if (source != null && source.contains("/src/test/"))
+            // "/src/test/" covers nested modules; "src/test/" covers the repo-root
+            // module (empty basedir, no leading slash — misrouting its test sources
+            // to the main pass compiled them with the main classpath (no junit)
+            // into target/classes: shadow classes + spurious errors)
+            if (source != null && (source.contains("/src/test/") || source.startsWith("src/test/")))
                 test.add(source);
             else
                 main.add(source);

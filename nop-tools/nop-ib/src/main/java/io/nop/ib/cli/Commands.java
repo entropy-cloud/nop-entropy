@@ -220,8 +220,11 @@ public final class Commands {
     }
 
     private static String moduleRelative(IbEngine engine, IbModule module, String target) {
-        String basedir = module.getBasedir() + "/";
-        return target.startsWith(basedir) ? target.substring(basedir.length()) : target;
+        String basedir = module.getBasedir();
+        if (basedir == null || basedir.isEmpty())
+            return target; // repo-root module: targets are already module-relative
+        String prefix = basedir + "/";
+        return target.startsWith(prefix) ? target.substring(prefix.length()) : target;
     }
 
     public static int cache(IbEngine engine, List<String> args, PrintStream out, boolean json) {

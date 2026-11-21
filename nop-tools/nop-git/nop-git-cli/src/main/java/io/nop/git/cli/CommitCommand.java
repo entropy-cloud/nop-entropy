@@ -41,15 +41,33 @@ final class CommitCommand {
                 message = arg.substring("--message=".length());
             } else if (arg.equals("-a") || arg.equals("--all")) {
                 all = true;
-            } else if (arg.equals("-am") || arg.equals("-ma")) {
-                all = true;
-                if (arg.length() > 3) {
-                    message = arg.substring(3);
-                } else if (i + 1 < args.size()) {
-                    message = args.get(++i);
-                } else {
-                    ctx.err().println("error: switch `m' requires a value");
-                    return EXIT_USAGE;
+            } else if (arg.startsWith("-") && !arg.startsWith("--") && arg.length() > 2) {
+                // combined short-flag cluster: native git accepts -qm, -am, -ma,
+                // -qam ... (live audit: -qm exited 129 while native commits fine —
+                // the single most common AI-tool invocation shape). -q is accepted
+                // as a no-op like native quiet mode.
+                String chars = arg.substring(1);
+                for (int ci = 0; ci < chars.length(); ci++) {
+                    char c = chars.charAt(ci);
+                    if (c == 'm') {
+                        String rest = chars.substring(ci + 1);
+                        if (!rest.isEmpty()) {
+                            message = rest;
+                        } else if (i + 1 < args.size()) {
+                            message = args.get(++i);
+                        } else {
+                            ctx.err().println("error: switch `m' requires a value");
+                            return EXIT_USAGE;
+                        }
+                        break;
+                    } else if (c == 'a') {
+                        all = true;
+                    } else if (c == 'q') {
+                        // quiet: accepted, output unchanged (subset contract)
+                    } else {
+                        ctx.err().println("error: unknown option `" + c + "'");
+                        return EXIT_USAGE;
+                    }
                 }
             } else if (arg.equals("--")) {
                 // remaining are paths (unused subset)

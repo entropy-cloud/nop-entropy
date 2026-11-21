@@ -184,8 +184,14 @@ public final class ModelRefresher {
         model.setUnresolvedModules(unresolved);
 
         for (IbModule mod : modules) {
-            if (mod.getBasedir() == null)
-                continue; // root aggregator has no own source tree facts
+            // root aggregator has no own source tree facts — skip it, but ONLY in
+            // the multi-module dump shape. A single-module dump (bare <project>
+            // root, hasProjectsWrapper()==false) describes the repo-root module
+            // itself: its repo-relative outputDir is "target/classes" so basedir
+            // is "" and skipping it here yielded a 0-module model (defect).
+            if (mod.getBasedir() == null
+                    || (mod.getBasedir().isEmpty() && parser.hasProjectsWrapper()))
+                continue;
             List<String> ext = artifactsByModule.get(mod.getArtifactId());
             if (ext != null)
                 mod.setExternalArtifacts(ext);
@@ -274,8 +280,13 @@ public final class ModelRefresher {
         Map<String, String> hashes = new LinkedHashMap<>();
         for (IbModule mod : model.getModules()) {
             Path pom = repoRoot.resolve(mod.getBasedir()).resolve("pom.xml");
-            if (Files.isRegularFile(pom))
-                hashes.put(mod.getBasedir() + "/pom.xml", mod.getPomHash());
+            if (Files.isRegularFile(pom)) {
+                // empty basedir (repo-root module): key must stay repo-relative
+                // without a leading slash — "/pom.xml" resolves as an absolute
+                // path in ModelStore.stalenessReason and always reads "missing"
+                String basedir = mod.getBasedir();
+                hashes.put(basedir.isEmpty() ? "pom.xml" : basedir + "/pom.xml", mod.getPomHash());
+            }
         }
         // plus any pom recorded from a previous model for modules that disappeared:
         // not applicable — pom set is derived from the fresh reactor.

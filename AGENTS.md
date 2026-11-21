@@ -235,16 +235,21 @@ These rules exist because agents routinely skip plan maintenance when focused on
 # 服务（推荐，多 AI/多项目共享，同项目自动串行排队）
 ~/nop-ib/bin/start.sh                                                    # 启动（幂等，端口 8188）
 curl -s http://127.0.0.1:8188/v1/health                                  # 健康检查
+
+# 调用首选 ib-run 薄壳（自动从 cwd 推断 projectDir、组装 JSON、透传构建退出码）：
+~/nop-ib/bin/ib-run check --paths <变更文件> --json
+~/nop-ib/bin/ib-run model refresh
+
+# 等价的原始 HTTP 契约（ib-run 不可用时的兜底）：
 curl -s -X POST http://127.0.0.1:8188/v1/run -d \
   '{"projectDir":"<仓库根>","cmd":"check","args":["--paths","<变更文件>","--json"],"wait":true}'
 ~/nop-ib/bin/stop.sh                                                     # 停止
 
-# CLI 直用（项目根下）
-nop-tools/nop-ib/bin/ib check --paths <file...>     # 编译 + 受影响测试（AI 主入口）
-nop-tools/nop-ib/bin/ib test -pl :module            # 单模块测试
-nop-tools/nop-ib/bin/ib compile --paths <file...>   # 仅编译
-nop-tools/nop-ib/bin/ib clean -pl :module           # mvn-clean 同义面
-nop-tools/nop-ib/bin/ib model refresh               # pom 变更后刷新构建事实（一次性 ~50s）
+# 禁止 CLI 直用：`nop-tools/nop-ib/bin/ib` 不是调用方入口（仅 `bin/ib serve` 用于启动服务本身）。
+# 调用方（AI/脚本）一律走服务 HTTP 接口（优先 ib-run 薄壳）——CLI 路径绕过服务队列与并发治理，
+# model refresh 与服务并发时曾出现长时间静默阻塞（2026-11-21 收敛）。
+# pom 变更后刷新构建事实（一次性 ~50s）：
+~/nop-ib/bin/ib-run model refresh
 
 # 最终打包（唯一保留 mvn 的场景）
 ./mvnw clean install -T 1C
@@ -253,7 +258,7 @@ nop-tools/nop-ib/bin/ib model refresh               # pom 变更后刷新构建�
 使用要点：
 
 - **调用契约**：`cmd` 白名单 `status|plan|compile|test|check|model|clean`；`projectDir` 可为仓库根/子模块目录/symlink（服务自动归一到同一 reactor 队列）；回复 `exit` 字段即构建结果（0 成功 / 1 失败 / 3 用法错误 / 6 partial / 75 回退 Maven 超时）；`fallback.reason` 非 null 表示该轮走了 Maven 回退及其原因。
-- **代码生成**：模块目录可放 `nop-ib.tasks.json` 声明 codegen 任务（如 nop-wf-meta 的 xgen precompile）——改模板后 `ib compile --paths <模板>` 会自动执行生成任务，不再整体回退 Maven；契约见 `ai-dev/design/nop-incremental-build/08-codegen-task-hooks-design.md`。
+- **代码生成**：模块目录可放 `nop-ib.tasks.json` 声明 codegen 任务（如 nop-wf-meta 的 xgen precompile）——改模板后经服务跑 `compile --paths <模板>` 会自动执行生成任务，不再整体回退 Maven；契约见 `ai-dev/design/nop-incremental-build/08-codegen-task-hooks-design.md`。
 - **模型过期**（改了 pom）时服务会自动回退真 Maven 并给出原因；跑一次 `model refresh` 即恢复快路径。
 - **分布重建**：`nop-tools/nop-ib/bin/package-ib.sh` 重新打包到 `~/nop-ib`（改了 nop-ib 本身之后必须重打包再重启服务）。
 

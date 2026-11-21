@@ -137,9 +137,19 @@ public class NopGitHttpServer {
             if (name.contains("..") || name.contains("/"))
                 throw new ServiceNotEnabledException("invalid repository name: " + name);
             String base = name.endsWith(".git") ? name.substring(0, name.length() - 4) : name;
+            // layout candidates: <base>/.git (worktree repo), <base> (bare repo),
+            // <base>.git (the standard bare-repo directory convention — a
+            // registry root full of x.git dirs was unservable before, URL
+            // /x.git resolved to disk <root>/x and 403'd)
             File dir = config.root().resolve(base).toFile();
             File gitDir = new File(dir, ".git");
             File repoDir = gitDir.isDirectory() ? gitDir : dir;
+            if (!new File(repoDir, "HEAD").exists() && name.endsWith(".git")) {
+                File dotGitDir = config.root().resolve(base + ".git").toFile();
+                if (new File(dotGitDir, "HEAD").exists()) {
+                    repoDir = dotGitDir;
+                }
+            }
             if (!new File(repoDir, "HEAD").exists())
                 throw new ServiceNotEnabledException("repository not found: " + name);
             try {

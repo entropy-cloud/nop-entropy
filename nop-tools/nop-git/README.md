@@ -74,6 +74,7 @@ try (IGitRepositoryService svc = IGitRepositoryService.open(workDir, policyEngin
 ```
 
 - 端点 `http://127.0.0.1:<port>/<name>.git`（智能协议；浏览器 GET 404 属正常）。
+- **`<repoRoot>` 是注册表父目录**（非单个仓库）：URL `/<name>.git` 依次解析磁盘 `<root>/<name>/.git`（工作仓）、`<root>/<name>`（bare 仓）、`<root>/<name>.git`（标准 bare 目录布局，git-daemon/git-http-backend 同款）。名称只取末段，路径穿越拒绝。
 - 默认只绑 loopback；`--token` 启用 bearer 访问控制（客户端 `-c http.extraHeader="Authorization: Bearer <token>"`）；`--bind-all` 全网卡。
 - 服务端分支保护：main/master/release/* 直推/force/删除拒绝；受保护 tag 的删除/改写拒绝。
 

@@ -8,7 +8,8 @@
 ~/nop-ib/
 ├── nop-ib.jar      # CLI + 服务 jar（shade 单 jar，自包含，无外部依赖目录）
 ├── bin/
-│   ├── ib          # CLI 客户端（任意 cwd、任意 Maven 项目）
+│   ├── ib          # CLI 客户端（任意 cwd、任意 Maven 项目；调试用）
+│   ├── ib-run      # 服务 HTTP 薄壳（AI/脚本主入口，CLI 形态 + 队列治理）
 │   ├── start.sh    # 启动 HTTP 服务（默认端口 8188，env NOP_IB_PORT 可换）
 │   └── stop.sh     # 停止服务
 ├── nop-ib.log      # 服务日志
@@ -76,7 +77,25 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 
 之后模型随 pom 变化自动检测过期；过期时服务自动回退真 Maven 并给出原因，重新 `model refresh` 即恢复快路径。
 
-## CLI 直用（不经服务）
+### 项目根识别契约（重要）
+
+- 服务把 `projectDir` 归一到 **Maven reactor 根**：优先识别 `mvnw` + `.mvn/` 标记；否则沿连续 pom 链向上取顶。同 reactor 只有一条构建队列。
+- **嵌套项目告警**：一个带自己 `pom.xml` 的独立项目若嵌套在一个含 `mvnw` 的父仓目录内，会被归一到父仓——提交相对路径时构建的是父仓而非嵌套项目。嵌套/无仓独立项目一律用 `ib-run --dir <绝对路径>` 或绝对 `projectDir` 显式指定。
+- **单模块项目一等支持**：非聚合器项目（repo 根即唯一模块）的 refresh/compile/test 与多模块完全同权。
+
+## ib-run 薄壳（推荐的命令行形态）
+
+```bash
+~/nop-ib/bin/ib-run check --paths src/main/java/Foo.java --json   # projectDir 从 cwd 的 git 根推断
+~/nop-ib/bin/ib-run test -pl :module-name
+~/nop-ib/bin/ib-run model refresh
+~/nop-ib/bin/ib-run --dir /path/to/project status                  # 显式项目（嵌套/多仓场景必用）
+```
+
+- 自动从所在 git 仓推断 `projectDir`（`git rev-parse --show-toplevel`），POST `/v1/run` `wait=true`，透传构建退出码（0/1/3/6/75），失败时打印日志路径与诊断尾部。
+- 服务不可达时报错并提示 `bin/start.sh`（exit 75）。`IB_PORT` 可换端口。
+
+## CLI 直用（不经服务；仅限本地一次性调试，AI 调用方一律走 ib-run/HTTP——CLI 绕过服务队列与并发治理）
 
 ```bash
 ~/nop-ib/bin/ib check --paths src/main/java/Foo.java   # 项目根目录下执行（编译 + 受影响测试）
@@ -87,6 +106,8 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 ```
 
 `test` 默认派发前先做增量编译（编译失败不派发测试，零假绿）；`--no-compile` 恢复 v1 不编译行为并在 JSON 显式 `compiled:false`。
+
+**依赖解析前置条件**：快路径的外部依赖事实来自本机 Maven 仓库（refresh 时解析）。一个从未 install 过 reactor 内 sibling 的多模块仓，`test -pl :module` 会按 `depsUnresolved` fail-safe 回退 Maven（首次全量 `ib mvn install -DskipTests` 一次后恢复快路径）。
 
 ## 代码生成任务声明（nop-ib.tasks.json）
 

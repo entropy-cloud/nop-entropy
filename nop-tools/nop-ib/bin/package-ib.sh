@@ -95,7 +95,98 @@ fi
 rm -f "$PIDFILE"
 STOPPER
 
-chmod +x "$DEST/bin/ib" "$DEST/bin/start.sh" "$DEST/bin/stop.sh"
+cat > "$DEST/bin/ib-run" <<'IBRUN'
+#!/usr/bin/env bash
+# ib-run — thin HTTP facade over the nop-ib serve service (port 8188).
+#
+# Why this exists: callers must go through the HTTP service (queueing +
+# concurrency governance + Maven fallback), never the raw `ib` CLI.
+# This wrapper keeps that guarantee while giving a CLI-shaped UX:
+#
+#   ib-run check --paths src/Foo.java --json
+#   ib-run compile --paths nop-auth/...          # from any cwd inside the repo
+#   ib-run --dir /path/to/repo test --plans X    # explicit project dir
+#   ib-run model refresh
+#   ib-run status
+#
+# It infers projectDir from the enclosing git root, POSTs /v1/run with
+# wait=true, prints exit/fallback summary, and propagates the build exit code.
+set -euo pipefail
+
+PORT="${IB_PORT:-8188}"
+BASE="http://127.0.0.1:$PORT"
+
+DIR_OVERRIDE=""
+if [[ "${1:-}" == "--dir" ]]; then
+  DIR_OVERRIDE="${2:?--dir requires a path}"
+  shift 2
+fi
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: ib-run [--dir <projectDir>] <cmd> [args...]" >&2
+  echo "  cmd: status|plan|compile|test|check|model|clean|mvn" >&2
+  exit 3
+fi
+
+CMD="$1"; shift
+
+if [[ -n "$DIR_OVERRIDE" ]]; then
+  PROJECT_DIR="$(cd "$DIR_OVERRIDE" && pwd)"
+else
+  PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
+
+# health check with start hint
+if ! curl -sf "$BASE/v1/health" >/dev/null 2>&1; then
+  echo "nop-ib service not reachable at $BASE — run: $(dirname "${BASH_SOURCE[0]}")/start.sh" >&2
+  exit 75
+fi
+
+PAYLOAD="$(CMD="$CMD" PROJECT_DIR="$PROJECT_DIR" ARGS="$*" python3 - <<'PY'
+import json, os, shlex
+args = shlex.split(os.environ["ARGS"]) if os.environ["ARGS"].strip() else []
+print(json.dumps({
+    "projectDir": os.environ["PROJECT_DIR"],
+    "cmd": os.environ["CMD"],
+    "args": args,
+    "wait": True,
+}))
+PY
+)"
+
+HTTP="$(curl -s -X POST "$BASE/v1/run" -d "$PAYLOAD" -w "\n%{http_code}")"
+CODE="$(printf '%s' "$HTTP" | tail -1)"
+RESP="$(printf '%s' "$HTTP" | sed '$d')"
+
+python3 - "$RESP" "$CODE" <<'PY'
+import json, sys
+d = json.loads(sys.argv[1])
+if str(d.get("error") or ""):
+    print(f"error ({sys.argv[2]}): {d['error']}", file=sys.stderr)
+    sys.exit(3)
+job = d.get("job") or d
+state = d.get("state") or job.get("state") or ""
+exit_code = d.get("exit")
+if exit_code is None:
+    exit_code = job.get("exit")
+if exit_code is None or exit_code == "":
+    # cancelled/failed jobs may report no exit at top level — never print a
+    # bare "exit=" and never exit 0 on a non-done state
+    exit_code = 0 if state == "done" else 1
+fb = d.get("fallback") or {}
+print(f"exit={exit_code} state={state or '-'} fallback={fb.get('reason') or '-'}")
+print(f"log: {job.get('logPath') or '-'}")
+for key in ("stderr", "logTail", "error"):
+    v = job.get(key) or d.get(key)
+    if v:
+        print(f"--- {key} ---")
+        print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
+        break
+sys.exit(int(exit_code) if str(exit_code).lstrip('-').isdigit() else 1)
+PY
+IBRUN
+
+chmod +x "$DEST/bin/ib" "$DEST/bin/ib-run" "$DEST/bin/start.sh" "$DEST/bin/stop.sh"
 
 cp "$BIN_DIR/README.md" "$DEST/README.md"
 echo "== done: $DEST =="

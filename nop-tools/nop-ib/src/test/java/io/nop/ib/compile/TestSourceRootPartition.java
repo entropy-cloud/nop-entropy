@@ -61,6 +61,23 @@ public class TestSourceRootPartition {
         assertEquals(1, split.mainSources().size());
     }
 
+    /**
+     * Repo-root module (empty basedir, single-module project): sources are
+     * repo-relative WITHOUT a leading slash — "src/test/..." must still route
+     * to the test pass. Live-observed defect: CalcTest.java was compiled by the
+     * MAIN pass with the main classpath (no junit on it) into target/classes
+     * (shadow class + spurious "程序包 org.junit.jupiter.api 不存在").
+     */
+    @Test
+    public void testRepoRootModuleTestSourceWithoutLeadingSlash() {
+        IncrementalCompileExecutor.SourceSplit split = IncrementalCompileExecutor.splitBySourceRoot(List.of(
+                "src/main/java/demo/Calc.java",
+                "src/test/java/demo/CalcTest.java"));
+        assertTrue(split.hasBoth());
+        assertEquals(List.of("src/main/java/demo/Calc.java"), split.mainSources());
+        assertEquals(List.of("src/test/java/demo/CalcTest.java"), split.testSources());
+    }
+
     @Test
     public void testImmutableSplit() {
         IncrementalCompileExecutor.SourceSplit split = IncrementalCompileExecutor.splitBySourceRoot(List.of(
