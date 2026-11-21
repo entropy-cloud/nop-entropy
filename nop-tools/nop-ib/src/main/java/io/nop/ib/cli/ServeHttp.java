@@ -185,9 +185,9 @@ public final class ServeHttp {
             // single request OOM the service before any size check ran
             body = readBodyLimited(ex, ServiceCore.MAX_PAYLOAD_BYTES);
         } catch (IOException e) {
-            // the cap error text IS the 413 diagnostic payload (no logging layer
-            // here) — full trace goes to the handler-err stream for server logs
-            err.println("http body-cap rejection: " + e);
+            // the exception text (message + class) IS the 413 diagnostic
+            // payload — this handler has no logger parameter; the safe()
+            // wrapper prints full traces for handler-level errors
             reply(ex, 413, Map.of("error", String.valueOf(e)));
             return;
         }
