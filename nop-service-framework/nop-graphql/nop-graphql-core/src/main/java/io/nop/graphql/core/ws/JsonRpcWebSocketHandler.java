@@ -287,6 +287,11 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     }
 
     protected void onMessage(JsonRpcRequest request) {
+        // plan 2585 pin_d: the parsed-frame entry renews liveness too — a
+        // standard graphql-ws client sending complete/subscribe frames directly
+        // through this path must not be idled out (the pong case below stays as
+        // an idempotent refresh)
+        lastInboundAt = CoreMetrics.nanoTime();
         String method = request.getMethod();
         String id = request.getId();
 

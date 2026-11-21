@@ -78,7 +78,7 @@ Targets: `JsonRpcWebSocketHandler.java`、`BufferedStreamingPublisher.java`、`D
 Exit Criteria:
 
 - [x] 每项 focused 钉测试（同毫秒批不跳过、off-by-one 断言钉、maxRows 生效等）——已执行绿：`TestWfTaskScannerFencing.testSameMillisecondDueTime_tieBreakerCursorConsumesAll`、`TestWfScanQueryShape`、`testMaxRowsSecondLineOfDefense`（metadata 8/0）、`TestPollBatchSizeConfigFailFast`（stream-runtime 1246/0）、wf-core 57/0、dao+scheduler 9/0；gateway `pin3a` 为既有绿钉（本批 gateway 仅注释零语义 diff）未复跑，graphql-core 钉（pin_a~d）随该模块测试阻塞未复跑（见下条）
-- [ ] `ib test -pl :nop-graphql-core,:nop-gateway,:nop-wf-dao,:nop-wf-scheduler,:nop-metadata-service,:nop-datav-service,:nop-stream-runtime` 全绿（或按受影响模块裁剪）——dao/scheduler/metadata/stream-runtime 已绿；graphql-core/gateway 被环境阻塞（nop-ib 闭包含 JDK22 门控 nop-cli-core depsUnresolved → Maven 回退 → nop-record-mapping precompile NoClassDefFound，均为并行代理 nop-ib/nop-orm 半成品竞态，非本 plan 改动面），待并行批收敛后复跑收口
+- [x] 模块测试全绿收口（复跑于并行批收敛后）：graphql-core **209/0**、gateway **150/0**（mvnw 模块级，nop-ib 对该选择集仍受 nop-cli-core depsUnresolved 回退限制）。复跑暴露并修复一处真实缺陷：`onMessage(JsonRpcRequest)` 直入路径漏加入站续期（pin_d 必红）——已补，pin_a~d 全绿。dao/scheduler/metadata/stream-runtime 前轮已绿（9/0、8/0、1246/0）
 - [ ] owner docs 若行为面变化已同步，否则显式 No owner-doc update required
 - [ ] `ai-dev/logs/` 已更新
 
