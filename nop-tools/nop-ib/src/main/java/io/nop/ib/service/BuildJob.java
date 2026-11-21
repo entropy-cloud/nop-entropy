@@ -1,6 +1,7 @@
 package io.nop.ib.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,12 +61,25 @@ public final class BuildJob {
         Map<String, Object> progress = ProgressRegistry.get(repoRoot);
         if (progress != null && !isTerminal())
             m.put("progress", progress);
+        // diagnosis surface: while the job is queued/running, expose the tail of
+        // the durable log so a long Maven delegation is visibly progressing —
+        // "running" with zero facts is indistinguishable from a hang
+        if (!isTerminal()) {
+            m.put("elapsedMs", System.currentTimeMillis()
+                    - (startedAt > 0 ? startedAt : queuedAt));
+            List<String> tail = logTail(logFile, 20);
+            if (!tail.isEmpty())
+                m.put("logTail", tail);
+        }
         if (error != null)
             m.put("error", error);
         if (state == State.DONE || state == State.FAILED) {
             m.put("exit", exit);
             if (payload != null)
                 m.put("payload", payload);
+            if (stderr != null)
+                m.put("stderr", stderr.length() > 4000
+                        ? stderr.substring(stderr.length() - 4000) : stderr);
             if (truncated)
                 m.put("truncated", true);
             m.put("queuedAt", queuedAt);
@@ -73,6 +87,26 @@ public final class BuildJob {
             m.put("finishedAt", finishedAt);
         }
         return m;
+    }
+
+    /** last {@code maxLines} lines of the durable job log (empty when absent). */
+    static java.util.List<String> logTail(java.nio.file.Path file, int maxLines) {
+        if (file == null || !java.nio.file.Files.isRegularFile(file))
+            return java.util.List.of();
+        try {
+            java.util.Deque<String> lines = new java.util.ArrayDeque<>(maxLines);
+            try (var reader = java.nio.file.Files.newBufferedReader(file)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (lines.size() >= maxLines)
+                        lines.pollFirst();
+                    lines.addLast(line);
+                }
+            }
+            return new java.util.ArrayList<>(lines);
+        } catch (Exception e) {
+            return java.util.List.of();
+        }
     }
 
     /** plan 2588: DONE / FAILED / CANCELLED jobs carry their full result. */
@@ -100,6 +134,9 @@ public final class BuildJob {
             m.put("progress", progress);
         if (logFile != null)
             m.put("logPath", logFile.toString());
+        List<String> tail = logTail(logFile, 20);
+        if (!tail.isEmpty())
+            m.put("logTail", tail);
         m.put("waitedMs", waitedMs);
         return m;
     }

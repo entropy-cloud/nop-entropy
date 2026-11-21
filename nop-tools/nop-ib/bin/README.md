@@ -54,7 +54,8 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 
 - **幂等 submit**：请求体可选 `clientRequestId`——AI 侧超时重试带同一 key（绑 projectDir）不会重复排队；命中时返回既有 job 并标 `replayed:true`。
 - **长轮询**：`GET /v1/job/{id}?waitMs=N&logTail=N`。`waitMs` clamp [0,60000]，未终态等满后返回 HTTP 200 中间态 `{id,state,phase:queued|running,queueAhead,elapsedMs,progress?,logPath,waitedMs}`（**不是错误**，AI 侧循环调用直到终态）；`waitMs=0` 纯快照。`logTail=N` 附带任务日志尾部 N 行（clamp 500）。
-- **进度**：job 进行中快照/中间态带 `progress`（test 报 `modulesDone/modulesTotal`，compile 报编译选择集规模）。
+- **进度**：job 进行中快照/中间态带 `progress`（test 报 `modulesDone/modulesTotal`，compile 报编译选择集规模）。2026-11-21 起 `phase`/`elapsedMs` 覆盖长 Maven 子进程阶段：`model refresh` 的每个 maven 子步骤（--version / localRepository / effective-pom dump / dependency:list 及分块重解析）、`maven-delegate` 回退（附 cmd 摘要）——长刷新不再是无信息的"假死"。
+- **运行中快照自带诊断**：非终态 `/v1/job/{id}` 快照含 `elapsedMs` 与 `logTail`（任务日志尾部 20 行），job id 重启回收时旧日志会被清掉，不会混入上一轮内容。
 - **任务日志**：每个 job 落盘 `{repoRoot}/.nop-ib/jobs/{id}.log`（stdout `[out]` / stderr `[err]` 双流带标记），路径在 `logPath`；job prune（终态 10 分钟）时同步删除文件。
 - **运行中取消**：`DELETE /v1/job/{id}` 对 QUEUED 与 RUNNING 均有效——RUNNING 走协作式取消：树终止该 job 登记的全部子进程（含 surefire 孙进程）+ 中断 job 线程，置 `cancelled`（exit=-1），日志尾写取消记录；终态 job 返回 409 `already-terminal`。
 - 长轮询走独立 4 线程小池：占满时 `/v1/job` 立即返回纯快照（`waitedMs=0`），读端点（health/jobs/queue）永不被饿死。

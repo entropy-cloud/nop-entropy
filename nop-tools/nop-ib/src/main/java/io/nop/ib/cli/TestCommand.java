@@ -445,19 +445,29 @@ public final class TestCommand {
             }
             // fallback: module full tests via Maven (delegate compile+test to Maven)
             MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
+            List<String> fallbackModules = plan.getCompileModules().isEmpty()
+                    ? List.of(CompileCommand.owningModuleOf(engine, model, changed.get(0)))
+                    : plan.getCompileModules();
             StringBuilder mout = new StringBuilder();
             StringBuilder merr = new StringBuilder();
             // 2026-11-20: -pl 选择器统一走 MavenFallback.plSelectors（:artifactId 形态，
             // 裸名会被 Maven 解析为相对路径项目而报 do not exist）
-            int code = fallback.delegate("-pl " + MavenFallback.plSelectors(
-                    plan.getCompileModules().isEmpty()
-                            ? List.of(CompileCommand.owningModuleOf(engine, model, changed.get(0)))
-                            : plan.getCompileModules())
+            int code = fallback.delegate("-pl " + MavenFallback.plSelectors(fallbackModules)
                     + " -am test -q", mout, merr);
             TestRun run = new TestRun("maven-full", null);
             run.exitCode = code == MavenFallback.EXIT_LOCK_TIMEOUT ? Commands.EXIT_LOCK_TIMEOUT
                     : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
             run.summary = extractSummaries(mout.toString());
+            // 2026-11-21: `-q` suppresses surefire's console summary lines, so
+            // console parsing yields run=0 even for real executions — parse the
+            // authoritative surefire XML reports instead when the console gave
+            // nothing (the defect that made service jobs report run=0 while
+            // surefire had actually run the suite)
+            if (run.summary.isEmpty()) {
+                int[] reported = surefireReportsSummary(model, fallbackModules);
+                if (reported != null)
+                    run.summary.add(reported);
+            }
             run.output = mout.toString();
             // plan 2583: delegation stderr (timeout notice) must reach the report
             if (merr.length() > 0)
@@ -1204,6 +1214,57 @@ public final class TestCommand {
                     Integer.parseInt(m.group(3)), Integer.parseInt(m.group(4))});
         }
         return out;
+    }
+
+    /**
+     * Aggregated surefire XML totals for the given modules: reads
+     * {@code <basedir>/target/surefire-reports/TEST-*.xml} headers (attributes
+     * tests/failures/errors/skipped). Returns null when no report exists —
+     * the caller then keeps the (possibly empty) console-based summary.
+     */
+    static int[] surefireReportsSummary(IbModel model, List<String> moduleIds) {
+        int tests = 0, failed = 0, errors = 0, skipped = 0;
+        boolean any = false;
+        // surefire XML suite header attr order: tests, errors, skipped, failures
+        java.util.regex.Pattern header = java.util.regex.Pattern.compile(
+                "tests=\"(\\d+)\" errors=\"(\\d+)\" skipped=\"(\\d+)\" failures=\"(\\d+)\"");
+        for (String moduleId : moduleIds) {
+            IbModule module = model.module(moduleId);
+            if (module == null || module.getBasedir() == null)
+                continue;
+            Path reports = Path.of(model.getRepoRoot()).resolve(module.getBasedir())
+                    .resolve("target/surefire-reports");
+            if (!java.nio.file.Files.isDirectory(reports))
+                continue;
+            try (java.util.stream.Stream<Path> files = java.nio.file.Files.list(reports)) {
+                for (Path xml : files.filter(p -> p.getFileName().toString()
+                        .startsWith("TEST-")).filter(p -> p.getFileName().toString()
+                        .endsWith(".xml")).toList()) {
+                    String head;
+                    try (var in = java.nio.file.Files.newBufferedReader(xml)) {
+                        head = in.readLine();
+                        head = head == null ? "" : head + "\n" + in.readLine();
+                    } catch (java.io.IOException e) {
+                        continue;
+                    }
+                    java.util.regex.Matcher m = header.matcher(head);
+                    if (!m.find())
+                        continue;
+                    try {
+                        tests += Integer.parseInt(m.group(1));
+                        errors += Integer.parseInt(m.group(2));
+                        skipped += Integer.parseInt(m.group(3));
+                        failed += Integer.parseInt(m.group(4));
+                        any = true;
+                    } catch (NumberFormatException ignored) {
+                        // malformed header line — skip this report
+                    }
+                }
+            } catch (java.io.IOException e) {
+                continue; // unreadable reports dir — keep console facts only
+            }
+        }
+        return any ? new int[]{tests, failed, errors, skipped} : null;
     }
 
     /**

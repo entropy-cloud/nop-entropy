@@ -197,7 +197,14 @@ public final class ServiceCore {
             job.thread = Thread.currentThread();
             job.notifyAll(); // plan 2588 wakeup: QUEUED→RUNNING wakes long-poll
         }
-        // plan 2588: durable per-job log — stdout+stderr tee with stream markers
+        // plan 2588: durable per-job log — stdout+stderr tee with stream markers.
+        // Job ids recycle after a service restart; a stale log from the previous
+        // incarnation must not bleed into this job's logTail diagnostics.
+        try {
+            java.nio.file.Files.deleteIfExists(job.logFile);
+        } catch (java.io.IOException ignored) {
+            // best-effort: a stale log is noise, never a build failure
+        }
         JobLog jobLog = new JobLog(job.logFile);
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         PrintStream out = new PrintStream(new LineTee(buf, jobLog, "[out] "), true, StandardCharsets.UTF_8);

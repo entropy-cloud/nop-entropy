@@ -40,6 +40,28 @@ public final class ModelRefresher {
     private final Path repoRoot;
     private final Duration timeout;
 
+    /** modules per chunked `dependency:list -pl` invocation (one Maven JVM each). */
+    static final int RESOLVE_CHUNK = 16;
+
+    /**
+     * Publishes the refresh phase into the service progress registry so a long
+     * refresh is OBSERVABLE over GET /v1/job/{id} and the long-poll API — a
+     * multi-minute Maven subprocess that reports nothing is indistinguishable
+     * from a hang (the defect that motivated this). Publishing is best-effort:
+     * the registry lives in the service package and is a no-op map write in
+     * plain-CLI runs.
+     */
+    private void phase(String phase) {
+        try {
+            io.nop.ib.service.ProgressRegistry.update(repoRoot, java.util.Map.of(
+                    "phase", phase,
+                    "elapsedMs", System.currentTimeMillis() - refreshStart));
+        } catch (Throwable ignored) {
+            // plain CLI run without the service layer — never fail a refresh on progress
+        }
+    }
+    private long refreshStart;
+
     public ModelRefresher(Path repoRoot) {
         this(repoRoot, Duration.ofMinutes(15));
     }
@@ -50,6 +72,8 @@ public final class ModelRefresher {
     }
 
     public IbModel refresh() {
+        refreshStart = System.currentTimeMillis();
+        phase("refresh: starting");
         Path tmp = repoRoot.resolve(ModelStore.STATE_DIR).resolve("tmp");
         try {
             Files.createDirectories(tmp);
@@ -58,6 +82,7 @@ public final class ModelRefresher {
         }
 
         // 1. toolchain facts
+        phase("refresh: maven --version");
         String versionOut = runMaven("--version");
         String mavenVersion = null;
         String jdkVersion = null;
@@ -70,13 +95,19 @@ public final class ModelRefresher {
         if (mavenVersion == null || jdkVersion == null)
             throw new NopIbException("cannot parse './mvnw --version' output: " + versionOut);
 
-        // 2. local repository path (worktree repo when going through mvnq)
+        // 2. local repository path (worktree repo when going through mvnq).
+        // NOTE: must stay a standalone invocation — Maven 4 drops the
+        // help:evaluate forceStdout output when another goal follows in the
+        // same command (verified 2026-11-21), so goal-chaining here silently
+        // breaks the localRepository fact.
+        phase("refresh: resolve localRepository");
         String localRepo = stripMavenEchoes(runMaven("-q", "help:evaluate",
                 "-Dexpression=settings.localRepository", "-DforceStdout")).trim();
         if (localRepo.isEmpty())
             throw new NopIbException("empty settings.localRepository output");
 
         // 3. effective-pom batch dump (one reactor invocation, design 05 §5.1)
+        phase("refresh: effective-pom dump");
         Path dump = tmp.resolve("ib-effective.xml");
         runMaven("-q", "help:effective-pom", "-Doutput=" + dump.toAbsolutePath());
 
@@ -84,7 +115,8 @@ public final class ModelRefresher {
         // wave 11 item 8: a reactor-wide resolution failure (e.g. an uninstalled
         // reactor SNAPSHOT sibling, observed on nop-spring-gateway → demo-service)
         // no longer hard-fails the whole refresh — the reactor pass degrades to
-        // per-module resolution below.
+        // chunked per-module resolution below.
+        phase("refresh: dependency:list (reactor)");
         Map<String, List<String>> artifactsByModule;
         // wave 11 item 8: artifactIds whose dependency facts could not be
         // resolved — refresh still exits 0, the planner must fall back for them
@@ -105,39 +137,44 @@ public final class ModelRefresher {
         // per-module resolved blocks and can print them OUT OF ORDER relative to
         // their anchors (observed on OpenPDF), so index-paired attribution can be
         // wrong. Verify each module's EA contains at least one of its own pom
-        // direct deps; on mismatch, re-resolve per module (-pl :artifactId —
-        // single-module output is unambiguous). Maven 4 output passes the check
-        // and keeps the fast single-invocation path.
+        // direct deps; on mismatch, re-resolve. Re-resolution used to be one
+        // `dependency:list -pl :artifactId` Maven run PER suspect module — on a
+        // 100-module reactor that is up to 100 serial JVM startups (minutes to
+        // HOURS on the 1/10-performance hosts this service targets, and it
+        // looked like a hang because nothing reported progress). Chunks of
+        // `-pl :a,:b,...` keep one JVM per 16 modules; only modules that still
+        // fail the coverage check after chunking get their own invocation.
         Set<String> suspect = coverageSuspects(modules, artifactsByModule);
         if (!suspect.isEmpty()) {
+            phase("refresh: re-resolve " + suspect.size() + " suspect modules (chunked)");
             List<String> suspectFailures = new ArrayList<>();
-            artifactsByModule = resolvePerModule(suspect, artifactsByModule, suspectFailures);
+            artifactsByModule = resolveModules(suspect, artifactsByModule, suspectFailures);
             for (String f : suspectFailures)
                 if (!unresolved.contains(f))
                     unresolved.add(f);
         }
 
         // 4c. wave 11 item 8: every module still without resolved artifacts gets
-        // one individual -pl attempt (this covers both the degraded reactor pass
-        // and reactor passes that skipped anchors). Modules that STILL fail are
+        // one attempt (chunked — covers both the degraded reactor pass and
+        // reactor passes that skipped anchors). Modules that STILL fail are
         // marked depsUnresolved — refresh exits 0, but the planner must route
         // any plan touching them to the Maven fallback (fail-safe: the closure
         // is not trustworthy).
-        for (IbModule mod : modules) {
-            if (mod.getBasedir() != null && !artifactsByModule.containsKey(mod.getArtifactId())) {
-                try {
-                    Map<String, List<String>> one = parseDependencyList(runMaven(
-                            "dependency:list", "-DincludeScope=test", "-Dsort=false",
-                            "-pl", ":" + mod.getArtifactId()));
-                    artifactsByModule.put(mod.getArtifactId(),
-                            one.getOrDefault(mod.getArtifactId(), new ArrayList<>()));
-                } catch (NopIbException e) {
-                    unresolved.add(mod.getArtifactId());
-                }
-            }
+        Set<String> missing = new LinkedHashSet<>();
+        for (IbModule mod : modules)
+            if (mod.getBasedir() != null && !artifactsByModule.containsKey(mod.getArtifactId()))
+                missing.add(mod.getArtifactId());
+        if (!missing.isEmpty()) {
+            phase("refresh: resolve " + missing.size() + " missing modules (chunked)");
+            List<String> missingFailures = new ArrayList<>();
+            artifactsByModule = resolveModules(missing, artifactsByModule, missingFailures);
+            for (String f : missingFailures)
+                if (!unresolved.contains(f))
+                    unresolved.add(f);
         }
 
         IbModel model = new IbModel();
+        phase("refresh: assembling model");
         model.setRepoRoot(repoRoot.toString());
         model.setMavenVersion(mavenVersion);
         model.setJdkVersion(jdkVersion);
@@ -159,6 +196,8 @@ public final class ModelRefresher {
             model.addModule(mod);
         }
         model.getPomHashes().putAll(collectPomHashes(model));
+        phase("refresh: done (" + model.getModules().size() + " modules, "
+                + (System.currentTimeMillis() - refreshStart) + "ms)");
         return model;
     }
 
@@ -187,28 +226,46 @@ public final class ModelRefresher {
     }
 
     /**
-     * re-resolve suspect modules one -pl invocation each (unambiguous output).
-     * wave 11 item 8: a per-module failure is tolerated — the module degrades
-     * (empty EA, recorded in {@code failures} so the caller marks
-     * {@code depsUnresolved}) instead of failing the whole refresh.
+     * Re-resolve the given modules with chunked `-pl :a,:b,...` invocations —
+     * one Maven JVM per {@link #RESOLVE_CHUNK} modules instead of one per
+     * module. Modules whose chunk still fails the coverage check afterwards get
+     * one single-module invocation each (unambiguous output); a final failure
+     * is tolerated — the module degrades (empty EA, recorded in {@code
+     * failures} so the caller marks {@code depsUnresolved}) instead of failing
+     * the whole refresh.
      */
-    private Map<String, List<String>> resolvePerModule(Set<String> suspects,
-                                                       Map<String, List<String>> artifactsByModule,
-                                                       List<String> failures) {
+    private Map<String, List<String>> resolveModules(Set<String> moduleIds,
+                                                     Map<String, List<String>> artifactsByModule,
+                                                     List<String> failures) {
         Map<String, List<String>> fixed = new LinkedHashMap<>(artifactsByModule);
-        for (String artifactId : suspects) {
-            Map<String, List<String>> one;
+        moduleIds.forEach(fixed::remove); // force re-resolution, not stale reuse
+        List<String> todo = new ArrayList<>(moduleIds);
+        for (int from = 0; from < todo.size(); from += RESOLVE_CHUNK) {
+            List<String> chunk = todo.subList(from, Math.min(todo.size(), from + RESOLVE_CHUNK));
             try {
-                String out = runMaven("dependency:list", "-DincludeScope=test",
-                        "-Dsort=false", "-pl", ":" + artifactId);
-                one = parseDependencyList(out);
+                Map<String, List<String>> got = parseDependencyList(runMaven(
+                        "dependency:list", "-DincludeScope=test", "-Dsort=false",
+                        "-pl", ":" + String.join(",:", chunk)));
+                for (String id : chunk)
+                    fixed.put(id, got.getOrDefault(id, fixed.getOrDefault(id, new ArrayList<>())));
             } catch (NopIbException e) {
-                failures.add(artifactId);
-                continue;
+                failures.addAll(chunk);
             }
-            // single-module invocation: one anchor, one block — take it verbatim
-            List<String> ea = one.getOrDefault(artifactId, new ArrayList<>());
-            fixed.put(artifactId, ea);
+        }
+        // second chance: single-module invocations for modules without usable facts
+        for (String artifactId : new ArrayList<>(moduleIds)) {
+            if (failures.contains(artifactId)
+                    && !fixed.containsKey(artifactId)) {
+                try {
+                    Map<String, List<String>> one = parseDependencyList(runMaven(
+                            "dependency:list", "-DincludeScope=test", "-Dsort=false",
+                            "-pl", ":" + artifactId));
+                    fixed.put(artifactId, one.getOrDefault(artifactId, new ArrayList<>()));
+                    failures.remove(artifactId);
+                } catch (NopIbException e) {
+                    // keep in failures
+                }
+            }
         }
         return fixed;
     }
@@ -330,6 +387,9 @@ public final class ModelRefresher {
             cmd.add(arg);
 
         try {
+            String joined = String.join(" ", args);
+            phase("maven subprocess: "
+                    + (joined.length() > 120 ? joined.substring(0, 120) + "..." : joined));
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.directory(repoRoot.toFile());
             pb.redirectErrorStream(false);

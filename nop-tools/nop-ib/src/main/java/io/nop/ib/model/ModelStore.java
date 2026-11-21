@@ -110,22 +110,19 @@ public final class ModelStore {
         }
     }
 
+    /**
+     * Change-detection hash of a file. These hashes only ever compare ib
+     * against its own stored state, so the XXH64 fast path (multi-GB/s, ~10x
+     * SHA-256 on the 1/10-performance hosts this service must stay usable on)
+     * replaces the legacy SHA-256; a 16-char hex is distinguishable from the
+     * old 64-char entries, and mixing simply costs one staleness round.
+     */
     public static String sha256(Path file) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = Files.readAllBytes(file);
-            return hex(digest.digest(bytes));
-        } catch (IOException | NoSuchAlgorithmException e) {
-            throw new NopIbException("sha256 failed for " + file, e);
-        }
+        return io.nop.ib.util.FastHash.hexOf(file);
     }
 
     public static String sha256(byte[] bytes) {
-        try {
-            return hex(MessageDigest.getInstance("SHA-256").digest(bytes));
-        } catch (NoSuchAlgorithmException e) {
-            throw new NopIbException("SHA-256 unavailable", e);
-        }
+        return io.nop.ib.util.FastHash.hex(bytes);
     }
 
     public static String hex(byte[] bytes) {

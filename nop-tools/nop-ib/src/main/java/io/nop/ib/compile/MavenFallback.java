@@ -90,6 +90,13 @@ public final class MavenFallback {
                 cmd.add(arg);
         try {
             MAVEN_GATE.acquireUninterruptibly();
+            // progress surface: a multi-minute delegation that reports nothing is
+            // indistinguishable from a hang over GET /v1/job/{id} — publish the
+            // phase (best-effort; plain-CLI runs without the service layer skip it)
+            io.nop.ib.service.ProgressRegistry.update(repoRoot, java.util.Map.of(
+                    "phase", "maven-delegate",
+                    "cmd", mavenArgs.length() > 120
+                            ? mavenArgs.substring(0, 120) + "..." : mavenArgs));
             try {
                 ProcessBuilder pb = new ProcessBuilder(cmd);
                 pb.directory(repoRoot.toFile());

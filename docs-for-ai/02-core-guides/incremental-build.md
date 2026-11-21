@@ -7,23 +7,40 @@
 
 **平台开发期的日常编译与测试一律走 nop-ib；`mvn` 只用于最终打包**（`install`/`deploy`/发布镜像/CI/全量冷构建）。
 
-两种使用形态：
+**唯一使用入口是服务形态**：`~/nop-ib/bin/start.sh` 启动后，任何程序向 `http://127.0.0.1:8188/v1/run` 发送 `{projectDir, cmd, args, wait}` 即可；同项目自动串行排队、跨项目按机器预算并行。安装/使用说明见 `~/nop-ib/README.md`（由 `nop-tools/nop-ib/bin/package-ib.sh` 打包生成）。
 
-1. **服务形态（默认，多 AI/多项目共享）**：`~/nop-ib/bin/start.sh` 启动后，任何程序向 `http://127.0.0.1:8188/v1/run` 发送 `{projectDir, cmd, args, wait}` 即可；同项目自动串行排队、跨项目按机器预算并行。安装/使用说明见 `~/nop-ib/README.md`（由 `nop-tools/nop-ib/bin/package-ib.sh` 打包生成）。
-2. **CLI 形态（单次调用）**：`nop-tools/nop-ib/bin/ib <cmd>`（worktree 内）或 `~/nop-ib/bin/ib <cmd>`（任意项目）。
+**推荐调用方式是 `ib-run` 薄壳**（`~/nop-ib/bin/ib-run`，仍走 HTTP 服务，不绕过队列）：
+
+```bash
+~/nop-ib/bin/ib-run check --paths <变更文件> --json     # projectDir 自动取 cwd 的 git root
+~/nop-ib/bin/ib-run --dir <仓库根> status              # 显式指定项目目录
+~/nop-ib/bin/ib-run model refresh
+```
+
+它内部完成：health 预检（不可达时提示 `start.sh`）→ JSON 组装（args 经 shell 安全引述）→ `POST /v1/run wait=true` → 摘要输出 `exit=`/`fallback=`/`log:` 并透传构建退出码；失败时附带 stderr 尾部。端口可用 `IB_PORT` 覆盖。脚本不随仓库分发（由 `package-ib.sh` 打包到 `~/nop-ib/bin/`），故优先使用它而非手拼 curl；等价的原始 HTTP 契约见下文命令面。
+
+`nop-tools/nop-ib/bin/ib` 不是调用方入口：CLI 子命令与服务共享同一套 Command 实现，`bin/ib serve` 仅用于启动服务本身；调用方（AI/脚本）一律走上面的 HTTP 接口，不要再直接执行 `ib check/test/compile/model refresh` 等——CLI 路径绕过服务队列与并发治理（无跨进程锁，`model refresh` 与服务并发时曾出现长时间静默阻塞），已于 2026-11-21 从使用面收敛移除。
 
 **回滚开关**: 任何时候直接用 `./mvnw` 即可（mvnq 已于 Wave 11 移除出依赖链，裸 mvn 可直接使用），`nop-ib` 不占用任何排他资源（无文件锁，并发由进程内 lane 控制）。
 
 ## 前置（每个 worktree 一次性）
 
 ```bash
-./nop-tools/nop-ib/bin/ib model refresh   # 导出 Maven 构建事实（~50s）
-./nop-tools/nop-ib/bin/ib model index     # 扫描产物建单元索引（~4s）
+curl -s -X POST http://127.0.0.1:8188/v1/run -d '{"projectDir":"<仓库根>","cmd":"model","args":["refresh"],"wait":true}'  # 导出 Maven 构建事实（~50s）
+curl -s -X POST http://127.0.0.1:8188/v1/run -d '{"projectDir":"<仓库根>","cmd":"model","args":["index"],"wait":true}'    # 扫描产物建单元索引（~4s）
 ```
 
 模型过期（任一 pom 变化）会让所有快路径结论失效——此时先 `model refresh`，或直接回退 Maven。Maven 委托默认 10 分钟超时（`nop.ib.maven.timeout` 分钟数可覆盖），超时显式报 `maven delegation timed out`。
 
+**作业诊断契约（2026-11-21 收敛）**：
+- `GET /v1/job/{id}` **缺省 `waitMs=60s` 是长轮询**（plan 2588 裁定）：作业未终态时请求阻塞至状态变化或 60s；**只想要即时快照必须带 `?waitMs=0`**。非终态快照含 `phase`/`elapsedMs`（当前执行阶段，来自 ProgressRegistry）与 `logTail`（持久日志 `.nop-ib/jobs/{id}.log` 尾部 20 行）——长时间 Maven 子进程（refresh 的分块 dependency:list、maven-delegate 回退）不再是无信息的"假死"。
+- Maven 4 特性注记：`help:evaluate -DforceStdout` 与其他 goal 同命令连跑时吞输出——`model refresh` 的 localRepository 解析必须独立成次调用（2026-11-21 实测裁定）。
+- 变更检测 hash 统一为 XXH64（`io.nop.ib.util.FastHash`，16 位 hex；旧 SHA-256 记录 64 位 hex，混存只触发一次性 staleness → refresh 重写）。指纹类 hash 不承载完整性语义，1/10 性能预算机器上 SHA-256 常数开销不可接受。
+- Maven 回退的 test 汇总以各模块 target 目录下的 surefire XML 报告为权威源：`-q` 会吞掉 console 的 `Tests run:` 行，console 解析为兜底（修复"回退跑完却报 run=0"）。
+
 ## 命令面
+
+> 下表用 `ib <cmd>` 记法描述命令语义；实际调用一律映射为 HTTP：`ib check --paths f` ≡ `POST /v1/run {"projectDir":"<仓库根>","cmd":"check","args":["--paths","f"],"wait":true}`。服务 `cmd` 白名单：`status|plan|compile|test|check|model|clean|mvn`。
 
 | 命令 | 用途 |
 |---|---|
