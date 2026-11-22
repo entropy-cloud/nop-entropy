@@ -1054,6 +1054,12 @@ public final class TestCommand {
         run.exitCode = code == MavenFallback.EXIT_LOCK_TIMEOUT ? Commands.EXIT_LOCK_TIMEOUT
                 : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);
         run.summary = extractSummaries(mout.toString());
+        // delegation honesty (coblab-tal 2026-11-22): `-q` maven runs emit no
+        // surefire summary lines; counts must not display as a green `run=0`
+        // — warn so consumers cannot read a zero as a pass.
+        if (run.summary.isEmpty() && code == 0)
+            run.warnings.add("maven delegation produced no surefire summary "
+                    + "(quiet run or nothing to execute); test counts unknown, not a green zero");
         if (!json && !mout.isEmpty())
             err.println(mout);
         return run;
