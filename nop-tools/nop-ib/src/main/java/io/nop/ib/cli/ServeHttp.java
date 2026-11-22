@@ -354,9 +354,23 @@ public final class ServeHttp {
         final long fWaitMs = waitMs;
         final int fLogTail = logTail;
 
-        if (fWaitMs <= 0 || job.isTerminal()) {
-            // pure snapshot (waitMs=0 or a finished job)
+        if (job.isTerminal()) {
+            // finished job: full result snapshot + requested log tail
             replyAndClose(ex, 200, snapshotWithTail(job, fLogTail));
+            return;
+        }
+        if (fWaitMs <= 0) {
+            // pure snapshot for a live job — same field set as the long-poll
+            // intermediate state (2026-11-22 audit: waitMs=0 used to answer the
+            // bare job snapshot, so pollers without waitMs never saw
+            // queueAhead/runningJobId and ib-run showed "running: -")
+            Map<String, Object> snap = core.pendingSnapshot(job, 0);
+            if (fLogTail > 0 && job.state == BuildJob.State.RUNNING && job.logFile != null) {
+                String tail = logTail(job.logFile, fLogTail);
+                if (tail != null)
+                    snap.put("logTail", tail);
+            }
+            replyAndClose(ex, 200, snap);
             return;
         }
         // long poll: needs the dedicated pool; without it fall back to snapshot
@@ -426,6 +440,13 @@ public final class ServeHttp {
     static void handleJobs(ServiceCore core, HttpExchange ex) throws IOException {
         if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
             reply(ex, 405, Map.of("error", "GET only"));
+            return;
+        }
+        // no /v1/jobs/{id} route — an id-suffixed path used to silently answer
+        // the whole list (2026-11-22 audit)
+        if (!ex.getRequestURI().getPath().equals("/v1/jobs")) {
+            replyAndClose(ex, 404, Map.of("error", "unknown endpoint: " + ex.getRequestURI().getPath()
+                    + " — use GET /v1/jobs for the list or GET /v1/job/{id} for one job"));
             return;
         }
         int limit = ServiceCore.DEFAULT_JOBS_LIMIT;

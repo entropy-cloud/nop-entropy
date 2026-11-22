@@ -163,6 +163,11 @@ print(json.dumps({
 PY
 )"
 
+case " ${ARGS[*]} " in
+  *" --json "*) WANT_JSON=1 ;;
+  *) WANT_JSON=0 ;;
+esac
+
 HTTP="$(curl -s -X POST "$BASE/v1/run" -d "$PAYLOAD" -w "\n%{http_code}")"
 CODE="$(printf '%s' "$HTTP" | tail -1)"
 RESP="$(printf '%s' "$HTTP" | sed '$d')"
@@ -170,7 +175,7 @@ RESP="$(printf '%s' "$HTTP" | sed '$d')"
 # Submit is async; we poll so a queued agent gets explicit progress on stderr
 # ("queued: N ahead — waiting") instead of a silent blocking curl. --quiet
 # suppresses the progress channel (result summary still prints).
-FINAL="$(QUIET=$QUIET BASE="$BASE" RESP="$RESP" CODE="$CODE" python3 - <<'PY'
+FINAL="$(QUIET=$QUIET WANT_JSON=$WANT_JSON BASE="$BASE" RESP="$RESP" CODE="$CODE" python3 - <<'PY'
 import json, os, subprocess, sys, time
 
 def say(msg):
@@ -196,6 +201,8 @@ if not jid:
 last_state = None
 last_ahead = -1
 last_line = ""
+last_queued_print = 0.0
+import time as _t
 while True:
     try:
         out = subprocess.run(
@@ -211,22 +218,26 @@ while True:
         ahead_ids = d.get("queueAheadIds") or []
         running = d.get("runningJobId") or "-"
         wait_ms = d.get("queueWaitMs", 0)
+        now = _t.time()
         line = (f"queued: {ahead} job(s) ahead (running: {running}) — waiting, "
                 f"{wait_ms/1000:.0f}s so far | log: {d.get('logPath') or '-'} "
                 f"(poll GET {base}/v1/job/{jid}?waitMs=0)")
-        if state != last_state or ahead != last_ahead:
+        if state != last_state or ahead != last_ahead or now - last_queued_print >= 10:
             say(line)
+            last_queued_print = now
         last_state, last_ahead = state, ahead
     elif state == "running":
         prog = d.get("progress") or {}
-        phase = prog.get("phase") or prog.get("cmd") or ""
+        phase = prog.get("phase") or prog.get("cmd") or "executing"
         run_ms = d.get("runMs", 0)
         line = f"running: {phase} ({run_ms/1000:.0f}s) | log: {d.get('logPath') or '-'}"
         if state != last_state or line != last_line:
             say(line)
         last_state, last_line = state, line
     elif state in ("done", "failed", "cancelled"):
-        say(f"finished: {state}")
+        # always emit the terminal snapshot on stdout — the caller (bash) needs
+        # it for the summary and the --json echo; printing nothing here made
+        # FINAL empty and crashed the summary block for non--json runs
         print(json.dumps(d))
         sys.exit(0)
     # else: unknown state — keep polling
@@ -238,12 +249,16 @@ PY
 CODE=0
 RESP="$FINAL"
 
-python3 - "$RESP" "$CODE" <<'PY'
-import json, sys
+WANT_JSON="$WANT_JSON" python3 - "$RESP" "$CODE" <<'PY'
+import json, os, sys
 d = json.loads(sys.argv[1])
 if str(d.get("error") or ""):
     print(f"error ({sys.argv[2]}): {d['error']}", file=sys.stderr)
     sys.exit(3)
+# stdout contract: with --json the terminal job snapshot (payload included);
+# summary lines always go to stderr so stdout stays machine-parseable
+if os.environ.get("WANT_JSON") == "1":
+    sys.stdout.write(sys.argv[1])
 job = d.get("job") or d
 state = d.get("state") or job.get("state") or ""
 exit_code = d.get("exit")
@@ -254,13 +269,13 @@ if exit_code is None or exit_code == "":
     # bare "exit=" and never exit 0 on a non-done state
     exit_code = 0 if state == "done" else 1
 fb = d.get("fallback") or {}
-print(f"exit={exit_code} state={state or '-'} fallback={fb.get('reason') or '-'}")
-print(f"log: {job.get('logPath') or '-'}")
+print(f"exit={exit_code} state={state or '-'} fallback={fb.get('reason') or '-'}", file=sys.stderr)
+print(f"log: {job.get('logPath') or '-'}", file=sys.stderr)
 for key in ("stderr", "logTail", "error"):
     v = job.get(key) or d.get(key)
     if v:
-        print(f"--- {key} ---")
-        print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
+        print(f"--- {key} ---", file=sys.stderr)
+        print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False), file=sys.stderr)
         break
 sys.exit(int(exit_code) if str(exit_code).lstrip('-').isdigit() else 1)
 PY

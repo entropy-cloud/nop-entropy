@@ -141,11 +141,13 @@ public final class BuildJob {
         m.put("id", id);
         m.put("state", state.name().toLowerCase(java.util.Locale.ROOT));
         m.put("phase", running ? "running" : "queued");
-        m.put("queueAhead", queueAhead);
-        if (aheadIds != null && !aheadIds.isEmpty())
-            m.put("queueAheadIds", aheadIds);
-        if (!running && runningJobId != null)
-            m.put("runningJobId", runningJobId);
+        if (!running) {
+            m.put("queueAhead", queueAhead);
+            if (aheadIds != null && !aheadIds.isEmpty())
+                m.put("queueAheadIds", aheadIds);
+            if (runningJobId != null)
+                m.put("runningJobId", runningJobId);
+        }
         m.put("cmd", cmd);
         long now = System.currentTimeMillis();
         if (running) {
@@ -182,6 +184,9 @@ public final class BuildJob {
         m.put("queuedAt", queuedAt);
         m.put("startedAt", startedAt > 0 ? startedAt : null);
         m.put("finishedAt", finishedAt > 0 ? finishedAt : null);
+        // total submit→terminal wall time (queue wait + run); terminal jobs only
+        if (isTerminal())
+            m.put("queueWaitMs", finishedAt - queuedAt);
         long now = System.currentTimeMillis();
         if (finishedAt > 0)
             // never-started terminal (cancelled while queued): startedAt==0 —

@@ -60,6 +60,7 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 - **任务日志**：每个 job 落盘 `{repoRoot}/.nop-ib/jobs/{id}.log`（stdout `[out]` / stderr `[err]` 双流带标记），路径在 `logPath`；job prune（终态 10 分钟）时同步删除文件。
 - **运行中取消**：`DELETE /v1/job/{id}` 对 QUEUED 与 RUNNING 均有效——RUNNING 走协作式取消：树终止该 job 登记的全部子进程（含 surefire 孙进程）+ 中断 job 线程，置 `cancelled`（exit=-1），日志尾写取消记录；终态 job 返回 409 `already-terminal`。
 - 长轮询走独立 4 线程小池：占满时 `/v1/job` 立即返回纯快照（`waitedMs=0`），读端点（health/jobs/queue）永不被饿死。
+- **历史与合并**：终态任务最近 100 条内存保留（重启清空），`GET /v1/jobs` 查询；与排队中（未启动）job 完全同参的提交自动合并（`coalesced:true`），详见下方「多 agent 排队协调」与 `/v1/help` 的 `queueing`/`coalescing` 节。
 
 - `cmd` 白名单：`status | plan | compile | test | check | model | clean | mvn`
 - `projectDir` 可以是仓库根、**子模块目录**或 **symlink 别名**——服务统一归一到 reactor 根（同项目只有一条构建队列，杜绝并发踩踏）
@@ -93,7 +94,8 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 ~/nop-ib/bin/ib-run test -pl :module --quiet                       # 关闭 stderr 进度通道
 ```
 
-- 自动从所在 git 仓推断 `projectDir`（`git rev-parse --show-toplevel`），异步提交后轮询服务，**排队时在 stderr 显式提示**：`queued: N job(s) ahead (running: job-K) — waiting`、运行期输出 `running: <phase> (Ns)`；结束时打印 `exit=… state=… fallback=…` 与日志路径并透传构建退出码（0/1/3/6/75）。
+- 自动从所在 git 仓推断 `projectDir`（`git rev-parse --show-toplevel`），异步提交后轮询服务，**排队时在 stderr 显式提示**：`queued: N job(s) ahead (running: job-K) — waiting, Ns so far | log: <路径> (poll GET …)`（每 10s 刷新），运行期输出 `running: <phase> (Ns) | log: <路径>`；结束在 stderr 打印 `exit=… state=… fallback=…` 与日志路径，并透传构建退出码（0/1/3/6/75）。
+- **stdout 契约**：参数含 `--json` 时，stdout 输出终态 job 快照 JSON（含 payload），stderr 只承载进度/汇总——stdout 恒为机器可解析形态；无 `--json` 时 stdout 为空。
 - 服务不可达时报错并提示 `bin/start.sh`（exit 75）。`IB_PORT` 可换端口。
 
 ### 多 agent 排队协调（要点，详见 /v1/help 的 queueing/coalescing 节与 design 10）
