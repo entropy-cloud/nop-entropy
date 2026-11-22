@@ -72,8 +72,9 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 ## 新项目接入（一次性）
 
 ```bash
-~/nop-ib/bin/ib model refresh    # 在项目根目录执行：导出 Maven 构建事实（大项目 ~50s）
-~/nop-ib/bin/ib model index      # 扫描产物建单元索引（~4s）
+~/nop-ib/bin/ib model refresh    # 导出 Maven 构建事实；耗时按规模分级：小项目 ~10s、
+                                 # 中型 ~1-2min、大型 reactor 数分钟～20min+（与机器负载强相关）
+~/nop-ib/bin/ib model index      # 扫描产物建单元索引（~4s；失败可单独重跑，不影响已保存模型）
 ```
 
 之后模型随 pom 变化自动检测过期；过期时服务自动回退真 Maven 并给出原因，重新 `model refresh` 即恢复快路径。
@@ -104,6 +105,7 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 - 排队中的 job 快照含 `queueAhead`/`queueAheadIds`/`runningJobId`/`queueWaitMs`；**绝不携带** `progress`/`logTail`（那是正在运行的 job 的 lane 级事实，泄漏会被误读为自己的执行进度）。
 - **历史保留**：终态任务（done/failed/cancelled）在**内存中**始终可查——最近 100 条跨项目共享（不受时间淘汰、重启即清空），`GET /v1/jobs` 返回。提交前先查历史可评估 lane 拥挤度与典型耗时。
 - **超限拒绝**：lane 排队上限 32，满则对新提交 429；**排队中的记录绝不自动丢弃**（等待方不能看到自己的 job 消失）。自治 agent 收到 429 应带 clientRequestId 指数退避重试。
+- **历史过滤**：服务是多项目共享的——`GET /v1/jobs?projectDir=<绝对路径>` 只看自己项目的任务，避免混入其他 agent 的 job。
 - **同参合并**：与**排队中**（未开始执行）job 完全相同（projectDir+cmd+args）的提交会合并到它（响应 `coalesced:true`），不重复排队；**运行中**的 job 不吸收提交——相同命令重新排队，源码没变时重跑会命中测试缓存，变了则正确重建。
 - **缓存阶梯**：模型新鲜 + 指纹未变 → 测试缓存命中（秒级返回）；有变更 → 快路径增量；模型 stale → 每个排队 job 各付一次全量 Maven 回退（最贵）。**pom 变更后先 `model refresh` 一次再发起批量构建**，把整个 lane 拉回快路径。
 
@@ -115,6 +117,8 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 ~/nop-ib/bin/ib compile --paths <file...>              # 仅编译
 ~/nop-ib/bin/ib clean -pl :module-name                 # mvn-clean 同义面 + 索引/缓存失效
 ~/nop-ib/bin/ib mvn -pl :module-name install           # 白名单透传：install/package/clean/dependency:*/surefire:*
+                                                       # 注意 `test` 不在白名单；直接 surefire:test 若 pom 用
+                                                       # jacoco argLine，需附 -DjacocoArgLine= 占位
 ```
 
 `test` 默认派发前先做增量编译（编译失败不派发测试，零假绿）；`--no-compile` 恢复 v1 不编译行为并在 JSON 显式 `compiled:false`。

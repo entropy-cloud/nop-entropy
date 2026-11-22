@@ -34,12 +34,36 @@ public final class UnitIndexStore {
 
     public void save(UnitIndex index) {
         Path file = fileFor(index.getModuleArtifactId());
-        try {
-            Files.createDirectories(file.getParent());
-            Files.writeString(file, JsonOut.write(index.toMap()), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new NopIbException("failed to write unit index " + file, e);
+        // atomic temp+move with one retry: a long refresh can transiently fail
+        // here (fd pressure during a 461-module scan) and the failure used to
+        // abort the whole refresh AFTER the model was saved
+        IOException last = null;
+        for (int attempt = 0; attempt < 2; attempt++) {
+            Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
+            try {
+                Files.createDirectories(file.getParent());
+                Files.writeString(tmp, JsonOut.write(index.toMap()), StandardCharsets.UTF_8);
+                Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                return;
+            } catch (IOException e) {
+                last = e;
+                try {
+                    Files.deleteIfExists(tmp);
+                } catch (IOException ignored) {
+                    // best-effort cleanup
+                }
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
+        // cause message inline: the job log renders only the exception message,
+        // so "Too many open files" etc. must be visible without the cause chain
+        throw new NopIbException("failed to write unit index " + file + ": " + last, last);
     }
 
     /** wave 11 clean: drop a module's persisted index (missing file = no-op). */

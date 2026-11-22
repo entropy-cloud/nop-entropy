@@ -489,6 +489,11 @@ public final class ServiceCore {
      * Newest first; state filter applies to the merged view.
      */
     public List<Map<String, Object>> recentJobs(int limit, String stateFilter) {
+        return recentJobs(limit, stateFilter, null);
+    }
+
+    /** 2026-11-22: optional projectDir filter (multi-agent shared service). */
+    public List<Map<String, Object>> recentJobs(int limit, String stateFilter, String projectDir) {
         if (limit <= 0)
             limit = DEFAULT_JOBS_LIMIT;
         limit = Math.min(limit, MAX_JOBS_LIMIT);
@@ -513,10 +518,18 @@ public final class ServiceCore {
                     : String.valueOf(b.get("id")).compareTo(String.valueOf(a.get("id")));
         });
         List<Map<String, Object>> out = new ArrayList<>();
+        String dirSuffix = projectDir == null ? null
+                : (projectDir.endsWith("/") ? projectDir : projectDir + "/");
         for (Map<String, Object> j : sorted) {
             if (stateFilter != null
                     && !stateFilter.equals(j.get("state")))
                 continue;
+            if (dirSuffix != null) {
+                Object pd = j.get("projectDir");
+                String pds = pd == null ? "" : pd.toString();
+                if (!pds.equals(projectDir) && !pds.equals(dirSuffix))
+                    continue;
+            }
             if (out.size() >= limit)
                 break;
             out.add(j);

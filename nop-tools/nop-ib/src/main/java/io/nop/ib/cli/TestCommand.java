@@ -454,6 +454,9 @@ public final class TestCommand {
             // 裸名会被 Maven 解析为相对路径项目而报 do not exist）
             int code = fallback.delegate("-pl " + MavenFallback.plSelectors(fallbackModules)
                     + " -am test -q", mout, merr);
+            // 2026-11-22 live audit: on failure the delegation output must ride
+            // in the JSON (see CompileCommand.outputTail) — exit 1 with no
+            // output left the agent unable to self-correct
             TestRun run = new TestRun("maven-full", null);
             run.exitCode = code == MavenFallback.EXIT_LOCK_TIMEOUT ? Commands.EXIT_LOCK_TIMEOUT
                     : (code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED);

@@ -46,8 +46,19 @@ public final class Commands {
             }
             case "refresh": {
                 IbModel model = new ModelRefresher(engine.getRepoRoot()).refresh();
+                // save BEFORE indexing: the model facts are the expensive part
+                // (minutes of Maven subprocess passes) — a unit-index failure
+                // must degrade to a warning (planner widens on indexMissing),
+                // never discard the refresh (live audit: a transient index write
+                // failure turned a 20-minute refresh into a total loss and left
+                // the project permanently stale)
                 engine.getModelStore().save(model);
-                refreshUnitIndexes(engine, model);
+                try {
+                    refreshUnitIndexes(engine, model);
+                } catch (Exception indexError) {
+                    System.err.println("[nop-ib] warning: model saved but unit indexing failed ("
+                            + indexError.getMessage() + ") — run 'nop-ib model index' to retry");
+                }
                 Map<String, Object> m = refreshReport(model);
                 if (json) {
                     out.println(JsonOut.write(m));

@@ -451,6 +451,7 @@ public final class ServeHttp {
         }
         int limit = ServiceCore.DEFAULT_JOBS_LIMIT;
         String state = null;
+        String projectDir = null;
         java.util.Set<String> allowed = java.util.Set.of("queued", "running", "done", "failed", "cancelled");
         String query = ex.getRequestURI().getRawQuery();
         if (query != null)
@@ -475,7 +476,7 @@ public final class ServeHttp {
                     return;
                 }
             }
-        reply(ex, 200, Map.of("jobs", core.recentJobs(limit, state)));
+        reply(ex, 200, Map.of("jobs", core.recentJobs(limit, state, projectDir)));
     }
 
     static void handleHealth(ServiceCore core, HttpExchange ex) throws IOException {

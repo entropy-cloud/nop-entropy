@@ -133,8 +133,17 @@ public final class CompileCommand {
             int code = fallback.compileModules(plan.getCompileModules().isEmpty()
                             ? List.of(owningModuleOf(engine, model, changed.get(0)))
                             : plan.getCompileModules(), mout, merr);
-            feedback.put("fallback", Map.of("required", true,
-                    "reason", plan.getFallbackReason(), "delegated", true, "exit", code));
+            Map<String, Object> fb = new java.util.LinkedHashMap<>();
+            fb.put("required", true);
+            fb.put("reason", plan.getFallbackReason() + tailStaleHint(plan.getFallbackReason()));
+            fb.put("delegated", true);
+            fb.put("exit", code);
+            // 2026-11-22 live audit: in --json mode the Maven delegation output
+            // was discarded entirely — an AI seeing exit 1 with no output could
+            // not self-correct (its compile error only surfaced via the mvn
+            // passthrough). Always carry a tail; stderr gets priority.
+            fb.put("mvnOutputTail", outputTail(merr.length() > 0 ? merr.toString() : mout.toString()));
+            feedback.put("fallback", fb);
             feedback.put("timings", Map.of("totalMs", 0));
             String line = json ? JsonOut.write(feedback)
                     : "delegated to Maven (mvnq): exit " + code + "\n" + mout;
@@ -306,9 +315,27 @@ public final class CompileCommand {
     private static void logTaskFallback(Map<String, Object> feedback, String reason) {
         Map<String, Object> fallback = new LinkedHashMap<>();
         fallback.put("required", true);
-        fallback.put("reason", reason);
+        fallback.put("reason", reason + tailStaleHint(reason));
         fallback.put("delegated", true);
         feedback.put("fallback", fallback);
+    }
+
+    /** self-correction hint appended to model-stale fallback reasons (live audit:
+     * agents kept hitting "pom changed" without knowing the escape hatch). */
+    static String tailStaleHint(String reason) {
+        return reason != null && reason.startsWith("model-stale")
+                ? " — fix: run 'nop-ib model refresh' (large projects take minutes)"
+                : "";
+    }
+
+    /** last lines of Maven delegation output for JSON feedback (≤4000 chars). */
+    static String outputTail(String text) {
+        if (text == null)
+            return "";
+        String t = text.trim();
+        if (t.isEmpty())
+            return "(maven produced no output)";
+        return t.length() > 4000 ? t.substring(t.length() - 4000) : t;
     }
 
     /** shared Maven delegation used by the task-failure path (mirrors the plan fallback block) */
