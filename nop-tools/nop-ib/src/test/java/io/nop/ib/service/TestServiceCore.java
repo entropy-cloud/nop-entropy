@@ -12,8 +12,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * fixture model — no parallel execution implementation.
  */
 class TestServiceCore {
+    @org.junit.jupiter.api.BeforeAll
+    static void isolateRootsLedger() throws Exception {
+        System.setProperty("nop.ib.rootsLedger",
+                java.nio.file.Files.createTempDirectory("ib-roots-ledger").resolve("roots.txt").toString());
+    }
+
 
     private Path fixtureProject() throws Exception {
         Path repo = Files.createTempDirectory("ib-svc");
@@ -426,7 +432,7 @@ class TestServiceCore {
         BuildJob queued = registry.create("p", "test", root, List.of(), true);
         assertTrue(lane.submit(queued, () -> { }));
         long t0 = System.currentTimeMillis();
-        assertNull(core.cancel(queued.id), "queued job cancels");
+        assertEquals("cancelled", core.cancel(queued.id), "queued job cancels");
         core.await(queued);
         long waited = System.currentTimeMillis() - t0;
         assertEquals(BuildJob.State.CANCELLED, queued.state);

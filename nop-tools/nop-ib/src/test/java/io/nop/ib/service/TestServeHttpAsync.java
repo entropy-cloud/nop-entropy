@@ -33,6 +33,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * manages the lane gate itself so method order cannot deadlock the suite.
  */
 class TestServeHttpAsync {
+    @org.junit.jupiter.api.BeforeAll
+    static void isolateRootsLedger() throws Exception {
+        System.setProperty("nop.ib.rootsLedger",
+                java.nio.file.Files.createTempDirectory("ib-roots-ledger").resolve("roots.txt").toString());
+    }
+
     private static Path repo;
     private static ServiceCore core;
     private static int port;

@@ -94,6 +94,7 @@ public final class JobRegistry {
             job.state = BuildJob.State.CANCELLED;
             job.exit = -1;
             job.finishedAt = System.currentTimeMillis();
+            JobHistory.append(job.repoRoot, JobHistory.terminalSummary(job));
             // plan 2583: wake await() waiters — a cancelled QUEUED job used to
             // leave them parked until the 60s poll timeout
             job.notifyAll();
@@ -139,20 +140,29 @@ public final class JobRegistry {
      * Pruning also deletes the job's log file and its idempotency entry.
      */
     public void prune() {
-        long now = System.currentTimeMillis();
-        for (BuildJob j : jobs.values()) {
-            if (!j.isTerminal())
+        // 2026-11-22: the newest RETAINED terminal jobs stay in memory forever
+        // ("recent 100 statuses always queryable"); older ones fall out (log
+        // file deleted, idempotency entry dropped). Durable history lives in
+        // JobHistory (history.jsonl) and survives this prune AND restarts.
+        List<BuildJob> terminal = new ArrayList<>();
+        for (BuildJob j : jobs.values())
+            if (j.isTerminal())
+                terminal.add(j);
+        terminal.sort((a, b) -> Long.compare(b.finishedAt, a.finishedAt));
+        java.util.Set<String> keepIds = new java.util.HashSet<>();
+        for (int i = 0; i < Math.min(JobHistory.RETAINED, terminal.size()); i++)
+            keepIds.add(terminal.get(i).id);
+        for (BuildJob j : terminal) {
+            if (keepIds.contains(j.id))
                 continue;
-            if (now - j.finishedAt > 10 * 60_000L) {
-                jobs.remove(j.id);
-                if (j.idemKey != null)
-                    idempotent.remove(j.idemKey, j);
-                if (j.logFile != null) {
-                    try {
-                        Files.deleteIfExists(j.logFile);
-                    } catch (Exception ignored) {
-                        // best-effort: a stuck log file must not break pruning
-                    }
+            jobs.remove(j.id);
+            if (j.idemKey != null)
+                idempotent.remove(j.idemKey, j);
+            if (j.logFile != null) {
+                try {
+                    Files.deleteIfExists(j.logFile);
+                } catch (Exception ignored) {
+                    // best-effort: a stuck log file must not break pruning
                 }
             }
         }

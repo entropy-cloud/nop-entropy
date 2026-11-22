@@ -77,6 +77,7 @@ public final class ServeHttp {
                     handleJob(core, ex, longPoll, longPollPermits);
                 } catch (Exception e) {
                     err.println("http handler error: " + e);
+                    e.printStackTrace(err);
                     try {
                         reply(ex, 500, Map.of("error", String.valueOf(e)));
                     } catch (IOException ignored) {
@@ -109,7 +110,9 @@ public final class ServeHttp {
         try {
             t.run();
         } catch (Exception e) {
+            // full stack: toString-only made NPEs were undiagnosable (2026-11-22 live audit)
             err.println("http handler error: " + e);
+            e.printStackTrace(err);
             reply(ex, 500, Map.of("error", String.valueOf(e)));
         } finally {
             ex.close();
@@ -173,12 +176,17 @@ public final class ServeHttp {
         m.put("queueing", Map.of(
                 "model", "one serial lane per project (same project FIFO-queues) + "
                         + "cross-project parallelism within a global worker budget (cores/2)",
-                "capacity", "max 32 queued jobs per project lane; overflow answers HTTP 429",
+                "capacity", "max 32 queued jobs per project lane; overflow answers HTTP 429 (new submissions "
+                + "are rejected, queued ones are NEVER dropped — waiting agents must not see their job vanish)",
                 "agentEtiquette", "a queued job's snapshot shows queueAhead/queueAheadIds/"
                         + "runningJobId — keep polling GET /v1/job/{id}?waitMs=N until terminal; "
                         + "do NOT resubmit (use clientRequestId to make retries idempotent)",
                 "elapsedFields", "queueWaitMs = time spent queued; runMs = execution time so far; "
                         + "elapsedMs = time since submit (both phases)",
+                "history", "terminal job statuses are retained: last " + io.nop.ib.service.JobHistory.RETAINED
+                        + " per project in memory AND durably in <root>/.nop-ib/history.jsonl (survives "
+                        + "restarts); GET /v1/jobs merges both — check it before submitting to gauge "
+                        + "lane congestion and typical durations",
                 "modelRefreshCost", "model refresh runs several full Maven subprocess passes: "
                         + "~10s on a small single-module project, minutes on a large reactor, and "
                         + "can stretch much longer when other Maven processes compete for the "

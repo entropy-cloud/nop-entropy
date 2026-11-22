@@ -23,6 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * cancel path (process-tree kill + CANCELLED with exit=-1 + log record).
  */
 class TestAsyncJobApi {
+    @org.junit.jupiter.api.BeforeAll
+    static void isolateRootsLedger() throws Exception {
+        System.setProperty("nop.ib.rootsLedger",
+                java.nio.file.Files.createTempDirectory("ib-roots-ledger").resolve("roots.txt").toString());
+    }
+
 
     private Path fixtureProject() throws Exception {
         Path repo = Files.createTempDirectory("ib-async");
@@ -253,7 +259,10 @@ class TestAsyncJobApi {
         gate.countDown();
     }
 
-    /** job log: stdout/stderr tee with markers, logPath in the snapshot, prune deletes the file. */
+    /** job log: stdout/stderr tee with markers, logPath in the snapshot; prune keeps the
+     * newest {@link JobHistory#RETAINED} terminal jobs in memory (durable history in
+     * history.jsonl covers the rest — TestJobHistory). Only jobs beyond the retention
+     * cap are forgotten together with their log files. */
     @Test
     void jobLogTeeMarkersAndPruneCleanup() throws Exception {
         Path repo = fixtureProject();
@@ -275,11 +284,14 @@ class TestAsyncJobApi {
         Map<String, Object> snap = job.snapshot();
         assertEquals(job.logFile.toString(), snap.get("logPath"), "logPath is in the snapshot");
 
-        // prune after the retention window deletes the job AND its log file
+        // within the retention cap the terminal job stays queryable regardless of age
         job.finishedAt = System.currentTimeMillis() - 11 * 60_000L;
         core.registry().prune();
-        assertNull(core.job(job.id), "terminal job forgotten");
-        assertFalse(Files.exists(job.logFile), "prune deletes the log file");
+        assertNotNull(core.job(job.id), "recent-100 terminal jobs are retained in memory");
+        assertTrue(Files.exists(job.logFile), "retained job keeps its log file");
+        // durable history is already on disk either way
+        assertTrue(Files.isRegularFile(JobHistory.historyFile(repo.toRealPath())),
+                "terminal job recorded in history.jsonl");
     }
 
     /**
@@ -366,7 +378,7 @@ class TestAsyncJobApi {
         BuildJob queued = registry.create("p", "test", root, List.of(), true);
         assertTrue(lane.submit(queued, () -> { }));
         long t0 = System.currentTimeMillis();
-        assertNull(core.cancel(queued.id), "queued job cancels");
+        assertEquals("cancelled", core.cancel(queued.id), "queued job cancels");
         core.await(queued);
         assertTrue(System.currentTimeMillis() - t0 < 5_000,
                 "await must return promptly on cancel (notifyAll)");

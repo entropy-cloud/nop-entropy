@@ -18,6 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * for one project execute strictly serially (no target/ trampling).
  */
 class TestMvnLane {
+    @org.junit.jupiter.api.BeforeAll
+    static void isolateRootsLedger() throws Exception {
+        System.setProperty("nop.ib.rootsLedger",
+                java.nio.file.Files.createTempDirectory("ib-roots-ledger").resolve("roots.txt").toString());
+    }
+
 
     @AfterEach
     void restoreSeam() {
