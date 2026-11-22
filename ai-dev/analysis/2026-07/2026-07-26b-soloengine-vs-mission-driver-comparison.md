@@ -205,6 +205,6 @@ Mission Driver 的 4 层 DSL 层次更丰富，且有 `"extends": "base"` 继承
 
 - `~/ai/soloengine` — SoloEngine full source
 - `ai-dev/tools/mission-driver.sh` — Mission Driver launcher
-- `missions/*.json` — Mission configurations
+- `ai-dev/archived/missions-2026-11-22/*.json` — Mission configurations
 - `ai-dev/analysis/2026-07-25-opendcai-vs-age-vs-mission-driver.md` — Previous MD analysis
 - `~/app/attractor-guided-engineering-template/tools/mission-driver/` — Full MD engine source

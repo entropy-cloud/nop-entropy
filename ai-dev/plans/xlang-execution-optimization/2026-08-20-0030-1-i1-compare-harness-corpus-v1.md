@@ -20,7 +20,7 @@
 - 输出缓冲 live 事实：`EvalRuntime` 携带 `IEvalOutput out`（默认 `DisabledEvalOutput.INSTANCE`），经 `getOut()/setOut()` 存取；`StringBuilderEvalOutput` / `WriterEvalOutput` 为既有捕获实现，可作副作用快照基础。
 - Nop AutoTest 机制 live：`nop-autotest/nop-autotest-junit`（`@EnableVariants` + `VariantsArgumentProvider`）。live 核查：`VariantsArgumentProvider` 枚举的是 `variants` 数据目录名，不是后端参数通道——AutoTest 机制仅作矩阵化**先例**参照，矩阵化由 JUnit5 `@ParameterizedTest` 直接承载，不引入 nop-autotest-junit 依赖（Phase 1 Decision 记录）。
 - 现状无任何对拍 harness / corpus；`nop-xlang-java` / `nop-xlang-truffle` 模块不存在——列缺席是当前常态，机制必须面向缺席设计。
-- `missions/xlang-execution-optimization.json` live commands 仅引用 `:nop-xlang`；本 plan 不新增模块，不切换 commands。
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` live commands 仅引用 `:nop-xlang`；本 plan 不新增模块，不切换 commands。
 
 ## Goals
 

@@ -30,7 +30,7 @@
 - corpus 形态先例（I1/I3）：静态单元 = `xlang-compare/static-a/*.xpl`（c:script 编译单元，经标准编译前端取树）；动态单元 = 表达式串三变体（STANDARD / MUTABLE_SCOPE_VAR / TEMPLATE）；harness `RecordingEvalOutput` 已记录输出调用序列（三层断言的副作用域已含输出缓冲比对）。**输出族的 `$out` 通路需要 xpl 模板形态编译单元（非 c:script，经 `compileXpl` 前端）——现 corpus 无此形态单元**，模板单元经包装器执行的测试域通路需本 plan 定稿。
 - 输出缓冲 live 事实（设计 java §七依据）：`IEvalOutput` 由 `EvalRuntime` 携带（`rt.getOut()`），不经 `IEvalScope`。
 - ExitMode 清零点 live 事实（Goals 不变式的完整锚点）：`setExitMode(null)` 清零点 = `ExecutableFunction`（3 处 execute 路径）+ `CallFuncExecutable`（finally）+ `CallFuncWithClosureExecutable` + `LazyCompiledExecutableFunction`；`BindVarExecutable`（闭包体执行载体）不清零（边界在函数对象调用处）；循环节点消费 break/continue 后清零。
-- `missions/xlang-execution-optimization.json` commands 已是三模块口径；本 plan 不新增模块、不改 commands。
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` commands 已是三模块口径；本 plan 不新增模块、不改 commands。
 - I3 Non-Blocking Follow-ups 移交：`XLangSemantics.invokeGlobalFunction` display 串急切构造（行为等价优化候选，触及 `XLangSemantics` 的 plan 可顺带收敛）；`ClassModel.getConstructorForArgs` 多候选误选（watch-only，nop-core 域）。
 - 真正剩余的 gap：B 族 35 类遇即 fail-fast（java 侧证据 = `TestExecTranslationCoverageMatrix` 的 B 族 pending 反例 + `TestExecToJavaTranslatorSource` 的 IfExecutable fail-fast 用例）；`$out` 契约无执行路径验证；java 侧矩阵 pending 集非空（B 族 35 类）。
 

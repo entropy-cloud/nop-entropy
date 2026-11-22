@@ -3,7 +3,7 @@
 > 最后更新：2026-10-10（**轮次收口**——Wave 0–3 全部工作项 done：V.1 全量回归 454 模块新增失败=0、V.2 修复闭环审核 8/8 PASS、V.3 summary/矩阵终态、G.1-G.3 沉淀收口；v7 — R1.0 展开器产物：42+2=44 行 R1.x 增补；v6 — 基线刷新增补：新增 0.5 基线刷新 + 1.9/1.10/2.8/4.6 四个 Wave 1 工作项，覆盖 2026-09-22 基线后新增的模块组与子模块；修订 1.5/6.1 的 jq 空壳前提、7.1 增量窗口、7.2/7.4 增量注记；审核工作项 50→54。v5 = 第四轮收敛审查共识达成；v4 = 第三轮 F1–F7；v3 = 第二轮 N1–N9；v2 = 第一轮 F1–F7）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 关联轮次目录：`ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/`
-> Mission 配置：`missions/full-code-review.json`
+> Mission 配置：`ai-dev/archived/missions-2026-11-22/full-code-review.json`
 > 目标范围：nop-entropy 全部顶层模块组（45 组 = 2026-09-22 基线 41 组 + v6 增补时已入库的 nop-refactor/nop-jq/nop-bytecode/nop-duckdb；子模块精确总数以 0.5 刷新后的矩阵为准）
 > 总体复杂度：**S 级**（多组同时满足 Java ≥ 200 与子模块 ≥ 5）
 

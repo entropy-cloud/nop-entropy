@@ -98,7 +98,7 @@ I0 盘点基线 → I1 沉淀不变式(→门禁入CI) → I2 按不变式审计
 
 ## 步骤 3 — 拟 mission.json
 
-每个模块的 invariant-loop roadmap 应有专属 mission（`missions/<module>-invariant-loop.json`）。字段对齐本仓先例：
+每个模块的 invariant-loop roadmap 应有专属 mission（`ai-dev/archived/missions-2026-11-22/<module>-invariant-loop.json`）。字段对齐本仓先例：
 
 ```json
 {

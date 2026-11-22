@@ -76,7 +76,7 @@
 
 **`ai-dev/`** records the development process of the platform itself; it is not normative documentation for platform users.
 
-**`docs/` 是历史遗留目录，不再接收新内容**：AI 开发文档的唯一归属是 `ai-dev/`——roadmap 写 `ai-dev/backlog/`，执行计划写 `ai-dev/plans/`，设计决策写 `ai-dev/design/`，日志/审计/复盘按对应子目录；mission 配置（`missions/*.json`）中的 `roadmapPath`/`plansDir`/`auditsDir` 也必须指向 `ai-dev/` 下的路径。平台使用文档的唯一权威来源是 `docs-for-ai/`。除维护历史遗留内容外，禁止在 `docs/` 下新建任何 AI 开发文档。
+**`docs/` 是历史遗留目录，不再接收新内容**：AI 开发文档的唯一归属是 `ai-dev/`——roadmap 写 `ai-dev/backlog/`，执行计划写 `ai-dev/plans/`，设计决策写 `ai-dev/design/`，日志/审计/复盘按对应子目录。平台使用文档的唯一权威来源是 `docs-for-ai/`。除维护历史遗留内容外，禁止在 `docs/` 下新建任何 AI 开发文档。（Mission Driver 配置面已退役：`missions/` 已归档至 `ai-dev/archived/missions-2026-11-22/`；仓内 `tools/mission-driver/` 引擎作为 nop-ai-agent 产品代码保留。）
 
 ### Documentation Domains
 
@@ -298,7 +298,7 @@ setx JAVA_HOME "$jdk"
 **IMPORTANT**: Commit frequently to avoid losing work.
 
 - After completing a significant feature or fix, commit immediately
-- use nop-git-master skill
+- use the nop-git skill（`.agents/skills/nop-git/SKILL.md`；原 nop-git-master/worktree/bundle 技能已废弃删除）
 - Never let uncommitted changes accumulate across multiple features
 
 ---

@@ -23,7 +23,7 @@
 - 设计冻结依据（truffle 02）：§三控制流——`ExitMode`（CONTINUE/BREAK/RETURN）翻译为控制流异常族（SL 模式，三值一一对应；与 Truffle 嵌入侧 Context Exit 无关不对接）；§四——context-independent 准则（节点不存 context 数据或运行时值）；§五 context-independent 翻译纪律（禁值身份推测）；§六两级内联缓存准则表（一级 = CallTarget 身份、二级 = 直达调用形态；禁止函数实例身份一级缓存与任何运行时值身份缓存；缓存上限与泛化遵循 DSL 规范；宿主方法/属性访问走 `@CachedLibrary` limit=3 模式）；§七——特化节点仅承担已证实语义等价的加速路径，generic/fallback 一律调用共享 helper。
 - I4 关系（I3→I6 同构先例）：roadmap 对 I7 的依赖仅 I6（done）；**I4 是 corpus 覆盖 B 单元、B 族产生路径盘点、三边缘类最终裁定与共享基线 per-backend 口径的正常供给方**（执行顺序 `{N}`=1 在前；I4 侧已写对称条款）。**fallback 裁定（Phase 1 定稿记录）**：触发条件 = 执行本 plan 时 I4 plan 不处于 `completed` 状态（含 active 进行中/延期/被拒）；触发时对 I4 已落地部分做**增量对账**并补齐缺失产物——corpus 覆盖 B 单元（含模板单元形态与 `$out` 通路定稿）、B 族产生路径盘点（I4 Phase 1 同口径）、三边缘类裁定与基线扩量（由本 plan 作出并落 `ExecNodeBaseline`），"先落地方为事实源"（I5 D3 / I6 先例）；I4 后续执行时对账消费本 plan 产物。正常路径（I4 done）直接消费，不重复推导。
 - 共享 helper：`XLangSemantics`（I2 落地基座 + I3 增量 33 方法族，live 合计 76 个 public static 方法；函数调用语义 I2 已共享）；"缺哪个提取哪个"规则延续（本 plan 翻译所需而 nop-xlang 尚未共享的操作由本 plan 提取最小集，不受 I4 进度影响——I6 同源裁定）。
-- `missions/xlang-execution-optimization.json` commands 已是三模块口径；本 plan 不新增模块、不加依赖、不改 commands。
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` commands 已是三模块口径；本 plan 不新增模块、不加依赖、不改 commands。
 - 真正剩余的 gap：B 族 35 类翻译遇即 fail-fast（`TestTranslatorFailFast` 以 `OutputTextExecutable` 为反例即证）；无函数调用内联缓存（含既有调用节点）；闭包捕获形态未裁定未落地；truffle 侧矩阵 pending 集非空（B 族 35 类）。
 
 ## Goals

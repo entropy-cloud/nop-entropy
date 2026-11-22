@@ -21,7 +21,7 @@
   - **其余 nop-code 全部 12 个模块 SUCCESS**:nop-code / nop-code-core / nop-code-flow / nop-code-lang-java / nop-code-lang-python / nop-code-lang-typescript / nop-code-codegen / nop-code-dao / nop-code-meta / nop-code-api / nop-code-service / nop-code-web。注:`-T 1C` 并行日志交错,各模块测试数以 surefire 报告为准,不采信日志行归属;权威基线数字以 Phase 3 全绿运行为准。
 - **失败根因**(live 追踪):`nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthLoginAttempt/_gen/_NopAuthLoginAttempt.view.xml`(2026-09-23 提交 d746ce4aeb 的代码生成产物)中 `<form id="view|edit">` 含**空** `<layout/>`;运行时该空节点求值为 null。`web.xlib` GenFormBody(L141-148)与 `flux-web.xlib` GenFormBody(L154-161)及两处 GenAccordion(`web.xlib` L164、`flux-web.xlib` L177)直接访问 `formModel.layout.simpleTable`/`formModel.layout.groups`,无 null 防护。同仓其它实体页面的 `_gen` 基座 layout 均有字段内容(如 `_NopAuthDept.view.xml`),故仅此新页面触发。
 - **缺口三方对照材料已在档**:roadmap §2 全 38 WI todo;设计文档待做项(2026-09-27 提取,覆盖 `ai-dev/design/nop-code/` 下 9 份:`00-vision.md`、`01-architecture-baseline.md`、`query-api-design.md`、`search-integration-design.md`、`graph-analysis-design.md`、`graph-discovery-and-export-design.md`、`semantic-edge-design.md`、`flow-analysis-design.md`、`ai-e2e-acceptance-design.md`);survey §8.1 P0/P1/P2 建议清单。
-- **矩阵落点目录 `ai-dev/audits/nop-code/` 当前不存在**,mission 配置(`missions/nop-code-feature-completion.json`)指定 `auditsDir: ai-dev/audits/nop-code`、`plansDir: ai-dev/plans/nop-code`。
+- **矩阵落点目录 `ai-dev/audits/nop-code/` 当前不存在**,mission 配置(`ai-dev/archived/missions-2026-11-22/nop-code-feature-completion.json`)指定 `auditsDir: ai-dev/audits/nop-code`、`plansDir: ai-dev/plans/nop-code`。
 
 ## Goals
 

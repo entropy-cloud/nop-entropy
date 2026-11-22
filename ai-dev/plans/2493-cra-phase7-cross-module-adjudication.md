@@ -20,7 +20,7 @@
 - P2 现状：cra-index「P2 裁决台账」节为空表（表头：Finding ID/报告/单元/一句话描述/裁决/Why Not Blocking·批次）；各单元 P2 以「P2 裁决台账待 7.1」形态挂起。
 - P3 现状：roadmap 规则「P3：记录在审计报告，不立项」——各单元审计报告已归档，7.1 出归档声明即可。
 - Protected Area 修复面预勘：涉及 `nop-core`/`nop-xlang`/`nop-xdef` 内部、`model/*.orm.xml`、`nop-*-api`、`nop-api-core`、`nop-auth` 的工单在 P1/P2 台账描述文本中已有内联标注（如「Route-B 触 nop-core plan-first」「nop-auth ask-first」）——批次提案必须把这些工单的授权来源写入批次 schema。
-- 输入文件全集：`ai-dev/audits/cra-index.md`、32 单元目录的 merge-adjudication.md 与 summary.md、`ai-dev/backlog/security-audit-roadmap.md`、`ai-dev/backlog/full-code-review-roadmap.md`、`ai-dev/backlog/nop-stream-independent-audit-roadmap.md`（跨 roadmap 重叠核对输入）、`missions/concurrency-audit.json`（mission 消费路径核对）。
+- 输入文件全集：`ai-dev/audits/cra-index.md`、32 单元目录的 merge-adjudication.md 与 summary.md、`ai-dev/backlog/security-audit-roadmap.md`、`ai-dev/backlog/full-code-review-roadmap.md`、`ai-dev/backlog/nop-stream-independent-audit-roadmap.md`（跨 roadmap 重叠核对输入）、`ai-dev/archived/missions-2026-11-22/concurrency-audit.json`（mission 消费路径核对）。
 
 ## Goals
 

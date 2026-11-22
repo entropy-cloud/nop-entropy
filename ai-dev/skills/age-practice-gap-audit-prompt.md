@@ -93,7 +93,7 @@
    - 对文档结构或提示的重复调整是否被捕获为稳定指南，还是反复的临时修复？
 
 10. 任务驱动纪律（Mission Driver）
-    - 评估项目的任务驱动使用模式：`missions/` 是否存在任务清单？是否有 `MISSION_DRIVER` 执行记录？
+    - 评估项目的任务驱动使用模式：`ai-dev/archived/missions-2026-11-22/` 是否存在任务清单？是否有 `MISSION_DRIVER` 执行记录？
     - 职责分离：是否区分了 `execute` 和 `verify` 角色？是否有独立的 closure audit？
     - 如果未引入 Mission Driver，评估是否需要：是否有多步骤重复执行的工作流？是否有独立的验证步骤当前由人工触发？
 

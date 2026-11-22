@@ -424,4 +424,4 @@ flowchart TD
 - `docs-for-ai/04-reference/` 已有 db-migration 章节且与实现一致。
 - `node ai-dev/tools/check-doc-links.mjs --strict` 对本图 0 broken links。
 - mission 尚未启用；若要接入 mission-driver 自动循环，需在仓库根新建 `missions` 目录下的 mission 配置文件：
-  - 文件命名 nop-db-migration.json（创建于仓库根 `missions/`），`roadmapPath` 指向本文件，`plansDir`/`auditsDir` 均在 `ai-dev/` 下（AGENTS.md 禁止写 `docs/`）。
+  - 文件命名 nop-db-migration.json（创建于仓库根 `ai-dev/archived/missions-2026-11-22/`），`roadmapPath` 指向本文件，`plansDir`/`auditsDir` 均在 `ai-dev/` 下（AGENTS.md 禁止写 `docs/`）。

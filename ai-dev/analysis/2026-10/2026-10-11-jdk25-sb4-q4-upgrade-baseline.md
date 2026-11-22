@@ -390,7 +390,7 @@ macOS arm64;默认 JDK 26.0.1(Zulu 26.30.11,CRaC);`/usr/libexec/java_home` 另�
 - `ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md`(mission jdk25-sb4-q4 的 roadmap,WI0 交付物定义)
 - `ai-dev/analysis/2026-10/2026-10-09-quarkus4-vs-springboot4-dependency-alignment.md`(上游 37 组抽样、Q4 4.x 依赖跳变)
 - `ai-dev/plans/2422-wi0-jdk25-sb4-q4-upgrade-baseline-analysis.md`(本分析的执行计划)
-- `missions/jdk25-sb4-q4.json`(mission 配置)
+- `ai-dev/archived/missions-2026-11-22/jdk25-sb4-q4.json`(mission 配置)
 - BOM 原文:`https://repo.maven.apache.org/maven2/io/quarkus/platform/quarkus-bom/4.0.0.Beta1/quarkus-bom-4.0.0.Beta1.pom`、`https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/4.1.1/spring-boot-dependencies-4.1.1.pom`(抓取 2026-10-11)
 - 比对脚本快照:`_tmp/wi0/compare_boms.py`、`_tmp/wi0/pin_matrix.py`(不入库;结果已全量落档本文 2.2/2.3/4.1)
 - `ai-dev/logs/2026/10-11.md`(执行日记录)

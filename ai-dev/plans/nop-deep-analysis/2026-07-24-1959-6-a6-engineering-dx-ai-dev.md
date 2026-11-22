@@ -15,7 +15,7 @@
 
 **工程化与 AI 协同基础设施已建立：**
 
-- **mission-driver 自动开发闭环**：仓库内启动器 `ai-dev/tools/mission-driver.sh` + `.opencode/skills/mission-driver/SKILL.md`（流程约定）+ `missions/<name>.json`（mission 配置）驱动 roadmap → CHECK → REVIEW_PLANS → EXEC_PLANS → DRAFT_PLANS → DEEP_AUDIT 循环；引擎本体在仓库外部（`attractor-guided-engineering-template`），本 plan 仅引用其流程契约，不审计引擎源码。本 plan 即由该引擎触发（`missions/nop-deep-analysis.json`）
+- **mission-driver 自动开发闭环**：仓库内启动器 `ai-dev/tools/mission-driver.sh` + `.opencode/skills/mission-driver/SKILL.md`（流程约定）+ `ai-dev/archived/missions-2026-11-22/<name>.json`（mission 配置）驱动 roadmap → CHECK → REVIEW_PLANS → EXEC_PLANS → DRAFT_PLANS → DEEP_AUDIT 循环；引擎本体在仓库外部（`attractor-guided-engineering-template`），本 plan 仅引用其流程契约，不审计引擎源码。本 plan 即由该引擎触发（`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`）
 - **`ai-dev/` 开发知识层**：完整七层（logs/plans/design/analysis/discussions/bugs/audits/skills），`AGENTS.md` + `docs-for-ai/00-start-here/project-context.md` 为 AI 运行手册
 - **自动化校验工具链**：`ai-dev/tools/`（`check-doc-links.mjs`、`check-plan-checklist.mjs`、`scan-hollow-implementations.mjs`、`check-import-order.mjs`、`check-vfs-violations.mjs`、`check-ibiz-interfaces.mjs`、`check-orm-icons.mjs`、`check-oversized-files.mjs`、`code-stats.mjs` 等）
 - **`docs-for-ai/` 文档体系**：`INDEX.md` 导航、`00-start-here/`（project-context / ai-defaults）、`01-repo-map/`、`02-core-guides/`、`03-modules/`、`03-runbooks/`、`04-reference/source-anchors.md`（实现锚点最小集）
@@ -76,7 +76,7 @@
 ### Phase 1 - 工程化与 AI 协同基础设施源材料梳理
 
 Status: completed
-Targets: `ai-dev/tools/mission-driver.sh`（仓库内启动器）、`.opencode/skills/mission-driver/SKILL.md`、`missions/nop-deep-analysis.json`、`AGENTS.md`、`docs-for-ai/00-start-here/`（project-context / ai-defaults）、`docs-for-ai/INDEX.md`、`ai-dev/tools/`、`nop-autotest/`、`nop-entropy-e2e/README.md`、`nop-runner/nop-cli-core/`、source-anchors TEST-001~005 / DBG-001~005 / XLANG-006
+Targets: `ai-dev/tools/mission-driver.sh`（仓库内启动器）、`.opencode/skills/mission-driver/SKILL.md`、`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`、`AGENTS.md`、`docs-for-ai/00-start-here/`（project-context / ai-defaults）、`docs-for-ai/INDEX.md`、`ai-dev/tools/`、`nop-autotest/`、`nop-entropy-e2e/README.md`、`nop-runner/nop-cli-core/`、source-anchors TEST-001~005 / DBG-001~005 / XLANG-006
 
 - Item Types: `Proof | Decision`
 
@@ -155,7 +155,7 @@ Exit Criteria:
 - [x] 不存在被静默降级到 deferred 的 in-scope 分析要求
 - [x] 受影响的 owner docs 已同步到 live baseline，或明确写明 No owner-doc update required
 - [x] 独立子 agent / 独立审阅者 closure-audit 已完成并记录证据
-- [x] **Anti-Hollow Check**：closure audit 已验证文档中的工程化描述在仓库内可观测成立——(a) `ai-dev/tools/mission-driver.sh` 启动器确实存在；(b) `missions/nop-deep-analysis.json` 配置确实存在且引用本 roadmap；(c) `_tmp/*-mission-driver/run-state.json` 日志证明 CHECK/REVIEW/EXEC/DRAFT/DEEP_AUDIT 步骤确实被执行过；(d) AutoTest 快照基类（TEST-001）与 `check-*`/`scan-hollow` 工具确实可运行。引擎本体源码在仓库外部，不作为 in-repo 验证目标
+- [x] **Anti-Hollow Check**：closure audit 已验证文档中的工程化描述在仓库内可观测成立——(a) `ai-dev/tools/mission-driver.sh` 启动器确实存在；(b) `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json` 配置确实存在且引用本 roadmap；(c) `_tmp/*-mission-driver/run-state.json` 日志证明 CHECK/REVIEW/EXEC/DRAFT/DEEP_AUDIT 步骤确实被执行过；(d) AutoTest 快照基类（TEST-001）与 `check-*`/`scan-hollow` 工具确实可运行。引擎本体源码在仓库外部，不作为 in-repo 验证目标
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict`：A6 引入的链接（本 plan 文件 + roadmap A6 行）全部修正为 0 broken link；剩余 error 均为 A7 未启动 deliverable 的 `2026-07-XX-` 占位符（pre-existing，A7 执行时自然解析，本 mission 标记 non-blocking）
 - [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0
 

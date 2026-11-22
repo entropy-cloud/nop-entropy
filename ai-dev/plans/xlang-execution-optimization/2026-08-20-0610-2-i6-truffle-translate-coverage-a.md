@@ -21,7 +21,7 @@
   - 帧映射 kind 推断**全量覆盖率实测**（I5 Phase 2 Exit Criteria 注记"子集内可推断比例记录落 log，全量覆盖率归 I6 后续实测"——子集实测：corpus v1 4 slot 全部推断为 Int）；
   - 设计 truffle 02 §四 Q3：**残余按名访问路径**——翻译期 slot 化优先，无法 slot 化的按名访问走 context 持有的 scope 链对象查找节点，"覆盖率实测归实现计划验收"。作用域链访问族属覆盖 A，随本 plan 落地。
 - I3 为本 plan 的执行顺序前置（同时间戳 `{N}` 编号 1 在前）：corpus 覆盖 A 单元、覆盖矩阵基线/排除清单/归属裁定（含四分区无无主裁定）为 I3 产物，本 plan 正常路径直接消费。roadmap 依赖仅 I5——**fallback 裁定**（Phase 1 定稿记录）：**触发条件 = 执行本 plan 时 I3 plan 不处于 `completed` 状态（含 active 进行中/延期/被拒）**；触发时对 I3 已落地部分做**增量对账**（已存在的 corpus 单元/口径清单/共享 helper 直接消费，仅补缺失部分），记录 I3 当时状态与对账结果，"先落地方为事实源"（I5 D3 先例）；I3 后续执行时消费本 plan 产物。
-- `missions/xlang-execution-optimization.json` commands 已是三模块口径；本 plan 不新增模块、不加依赖、不改 commands。
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` commands 已是三模块口径；本 plan 不新增模块、不加依赖、不改 commands。
 - 真正剩余的 gap：A 五族节点翻译全部缺失（遇即 fail-fast，`TestTranslatorFailFast` 以 `GetPropertyExecutable` 为反例即证）；truffle 侧无覆盖矩阵；Q3 残余路径与 kind 全量覆盖率未落地。
 
 ## Goals

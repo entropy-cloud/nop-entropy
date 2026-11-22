@@ -76,14 +76,14 @@ Exit Criteria:
 ### Phase 2 - 稳态判定 + 复触发条件登记
 
 Status: completed
-Targets: `ai-dev/backlog/nop-ai-invariant-loop-roadmap.md`、`ai-dev/audits/nop-ai-invariants/invariant-catalog.md`（**复触发登记唯一落点 = catalog 新建 §6 复触发条件登记段，只增不改既有 §1-§5 规则；roadmap §Loop Rule 只留指针**）、`missions/nop-ai-invariant-loop.json`
+Targets: `ai-dev/backlog/nop-ai-invariant-loop-roadmap.md`、`ai-dev/audits/nop-ai-invariants/invariant-catalog.md`（**复触发登记唯一落点 = catalog 新建 §6 复触发条件登记段，只增不改既有 §1-§5 规则；roadmap §Loop Rule 只留指针**）、`ai-dev/archived/missions-2026-11-22/nop-ai-invariant-loop.json`
 
 - Item Types: `Decision | Proof | Fix`
 
 - [x] `Decision` **稳态判定**：消费第六门禁族评估裁定——tool-ize → 「有新族」分支（roadmap 注记 Cycle 2 派生输入，N1 边激活）；watch-only/证据不足 → 「零新族且零red」→ **稳态暂停 待复触发**；**评估 plan 被 cancelled/deferred → 稳态判定结论 = pending 记录 + 第六门禁族候选路由复触发（Cycle 2 裁定），本条目以该记录为勾选依据（不阻塞其余收口）**。判定结果写入 roadmap §I6 行。
 - [x] `Decision` **周期复探周期裁定**：明确一个可执行的复探周期（如 30/60/90 天，附理由；基于扫描成本 = mjs 秒级 + 门禁随 mvn test，倾向短周期），写入复触发条件登记。
 - [x] `Fix` 复触发条件登记定稿（catalog 新建 §6 唯一落点）：4 类基线（CI 变红 / 结构变更 / 周期复探含周期 / CI fallback 补验含非空转判据）+ watch 项触发条件（AskOracleExecutor client / dnsResolver client / plan/runtime 接线）+ **第六门禁族候选复评估触发条件（消费 `2026-08-12-1700-1` 裁定；watch-only 时其可判定复触发条件必须入登记，不得断裂）**。
-- [x] `Fix` mission json 授权文本同步：I3 裁定「P2 自动修复授权为 plan 级裁定」反映到 `missions/nop-ai-invariant-loop.json` 授权句（不改变授权实质，仅文本与已裁定事实一致）；roadmap §Cross-Cutting 授权句同步一致。**说明：mission json 由 mission-driver 引擎 JSON.parse 读取，description 仅用于显示不注入 agent prompt——本改动是纯文档一致性动作。**
+- [x] `Fix` mission json 授权文本同步：I3 裁定「P2 自动修复授权为 plan 级裁定」反映到 `ai-dev/archived/missions-2026-11-22/nop-ai-invariant-loop.json` 授权句（不改变授权实质，仅文本与已裁定事实一致）；roadmap §Cross-Cutting 授权句同步一致。**说明：mission json 由 mission-driver 引擎 JSON.parse 读取，description 仅用于显示不注入 agent prompt——本改动是纯文档一致性动作。**
 - [x] `Proof` mission json 变更验证：`node ai-dev/tools/mission-check.mjs missions/nop-ai-invariant-loop.json .` 退出码 0（若该工具不存在则用 `python3 -m json.tool missions/nop-ai-invariant-loop.json` 语法校验）+ `git diff` 确认仅授权句一处变更。
 
 Exit Criteria:

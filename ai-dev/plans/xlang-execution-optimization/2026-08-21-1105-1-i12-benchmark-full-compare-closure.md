@@ -72,7 +72,7 @@
 ### Phase 1 - 全量三后端对拍套件直接运行收口
 
 Status: completed
-Targets: `nop-kernel/nop-xlang-java-e2e`（载体 + corpus 生产形态物化落点）、`nop-kernel/nop-xlang` test-jar 消费 + `nop-kernel/nop-xlang-java`/`nop-kernel/nop-xlang-truffle` 模块依赖（main API）、`missions/xlang-execution-optimization.json`
+Targets: `nop-kernel/nop-xlang-java-e2e`（载体 + corpus 生产形态物化落点）、`nop-kernel/nop-xlang` test-jar 消费 + `nop-kernel/nop-xlang-java`/`nop-kernel/nop-xlang-truffle` 模块依赖（main API）、`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`
 
 - Item Types: `Decision | Fix | Proof`
 
@@ -97,7 +97,7 @@ Exit Criteria:
 ### Phase 2 - 三后端性能基准 + 两形态运行 + 数据落 repo
 
 Status: completed
-Targets: `nop-benchmark/`（新模块或扩展，D2 裁定）、`missions/xlang-execution-optimization.json`、基准报告（`ai-dev/analysis/2026-08/`，路径 D2 定稿）
+Targets: `nop-benchmark/`（新模块或扩展，D2 裁定）、`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`、基准报告（`ai-dev/analysis/2026-08/`，路径 D2 定稿）
 
 - Item Types: `Decision | Fix | Proof`
 

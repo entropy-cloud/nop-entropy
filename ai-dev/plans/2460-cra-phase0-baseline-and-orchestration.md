@@ -13,15 +13,15 @@
 
 - roadmap 已立项并提交于 master（bcc960e7cc）；本工作基于 master b3a9c76bed 的新分支 `concurrency-audit-remediation`（worktree `nop-entropy-concurrency-audit`）。
 - `ai-dev/audits/` 下无任何 `*-concurrency*` 审计目录——C1–C10 口径的首次全模块滚动，无历史包袱。
-- 仓库含 mission-driver 工具链（`tools/mission-driver/` + `tools/mission-driver.sh`），已有 31 个 mission 配置可作格式范例（如 `missions/audit-remediation.json`）。
+- 仓库含 mission-driver 工具链（`tools/mission-driver/` + `tools/mission-driver.sh`），已有 31 个 mission 配置可作格式范例（如 `ai-dev/archived/missions-2026-11-22/audit-remediation.json`）。
 - 环境：Java 26（Zulu 26.0.1）、Maven wrapper 4.0.0-rc-5。
-- 真正的 gap：无绿色基线记录、无 `ai-dev/audits/cra-index.md`、无 `missions/concurrency-audit.json`。
+- 真正的 gap：无绿色基线记录、无 `ai-dev/audits/cra-index.md`、无 `ai-dev/archived/missions-2026-11-22/concurrency-audit.json`。
 
 ## Goals
 
 - 工作项 0.1：`./mvnw clean install -T 1C` 全量通过，基线 commit 记录在 plan 与 cra-index。
 - 工作项 0.2：`ai-dev/audits/cra-index.md` campaign 索引建立（报告清单 + P0 追踪 + P1/P2 台账骨架）。
-- 工作项 0.3：`missions/concurrency-audit.json` 生成，roadmapPath/plansDir/auditsDir 均指向 `ai-dev/` 下路径，mission-check 与 dry-run 验证通过。
+- 工作项 0.3：`ai-dev/archived/missions-2026-11-22/concurrency-audit.json` 生成，roadmapPath/plansDir/auditsDir 均指向 `ai-dev/` 下路径，mission-check 与 dry-run 验证通过。
 - roadmap 顶部 Work Item Status 中 0.1/0.2/0.3 状态更新为 `done`。
 
 ## Non-Goals
@@ -36,7 +36,7 @@
 
 - 全量构建验证与基线记录
 - `ai-dev/audits/cra-index.md` 新建
-- `missions/concurrency-audit.json` 新建 + `node tools/mission-driver/src/mission-check.mjs` 校验 + dry-run
+- `ai-dev/archived/missions-2026-11-22/concurrency-audit.json` 新建 + `node tools/mission-driver/src/mission-check.mjs` 校验 + dry-run
 - roadmap 状态块更新、daily log、本 plan 收口
 
 ### Out Of Scope
@@ -84,11 +84,11 @@ Exit Criteria:
 ### Phase 3 - WI 0.3 mission 配置与 dry-run
 
 Status: completed
-Targets: `missions/concurrency-audit.json`
+Targets: `ai-dev/archived/missions-2026-11-22/concurrency-audit.json`
 
 - Item Types: `Feature`
 
-- [x] 参照 `missions/audit-remediation.json` 格式生成 `missions/concurrency-audit.json`：roadmapPath=`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md`、plansDir=`ai-dev/plans`、auditsDir=`ai-dev/audits`、planGuide 指向 plan guide、commands 用仓库真实命令
+- [x] 参照 `ai-dev/archived/missions-2026-11-22/audit-remediation.json` 格式生成 `ai-dev/archived/missions-2026-11-22/concurrency-audit.json`：roadmapPath=`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md`、plansDir=`ai-dev/plans`、auditsDir=`ai-dev/audits`、planGuide 指向 plan guide、commands 用仓库真实命令
 - [x] `node tools/mission-driver/src/mission-check.mjs missions/concurrency-audit.json .` 通过
 - [x] `./tools/mission-driver.sh run concurrency-audit --dry-run --no-monitor` 通过（不产生实际执行）
 

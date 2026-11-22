@@ -344,7 +344,7 @@
 
 ### 后续行动
 
-- ~~`ai-dev/plans/` 拆分实施计划（含 Phase 0 beans.xdef 前置）~~ → 已由 roadmap + mission 接管：`ai-dev/backlog/nop-plugin-enhancement-roadmap.md` + `missions/nop-plugin-enhancement.json`（plugin.xdef，无 beans.xdef 前置），经两轮独立审查达成共识。
+- ~~`ai-dev/plans/` 拆分实施计划（含 Phase 0 beans.xdef 前置）~~ → 已由 roadmap + mission 接管：`ai-dev/backlog/nop-plugin-enhancement-roadmap.md` + `ai-dev/archived/missions-2026-11-22/nop-plugin-enhancement.json`（plugin.xdef，无 beans.xdef 前置），经两轮独立审查达成共识。
 - 实施后关键结论同步到 `docs-for-ai/`。
 
 ---

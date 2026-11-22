@@ -50,7 +50,7 @@
 
 ### Out Of Scope
 
-- 阶段二 I1-I7 内容与 `missions/xlang-execution-optimization.json`
+- 阶段二 I1-I7 内容与 `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`
 - 设计文档范围外的新文档撰写
 - 代码
 

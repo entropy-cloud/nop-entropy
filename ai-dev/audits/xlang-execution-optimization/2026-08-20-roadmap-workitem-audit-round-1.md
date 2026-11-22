@@ -148,7 +148,7 @@
 | `IResourceLoadingCache`（I10 复用 L77） | I10 复用 | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/cache/IResourceLoadingCache.java` | 存在 ✓ |
 | `~/sources/graal` SL 参考实现（I5 复用 L61；外部锚点） | I5 复用 L61 | `~/sources/graal/truffle/` 存在（sparse clone） | 存在 ✓ |
 
-附带复核：`missions/xlang-execution-optimization.json` live commands 仅引用 `:nop-xlang`（已存在模块），与 roadmap L30 "live commands 在落盘前保持仅引用已存在模块"声明一致 ✓；`ai-dev/plans/xlang-execution-optimization/` 下仅 W1-W4 四份 plan，无 I 系列 plan——冻结纪律 2（L163）遵守中 ✓。
+附带复核：`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` live commands 仅引用 `:nop-xlang`（已存在模块），与 roadmap L30 "live commands 在落盘前保持仅引用已存在模块"声明一致 ✓；`ai-dev/plans/xlang-execution-optimization/` 下仅 W1-W4 四份 plan，无 I 系列 plan——冻结纪律 2（L163）遵守中 ✓。
 
 ## 六、依赖一致性核对
 

@@ -20,7 +20,7 @@
 - 语义操作现状 live：**部分**语义敏感操作已共享，但共享不完整——`PlusExecutable` 数值路径调 `MathHelper.add`、`EqExecutable` 调 `MathHelper.xlangEq`（`io.nop.commons.util.MathHelper`），而 `PlusExecutable` 的 String 拼接分支内联于节点类（`MathHelper.add` 对非数值输入返回 NaN，不承担拼接语义）；子集内其余语义敏感操作（宽松比较其余变体/数值提升残余/属性反射等）是否内联需盘点（Phase 2 盘点项）。共享 helper 基座 = 逐节点类×逐语义分支盘点后补齐，不是从零新建、也不能按"节点类已引用 helper"整类划为已共享。
 - 输出缓冲 live 事实：`IEvalOutput` 由 `EvalRuntime` 携带（`getOut()`），不经 `IEvalScope`——设计 java §七"$out 追加隐参"约定的依据。
 - `nop-javac` `JdkJavaCompiler`（`javax.tools` 内存编译 + 自定义 ClassLoader 通路）live 存在；设计裁定其不承担生产产物编译，本 plan 将其用于测试域对拍执行（见 Phase 4 决策）。
-- `nop-kernel` 父 pom 现无 `nop-xlang-java` module 条目；`missions/xlang-execution-optimization.json` commands 仅引用 `:nop-xlang`。
+- `nop-kernel` 父 pom 现无 `nop-xlang-java` module 条目；`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` commands 仅引用 `:nop-xlang`。
 - 无生成类加载/绑定机制（I10）、无构建任务（I11）——本 plan 的 java 列是测试域验证载体，生产通路不在范围。
 
 ## Goals
@@ -60,7 +60,7 @@
 ### Phase 1 - 模块落盘与 commands 切换
 
 Status: completed
-Targets: `nop-kernel/nop-xlang-java/`（新模块）、`nop-kernel/pom.xml`、`missions/xlang-execution-optimization.json`
+Targets: `nop-kernel/nop-xlang-java/`（新模块）、`nop-kernel/pom.xml`、`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`
 
 > Execution note（2026-08-20）：模块骨架落盘——pom（compile 依赖仅 `nop-xlang`；`nop-javac` test scope（测试域编译通路）；`nop-xlang` test-jar test scope（I1 harness/corpus 消费）；junit-jupiter test）+ 包结构 `io.nop.xlang.java.translator` / `io.nop.xlang.java.gen`（package-info 承载包职责说明，无空壳公共方法）。父 pom modules 注册；mission.json 四条 commands 同一次变更为 `:nop-xlang,:nop-xlang-java` 口径。
 

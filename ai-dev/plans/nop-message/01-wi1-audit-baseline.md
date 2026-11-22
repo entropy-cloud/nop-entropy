@@ -2,7 +2,7 @@
 
 > Plan Status: completed
 > Last Reviewed: 2026-10-04
-> Source: `ai-dev/backlog/nop-message-encapsulation-roadmap.md`（WI1）、`missions/nop-message-encapsulation.json`
+> Source: `ai-dev/backlog/nop-message-encapsulation-roadmap.md`（WI1）、`ai-dev/archived/missions-2026-11-22/nop-message-encapsulation.json`
 > Related: 后续 plan 均引用本项产出的审计基线
 
 ## Purpose

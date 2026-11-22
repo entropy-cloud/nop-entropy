@@ -50,7 +50,7 @@ nop-ai-agent 是一个**通用 AI agent 运行时框架**，提供：
 |------|------|------|
 | nop-ai-agent | 通用 agent 运行时（引擎+工具+安全+可靠性） | Java 库 |
 | AGE 模板 | 工程方法论 + mission-driver 引擎 + 文档骨架 | 外部模板仓库 |
-| mission JSON | mission 静态配置（命令/路径/模型） | 项目内 `missions/` |
+| mission JSON | mission 静态配置（命令/路径/模型） | 项目内 `ai-dev/archived/missions-2026-11-22/` |
 | plan markdown | 执行计划（`[x]/[ ]` + `> Plan Status:`） | 项目内 `ai-dev/plans/` |
 | plan guide | plan 编写与闭合规范 | 项目内 docs |
 | FlowEngine | 声明式状态机驱动器 | AGE 模板内 |
@@ -606,7 +606,7 @@ call-agent(agentId="receiver", sessionId=null, inheritContext=false)
 8. `PlanValidator`（front matter + checkbox + closure 证据校验，插入 ValidatorTaskStepWrapper）
 
 ### Phase 3：mission 定义落地
-9. 编写 `missions/*.task.xml`（对标 missions/*.json + flows/*.json 合并为 nop-task DSL）
+9. 编写 `ai-dev/archived/missions-2026-11-22/*.task.xml`（对标 missions/*.json + flows/*.json 合并为 nop-task DSL）
 10. 主循环 task（CHECK/REVIEW_PLANS/EXEC_PLANS/DRAFT_PLANS/DEEP_AUDIT）
 11. plan-execution 子 task（EXECUTE/CLOSURE_SCRIPT_CHECK/CLOSURE_AUDIT/BUILD_VERIFY）
 12. append buffer 用 task scope 变量实现（toTaskScope/fromTaskScope）

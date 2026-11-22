@@ -35,8 +35,8 @@ Mission Driver 不是"一个任务编排工具"，它的完整架构包含**四�
 
 关键特征：
 - **纯静态**：无运行时字段，状态在 `_tmp/<runId>/run-state.json`
-- **继承机制**：`extends: "base"` 从 `missions/base.json` 继承命令/模型/agent
-- **多子流引用**：`flowName` 可指向 `flows/mission-driver.json`（内置）或 `missions/flows/<custom>.json`
+- **继承机制**：`extends: "base"` 从 `ai-dev/archived/missions-2026-11-22/base.json` 继承命令/模型/agent
+- **多子流引用**：`flowName` 可指向 `flows/mission-driver.json`（内置）或 `ai-dev/archived/missions-2026-11-22/flows/<custom>.json`
 - **开放的 commands 集**：缺失 = 跳过对应步骤（`build` 缺失则 BUILD_VERIFY 不运行 build）
 
 ### 2.2 Flow 定义 — 状态机 DSL（可组合、可覆盖）
@@ -600,7 +600,7 @@ Level 3: 提取为 MCP 工具或独立 Python 包
 
 共 11 个文件。核心设计原则：**prompt 是薄的，只指向信息源；信息真值源唯一（scripts/index.md 是注册表，roadmap 是任务源，plan 是执行方案）。**
 
-### 6.2 ① mission 配置：`missions/medical-qa.json`
+### 6.2 ① mission 配置：`ai-dev/archived/missions-2026-11-22/medical-qa.json`
 
 ```json
 {
@@ -633,7 +633,7 @@ Level 3: 提取为 MCP 工具或独立 Python 包
 - **不需要 commands.build**（无编译步骤），但保留占位 echo
 - **prompts.multiAudit / openAudit** 指向数据质量审计 prompt（不是代码审计）
 
-### 6.3 ② EXECUTE prompt：`missions/prompts/execute.md`
+### 6.3 ② EXECUTE prompt：`ai-dev/archived/missions-2026-11-22/prompts/execute.md`
 
 薄 prompt——不硬编码脚本列表，只指向信息源：
 
@@ -662,7 +662,7 @@ description: Execute data processing plan
 禁止生成临时脚本。
 ```
 
-### 6.4 ③ DRAFT prompt：`missions/prompts/draft.md`
+### 6.4 ③ DRAFT prompt：`ai-dev/archived/missions-2026-11-22/prompts/draft.md`
 
 薄 prompt——不硬编码脚本列表，让 AI 自己读 index 动态组织：
 
@@ -693,7 +693,7 @@ description: Draft data processing plans from roadmap
 
 **关键**：prompt 中不列脚本清单。脚本清单在 `scripts/medical-qa/index.md` 中维护。新增脚本只需更新 index，DRAFT agent 下次自动发现。prompt 永远不需要改。
 
-### 6.5 ④ 自定义质量检查 prompt：`missions/prompts/closure-script-check.md`
+### 6.5 ④ 自定义质量检查 prompt：`ai-dev/archived/missions-2026-11-22/prompts/closure-script-check.md`
 
 ```markdown
 ---

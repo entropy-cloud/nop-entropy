@@ -62,7 +62,7 @@
 ### Phase 1 - 模块落盘、钉版与决策定稿
 
 Status: completed
-Targets: `nop-kernel/nop-xlang-truffle/`（新模块）、`nop-kernel/pom.xml`、`missions/xlang-execution-optimization.json`
+Targets: `nop-kernel/nop-xlang-truffle/`（新模块）、`nop-kernel/pom.xml`、`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`
 
 - Item Types: `Decision | Proof`
 

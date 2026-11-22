@@ -15,7 +15,7 @@
 
 - 前置条件：W3-supplement 已 `done`（roadmap L30，2026-08-19 独立 closure audit CAN CLOSE）。若 W3 未完成，本 plan 不得启动（各 Phase 保持 `planned`，plan 挂起等待）
 - 审核对象（W3 交付物，live 已核对）：roadmap `ai-dev/backlog/xlang-execution-optimization-roadmap.md` 阶段二定稿块——I1-I12 条目（L44-85）+ 定稿口径块（L36-42，含对拍不变式/覆盖矩阵/粒度/共享 helper 纪律/编号映射表）+ ★ 里程碑行（L86）+ Stages 表（L131-142）+ Dependency graph（L147-158）
-- 方法论资产：openAuditPrompt = `ai-dev/skills/open-ended-adversarial-review-prompt.md`（`missions/xlang-execution-optimization.json` prompts.openAuditPrompt 已引用）；报告目录 `ai-dev/audits/xlang-execution-optimization/` 已存在（含 W2 的 5 份 design-review 报告 + README 索引）
+- 方法论资产：openAuditPrompt = `ai-dev/skills/open-ended-adversarial-review-prompt.md`（`ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` prompts.openAuditPrompt 已引用）；报告目录 `ai-dev/audits/xlang-execution-optimization/` 已存在（含 W2 的 5 份 design-review 报告 + README 索引）
 - W3 Closure 移交的 3 项 Minor（本 plan 显式审核输入，见 W3 plan Closure 段）：① I6 无独立范围行（标题引用 I3 类别）；② I3/I4/I6/I7/I8 无复用行（内部 helper 与平台复用未区分）；③ 冻结设计文档约 30 处旧 I 编号引用——已由 roadmap L42 编号映射表缓解，audit 须按映射解读并核验映射充分性（即 W2 round-5 移交 #17 的处置落点）
 - 比对基准（只读，非重审对象）：W2 定稿三组设计文档 `ai-dev/design/xlang-execution/`（00-vision + 01-architecture-baseline）、`ai-dev/design/xlang-java/`（01-architecture-baseline）、`ai-dev/design/xlang-truffle/`（00-vision + 02-architecture-baseline）——冻结不改
 - 复用锚点（"复用标注准确"维度的 live 基准）：W3 已 live 核对（当日 log）：`ScriptCompilerRegistry`、`ResourceComponentManager`、`JaninoScriptCompiler`/`EvalMethodInvoker`、`JdkJavaCompiler`、`GraalvmConfigGenerator`/`nop-vfs-index.txt`、`LexicalScopeAnalysis`、`nop-benchmark/nop-benchmark-xpl`、`exec/` 137 文件基线
@@ -63,7 +63,7 @@
 ### Out Of Scope
 
 - `ai-dev/design/` 三组设计文档（冻结）
-- `missions/xlang-execution-optimization.json` 与任何代码/构建文件
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` 与任何代码/构建文件
 - I 系列任何 plan 的起草或预研
 
 ## Execution Plan

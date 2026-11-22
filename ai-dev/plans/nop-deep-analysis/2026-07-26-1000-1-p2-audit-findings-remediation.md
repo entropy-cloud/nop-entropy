@@ -75,7 +75,7 @@
 - 交付物 `...-nop-core-engine-deep-dive.md:373` 写「六大引擎模块」，括号内列出 7 个：`nop-core / nop-xlang / nop-xdef / nop-dao / nop-orm / nop-graphql / NopIoC`。
 
 **OA-4 — mission `commands.test` 结构上是 no-op**
-- `missions/nop-deep-analysis.json:15` 的 `commands.test` 用 `; echo` 掩盖了 `check-doc-links.mjs` 的退出码。
+- `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json:15` 的 `commands.test` 用 `; echo` 掩盖了 `check-doc-links.mjs` 的退出码。
 - 性质：审计明确标注「设计如此，analysis mission；记录以防下次重新发现」。**这不是缺陷，是已知设计选择**——本 plan 仅补充注释说明，不改变行为。
 
 ### 质量门基线
@@ -105,7 +105,7 @@
 - `ai-dev/analysis/2026-07/2026-07-24-nop-module-matrix.md`（P2-A5-01 `:5, :52`）
 - `ai-dev/analysis/2026-07/2026-07-24-nop-engineering-dx-ai-dev.md`（P2-A6-01 多处、P2-A6-02 `:158`、P2-A6-03 `:200`、P2-A6-04 `:91`、OA-2 `:150`）
 - `ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md`（P2-A7-01 `:335-337`、P2-A7-02 `:102`、P2-A7-03 `:167/:316/:329`、OA-1 `:279/:337/:365`）
-- `missions/nop-deep-analysis.json`（OA-4 `:15` 补注释）
+- `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`（OA-4 `:15` 补注释）
 
 ### Out Of Scope
 
@@ -157,7 +157,7 @@ Exit Criteria:
 ### Phase 2 - 修正 capstone A7 精度缺陷 + mission config 注释 + 终检
 
 Status: completed
-Targets: `ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md`、`missions/nop-deep-analysis.json`、`ai-dev/audits/nop-deep-analysis-audit-followups.md`
+Targets: `ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md`、`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`、`ai-dev/audits/nop-deep-analysis-audit-followups.md`
 
 - Item Types: `Fix | Decision | Follow-up`
 
@@ -165,7 +165,7 @@ Targets: `ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md`�
 - [x] **Fix [P2-A7-02]** `...-nop-platform-deep-introduction.md:102`：mermaid 节点覆盖声明——要么为 `API`/`OPS` 节点补 provenance 行使「23 行覆盖全部 25 节点」成立，要么修正声明为实际覆盖数。
 - [x] **Fix [P2-A7-03]** `...-nop-platform-deep-introduction.md:167, :316, :329`：`A2 §8(c)` 标签歧义消解——区分 `A2 §8(c)` 启动性能（`:368`）与 `A2 §8(b)` 或行号引用 `@BizAction`-AOP（`:367`），使每个标签唯一对应一个 A2 open-question 条目。
 - [x] **Fix [OA-1]** `...-nop-platform-deep-introduction.md:279, :337, :365`：§8.5 `_tmp/` provenance 脆弱性——将关键计数摘要内联到 capstone §8 正文（使该节自包含），或在引用处显式标注「`_tmp/` 为执行期草稿，计数已内联/可从 §8.1–§8.4 逐项复核」。
-- [x] **Decision [OA-4]** `missions/nop-deep-analysis.json:15`：为 `commands.test` 的 `; echo` 模式补注释（如 JSON `//` comment 或相邻文档注记），说明「analysis mission 的 test 命令为 doc-links 检查，退出码被 `; echo` 吸收是已知设计选择，非 bug」。
+- [x] **Decision [OA-4]** `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json:15`：为 `commands.test` 的 `; echo` 模式补注释（如 JSON `//` comment 或相邻文档注记），说明「analysis mission 的 test 命令为 doc-links 检查，退出码被 `; echo` 吸收是已知设计选择，非 bug」。
 - [x] **Follow-up** 在 `ai-dev/audits/nop-deep-analysis-audit-followups.md` 中，将全部 16 项 P2 finding 行尾标注 `→ done in 2026-07-26-1000-1-p2-audit-findings-remediation`。
 
 Exit Criteria:
@@ -176,7 +176,7 @@ Exit Criteria:
 - [x] P2-A7-02：mermaid 节点覆盖声明与实际 provenance 表行数一致（要么补行使声明成立，要么修正声明数字）。
 - [x] P2-A7-03：`rg "A2 §8\(c\)" ai-dev/analysis/2026-07/2026-07-26-nop-platform-deep-introduction.md` — 每处命中的语义唯一，不再有两个不同条目共用同一标签。
 - [x] OA-1：§8.5 不再 load-bearing 依赖 `_tmp/` 文件——关键计数可从 §8 正文自包含复核，或 `_tmp/` 引用处有显式不可复现标注。
-- [x] OA-4：`missions/nop-deep-analysis.json` 的 `commands.test` no-op 设计选择有文档记录（注释或相邻注记）。
+- [x] OA-4：`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json` 的 `commands.test` no-op 设计选择有文档记录（注释或相邻注记）。
 - [x] `nop-deep-analysis-audit-followups.md` 全部 16 项 P2 finding 行尾标注 `→ done in ...`。
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码不因本 Phase 变差（mission 文件集仍 0 broken link）。
 - [x] No owner-doc update required: 本 Phase 仅修改分析交付物 + mission config + audit backlog，不修改 `docs-for-ai/`。
@@ -184,7 +184,7 @@ Exit Criteria:
 
 ## Closure Gates
 
-> **纯文档计划**：本 plan 不涉及任何 Java 代码变更（仅修改 `ai-dev/analysis/`、`missions/`、`ai-dev/audits/` 下的文件），故 `./mvnw compile` / `./mvnw test` / checkstyle 等构建验证条目不适用，已删除。质量门为 doc-links checker + grep 验证 + 独立 closure audit。
+> **纯文档计划**：本 plan 不涉及任何 Java 代码变更（仅修改 `ai-dev/analysis/`、`ai-dev/archived/missions-2026-11-22/`、`ai-dev/audits/` 下的文件），故 `./mvnw compile` / `./mvnw test` / checkstyle 等构建验证条目不适用，已删除。质量门为 doc-links checker + grep 验证 + 独立 closure audit。
 
 - [x] 全部 16 项 in-scope P2 confirmed accuracy defects 已修复（12 multi-audit + 4 open-audit）。
 - [x] 每项修正都经源码/文件 live 交叉核对（非仅引用审计结论）。

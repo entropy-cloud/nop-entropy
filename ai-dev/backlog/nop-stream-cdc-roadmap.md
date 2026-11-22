@@ -3,7 +3,7 @@
 > Last updated: 2026-10-02（v1 初版。设计决策全部由用户裁定，见 ai-dev/design/nop-stream/cdc-design.md v2：Debezium 升级 3.7.0.Final、单机两层并行、mysql+postgres 白名单、offset 真相源钉定、JdbcSchemaHistory 默认、jdbc-2pc dmlMode、取代 SeaTunnel 范围矩阵。关键前提：此前 CDC 实现从未发布，无兼容性包袱，契约以设计文档为准）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > mission-driver 兼容：本块采用 `## Work Item Status` 与 `- WI<n> 名称: \`status\`` 形态，状态集为 `todo` / `ready` / `planned` / `done`。状态行尾部括注必须单层非嵌套——只允许一组全角括号且其内不得再出现括号或半角右括号。改任何状态行后必须重跑解析核对条目数。里程碑行写作 `★ **里程碑：M<n> …**（解锁条件 …）：\`status\``。
-> mission 状态：进行中。missions/nop-stream-cdc.json 已建，plansDir 为 ai-dev/plans/nop-stream-cdc，auditsDir 为 ai-dev/audits/nop-stream-cdc。
+> mission 状态：进行中。ai-dev/archived/missions-2026-11-22/nop-stream-cdc.json 已建，plansDir 为 ai-dev/plans/nop-stream-cdc，auditsDir 为 ai-dev/audits/nop-stream-cdc。
 > 数据口径：设计事实来自 Debezium 官方发布信息与 nop 源码实测锚点，汇总于设计文档；外部真实数据库行为以 WI2/WI8 的 gated Testcontainers 测试为准。
 
 > Sources:

@@ -6,7 +6,7 @@
 # Multi-Dimensional Audit — mission `nop-deep-analysis`
 
 - **Audit date**: 2026-07-26
-- **Scope**: `./` — mission config (`missions/nop-deep-analysis.json`), roadmap (`ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md`), 7 analysis deliverables under `ai-dev/analysis/2026-07/`, plan files under `ai-dev/plans/nop-deep-analysis/`, and the public contracts those deliverables expose (factual claims + `file:line` anchors cross-referenced against actual platform code and `docs-for-ai/`).
+- **Scope**: `./` — mission config (`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`), roadmap (`ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md`), 7 analysis deliverables under `ai-dev/analysis/2026-07/`, plan files under `ai-dev/plans/nop-deep-analysis/`, and the public contracts those deliverables expose (factual claims + `file:line` anchors cross-referenced against actual platform code and `docs-for-ai/`).
 - **Mission nature**: analysis/documentation mission (no build/lint/typecheck; quality gate = closure audit). Audit is therefore adapted to: (1) config/roadmap correctness, (2) deliverable completeness, (3) reference-anchor validity, (4) doc–code consistency / contract drift, (5) capstone–source consistency, (6) numeric/statistical accuracy. Java-module dimensions (01/04/05/07…) that assume ORM/codegen/BizModel products are N/A — there is no generated code under audit.
 - **Baseline run**: `node ai-dev/tools/check-doc-links.mjs --strict` → 40 BROKEN_LINK issues, **none** inside `nop-deep-analysis` deliverables or plans (all in other missions' files). Deliverables are link-clean.
 
@@ -173,7 +173,7 @@ Followed `ai-dev/skills/deep-audit-prompts.md` shared prefix (live-code baseline
 
 ## Dimensions verified clean (no findings)
 
-- **Config correctness** — `missions/nop-deep-analysis.json`: every path resolves (`roadmapPath`, `plansDir`, `contextDir` `docs-for-ai/00-start-here`, `prompts.multiAudit`, `prompts.openAudit`); `commands` are intentional no-ops for an analysis mission. ✓
+- **Config correctness** — `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`: every path resolves (`roadmapPath`, `plansDir`, `contextDir` `docs-for-ai/00-start-here`, `prompts.multiAudit`, `prompts.openAudit`); `commands` are intentional no-ops for an analysis mission. ✓
 - **Roadmap internal consistency** — `nop-deep-analysis-roadmap.md`: all 7 work items (A1–A7) marked `done`; every Work-Item deliverable path matches an existing file under `ai-dev/analysis/2026-07/`; dependency graph consistent with status. ✓
 - **Deliverable completeness** — all 7 deliverables exist; roadmap hard-requirement "每章必须含联网对标小节并附来源链接" satisfied (A1:12, A2:17, A3:17, A4:15, A5:8, A6:11, A7:33 external http links). ✓
 - **Plan→deliverable mapping** — every plan file in `ai-dev/plans/nop-deep-analysis/` has its declared analysis output present. ✓

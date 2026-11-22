@@ -2,7 +2,7 @@
 
 > 收口日期：2026-10-10（V.3）
 > 轮次目录：`ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/`（58 篇 Wave 1 报告 + index + 矩阵 + V.1/V.2 报告）
-> Mission：`missions/full-code-review.json` ｜ Roadmap：`ai-dev/backlog/full-code-review-roadmap.md`（终态：Wave 0–3 全部工作项 done）
+> Mission：`ai-dev/archived/missions-2026-11-22/full-code-review.json` ｜ Roadmap：`ai-dev/backlog/full-code-review-roadmap.md`（终态：Wave 0–3 全部工作项 done）
 
 ## 一、轮次目标与达成
 

@@ -10,7 +10,7 @@
 ## Context
 
 - **要回答的问题**：nop-entropy 平台在工程化、可测试性与 AI 协同开发上的能力与差异化是什么？相对主流 AI 驱动开发工具链（Devin、Cursor、Claude Code、各类 agent 框架 / roadmap-driven dev-loop 同类）的独特价值在哪里？为 A7（综合评估与演进建议）提供「工程化 / DX / AI 辅助开发」层面的参照。
-- **涉及模块/子系统**：`ai-dev/tools/`（自动化校验工具链 + mission-driver.sh 启动器）、`ai-dev/`（八层开发知识层）、`.opencode/skills/mission-driver/`（流程契约）、`missions/`（mission 配置）、`nop-autotest/`（快照测试）、`nop-entropy-e2e/`（Playwright E2E）、`nop-runner/nop-cli-core/`（脚手架）、`nop-service-framework/nop-biz/`（调试能力 DevDoc/DevTool）、`docs-for-ai/`（文档体系）、`AGENTS.md`（运行手册）。
+- **涉及模块/子系统**：`ai-dev/tools/`（自动化校验工具链 + mission-driver.sh 启动器）、`ai-dev/`（八层开发知识层）、`.opencode/skills/mission-driver/`（流程契约）、`ai-dev/archived/missions-2026-11-22/`（mission 配置）、`nop-autotest/`（快照测试）、`nop-entropy-e2e/`（Playwright E2E）、`nop-runner/nop-cli-core/`（脚手架）、`nop-service-framework/nop-biz/`（调试能力 DevDoc/DevTool）、`docs-for-ai/`（文档体系）、`AGENTS.md`（运行手册）。
 - **约束**：仅工程化/DX/AI 协同层面——A1 覆盖可逆计算理论、A2 覆盖核心引擎、A3 覆盖 codegen/Delta、A4 覆盖 GraphQL/服务/前端、A5 覆盖业务模块矩阵。mission-driver 引擎本体源码在仓库外部（`attractor-guided-engineering-template`），本分析仅引用仓库内流程契约（`ai-dev/tools/mission-driver.sh` + `.opencode/skills/mission-driver/SKILL.md` + `00-plan-authoring-and-execution-guide.md`），不审计引擎内部实现。
 - **来源基线**：`docs-for-ai/04-reference/source-anchors.md`（TEST-001~005 / DBG-001~005 / XLANG-006）、`docs-for-ai/00-start-here/`（project-context / ai-defaults）、`docs-for-ai/INDEX.md`、`AGENTS.md`、`nop-entropy-e2e/README.md`、`ai-dev/tools/README.md`、`ai-dev/analysis/agent-survey/`（40+ 份既有 AI 工具对比）。**11 个 source-anchors 锚点经源码交叉核对全部 PASS**（见 §6 终检）。
 - **重要边界声明**：A1 产出为纯理论（GRC/XLang/XDSL/XDef），不含「对 AI 友好性」论证。本分析 §5 的「可逆计算对 AI 友好性」从具体仓库证据（`_` 前缀不可手改约束、Delta 隔离生成物、source-anchors 最小源码入口策略、文档即契约）**独立论证**，不依赖 A1 提供现成结论。
@@ -44,7 +44,7 @@ nop-entropy 的工程化不是一组零散工具的堆叠，而是一条**可追
 
 ### 2.1 状态机与各阶段职责
 
-mission-driver 是一个 **roadmap-driven 的 AI 开发循环引擎**。仓库内启动器 `ai-dev/tools/mission-driver.sh:17` 将命令转发到外部引擎（`$MISSION_DRIVER_HOME/src/main.js`），传入仓库根目录与 `missions/` 目录。引擎读取 mission 配置（如 `missions/nop-deep-analysis.json`）后进入循环：
+mission-driver 是一个 **roadmap-driven 的 AI 开发循环引擎**。仓库内启动器 `ai-dev/tools/mission-driver.sh:17` 将命令转发到外部引擎（`$MISSION_DRIVER_HOME/src/main.js`），传入仓库根目录与 `ai-dev/archived/missions-2026-11-22/` 目录。引擎读取 mission 配置（如 `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`）后进入循环：
 
 ```
 CHECK (健康预检：typecheck/build/test)
@@ -59,7 +59,7 @@ CHECK (健康预检：typecheck/build/test)
 ```
 
 流程契约来源：`.opencode/skills/mission-driver/SKILL.md:39-49`（mental model 的循环图）。**关键设计事实**（均来自 SKILL.md，非推测）：
-- `missions/<name>.json` 是**纯静态配置**，无运行时状态；引擎运行时状态在 `_tmp/<runDir>/run-state.json`（SKILL.md:55-57）。
+- `ai-dev/archived/missions-2026-11-22/<name>.json` 是**纯静态配置**，无运行时状态；引擎运行时状态在 `_tmp/<runDir>/run-state.json`（SKILL.md:55-57）。
 - 每个 AI step 是一个 child `opencode run` 子进程；日志落在 `_tmp/<ts>-mission-driver/`（SKILL.md:57）。
 - Plan 生命周期：`draft` →（REVIEW_PLANS）→ `active` →（EXEC_PLANS）→ `completed`（SKILL.md:58）。
 - Plan 格式是固定契约，由 `tools/mission-driver/src/plan-check.mjs` 强制（SKILL.md:61）。
@@ -76,7 +76,7 @@ CHECK (健康预检：typecheck/build/test)
 | `ai-dev/analysis/` | AI 单方面调研、对比、评估 | DRAFT_PLANS 读取既有分析避免重复研究；本 A6 即产出到此层 |
 | `ai-dev/discussions/` | 人与 AI 多轮对话澄清需求 | （引擎不直接消费；人澄清需求时使用） |
 | `ai-dev/bugs/` | 复杂 bug 修复记录 | DEEP_AUDIT 发现缺陷时引用历史 bug 模式 |
-| `ai-dev/audits/` | 代码和设计审计记录 | DEEP_AUDIT 阶段（multi-audit / open-audit prompt 写入 `missions/*.json` 的 `prompts.multiAudit`/`openAudit`） |
+| `ai-dev/audits/` | 代码和设计审计记录 | DEEP_AUDIT 阶段（multi-audit / open-audit prompt 写入 `ai-dev/archived/missions-2026-11-22/*.json` 的 `prompts.multiAudit`/`openAudit`） |
 | `ai-dev/skills/` | 可复用 AI 审计/review prompt 模板 | mission 配置引用（`nop-deep-analysis.json:11-13` 指向 `ai-dev/skills/deep-audit-prompts.md` 与 `open-ended-adversarial-review-prompt.md`） |
 
 **关键洞察**：`ai-dev/` 不是「文档目录」，是「AI 开发循环的状态机外存」。计划文件的 `[x]`/`[ ]`、roadmap 的 `todo/planned/done`、daily log 的收口记录——这些**机器可读的状态标记**正是引擎断点续跑的依据（SKILL.md:295-301：「引擎从磁盘状态恢复：扫描 plansDir 的 draft/active 计划，未完成计划从 checkbox 进度恢复」）。
@@ -86,7 +86,7 @@ CHECK (健康预检：typecheck/build/test)
 为验证 mission-driver 不是「纸面流程」，核对 `_tmp/2026-07-24-190404-mission-driver/`（本 A6 所属 mission 的最新运行目录）：
 
 - **启动器存在**：`ai-dev/tools/mission-driver.sh`（20 行，`exec node ... --dir "$DIR/../.."`）。
-- **mission 配置存在且引用本 roadmap**：`missions/nop-deep-analysis.json:4` `"roadmapPath": "ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md"`。
+- **mission 配置存在且引用本 roadmap**：`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json:4` `"roadmapPath": "ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md"`。
 - **run-state.json 证明步骤确实执行**：`steps[]` 含 CHECK(1 次,pass)、REVIEW_PLANS(2 次)、EXEC_PLANS(2 次)、DRAFT_PLANS(1 次,created 3 个 plan)。
 - **events.jsonl 证明子流执行**：`step` 字段计数——EXECUTE(11)、CLOSURE_SCRIPT_CHECK(10)、BUILD_VERIFY(10)、DRAFT_PLANS(4)、CHECK(2)、REVIEW_PLANS(6)；`marker` 字段含 `pass`(37)、`all_complete`(10)、`created`(4)。**注意**：`events.jsonl` / `run-state.json` 为运行时产物，未提交到仓库，以上数字来自执行期历史快照，可能随 mission 进展变化。
 - **A1–A5 计划已产出并通过 closure**：`ai-dev/plans/nop-deep-analysis/` 下 5 份计划 + `ai-dev/analysis/2026-07/` 下 5 份对应分析文档（A1 理论/A2 引擎/A3 codegen/A4 GraphQL/A5 模块矩阵）。
@@ -218,7 +218,7 @@ AutoTest（`nop-autotest/`）是平台的核心测试范式——**快照录制/
 | `code-stats.mjs` | 模块代码统计（文件数/LOC/测试比） | 代码健康度量 |
 | `run-java-lint.sh` | ast-grep Java lint（空 catch / getMessage-only / bare RuntimeException） | 反模式检测；pre-commit hook 自动触发 |
 
-**关键设计**：这些工具不是「可选的 nice-to-have」，而是**mission-driver 闭环的验证环节**——`missions/nop-deep-analysis.json:15` 的 `commands.test` 实际执行 `check-doc-links.mjs --strict`。对代码型 mission，`commands.test` 通常是 `./mvnw test`。工具链把「质量」从「人工 review」变成「机器可判定的退出码」。
+**关键设计**：这些工具不是「可选的 nice-to-have」，而是**mission-driver 闭环的验证环节**——`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json:15` 的 `commands.test` 实际执行 `check-doc-links.mjs --strict`。对代码型 mission，`commands.test` 通常是 `./mvnw test`。工具链把「质量」从「人工 review」变成「机器可判定的退出码」。
 
 ## 5. 可逆计算对 AI 生成代码的友好性（独立论证）
 
@@ -341,7 +341,7 @@ AutoTest（`nop-autotest/`）是平台的核心测试范式——**快照录制/
 |------|----------------------|---------------------------|-------------------|
 | Agent 是什么 | 全能实体（model+tools+knowledge+memory） | 外部流程中的一个 step | roadmap 驱动的 plan 执行单元 |
 | 系统边界 | Agent 内部包含一切 | 不关心 agent 内部，只编排生命周期 | 引擎纯静态配置，状态在磁盘 |
-| 配置形式 | Python 代码 + dataclass | JSON flow + Markdown prompt | `missions/*.json` + plan Markdown |
+| 配置形式 | Python 代码 + dataclass | JSON flow + Markdown prompt | `ai-dev/archived/missions-2026-11-22/*.json` + plan Markdown |
 | 与框架耦合 | 无（framework-agnostic） | 无（只调 opencode CLI） | 与 nop 平台结构深度协同 |
 
 - 来源（既有分析复用）：`ai-dev/analysis/agent-survey/2026-06-13-agno-vs-goal-driver-vs-nop-agent-survey.md`

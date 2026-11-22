@@ -3,7 +3,7 @@
 > Plan Status: completed
 > Last Reviewed: 2026-10-11
 > Source: `ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md` WI0(升级基线分析,Work Item Status 第一个 `todo` 项)
-> Related: `ai-dev/analysis/2026-10/2026-10-09-quarkus4-vs-springboot4-dependency-alignment.md`(上游 BOM 对比主来源);mission `missions/jdk25-sb4-q4.json`
+> Related: `ai-dev/analysis/2026-10/2026-10-09-quarkus4-vs-springboot4-dependency-alignment.md`(上游 BOM 对比主来源);mission `ai-dev/archived/missions-2026-11-22/jdk25-sb4-q4.json`
 > Draft Review: round 1 对抗审查(独立子代理 agent_52ce4532,2026-10-11)无 Blocker;4 Major(M1 cache finding 缺失/M2 族谱计数/M3 mail 锚点/M4 imported-BOM 局限未声明)+ 10 Minor 已全部修复,裁定可执行。
 
 ## Purpose
@@ -14,7 +14,7 @@
 
 以下事实均已在 live repo 核实(2026-10-11,方法与命令见各条):
 
-- roadmap `jdk25-springboot4-quarkus4-roadmap.md` 的 Work Item Status 中 WI0-WI16 全部为 `todo`;mission 配置 `missions/jdk25-sb4-q4.json` 已创建。
+- roadmap `jdk25-springboot4-quarkus4-roadmap.md` 的 Work Item Status 中 WI0-WI16 全部为 `todo`;mission 配置 `ai-dev/archived/missions-2026-11-22/jdk25-sb4-q4.json` 已创建。
 - 上游对比主来源 `ai-dev/analysis/2026-10/2026-10-09-quarkus4-vs-springboot4-dependency-alignment.md` 已存在(37 组共享库样本、Hibernate/Liquibase/MySQL Connector/J 三大未对齐点、Q4 Beta1 依赖跳变清单)。
 - WI0 要求的分析文档(升级基线:事实冻结 + 坐标决策矩阵 + pin 前照清单)**尚不存在**。
 - 本机工具链:macOS arm64,默认 JDK 26.0.1(Zulu),另装 JDK 25.0.1(Oracle);`--release 25` 可行。CI 全部 `setup-java` 为 21(maven.yml ×3、compliance.yml ×3)。

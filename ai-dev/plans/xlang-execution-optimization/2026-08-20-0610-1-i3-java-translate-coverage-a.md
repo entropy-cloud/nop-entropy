@@ -30,7 +30,7 @@
   - 初盘遗漏的具体类：`BinaryExecutable`（`valueOf` 兜底分支对特化 switch 外的算子自我实例化）、`ReturnScopeValuesExecutable`（宏 script 路径产生）、`LocationFunction`（draft 复查未见前端产生路径，疑不可经标准前端产生）、`ResolvedObjFunctionExecutable`（`ObjFunctionExecutable` 的具体兄弟类，宿主反射分派已解析变体——I2 转译器仅落 `ObjFunctionExecutable` 本体，该类今日 fail-fast；默认随其已落兄弟并入本 plan）；
   - 函数邻接具体类（设计 §三 B 行枚举未点名）：`VarFunctionExecutable`、`VarExecutableFunction`、`LazyCompiledExecutableFunction`、`FunctionalAdapterExecutable`、`CallFuncWithClosureExecutable`、`ExecutableFunctionEvalAction`、`BuildFuncRefExecutable`。
   不逐类裁定归属则 I4 矩阵闭环时存在无主节点。
-- `missions/xlang-execution-optimization.json` commands 已是三模块口径（`:nop-xlang,:nop-xlang-java,:nop-xlang-truffle`）；本 plan 不新增模块、不改 commands。
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` commands 已是三模块口径（`:nop-xlang,:nop-xlang-java,:nop-xlang-truffle`）；本 plan 不新增模块、不改 commands。
 - I2 closure 移交的非阻塞优化候选：`XLangSemantics.invokeGlobalFunction` 每次执行急切构造 `display + "@" + loc` 字符串（行为等价、仅错误路径可观测）——I2 closure audit 裁定 non-blocking，"I3+ 可顺带收敛"。
 - 真正剩余的 gap：A 五族节点转译全部缺失（遇即 fail-fast，truffle 侧 `TestTranslatorFailFast` 以 `GetPropertyExecutable` 为反例即证）；无覆盖矩阵机制；corpus 无 A 类别单元。
 

@@ -6,7 +6,7 @@
 # Open-Ended Adversarial Audit — mission `nop-deep-analysis`
 
 - **Audit date**: 2026-07-26
-- **Scope**: `./` — mission config (`missions/nop-deep-analysis.json`), roadmap (`ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md`), 7 analysis deliverables under `ai-dev/analysis/2026-07/` (A1–A7), 7 plan files under `ai-dev/plans/nop-deep-analysis/`, and the public contracts those deliverables expose (factual claims + `file:line` anchors cross-referenced against actual platform source and `docs-for-ai/`).
+- **Scope**: `./` — mission config (`ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json`), roadmap (`ai-dev/design/nop-deep-analysis/nop-deep-analysis-roadmap.md`), 7 analysis deliverables under `ai-dev/analysis/2026-07/` (A1–A7), 7 plan files under `ai-dev/plans/nop-deep-analysis/`, and the public contracts those deliverables expose (factual claims + `file:line` anchors cross-referenced against actual platform source and `docs-for-ai/`).
 - **Methodology**: Followed `ai-dev/skills/open-ended-adversarial-review-prompt.md` (discovery-oriented, code-signal-driven, false-positive calibration). One parallel explore subagent independently verified A2/A6 mechanism claims against live source; the main agent independently re-verified every distinctive claim it relied on (8 x:override modes, 5 HTTP endpoints, AOP codegen chain, xlib tag-count parity, nop-ai submodule count, batch.xdef path, dependency-matrix consumer counts) and cross-checked `ai-dev/audits/2026-07-26-0702-multi-audit-nop-deep-analysis.md` for dedup.
 - **Dedup baseline**: The multi-dimensional audit (`2026-07-26-0702-multi-audit-nop-deep-analysis.md`) already recorded 3 P1 + 12 P2. This open-ended pass **does not repeat** those. Findings below are **new** relative to that audit. Where a multi-audit finding is referenced for context, it is cited as `(known: multi-audit Px-...)`.
 
@@ -77,7 +77,7 @@ To avoid false positives, the following load-bearing claims were checked against
 
 ### [OA-4] `[P2]` Mission `commands.test` is structurally a no-op: `; echo` masks the doc-links exit code
 - **Priority justification**: The mission's only configured quality gate cannot fail by construction; by-design for an analysis mission (explicit "non-blocking" comment) and the closure audit ran the real check manually, so impact is near-zero. Recorded for completeness.
-- **File**: `missions/nop-deep-analysis.json:15`
+- **File**: `ai-dev/archived/missions-2026-11-22/nop-deep-analysis.json:15`
 - **Evidence**:
   ```
   "test": "node ai-dev/tools/check-doc-links.mjs --strict; echo \"doc-links check (non-blocking, analysis mission)\""

@@ -9,13 +9,13 @@
 
 ## Purpose
 
-按 W2-review PASS 后定稿的三组设计文档，回填 roadmap 阶段二实现 work items（I1-I7 的增删拆并、验收标准与依赖定稿），并裁定 `missions/xlang-execution-optimization.json` commands 纳入新模块的方式，使 roadmap 达到可提交 W4-audit 的状态。
+按 W2-review PASS 后定稿的三组设计文档，回填 roadmap 阶段二实现 work items（I1-I7 的增删拆并、验收标准与依赖定稿），并裁定 `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` commands 纳入新模块的方式，使 roadmap 达到可提交 W4-audit 的状态。
 
 ## Current Baseline
 
 - 前置条件：W2-review 已 `done`（设计定稿且 PASS）。若 W2 未完成，本 plan 不得启动（各 Phase 保持 `planned`，plan 挂起等待）
 - roadmap 阶段二 I1-I7 为预列占位（条目自带"占位，W3 定稿"标记），验收标准未定稿；Stages 表第 5-11 行与 Dependency graph 为占位对应的预列版本
-- `missions/xlang-execution-optimization.json` 的 commands 目前仅覆盖 `:nop-xlang`（test/build/lint/typecheck 均为 `-pl :nop-xlang -am`），未含新模块
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` 的 commands 目前仅覆盖 `:nop-xlang`（test/build/lint/typecheck 均为 `-pl :nop-xlang -am`），未含新模块
 - 新模块 `nop-kernel/nop-xlang-java`、`nop-kernel/nop-xlang-truffle` 尚不存在（I1/I3 才创建）
 - W4-audit 的审核口径（roadmap 条目原文）：粒度（单 plan 可完成，5-15 文件/200-500 行/1-4 phases）、依赖图无环且与 stage 表一致、验收标准可验证、复用标注准确、与定稿设计无冲突
 - roadmap 冻结纪律 2 保持有效：W4-audit done 前 I 系列不得起草 plan——本 plan 只定稿条目文本，不解冻
@@ -39,7 +39,7 @@
 ### In Scope
 
 - `ai-dev/backlog/xlang-execution-optimization-roadmap.md`：阶段二 Work Items 块、Stages 表、Dependency graph 的定稿修订，以及 `W3-supplement` 条目正文的 commands 机制裁定备注（记录"模块落盘即切换"策略，消除条目字面 mandate 与执行结果的矛盾）
-- `missions/xlang-execution-optimization.json`：commands 字段的机制落定（裁定与目标 commands 的归属；live commands 的实际切换发生在 I1/I3 模块落盘时）
+- `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`：commands 字段的机制落定（裁定与目标 commands 的归属；live commands 的实际切换发生在 I1/I3 模块落盘时）
 - roadmap `W3-supplement` 条目状态同步
 
 ### Out Of Scope
@@ -75,7 +75,7 @@ Exit Criteria:
 ### Phase 2 - mission.json commands 裁定与收口
 
 Status: completed
-Targets: `missions/xlang-execution-optimization.json`、`ai-dev/backlog/xlang-execution-optimization-roadmap.md`
+Targets: `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json`、`ai-dev/backlog/xlang-execution-optimization-roadmap.md`
 
 - Item Types: `Decision` | `Proof`
 
@@ -87,7 +87,7 @@ Targets: `missions/xlang-execution-optimization.json`、`ai-dev/backlog/xlang-ex
 
 Exit Criteria:
 
-- [x] `missions/xlang-execution-optimization.json` 为合法 JSON，commands 引用的 `-pl` 模块全部存在于当前聚合 reactor（与 `nop-kernel/pom.xml` 及根 `pom.xml` 的 modules 核对一致），即 live commands 可执行
+- [x] `ai-dev/archived/missions-2026-11-22/xlang-execution-optimization.json` 为合法 JSON，commands 引用的 `-pl` 模块全部存在于当前聚合 reactor（与 `nop-kernel/pom.xml` 及根 `pom.xml` 的 modules 核对一致），即 live commands 可执行
 - [x] 目标 commands（含 `nop-xlang-java` / `nop-xlang-truffle`）与切换时机已写入 roadmap 对应 I 条目的验收标准，链接/引用可核对
 - [x] roadmap `W3-supplement` 条目正文已记录 commands 切换裁定，条目 mandate 与 live 实态（commands 仅含已存在模块）不再矛盾
 - [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0

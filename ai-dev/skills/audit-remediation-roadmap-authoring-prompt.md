@@ -11,7 +11,7 @@
 本提示**不执行审计，也不执行修复**。它的唯一产物是供 Mission Driver 后续消费的编排工件：
 
 1. `{audit-remediation-roadmap}` (`ai-dev/backlog/`) — 审计-修复路线图（里程碑 + 工作项状态表面）
-2. `{audit-remediation-mission}` (`missions/`) — Mission Driver 配置
+2. `{audit-remediation-mission}` (`ai-dev/archived/missions-2026-11-22/`) — Mission Driver 配置
 
 后续由 `./tools/mission-driver.sh run audit-remediation` 驱动 roadmap 逐项执行：每个工作项由 DRAFT_PLANS 生成 plan → 独立草案审查 → EXEC_PLANS 执行 → 结束审计 → 写回状态。
 
@@ -55,7 +55,7 @@
 - `ai-dev/backlog/00-roadmap-authoring-guide.md`（如果存在）或参考 `ai-dev/backlog/*roadmap*.md` 作为现有 roadmap 范例
 - `ai-dev/plans/00-plan-authoring-and-execution-guide.md`（plan 格式、状态、关闭契约）
 - `ai-dev/audits/README.md`（审计记录规范、三个默认审计）
-- `missions/ai-agent.json`（现有 mission 配置范例）
+- `ai-dev/archived/missions-2026-11-22/ai-agent.json`（现有 mission 配置范例）
 - AGE 模板的 mission-driver（如已从 `attractor-guided-engineering-template` 复制）：`tools/mission-driver/` 下的 README、SKILL.md、roadmap-template.md
 
 ### 目标模块设计基线（必需，按需选择）
@@ -489,7 +489,7 @@ graph LR
 
 ## 步骤 7 — 生成 mission.json
 
-生成 `missions/audit-remediation.json`，参照现有 `missions/ai-agent.json` 格式：
+生成 `ai-dev/archived/missions-2026-11-22/audit-remediation.json`，参照现有 `ai-dev/archived/missions-2026-11-22/ai-agent.json` 格式：
 
 ```json
 {
@@ -586,7 +586,7 @@ graph LR
 | 产物 | 路径 | 说明 |
 |------|------|------|
 | 审计-修复路线图 | `{audit-remediation-roadmap}`（`ai-dev/backlog/`） | 主产物，供 Mission Driver 消费 |
-| Mission 配置 | `{audit-remediation-mission}`（`missions/`） | Mission Driver 配置 |
+| Mission 配置 | `{audit-remediation-mission}`（`ai-dev/archived/missions-2026-11-22/`） | Mission Driver 配置 |
 | 审计维度矩阵 | `{audit-remediation-matrix}`（`ai-dev/audits/`） | M0 核心交付物 |
 | 未闭包发现清单 | 内嵌于维度矩阵文档或独立文件 | 步骤 2 产物 |
 

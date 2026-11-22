@@ -7,7 +7,7 @@
 
 ## Context
 
-`missions/nop-message-encapsulation.json` 驱动的 roadmap（`ai-dev/backlog/nop-message-encapsulation-roadmap.md`）以 2026-10-01 的 file:line 实测为证据口径，声称 58 条缺陷 + 1 条平台先例。WI1 要求在执行任何修复前建立审计基线：逐条复核三态裁定（confirmed / already-correct / watch-only），confirmed 逐条给当日 live 锚点，作为 WI2 能力矩阵与全部 Phase B+ 工作项的证据输入。
+`ai-dev/archived/missions-2026-11-22/nop-message-encapsulation.json` 驱动的 roadmap（`ai-dev/backlog/nop-message-encapsulation-roadmap.md`）以 2026-10-01 的 file:line 实测为证据口径，声称 58 条缺陷 + 1 条平台先例。WI1 要求在执行任何修复前建立审计基线：逐条复核三态裁定（confirmed / already-correct / watch-only），confirmed 逐条给当日 live 锚点，作为 WI2 能力矩阵与全部 Phase B+ 工作项的证据输入。
 
 复核方法：通读 SPI 19 文件 + 注解 2 文件 + `nop-message` 四模块 main 源码（4251 行）+ 关键测试与消费方，`grep -n` 逐条固定锚点；对「零引用 / 零调用」类断言做全仓 grep 反证。
 
@@ -166,5 +166,5 @@
 ## References
 
 - `ai-dev/backlog/nop-message-encapsulation-roadmap.md`（59 编号的原始判定与 D1-D11 裁定建议）
-- `missions/nop-message-encapsulation.json`（mission 配置与验证命令）
+- `ai-dev/archived/missions-2026-11-22/nop-message-encapsulation.json`（mission 配置与验证命令）
 - `docs-for-ai/02-core-guides/error-handling.md`（错误码前缀基线）

@@ -18,7 +18,7 @@
 - **依赖版本管理事实（closure audit 已核）**：nop-bom 未管理 `nop-treesitter`；因此 nop-lint-core 依赖 nop-treesitter、java/nop 依赖 nop-lint-core 均须显式 `<version>${project.version}</version>`（仓库先例：`nop-graph/nop-graph-core/pom.xml` 消费兄弟模块）。nop-xlang 由 nop-bom 管理，无需版本。junit-jupiter 由根 BOM 链管理，无需版本。
 - **Java 版本事实（closure audit 已核）**：根 pom 统一 `maven.compiler.source/target/release=17`；根 pom 的 `java.version=17` 属性在根编译链无消费者（个别模块如 nop-demo/nop-quarkus 使用的 `${java.version}` 均为各自本地自定义属性，非继承根值）。nop-treesitter 实际按 release 17 编译。nop-lint 骨架遵循同一口径（继承 17，不覆写 compiler 属性）；未来若需 21 语法按 nop-utils/nop-rg 的 profile 门控模式另立决策。
 - `ai-dev/plans/nop-lint/` 目录仅有 README.md（无编号 plan），本 plan 编号为 `01`。
-- mission 配置 `missions/nop-lint.json` 已定义 test 命令 `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 与 commit 格式 `feat(nop-lint): <description>`。
+- mission 配置 `ai-dev/archived/missions-2026-11-22/nop-lint.json` 已定义 test 命令 `./mvnw -pl nop-lint/nop-lint-core -am test -T 1C` 与 commit 格式 `feat(nop-lint): <description>`。
 - 设计偏差声明：design 01 §1 中 nop-lint-java 对 nop-java-parser / nop-ai-code-analyzer solver 的依赖属 L2 类型推导（roadmap item 26），本骨架 plan 不引入，属有意延后而非漂移。
 
 ## Goals

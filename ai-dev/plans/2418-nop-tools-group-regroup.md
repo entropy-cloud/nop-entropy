@@ -37,9 +37,9 @@
 - `ai-dev/tools/check-lint-coverage-manifest.mjs:34-40`——`PROJECT_ROOT`/`MANIFEST_FILE`（L35-36）/`TEST_VFS_ROOT`（L39-40）指向 `nop-lint/nop-lint-nop/`。
 - `ai-dev/tools/gen-lint-rule-catalog.mjs:33-35`——`RULES_ROOT`/`CATALOG_FILE` 指向 `nop-lint/`；登记在案的确定性生成器 + `--check` 门禁。
 - **存量红基线（pre-existing，与本重组无关）**：`ai-dev/tools/check-lint-tool-replacement-ledger.mjs` 在移动前基线即 FAILED（7 violations：6 条 nop-xdsl-* 规则缺 ledger facet 行 + census 漂移 live 76 + remove 4 = 80 ≠ 74）——nop-xdsl 规则入库（plan 2348-wi2/2350 一代）时未按 ledger 自身协议登记的 bookkeeping 债；本计划以机械登记清偿（Phase 2），使「门禁脚本退出码 0」判据可达。
-- `missions/nop-lint.json`——commands 含 4 条 `-pl nop-lint/...`（test/build/lint/typecheck）。
-- `missions/nop-treesitter.json`——`moduleDir: nop-treesitter` + commands `-pl nop-treesitter -am`。
-- `missions/nop-jq.json`——`moduleDir: nop-kernel/nop-jq` + `cd nop-kernel/nop-jq`（**2026-09-28 迁出时已 stale 的 pre-existing 漂移**，本次归组一并修正为 `nop-tools/nop-jq`）。
+- `ai-dev/archived/missions-2026-11-22/nop-lint.json`——commands 含 4 条 `-pl nop-lint/...`（test/build/lint/typecheck）。
+- `ai-dev/archived/missions-2026-11-22/nop-treesitter.json`——`moduleDir: nop-treesitter` + commands `-pl nop-treesitter -am`。
+- `ai-dev/archived/missions-2026-11-22/nop-jq.json`——`moduleDir: nop-kernel/nop-jq` + `cd nop-kernel/nop-jq`（**2026-09-28 迁出时已 stale 的 pre-existing 漂移**，本次归组一并修正为 `nop-tools/nop-jq`）。
 - 根目录 `.ast-grepignore`——末行排除 `nop-lint/**/src/test/resources/_vfs/test/lint/`（governs ad-hoc `sg scan` 与 `../../nop-tools/nop-lint/bench/compare-ast-grep.sh` 的排除面，失效会让故意写脏的 RuleTester 夹具进入扫描）。
 - `../../nop-tools/nop-lint/bench/run-benchmarks.sh`、`run-graphql-benchmarks.sh`——`-pl nop-lint/...`（`compare-ast-grep.sh` 无 `-pl`，仅注释性 doc 指针）。
 - `../../nop-tools/nop-treesitter/bench/run-c-reference.sh`——根相对功能路径 `nop-treesitter/target/classes`、`nop-treesitter/bench/c_harness.c`。
@@ -94,7 +94,7 @@ check-doc-links 存量红基线（2026-10-11 `--strict` 实测退出码 1，共 
 
 - `git mv` 7 个模块组 → `nop-tools/`，清理旧位置 `target/` 残留。
 - 新建 `nop-tools/pom.xml`；7 个 pom reparent；根 pom `<modules>` 删 7 加 1。
-- 功能性脚本/配置同步：`compliance.yml`、`run-nop-metadata-invariants.sh`、4 个 lint 门禁/生成器 `.mjs`、3 个 `missions/*.json`、`.ast-grepignore`、`nop-lint/bench/*.sh`、`../../nop-tools/nop-treesitter/bench/run-c-reference.sh`、3 个组 README。
+- 功能性脚本/配置同步：`compliance.yml`、`run-nop-metadata-invariants.sh`、4 个 lint 门禁/生成器 `.mjs`、3 个 `ai-dev/archived/missions-2026-11-22/*.json`、`.ast-grepignore`、`nop-lint/bench/*.sh`、`../../nop-tools/nop-treesitter/bench/run-c-reference.sh`、3 个组 README。
 - 清偿 `check-lint-tool-replacement-ledger.mjs` 存量红基线（补 6 条 nop-xdsl-* facet 行 + census 校正，机械登记，见 Current Baseline 存量红基线条目）。
 - 深度修正：`nop-jq/deepwiki-v3/`、`../../nop-tools/nop-bytecode/README.md` 与 `nop-bytecode/docs/`、`../../nop-tools/nop-lint/docs/tool-replacement-ledger.md` 中移动前有效的出组相对链接。
 - 8 个活跃 roadmap 中**未落地 WI** 的路径引用更新（已落地 WI 记录保留原文）。
@@ -138,7 +138,7 @@ Exit Criteria:
 ### Phase 2 - CI、脚本、mission 与活跃 roadmap 路径同步
 
 Status: completed
-Targets: `.github/workflows/compliance.yml`、`ai-dev/tools/`（5 件脚本 + README）、`missions/`（3 件）、`.ast-grepignore`、组内 bench/README、`ai-dev/backlog/` 8 个 roadmap、深度敏感文档链接
+Targets: `.github/workflows/compliance.yml`、`ai-dev/tools/`（5 件脚本 + README）、`ai-dev/archived/missions-2026-11-22/`（3 件）、`.ast-grepignore`、组内 bench/README、`ai-dev/backlog/` 8 个 roadmap、深度敏感文档链接
 
 - Item Types: `Fix`
 
@@ -147,14 +147,14 @@ Targets: `.github/workflows/compliance.yml`、`ai-dev/tools/`（5 件脚本 + RE
 - [x] `ai-dev/tools/check-lint-tool-migration-mapping.mjs`、`check-lint-tool-replacement-ledger.mjs`、`check-lint-coverage-manifest.mjs`、`gen-lint-rule-catalog.mjs`：路径常量（`DOC_FILE`/`RULES_ROOT`/`LEDGER_FILE`/`MANIFEST_FILE`/`TEST_VFS_ROOT`/`CATALOG_FILE`）改指 `nop-tools/nop-lint/...`
 - [x] 清偿 ledger 存量红基线：按 `check-lint-tool-replacement-ledger.mjs` 当前输出清单，在 ledger 文档补 6 条 nop-xdsl-* 规则 facet 行并校正 census（80 = live 76 + remove 4）；此为该门禁自身协议义务的 bookkeeping 补登记，非移动引入
 - [x] `ai-dev/tools/README.md` 路径提及更新；`check-bean-naming.mjs:26` 注释为计划编号引用（裁定保留）
-- [x] `missions/nop-lint.json`（4 条 commands）、`missions/nop-treesitter.json`（moduleDir + commands）改为新布局；`missions/nop-jq.json` 的 stale 旧值（指向 2026-09-28 前 nop-kernel 内位置）一并修正为 `nop-tools/nop-jq`
+- [x] `ai-dev/archived/missions-2026-11-22/nop-lint.json`（4 条 commands）、`ai-dev/archived/missions-2026-11-22/nop-treesitter.json`（moduleDir + commands）改为新布局；`ai-dev/archived/missions-2026-11-22/nop-jq.json` 的 stale 旧值（指向 2026-09-28 前 nop-kernel 内位置）一并修正为 `nop-tools/nop-jq`
 - [x] `.ast-grepignore`：`nop-lint/**/...` 排除项改为 `nop-tools/nop-lint/**/...`
 - [x] `../../nop-tools/nop-lint/bench/run-benchmarks.sh`、`run-graphql-benchmarks.sh` 的 `-pl` 改新布局；`compare-ast-grep.sh` 注释性 doc 指针更新；`../../nop-tools/nop-treesitter/bench/run-c-reference.sh` 根相对功能路径改新布局
 - [x] `../../nop-tools/nop-rg/nop-rg-cli/README.md`、`../../nop-tools/nop-rg/nop-rg-benchmark/README.md`、`../../nop-tools/nop-find/nop-find-cli/README.md` 的 `-pl`/`cd` 示例路径更新（closure audit 发现 find-cli README 双重前缀坏替换，已修复）
 - [x] 深度修正（仅修移动前有效的链接）：`nop-jq/deepwiki-v3/*.md` 跨组链接按新深度修正（`nop-kernel/nop-jq` 死链按裁定保留原样）；`nop-bytecode/README.md`、gap-ledger.md、interprocedural-spike.md、tool-replacement-ledger.md 出组链接修正（closure audit 发现 4 处坏修正，已二次修复，见 Execution Record #5）
 - [x] 执行注意项：`run-nop-metadata-invariants.sh` 完整运行通过（含 mvn test 链路），无基线红需要登记
 - [x] 8 个活跃 roadmap：仅更新**未落地 WI** 中的路径引用；执行裁定——7 个 roadmap WI 全 `done`（nop-rg 15/15、nop-lint 49/49、tool-replacement 20/20、nop-jq 10/10、nop-treesitter 26/26、nop-bytecode 9/9）或命中均为 ai-dev 路径（nop-refactor 的 6 处全是 `design/nop-refactor/`），原文保留；仅 xdsl roadmap 3 处活引用更新
-- [x] 全仓 sweep 兜底：`grep -rn 'nop-lint/\|nop-rg/\|nop-find/\|nop-jq/\|nop-treesitter/\|nop-refactor/\|nop-bytecode/'` 覆盖 `.github/`、`missions/`、`ai-dev/tools/`、`ai-dev/backlog/`、`docs-for-ai/`、根目录 dotfiles、`nop-tools/` 内部，逐命中按五类裁定并记录：①功能性（已更新）②历史记录/计划编号引用（保留：compliance.yml L33、ledger.mjs L5/71、bean-naming L26 等）③目标未移动的链接（保留）④Java 注释面（保留）⑤指向已移动目标的根相对链接（已更新：gap-ledger.md:7 等）
+- [x] 全仓 sweep 兜底：`grep -rn 'nop-lint/\|nop-rg/\|nop-find/\|nop-jq/\|nop-treesitter/\|nop-refactor/\|nop-bytecode/'` 覆盖 `.github/`、`ai-dev/archived/missions-2026-11-22/`、`ai-dev/tools/`、`ai-dev/backlog/`、`docs-for-ai/`、根目录 dotfiles、`nop-tools/` 内部，逐命中按五类裁定并记录：①功能性（已更新）②历史记录/计划编号引用（保留：compliance.yml L33、ledger.mjs L5/71、bean-naming L26 等）③目标未移动的链接（保留）④Java 注释面（保留）⑤指向已移动目标的根相对链接（已更新：gap-ledger.md:7 等）
 
 Exit Criteria:
 
