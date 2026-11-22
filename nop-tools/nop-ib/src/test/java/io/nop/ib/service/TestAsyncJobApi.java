@@ -74,6 +74,97 @@ class TestAsyncJobApi {
         core.await(first);
     }
 
+    /**
+     * in-flight coalescing (2026-11-22 multi-agent audit): a submission whose
+     * (root, cmd, args) matches a QUEUED (not yet started) job coalesces onto
+     * it — result-equivalent because the queued job executes against the
+     * latest source. A RUNNING job never absorbs submissions (its input set is
+     * already snapshotted): the identical command re-enqueues and, when nothing
+     * changed, hits the test cache on the fast path. Terminal jobs likewise do
+     * not absorb.
+     */
+    @Test
+    void identicalQueuedSubmissionCoalescesButRunningDoesNot() throws Exception {
+        Path repo = fixtureProject();
+        ServiceCore core = new ServiceCore(4);
+        java.util.concurrent.atomic.AtomicInteger invocations = new java.util.concurrent.atomic.AtomicInteger();
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch park = new CountDownLatch(1);
+        core.cli = (args, engine, root, out, err, budget) -> {
+            invocations.incrementAndGet();
+            try {
+                release.await(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return 0;
+        };
+
+        // hold the lane with a parked head so the first identical pair stays QUEUED
+        core.cli = (args, engine, root, out, err, budget) -> {
+            try {
+                park.await(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return 0;
+        };
+        BuildJob head = core.submit(repo.toString(), "status", List.of(), false, "agent-0");
+        for (int i = 0; i < 200 && head.startedAt == 0; i++)
+            Thread.sleep(10);
+
+        // restore the counting cli for the queued jobs
+        core.cli = (args, engine, root, out, err, budget) -> {
+            invocations.incrementAndGet();
+            try {
+                release.await(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return 0;
+        };
+
+        // scenario 1: identical B coalesces onto QUEUED A; different args enqueue separately
+        BuildJob a = core.submit(repo.toString(), "test", List.of("-pl", ":app"), false, "agent-1");
+        BuildJob b = core.submit(repo.toString(), "test", List.of("-pl", ":app"), false, "agent-2");
+        assertEquals(a.id, b.id, "identical submission coalesces onto the QUEUED job");
+        assertTrue(b.coalesced, "coalesced submission is flagged");
+        BuildJob c = core.submit(repo.toString(), "test", List.of("-pl", ":lib"), false, "agent-3");
+        assertFalse(c.id.equals(a.id), "different args enqueue separately");
+        release.countDown();
+        park.countDown();
+        core.await(a);
+        core.await(c);
+        core.await(head);
+        assertEquals(2, invocations.get(), "coalesced pair built once, distinct job built once");
+
+        // scenario 2: A RUNNING (inputs already snapshotted) must NOT absorb B
+        CountDownLatch release2 = new CountDownLatch(1);
+        core.cli = (args, engine, root, out, err, budget) -> {
+            try {
+                release2.await(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return 0;
+        };
+        BuildJob run = core.submit(repo.toString(), "test", List.of("-pl", ":app"), false, "agent-4");
+        for (int i = 0; i < 200 && run.startedAt == 0; i++)
+            Thread.sleep(10); // lane worker sets RUNNING asynchronously
+        assertTrue(run.startedAt > 0, "job runs immediately (lane idle)");
+        BuildJob b2 = core.submit(repo.toString(), "test", List.of("-pl", ":app"), false, "agent-5");
+        assertFalse(b2.id.equals(run.id), "RUNNING job never absorbs identical submissions");
+        assertFalse(b2.coalesced);
+        release2.countDown();
+        core.await(run);
+        core.await(b2);
+
+        // scenario 3: terminal job does not absorb new submissions
+        BuildJob again = core.submit(repo.toString(), "test", List.of("-pl", ":app"), false, "agent-6");
+        assertFalse(again.id.equals(run.id), "terminal job does not absorb new submissions");
+        core.await(again);
+    }
+
     /** long-poll: a queued job answers the explicit intermediate state after waitMs. */
     @Test
     void longPollReturnsQueuedIntermediateState() throws Exception {

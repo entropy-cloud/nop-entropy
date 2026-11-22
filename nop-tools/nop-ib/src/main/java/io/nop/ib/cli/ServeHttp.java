@@ -140,6 +140,12 @@ public final class ServeHttp {
                         "clientRequestId", "optional idempotency key; a retry with the same "
                                 + "(projectDir, clientRequestId) returns the existing job "
                                 + "with replayed:true instead of queueing again")));
+        m.put("coalescing", "a submission identical (projectDir+cmd+args) to a QUEUED (not yet "
+                + "started) job coalesces onto it: replayed:true + coalesced:true — the queued "
+                + "job executes against the latest source, so the coalesced agent gets the "
+                + "same up-to-date result instead of paying the build twice. A RUNNING job "
+                + "never absorbs submissions: the identical command re-enqueues and, if "
+                + "nothing changed meanwhile, hits the test cache on the fast path");
         m.put("endpoints", Map.of(
                 "GET /v1/job/{id}", "job result: {state, exit, payload, stderr, logPath}; "
                         + "optional waitMs=N (absent=60s default; 0=pure snapshot; clamp 300000; "
@@ -255,6 +261,8 @@ public final class ServeHttp {
         Map<String, Object> snap = job.isTerminal() ? jobSnapshot(job) : core.pendingSnapshot(job, 0);
         if (job.replayed)
             snap.put("replayed", true);
+        if (job.coalesced)
+            snap.put("coalesced", true);
         reply(ex, 200, snap);
     }
 

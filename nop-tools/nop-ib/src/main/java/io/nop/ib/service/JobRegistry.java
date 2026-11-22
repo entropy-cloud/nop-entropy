@@ -57,6 +57,26 @@ public final class JobRegistry {
         return idempotent.get(idemKey(repoRoot, clientRequestId));
     }
 
+    /**
+     * 2026-11-22 multi-agent audit: a QUEUED (not yet started) job with the
+     * same (root, cmd, args) absorbs identical submissions — the queued job
+     * executes against the latest source when it starts, so coalescing is
+     * result-equivalent to a second run and saves the duplicate build. A
+     * RUNNING job must NOT coalesce: its inputs were already snapshotted, and
+     * a changed source must re-run (the serial re-run then hits the test cache
+     * on the fast path when nothing actually changed). Args are compared
+     * order-sensitively (they are the literal CLI argument list).
+     */
+    public BuildJob findActive(java.nio.file.Path repoRoot, String cmd, java.util.List<String> args) {
+        for (BuildJob j : jobs.values()) {
+            if (j.state != BuildJob.State.QUEUED || !j.repoRoot.equals(repoRoot) || !j.cmd.equals(cmd))
+                continue;
+            if (j.args.equals(args))
+                return j;
+        }
+        return null;
+    }
+
     public BuildJob get(String id) {
         return jobs.get(id);
     }

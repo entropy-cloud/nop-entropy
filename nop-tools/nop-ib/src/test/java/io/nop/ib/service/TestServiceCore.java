@@ -52,8 +52,10 @@ class TestServiceCore {
     void sameProjectRunsSerially() throws Exception {
         Path repo = fixtureProject();
         ServiceCore core = new ServiceCore(4);
+        // distinct args: identical submissions coalesce by design (coalescing
+        // contract), and this test verifies the SERIAL invariant of two real jobs
         BuildJob j1 = core.submit(repo.toString(), "status", List.of(), true);
-        BuildJob j2 = core.submit(repo.toString(), "status", List.of(), true);
+        BuildJob j2 = core.submit(repo.toString(), "status", List.of("--json"), true);
         core.await(j1);
         core.await(j2);
         assertEquals(BuildJob.State.DONE, j1.state);
@@ -223,7 +225,9 @@ class TestServiceCore {
         Files.writeString(repo.resolve("modA/pom.xml"), "<project/>");
         ServiceCore core = new ServiceCore(4);
         BuildJob fromRoot = core.submit(repo.toString(), "status", List.of(), true);
-        BuildJob fromSubdir = core.submit(repo.resolve("modA").toString(), "status", List.of(), true);
+        // distinct args so the pair does not coalesce (coalescing contract);
+        // this test verifies the shared-lane serial invariant
+        BuildJob fromSubdir = core.submit(repo.resolve("modA").toString(), "status", List.of("--json"), true);
         assertEquals(fromRoot.repoRoot, fromSubdir.repoRoot,
                 "subdir submission must join the reactor-root lane (no second lane per worktree)");
         core.await(fromRoot);

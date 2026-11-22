@@ -127,8 +127,10 @@ class TestServeHttpAsync {
         Map<String, Object> body = io.nop.ib.json.JsonIn.readAsMap(res.body());
         String id = (String) body.get("id");
         assertNotNull(id);
+        // distinct args: identical submissions coalesce onto the QUEUED job
+        // (coalescing contract), and this test needs two real queue entries
         HttpResponse<String> res2 = post("/v1/run",
-                "{\"projectDir\":\"" + repo + "\",\"cmd\":\"status\",\"wait\":false,\"clientRequestId\":\"lp-2\"}");
+                "{\"projectDir\":\"" + repo + "\",\"cmd\":\"status\",\"args\":[\"--json\"],\"wait\":false,\"clientRequestId\":\"lp-2\"}");
         String id2 = (String) io.nop.ib.json.JsonIn.readAsMap(res2.body()).get("id");
 
         long pollStart = System.currentTimeMillis();

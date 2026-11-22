@@ -168,6 +168,20 @@ public final class ServiceCore {
                 return existing;
             }
         }
+        // in-flight coalescing (2026-11-22 multi-agent audit): distinct agents
+        // often submit the IDENTICAL build command while an equal one is still
+        // QUEUED on this lane. Coalescing onto a queued job is result-equivalent
+        // (it has not snapshotted inputs yet) and saves the duplicate build.
+        // Coalescing onto a RUNNING job is deliberately NOT done: the running
+        // job already classified its changed-file set — the new submission must
+        // re-enqueue and will hit the test cache on the fast path if nothing
+        // actually changed (cache-first, never stale results).
+        BuildJob inflight = registry.findActive(root, cmd, args);
+        if (inflight != null) {
+            inflight.replayed = true;
+            inflight.coalesced = true;
+            return inflight;
+        }
         BuildJob job = registry.create(projectDir, cmd, root, args, wait, clientRequestId);
         job.logFile = jobLogFile(root, job.id);
         ProgressRegistry.watch(root, job);

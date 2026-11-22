@@ -23,6 +23,8 @@ public final class BuildJob {
 
     public volatile State state = State.QUEUED;
     public volatile int exit = -1;
+    /** set when a submission coalesced onto this in-flight job (identical cmd+args). */
+    public volatile boolean coalesced;
     public volatile String payload;      // CLI --json stdout (may be truncated)
     public volatile String stderr;       // diagnostics stream, kept out of the payload
     public volatile boolean truncated;

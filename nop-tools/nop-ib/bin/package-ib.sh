@@ -211,7 +211,9 @@ while True:
         ahead_ids = d.get("queueAheadIds") or []
         running = d.get("runningJobId") or "-"
         wait_ms = d.get("queueWaitMs", 0)
-        line = f"queued: {ahead} job(s) ahead (running: {running}) — waiting, {wait_ms/1000:.0f}s so far"
+        line = (f"queued: {ahead} job(s) ahead (running: {running}) — waiting, "
+                f"{wait_ms/1000:.0f}s so far | log: {d.get('logPath') or '-'} "
+                f"(poll GET {base}/v1/job/{jid}?waitMs=0)")
         if state != last_state or ahead != last_ahead:
             say(line)
         last_state, last_ahead = state, ahead
@@ -219,7 +221,7 @@ while True:
         prog = d.get("progress") or {}
         phase = prog.get("phase") or prog.get("cmd") or ""
         run_ms = d.get("runMs", 0)
-        line = f"running: {phase} ({run_ms/1000:.0f}s)".rstrip()
+        line = f"running: {phase} ({run_ms/1000:.0f}s) | log: {d.get('logPath') or '-'}"
         if state != last_state or line != last_line:
             say(line)
         last_state, last_line = state, line

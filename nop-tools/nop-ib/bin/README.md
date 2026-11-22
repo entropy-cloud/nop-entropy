@@ -96,10 +96,11 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 - 自动从所在 git 仓推断 `projectDir`（`git rev-parse --show-toplevel`），异步提交后轮询服务，**排队时在 stderr 显式提示**：`queued: N job(s) ahead (running: job-K) — waiting`、运行期输出 `running: <phase> (Ns)`；结束时打印 `exit=… state=… fallback=…` 与日志路径并透传构建退出码（0/1/3/6/75）。
 - 服务不可达时报错并提示 `bin/start.sh`（exit 75）。`IB_PORT` 可换端口。
 
-### 多 agent 排队协调（要点，详见 /v1/help 的 queueing 节与 design 10）
+### 多 agent 排队协调（要点，详见 /v1/help 的 queueing/coalescing 节与 design 10）
 
 - 同一项目一次只跑一个构建（FIFO lane，排队上限 32、满则 429）；不同项目按全局预算并行。
 - 排队中的 job 快照含 `queueAhead`/`queueAheadIds`/`runningJobId`/`queueWaitMs`；**绝不携带** `progress`/`logTail`（那是正在运行的 job 的 lane 级事实，泄漏会被误读为自己的执行进度）。
+- **同参合并**：与**排队中**（未开始执行）job 完全相同（projectDir+cmd+args）的提交会合并到它（响应 `coalesced:true`），不重复排队；**运行中**的 job 不吸收提交——相同命令重新排队，源码没变时重跑会命中测试缓存，变了则正确重建。
 - **缓存阶梯**：模型新鲜 + 指纹未变 → 测试缓存命中（秒级返回）；有变更 → 快路径增量；模型 stale → 每个排队 job 各付一次全量 Maven 回退（最贵）。**pom 变更后先 `model refresh` 一次再发起批量构建**，把整个 lane 拉回快路径。
 
 ## CLI 直用（不经服务；仅限本地一次性调试，AI 调用方一律走 ib-run/HTTP——CLI 绕过服务队列与并发治理）
