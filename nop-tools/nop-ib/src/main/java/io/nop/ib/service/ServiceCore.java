@@ -94,7 +94,6 @@ public final class ServiceCore {
     /** Package-private: pins inject a lane with pre-seeded pending jobs. */
     ServiceCore(int cores, ProjectQueue queue) {
         this(cores, queue, System::currentTimeMillis);
-        loadKnownRoots();
     }
 
     /**
@@ -185,7 +184,6 @@ public final class ServiceCore {
             inflight.coalesced = true;
             return inflight;
         }
-        rememberRoot(root);
         BuildJob job = registry.create(projectDir, cmd, root, args, wait, clientRequestId);
         job.logFile = jobLogFile(root, job.id);
         ProgressRegistry.watch(root, job);
@@ -276,7 +274,7 @@ public final class ServiceCore {
             // terminal state set (or CANCELLED already written by the cancel
             // path — never overwritten here); wake await/long-poll waiters
             if (job.state == BuildJob.State.DONE || job.state == BuildJob.State.FAILED)
-                JobHistory.append(job.repoRoot, JobHistory.terminalSummary(job));
+                registry.recordTerminal(job);
             synchronized (job) {
                 job.notifyAll();
             }
@@ -490,58 +488,13 @@ public final class ServiceCore {
      * registry (in-memory wins on id collision — it carries payload/stderr).
      * Newest first; state filter applies to the merged view.
      */
-    /**
-     * Served-root ledger: absolute repo roots this service has ever normalized,
-     * persisted service-scope so a restarted service can still answer /v1/jobs
-     * from the per-project durable histories before any new submit arrives.
-     * Location overridable via {@code nop.ib.rootsLedger} (tests).
-     */
-    static Path rootsLedger() {
-        String override = System.getProperty("nop.ib.rootsLedger");
-        if (override != null)
-            return Path.of(override);
-        return Path.of(System.getProperty("user.home"), ".nop-ib-service", "served-roots.txt");
-    }
-
-    private final java.util.Set<Path> knownRoots = new java.util.LinkedHashSet<>();
-
-    private void loadKnownRoots() {
-        Path ledger = rootsLedger();
-        if (!Files.isRegularFile(ledger))
-            return;
-        try {
-            for (String line : Files.readAllLines(ledger)) {
-                line = line.trim();
-                if (!line.isEmpty())
-                    knownRoots.add(Path.of(line));
-            }
-        } catch (IOException ignored) {
-            // ledger is advisory
-        }
-    }
-
-    private void rememberRoot(Path root) {
-        if (knownRoots.add(root)) {
-            try {
-                Files.createDirectories(rootsLedger().getParent());
-                Files.writeString(rootsLedger(), root + "\n", StandardCharsets.UTF_8,
-                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-            } catch (IOException ignored) {
-                // advisory
-            }
-        }
-    }
-
     public List<Map<String, Object>> recentJobs(int limit, String stateFilter) {
         if (limit <= 0)
             limit = DEFAULT_JOBS_LIMIT;
         limit = Math.min(limit, MAX_JOBS_LIMIT);
         Map<String, Map<String, Object>> merged = new java.util.LinkedHashMap<>();
-        java.util.Set<Path> historyRoots = new java.util.LinkedHashSet<>(knownRoots);
-        historyRoots.addAll(queue.laneRoots());
-        for (Path root : historyRoots)
-            for (Map<String, Object> h : JobHistory.readLast(root, JobHistory.RETAINED))
-                merged.put(String.valueOf(h.get("id")), h);
+        for (Map<String, Object> h : registry.terminalHistory())
+            merged.put(String.valueOf(h.get("id")), h);
         List<BuildJob> all = new ArrayList<>(registry.all());
         // queuedAt can tie within one millisecond — break ties by id sequence so
         // "newest first" is total (registry.values() order is arbitrary)

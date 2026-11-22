@@ -183,10 +183,10 @@ public final class ServeHttp {
                         + "do NOT resubmit (use clientRequestId to make retries idempotent)",
                 "elapsedFields", "queueWaitMs = time spent queued; runMs = execution time so far; "
                         + "elapsedMs = time since submit (both phases)",
-                "history", "terminal job statuses are retained: last " + io.nop.ib.service.JobHistory.RETAINED
-                        + " per project in memory AND durably in <root>/.nop-ib/history.jsonl (survives "
-                        + "restarts); GET /v1/jobs merges both — check it before submitting to gauge "
-                        + "lane congestion and typical durations",
+                "history", "terminal job statuses are retained IN MEMORY: last 100 across all "
+                        + "projects, queryable via GET /v1/jobs — check it before submitting to "
+                        + "gauge lane congestion and typical durations (memory-only: a service "
+                        + "restart clears it)",
                 "modelRefreshCost", "model refresh runs several full Maven subprocess passes: "
                         + "~10s on a small single-module project, minutes on a large reactor, and "
                         + "can stretch much longer when other Maven processes compete for the "

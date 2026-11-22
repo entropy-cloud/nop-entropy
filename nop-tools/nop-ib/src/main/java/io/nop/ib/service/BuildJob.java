@@ -184,7 +184,10 @@ public final class BuildJob {
         m.put("finishedAt", finishedAt > 0 ? finishedAt : null);
         long now = System.currentTimeMillis();
         if (finishedAt > 0)
-            m.put("durationMs", finishedAt - startedAt);
+            // never-started terminal (cancelled while queued): startedAt==0 —
+            // duration is 0, the queue wait carries the timing (live audit:
+            // durationMs came out as the raw finishedAt epoch)
+            m.put("durationMs", startedAt > 0 ? finishedAt - startedAt : 0);
         else if (startedAt > 0)
             m.put("durationMs", now - startedAt);
         else

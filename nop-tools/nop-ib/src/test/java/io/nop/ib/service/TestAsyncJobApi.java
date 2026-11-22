@@ -289,9 +289,9 @@ class TestAsyncJobApi {
         core.registry().prune();
         assertNotNull(core.job(job.id), "recent-100 terminal jobs are retained in memory");
         assertTrue(Files.exists(job.logFile), "retained job keeps its log file");
-        // durable history is already on disk either way
-        assertTrue(Files.isRegularFile(JobHistory.historyFile(repo.toRealPath())),
-                "terminal job recorded in history.jsonl");
+        // the terminal summary is recorded in the in-memory history either way
+        assertEquals(1, core.registry().terminalHistory().size());
+        assertEquals(job.id, core.registry().terminalHistory().get(0).get("id"));
     }
 
     /**
