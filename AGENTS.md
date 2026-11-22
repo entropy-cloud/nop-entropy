@@ -49,7 +49,7 @@
 | Write a bug fix note | `ai-dev/bugs/00-bug-fix-note-writing-guide.md` | — |
 | Write an analysis | `ai-dev/analysis/00-analysis-writing-guide.md` | — |
 | Write a design doc | `ai-dev/design/00-design-writing-guide.md` | `ai-dev/design/README.md` |
-| Write or update skills | Check existing skills under `.opencode/skills/` first | — |
+| Write or update skills | Check existing skills under `ai-dev/skills/` first | — |
 | 写跨 2 个以上文档的设计/roadmap/审计回复 | `ai-dev/lessons/19-doc-ssot-and-evidence-first.md` | `docs-for-ai/00-start-here/truth-and-precedence.md` |
 
 ### By Code Location
