@@ -146,6 +146,13 @@ public final class TestCacheStore {
         StringBuilder sb = new StringBuilder(64);
         // 0. runtime dimensions (ib version, JDK version) — plan 2583
         sb.append("#dims:").append(RUNTIME_DIMS.get()).append('\n');
+        // 0b. output products must exist on disk (2026-11-22 defect pair): an
+        // externally deleted target/classes must invalidate the cached green —
+        // the unit index alone cannot see a disk deletion. Fail-safe: null never
+        // serves a hit; the pre-compile rebuilds the products before re-dispatch.
+        if (module.getOutputDir() != null && engine.getRepoRoot() != null
+                && !Files.isDirectory(engine.getRepoRoot().resolve(module.getOutputDir())))
+            return null;
         // 1. own classes: sorted (class → contentHash → abiDigest)
         Map<String, String[]> own = new TreeMap<>();
         for (var info : index.getClasses().values()) {
@@ -158,6 +165,12 @@ public final class TestCacheStore {
                     .append(e.getValue()[1]).append('\n');
         // 2. reached reactor modules' ABI digests (transitive dependency closure)
         for (String depId : reachedModules(model, module.getArtifactId())) {
+            // same disk-existence rule for every reached upstream: a deleted
+            // dependency target/classes poisons the dispatch classpath
+            IbModule dep = model.module(depId);
+            if (dep != null && dep.getOutputDir() != null && engine.getRepoRoot() != null
+                    && !Files.isDirectory(engine.getRepoRoot().resolve(dep.getOutputDir())))
+                return null;
             UnitIndex depIndex = engine.index(depId);
             if (depIndex == null)
                 continue; // dep without index: its products are external jars already in externalArtifacts

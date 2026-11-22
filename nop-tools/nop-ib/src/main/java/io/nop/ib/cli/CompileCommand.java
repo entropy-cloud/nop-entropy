@@ -156,12 +156,45 @@ public final class CompileCommand {
             return code == 0 ? Commands.EXIT_OK : Commands.EXIT_FAILED;
         }
 
+        // 2026-11-22 defect pair: even with zero source changes the executor's
+        // product-integrity sweep runs (missing/stale target/classes are rebuilt,
+        // mvn parity) — "nothing changed" alone never ends the command anymore.
         if (plan.getCompileFiles().isEmpty() && plan.getDownstreamCandidates().isEmpty()
                 && plan.getCompileModules().isEmpty()) {
-            warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
-            String line = json ? JsonOut.write(feedback) : "nothing to compile";
-            out.println(line);
-            log.line(line);
+            IncrementalCompileExecutor executor = new IncrementalCompileExecutor(
+                    model, engine.getUnitStore());
+            IncrementalCompileExecutor.CompileOutcome outcome = executor.compile(plan);
+            engine.refreshIndexesIfModelChanged();
+            Map<String, Object> fb = new LinkedHashMap<>();
+            fb.put("required", false);
+            fb.put("reason", null);
+            feedback.put("fallback", fb);
+            feedback.put("compile", outcome.toMap());
+            feedback.put("diagnostics", executor.getDiagnostics());
+            if (!outcome.isSuccess()) {
+                String red = json ? JsonOut.write(feedback)
+                        : "compiled: " + outcome.getCompiledModules();
+                out.println(red);
+                log.line(red);
+                emitDiagnostics(executor, json, err, log);
+                return Commands.EXIT_FAILED;
+            }
+            if (outcome.getCompiledModules().isEmpty()) {
+                warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
+                String line = json ? JsonOut.write(feedback) : "nothing to compile";
+                out.println(line);
+                log.line(line);
+                return Commands.EXIT_OK;
+            }
+            String green = json ? JsonOut.write(feedback)
+                    : "compiled: " + outcome.getCompiledModules();
+            out.println(green);
+            log.line(green);
+            emitDiagnostics(executor, json, err, log);
+            // a bare compile requests the whole reactor: sweep failures are
+            // reported above and must not read as green
+            if (!outcome.getRebuildFailed().isEmpty())
+                return Commands.EXIT_FAILED;
             return Commands.EXIT_OK;
         }
         // the executor silently no-ops (compiled: []) when no planned module has
@@ -220,6 +253,9 @@ public final class CompileCommand {
             return taskExit;
         feedback.put("tasks", taskRunner.getRecord());
         out.println(human);
+        if (!json && !outcome.getMavenRebuilt().isEmpty())
+            out.println("maven-rebuilt (generated-source/processor modules): "
+                    + outcome.getMavenRebuilt());
         if (!json && !outcome.getDeletedFiles().isEmpty())
             out.println("deleted stale products: " + outcome.getDeletedFiles().size());
         // javac diagnostics + the run summary go to the run log in BOTH modes:

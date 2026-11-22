@@ -79,6 +79,8 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 
 之后模型随 pom 变化自动检测过期；过期时服务自动回退真 Maven 并给出原因，重新 `model refresh` 即恢复快路径。
 
+**产物缺失/上游未构建是自动处理的（mvn 心智）**：在仓根 `ib compile` / `ib test` / `ib check` 一条命令即可——clean 状态（无任何 target/）下直接可用，无需任何按依赖序的手工 bootstrap。ib 会在编译任何模块前校验其声明的上游 classpath 产物目录存在且指纹新鲜；缺失/陈旧的上游按依赖拓扑序自动先编译（单模块全源集；生成源/注解处理器模块自动委派真 Maven），不需要用户手工按模块顺序逐个引导。外部删除某模块 `target/classes` 后重跑，该模块被判定 stale 并自动重建。
+
 ### 项目根识别契约（重要）
 
 - 服务把 `projectDir` 归一到 **Maven reactor 根**：优先识别 `mvnw` + `.mvn/` 标记；否则沿连续 pom 链向上取顶。同 reactor 只有一条构建队列。
@@ -123,7 +125,7 @@ curl -s http://127.0.0.1:8188/v1/queue               # 各项目 lane：depth/ru
 
 `test` 默认派发前先做增量编译（编译失败不派发测试，零假绿）；`--no-compile` 恢复 v1 不编译行为并在 JSON 显式 `compiled:false`。
 
-**依赖解析前置条件**：快路径的外部依赖事实来自本机 Maven 仓库（refresh 时解析）。一个从未 install 过 reactor 内 sibling 的多模块仓，`test -pl :module` 会按 `depsUnresolved` fail-safe 回退 Maven（首次全量 `ib mvn install -DskipTests` 一次后恢复快路径）。
+**依赖解析前置条件**：快路径的外部依赖事实来自本机 Maven 仓库（refresh 时解析）。一个从未 install 过 reactor 内 sibling 的多模块仓，`test -pl :module` 会按 `depsUnresolved` fail-safe 回退 Maven（首次全量 `ib mvn install -DskipTests` 一次后恢复快路径）。注：这条只涉及 Maven 外部仓库坐标解析——reactor 内部的上游产物目录缺失/陈旧不需要任何手工步骤，ib 会自动按拓扑序重建（见上文"产物缺失/上游未构建是自动处理的"）。
 
 ## 代码生成任务声明（nop-ib.tasks.json）
 

@@ -42,7 +42,8 @@ public final class UnitIndexStore {
             Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
             try {
                 Files.createDirectories(file.getParent());
-                Files.writeString(tmp, JsonOut.write(index.toMap()), StandardCharsets.UTF_8);
+                Files.writeString(tmp, sanitize(JsonOut.write(index.toMap())),
+                        StandardCharsets.UTF_8);
                 Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                         java.nio.file.StandardCopyOption.ATOMIC_MOVE);
                 return;
@@ -64,6 +65,42 @@ public final class UnitIndexStore {
         // cause message inline: the job log renders only the exception message,
         // so "Too many open files" etc. must be visible without the cause chain
         throw new NopIbException("failed to write unit index " + file + ": " + last, last);
+    }
+
+    /**
+     * Replaces unpaired UTF-16 surrogates (2026-11-22: a full-module scan's
+     * class-file constant pool strings can decode malformed modified-UTF-8 to
+     * lone surrogates) — the UTF-8 encoder throws UnmappableCharacterException
+     * on them and the whole index write (and thus the build) aborted. Sanitized
+     * chars never affect correctness: change detection uses contentHash and
+     * abiDigest computed at scan time, not this serialized form.
+     */
+    static String sanitize(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (!Character.isSurrogate(c))
+                continue;
+            boolean prevHigh = i > 0 && Character.isHighSurrogate(s.charAt(i - 1));
+            boolean nextLow = i + 1 < s.length() && Character.isLowSurrogate(s.charAt(i + 1));
+            boolean paired = (Character.isHighSurrogate(c) && nextLow)
+                    || (Character.isLowSurrogate(c) && prevHigh);
+            if (!paired) {
+                StringBuilder sb = new StringBuilder(s.length());
+                for (int j = 0; j < s.length(); j++) {
+                    char d = s.charAt(j);
+                    if (Character.isHighSurrogate(d) && j + 1 < s.length()
+                            && Character.isLowSurrogate(s.charAt(j + 1))) {
+                        sb.append(d).append(s.charAt(++j));
+                    } else if (Character.isSurrogate(d)) {
+                        sb.append('?'); // unpaired surrogate: replace, never abort the write
+                    } else {
+                        sb.append(d);
+                    }
+                }
+                return sb.toString();
+            }
+        }
+        return s;
     }
 
     /** wave 11 clean: drop a module's persisted index (missing file = no-op). */

@@ -115,9 +115,57 @@ public final class ClasspathMaterializer {
                 seen.add(jar.toString());
         }
 
+        // transitive intra-project closure (2026-11-22 defect pair follow-up):
+        // externalArtifacts records DIRECT dependencies only — a module needing a
+        // reactor sibling two hops away (toolkit-sql → toolkit-contract →
+        // cobol-commons) had no classpath entry for it and javac failed with
+        // 程序包不存在. Walk the intra edges of the dependency graph (same scope
+        // rules as the direct entries) and add every reached reactor output dir.
+        for (IbModule dep : intraClosure(module, test)) {
+            if (dep.getOutputDir() != null)
+                seen.add(dep.getOutputDir());
+        }
+
         // reactor directories and external jars become classpath entries in stable order
         entries.addAll(seen);
         return new Materialized(entries, missing);
+    }
+
+    /**
+     * Reactor modules reachable from {@code module} through intra-project
+     * dependency edges whose scope participates in this compile kind: main
+     * follows compile/provided edges, test additionally follows runtime/test.
+     * Optional edges are skipped (Maven semantics). Self is never returned.
+     */
+    private List<IbModule> intraClosure(IbModule module, boolean test) {
+        List<IbModule> out = new ArrayList<>();
+        Set<String> visited = new java.util.HashSet<>();
+        java.util.Deque<IbModule> queue = new java.util.ArrayDeque<>();
+        visited.add(module.getArtifactId());
+        queue.add(module);
+        while (!queue.isEmpty()) {
+            IbModule current = queue.poll();
+            for (IbModule.DepEdge edge : current.getDependencies()) {
+                String[] gaParts = edge.getGa().split(":");
+                if (gaParts.length != 2)
+                    continue;
+                IbModule dep = model.module(gaParts[1]);
+                if (dep == null || !dep.getGa().equals(edge.getGa()))
+                    continue; // not intra-project
+                if (edge.isOptional())
+                    continue;
+                String scope = edge.getScope() == null ? "compile" : edge.getScope();
+                boolean traversable = "compile".equals(scope) || "provided".equals(scope)
+                        || (test && ("runtime".equals(scope) || "test".equals(scope)));
+                if (!traversable)
+                    continue;
+                if (visited.add(dep.getArtifactId()))
+                    queue.add(dep);
+                if (!out.contains(dep))
+                    out.add(dep);
+            }
+        }
+        return out;
     }
 
     /**
