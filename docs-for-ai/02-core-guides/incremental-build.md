@@ -32,7 +32,7 @@ curl -s -X POST http://127.0.0.1:8188/v1/run -d '{"projectDir":"<仓库根>","cm
 
 模型过期（任一 pom 变化）会让所有快路径结论失效——此时先 `model refresh`，或直接回退 Maven。Maven 委托默认 10 分钟超时（`nop.ib.maven.timeout` 分钟数可覆盖），超时显式报 `maven delegation timed out`。
 
-**上游依赖与产物缺失是自动处理的（与 mvn 心智一致）**：clean 状态（无任何 target 目录产物）下在仓根发起 `compile` / `test` / `check` 一条命令即可，无需按依赖序手工 bootstrap。ib 编译任何模块前校验其上游 classpath 产物目录存在且指纹新鲜，缺失/陈旧上游按依赖拓扑序自动先编译（单模块全源集；生成源/注解处理器模块自动委派真 Maven）；外部删除 `target/classes` 后重跑会判定 stale 并自动重建，测试缓存（cached-up-to-date）同样要求产物在磁盘上真实存在。
+**上游依赖与产物缺失是自动处理的（与 mvn 心智一致）**：clean 状态（无任何 target 目录产物）下在仓根发起 `compile` / `test` / `check` 一条命令即可，无需按依赖序手工 bootstrap。ib 编译任何模块前校验其上游 classpath 产物目录存在且指纹新鲜，缺失/陈旧上游按依赖拓扑序自动先编译（单模块全源集；生成源/注解处理器模块自动委派真 Maven）；外部删除 target/classes 产物目录后重跑会判定 stale 并自动重建，测试缓存（cached-up-to-date）同样要求产物在磁盘上真实存在。
 
 **作业诊断契约（2026-11-21 收敛）**：
 - `GET /v1/job/{id}` **缺省 `waitMs=60s` 是长轮询**（plan 2588 裁定）：作业未终态时请求阻塞至状态变化或 60s；**只想要即时快照必须带 `?waitMs=0`**。非终态快照含 `phase`/`elapsedMs`（当前执行阶段，来自 ProgressRegistry）与 `logTail`（持久日志 `.nop-ib/jobs/{id}.log` 尾部 20 行）——长时间 Maven 子进程（refresh 的分块 dependency:list、maven-delegate 回退）不再是无信息的"假死"。
