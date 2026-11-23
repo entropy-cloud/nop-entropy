@@ -53,11 +53,21 @@ public final class Commands {
                 // failure turned a 20-minute refresh into a total loss and left
                 // the project permanently stale)
                 engine.getModelStore().save(model);
+                // serve mode: drop the cached pre-refresh model — otherwise the
+                // engine keeps judging staleness against outdated pom hashes
+                // (perpetual "pom changed" fallback) and planning against
+                // pre-refresh module facts
+                engine.reloadModel();
                 try {
                     refreshUnitIndexes(engine, model);
                 } catch (Exception indexError) {
-                    System.err.println("[nop-ib] warning: model saved but unit indexing failed ("
-                            + indexError.getMessage() + ") — run 'nop-ib model index' to retry");
+                    // full stack trace required (nop/no-log-getmessage): the index
+                    // failure must stay diagnosable — model is already saved, the
+                    // warning only degrades the refresh to a planner-widened state
+                    java.io.StringWriter sw = new java.io.StringWriter();
+                    indexError.printStackTrace(new java.io.PrintWriter(sw));
+                    System.err.println("[nop-ib] warning: model saved but unit indexing failed"
+                            + " — run 'nop-ib model index' to retry\n" + sw);
                 }
                 Map<String, Object> m = refreshReport(model);
                 if (json) {

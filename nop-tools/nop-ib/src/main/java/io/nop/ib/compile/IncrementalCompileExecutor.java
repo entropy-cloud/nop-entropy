@@ -12,6 +12,7 @@ import io.nop.ib.scope.PlanResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -70,6 +71,11 @@ public final class IncrementalCompileExecutor {
             IbModule module = model.module(moduleId);
             if (module == null || module.getOutputDir() == null)
                 continue;
+            // the integrity sweep may have rebuilt this module whole already —
+            // its full main source set (changed files included) is compiled and
+            // its fresh index persisted; a second pass would double-count
+            if (builtThisRun.contains(moduleId))
+                continue;
             List<String> sources = plan.getCompileFiles().get(moduleId);
             if (sources == null || sources.isEmpty())
                 continue;
@@ -88,6 +94,8 @@ public final class IncrementalCompileExecutor {
                     IbModule module = model.module(moduleId);
                     if (module == null)
                         continue;
+                    if (builtThisRun.contains(moduleId))
+                        continue; // sweep/earlier pass already rebuilt it this run
                     UnitIndex index = loadIndex(moduleId);
                     if (index == null)
                         continue; // candidate without index was flagged at plan time
@@ -215,6 +223,41 @@ public final class IncrementalCompileExecutor {
         if (!ensureReactorDeps(module, cp, outcome))
             return;
 
+        // 2026-11-22 defect 3: Maven codegen source roots (antlr4 et al under
+        // target/generated-sources) are source roots with mvn add-source-root
+        // semantics. Generated .java on disk join the compile source set (their
+        // missing products are compiled here); generated sources MISSING
+        // entirely (codegen never ran) -> delegate the module to Maven first —
+        // only Maven owns the generator plugin.
+        List<Path> genRoots = generatedSourceRoots(module);
+        boolean wholeModuleBuild = moduleRelSources.stream()
+                .anyMatch(s -> s.contains("/target/generated-sources/"));
+        if (!genRoots.isEmpty() && !wholeModuleBuild) {
+            for (Path genJava : generatedJavaFiles(genRoots)) {
+                if (!generatedProductPresent(module, genJava))
+                    files.add(genJava.toFile());
+            }
+        } else if (genRoots.isEmpty() && moduleDeclaresCodegen(module)) {
+            StringBuilder mout = new StringBuilder();
+            StringBuilder merr = new StringBuilder();
+            int code = new MavenFallback(Path.of(model.getRepoRoot()))
+                    .compileModules(List.of(module.getArtifactId()), mout, merr);
+            if (code == 0) {
+                diagnostics.remove(module.getArtifactId());
+                outcome.clearFailure();
+                outcome.addMavenRebuilt(module.getArtifactId());
+                refreshIndexAfterMaven(module);
+                return;
+            }
+            String tail = (merr.length() > 0 ? merr.toString() : mout.toString());
+            tail = tail.length() > 4000 ? tail.substring(tail.length() - 4000) : tail;
+            outcome.failModule(module.getArtifactId());
+            diagnostics.put(module.getArtifactId(), List.of(
+                    "module declares a codegen plugin but target/generated-sources has no "
+                            + "sources and the Maven rebuild failed (exit " + code + "):\n" + tail));
+            return;
+        }
+
         UnitIndex oldIndex = loadIndex(module.getArtifactId());
 
         // self output dir sits on the classpath and is the write target: ensure it
@@ -261,6 +304,9 @@ public final class IncrementalCompileExecutor {
         if (module.getTestSourceDir() != null
                 && Files.isDirectory(model.resolve(module.getTestSourceDir()).toPath()))
             sourcePath.add(model.resolve(module.getTestSourceDir()));
+        // defect 3: generated-sources roots are source roots too (mvn parity)
+        for (Path genRoot : generatedSourceRoots(module))
+            sourcePath.add(genRoot.toFile());
 
         // reactor-directory classpath entries are repo-root-relative; nop-javac's
         // pre-validation (validateClassPaths) checks File.exists() against the
@@ -313,6 +359,102 @@ public final class IncrementalCompileExecutor {
         outcome.addCompiledModule(module.getArtifactId(), files.size(), abiChanged.size());
         unitStore.save(newIndex);
         loadedIndexes.put(module.getArtifactId(), newIndex);
+    }
+
+    // ------------------------------------------------------------------
+    // 2026-11-22 defect 3: Maven codegen source roots (antlr4 et al)
+    // ------------------------------------------------------------------
+
+    /** directories under {@code <basedir>/target/generated-sources} that contain .java files. */
+    List<Path> generatedSourceRoots(IbModule m) {
+        if (m.getBasedir() == null)
+            return List.of();
+        Path gen = model.resolve(m.getBasedir()).toPath().resolve("target/generated-sources");
+        if (!Files.isDirectory(gen))
+            return List.of();
+        List<Path> roots = new ArrayList<>();
+        try (Stream<Path> stream = Files.walk(gen, 6)) {
+            // the leaf directory of each generated source acts as its source root
+            stream.filter(p -> p.toString().endsWith(".java")).forEach(p -> {
+                Path leaf = p.getParent();
+                if (leaf != null && !roots.contains(leaf))
+                    roots.add(leaf);
+            });
+        } catch (IOException e) {
+            return List.of(); // unreadable: treated as absent (fail-safe)
+        }
+        return roots;
+    }
+
+    List<Path> generatedJavaFiles(List<Path> genRoots) {
+        List<Path> out = new ArrayList<>();
+        for (Path root : genRoots) {
+            try (Stream<Path> stream = Files.walk(root)) {
+                stream.filter(p -> p.toString().endsWith(".java")).forEach(out::add);
+            } catch (IOException e) {
+                // skip unreadable root
+            }
+        }
+        return out;
+    }
+
+    /**
+     * True when the generated source's expected product exists in the module
+     * output dir: {@code <outputDir>/<package path>/<SimpleName>.class}.
+     */
+    boolean generatedProductPresent(IbModule m, Path generatedJava) {
+        Path outDir = m.getOutputDir() == null ? null
+                : model.resolve(m.getOutputDir()).toPath();
+        if (outDir == null)
+            return false;
+        String pkg = packageOf(generatedJava);
+        String simple = generatedJava.getFileName().toString();
+        simple = simple.substring(0, simple.length() - ".java".length());
+        Path classFile = (pkg.isEmpty() ? outDir : outDir.resolve(pkg.replace('.', '/')))
+                .resolve(simple + ".class");
+        return Files.isRegularFile(classFile);
+    }
+
+    /** package declaration of a java source, or "" when none/default. */
+    static String packageOf(Path javaFile) {
+        try {
+            for (String line : Files.readAllLines(javaFile, StandardCharsets.UTF_8)) {
+                String t = line.trim();
+                if (t.startsWith("package "))
+                    return t.substring("package ".length()).split(";")[0].trim();
+                if (!t.isEmpty() && !t.startsWith("/*") && !t.startsWith("*") && !t.startsWith("//"))
+                    break; // package decl must precede other statements
+            }
+        } catch (IOException ignored) {
+            // unreadable: treated as default package (caller then misses the product)
+        }
+        return "";
+    }
+
+    /**
+     * Cheap pom marker scan: does the module declare a codegen plugin that
+     * writes into target/generated-sources? Only used when the generated
+     * sources are ABSENT on disk — the sole signal (model facts record no
+     * plugins) that the fast path must delegate to Maven first.
+     */
+    boolean moduleDeclaresCodegen(IbModule m) {
+        if (m.getBasedir() == null)
+            return false;
+        Path pom = model.resolve(m.getBasedir()).toPath().resolve("pom.xml");
+        if (!Files.isRegularFile(pom))
+            return false;
+        try {
+            String text = Files.readString(pom, StandardCharsets.UTF_8).toLowerCase();
+            return text.contains("generated-sources")
+                    || text.contains("antlr4-maven-plugin")
+                    || text.contains("jaxb2-maven-plugin")
+                    || text.contains("build-helper-maven-plugin")
+                    || text.contains("protobuf-maven-plugin")
+                    || text.contains("javacc-maven-plugin")
+                    || text.contains("maven-plugin-plugin");
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -398,6 +540,18 @@ public final class IncrementalCompileExecutor {
             }
         } catch (IOException e) {
             return false; // unreadable tree: fail safe, rebuild
+        }
+        // defect 3: generated sources are part of the module's source contract —
+        // declared codegen with missing generated .java (or missing products for
+        // them) means stale, so the bootstrap rebuilds/compiles the full set
+        List<Path> genRoots = generatedSourceRoots(m);
+        if (!genRoots.isEmpty()) {
+            for (Path genJava : generatedJavaFiles(genRoots)) {
+                if (!generatedProductPresent(m, genJava))
+                    return false;
+            }
+        } else if (moduleDeclaresCodegen(m)) {
+            return false; // codegen declared but no generated sources on disk
         }
         return true;
     }
@@ -505,6 +659,17 @@ public final class IncrementalCompileExecutor {
             }
         } catch (IOException e) {
             throw new NopIbException("cannot enumerate sources of " + m.getArtifactId(), e);
+        }
+        // defect 3: Maven codegen source roots (antlr4 et al) belong to the
+        // module's compile source set exactly like src/main/java (mvn
+        // add-source-root parity) — without them the whole-module fast-path
+        // rebuild cannot satisfy generated-symbol references
+        for (Path genJava : generatedJavaFiles(generatedSourceRoots(m))) {
+            String rel = Path.of(model.getRepoRoot()).toAbsolutePath().normalize()
+                    .relativize(genJava.toAbsolutePath().normalize()).toString()
+                    .replace(File.separatorChar, '/');
+            if (!out.contains(rel))
+                out.add(rel);
         }
         return out;
     }

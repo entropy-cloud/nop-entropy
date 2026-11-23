@@ -130,9 +130,28 @@ public final class CompileCommand {
             MavenFallback fallback = new MavenFallback(engine.getRepoRoot());
             StringBuilder mout = new StringBuilder();
             StringBuilder merr = new StringBuilder();
-            int code = fallback.compileModules(plan.getCompileModules().isEmpty()
-                            ? List.of(owningModuleOf(engine, model, changed.get(0)))
-                            : plan.getCompileModules(), mout, merr);
+            // 2026-11-22: an unchanged-source fallback (e.g. model-stale) with only
+            // non-source paths in scope has no owning module — the old
+            // owningModuleOf(changed.get(0)) crashed with exit 3; delegate a plain
+            // repo-root compile instead (mvn's own scope decision)
+            List<String> delegateModules = plan.getCompileModules();
+            if (delegateModules.isEmpty()) {
+                delegateModules = changed.stream()
+                        .filter(p -> p.endsWith(".java"))
+                        .map(p -> {
+                            IbModule m = model.moduleForPath(p);
+                            return m == null ? null : m.getArtifactId();
+                        })
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .toList();
+            }
+            int code;
+            if (delegateModules.isEmpty()) {
+                code = fallback.delegate("compile -q", mout, merr);
+            } else {
+                code = fallback.compileModules(delegateModules, mout, merr);
+            }
             Map<String, Object> fb = new java.util.LinkedHashMap<>();
             fb.put("required", true);
             fb.put("reason", plan.getFallbackReason() + tailStaleHint(plan.getFallbackReason()));
@@ -159,6 +178,18 @@ public final class CompileCommand {
         // 2026-11-22 defect pair: even with zero source changes the executor's
         // product-integrity sweep runs (missing/stale target/classes are rebuilt,
         // mvn parity) — "nothing changed" alone never ends the command anymore.
+        // resources-sync (coblab 2026-11-23 defect): resource changes on the fast
+        // path used to reach target/classes never — the planner classified them
+        // and widened tests, but no copy ever happened, so consumers kept reading
+        // the OLD resource (fake red / fake green). Maven fallback paths keep
+        // full mvn parity (mvn copies resources itself).
+        io.nop.ib.compile.ResourceSync resources = null;
+        if (!plan.requiresMavenFallback() && !changed.isEmpty()) {
+            resources = new io.nop.ib.compile.ResourceSync(model);
+            resources.sync(changed);
+            if (!resources.getCopied().isEmpty() || !resources.getDeleted().isEmpty())
+                feedback.put("resources", resources.toMap());
+        }
         if (plan.getCompileFiles().isEmpty() && plan.getDownstreamCandidates().isEmpty()
                 && plan.getCompileModules().isEmpty()) {
             IncrementalCompileExecutor executor = new IncrementalCompileExecutor(
@@ -173,7 +204,7 @@ public final class CompileCommand {
             feedback.put("diagnostics", executor.getDiagnostics());
             if (!outcome.isSuccess()) {
                 String red = json ? JsonOut.write(feedback)
-                        : "compiled: " + outcome.getCompiledModules();
+                        : humanCompileLine(outcome);
                 out.println(red);
                 log.line(red);
                 emitDiagnostics(executor, json, err, log);
@@ -181,7 +212,8 @@ public final class CompileCommand {
             }
             if (outcome.getCompiledModules().isEmpty()) {
                 warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
-                String line = json ? JsonOut.write(feedback) : "nothing to compile";
+                String line = json ? JsonOut.write(feedback)
+                        : "nothing to compile" + resourceLine(resources);
                 out.println(line);
                 log.line(line);
                 return Commands.EXIT_OK;
@@ -235,7 +267,7 @@ public final class CompileCommand {
         if (outcome.isSuccess() && outcome.getCompiledModules().isEmpty())
             warnWhenPlannedToNothing(engine, changed, feedback, json, out, err, log);
         String human = json ? JsonOut.write(feedback)
-                : "compiled: " + outcome.getCompiledModules();
+                : humanCompileLine(outcome) + resourceLine(resources);
         if (!outcome.isSuccess()) {
             // after-compile tasks are pointless on a red compile; report and fail.
             // diagnostics must be emitted on the failure path too — the success-path
@@ -263,6 +295,28 @@ public final class CompileCommand {
         log.line(human);
         emitDiagnostics(executor, json, err, log);
         return outcome.isSuccess() ? Commands.EXIT_OK : Commands.EXIT_FAILED;
+    }
+
+    /**
+     * Human-mode summary line. A RED compile must never print the green-shaped
+     * {@code compiled: []} (an AI reading only the summary line cannot tell a
+     * failure from a no-op); the failing module is named explicitly and the
+     * javac diagnostics follow in the {@code --- module ---} block.
+     */
+    static String humanCompileLine(IncrementalCompileExecutor.CompileOutcome outcome) {
+        if (outcome.isSuccess())
+            return "compiled: " + outcome.getCompiledModules();
+        String failed = outcome.getFailedModule().orElse("unknown");
+        return "compile FAILED (failing module: " + failed
+                + ") — javac diagnostics follow; exit will be 1";
+    }
+
+    /** human-mode suffix reporting the resource sync performed on this run. */
+    private static String resourceLine(io.nop.ib.compile.ResourceSync resources) {
+        if (resources == null || (resources.getCopied().isEmpty() && resources.getDeleted().isEmpty()))
+            return "";
+        return " | resources synced: copied=" + resources.getCopied().size()
+                + " deleted=" + resources.getDeleted().size();
     }
 
     /** javac diagnostics to stderr (human mode) and the run log (both modes). */

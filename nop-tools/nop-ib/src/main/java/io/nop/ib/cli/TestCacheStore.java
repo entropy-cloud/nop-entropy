@@ -186,6 +186,27 @@ public final class TestCacheStore {
         // 3. external artifacts (versions/scopes of resolved jars)
         for (String ea : module.getExternalArtifacts())
             sb.append("#ea:").append(ea).append('\n');
+        // 3b. resource files (coblab 2026-11-23 defect): a resource change is
+        // invisible to the class-level inputs above, so a cached green used to
+        // survive a src/main/resources edit (fake green for resource-consuming
+        // contract tests). Hash every declared resource file — missing dir = no
+        // contribution; unreadable file = null (never serves a hit).
+        Path repoRoot = engine.getRepoRoot();
+        try {
+            for (String dir : concat(module.getResourceDirs(), module.getTestResourceDirs())) {
+                Path resRoot = repoRoot.resolve(dir);
+                if (!Files.isDirectory(resRoot))
+                    continue;
+                try (java.util.stream.Stream<Path> stream = Files.walk(resRoot)) {
+                    for (Path f : stream.filter(Files::isRegularFile).sorted().toList()) {
+                        sb.append("#res:").append(resRoot.relativize(f)).append('=')
+                                .append(io.nop.ib.util.FastHash.hexOf(f)).append('\n');
+                    }
+                }
+            }
+        } catch (IOException e) {
+            return null; // fail-safe: unreadable resource tree never serves a hit
+        }
         // 4. surefire facts (argLine, tags, includes/excludes, sysprops, env)
         sb.append("#argLine:").append(module.getSurefireArgLine()).append('\n');
         sb.append("#skipTests:").append(module.getSurefireSkipTests()).append('\n');
@@ -226,6 +247,13 @@ public final class TestCacheStore {
                         queue.add(dm.getArtifactId());
             }
         }
+        return out;
+    }
+
+    private static List<String> concat(List<String> a, List<String> b) {
+        List<String> out = new ArrayList<>(a == null ? List.of() : a);
+        if (b != null)
+            out.addAll(b);
         return out;
     }
 

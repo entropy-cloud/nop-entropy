@@ -126,4 +126,19 @@ public final class IbEngine {
     public void refreshIndexesIfModelChanged() {
         indexCache.clear();
     }
+
+    /**
+     * serve-mode support (coblab 2026-11-23 defect): after {@code model refresh}
+     * rewrites model.json on disk, the cached in-memory model must be dropped —
+     * the engine used to keep serving the PRE-refresh model, so staleness checks
+     * kept reporting "pom changed" (perpetual Maven fallback) or, worse, plans
+     * built from pre-refresh facts reported up-to-date for post-refresh worlds.
+     * Also clears the task cache: task configs are module-layout derived and the
+     * refresh may have changed the module set.
+     */
+    public void reloadModel() {
+        model = null;
+        indexCache.clear();
+        taskCache.clear();
+    }
 }

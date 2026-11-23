@@ -22,7 +22,14 @@ public final class GitChanges {
         List<String> paths = new ArrayList<>();
         paths.addAll(runGit(repoRoot, "diff", "--name-only", "HEAD"));
         paths.addAll(runGit(repoRoot, "ls-files", "--others", "--exclude-standard"));
-        return paths.stream().distinct().sorted().toList();
+        // 2026-11-22: ib's own state/temp writes (.nop-ib/last-run.json etc.) are
+        // untracked and used to surface as changed paths outside every reactor
+        // module — a source change outside the reactor forces Maven fallback, so a
+        // bare compile could abort with exit 3 after merely running once
+        return paths.stream()
+                .filter(p -> !p.startsWith(".nop-ib/") && !p.startsWith("_tmp/")
+                        && !p.contains("/.nop-ib/") && !p.contains("/_tmp/"))
+                .distinct().sorted().toList();
     }
 
     private static List<String> runGit(Path repoRoot, String... args) {
