@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -125,9 +126,32 @@ public class TestAsyncSpawnStepEndToEnd {
         }
     }
         final RoundRendezvous rendezvous = new RoundRendezvous();
+        /** Test-controlled gate: keeps the future incomplete until the caller has
+         *  observed that executeAsync() did not block. Replaces the old reliance on
+         *  a short sleep, which lost the race under a loaded reactor. Opt-in so the
+         *  other tests using this spawner keep their existing ungated behavior. */
+        final CountDownLatch startGate = new CountDownLatch(1);
+        volatile boolean gated;
+
+        void gateStart() {
+            gated = true;
+        }
+
+        void releaseStart() {
+            startGate.countDown();
+        }
 
         @Override
         public SpawnMemberResult spawnMember(SpawnMemberRequest request) {
+            if (gated) {
+                try {
+                    if (!startGate.await(30, TimeUnit.SECONDS))
+                        throw new NopAiAgentException("spawn start gate timed out");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new NopAiAgentException("spawn start gate interrupted", e);
+                }
+            }
             String taskId = request.getTask().getTaskId();
             int now = active.incrementAndGet();
             peakConcurrent.accumulateAndGet(now, Math::max);
@@ -233,14 +257,17 @@ public class TestAsyncSpawnStepEndToEnd {
         TeamTaskFlowOrchestrator orchestrator =
                 new TeamTaskFlowOrchestrator(null, store, mgr, null, spawner);
         try {
+            spawner.gateStart();
             CompletableFuture<TeamTaskFlowResult> future = orchestrator.executeAsync(teamId);
 
-            // Anti-Hollow: the calling thread is NOT blocked — the spawn work
-            // is offloaded to the dedicated executor, so the future is
-            // initially not done (the spawner sleeps 80ms).
+            // Anti-Hollow: the calling thread is NOT blocked — the spawn work is
+            // offloaded to the dedicated executor. The spawner is held on a test gate,
+            // so the future is deterministically incomplete here (no timing race with
+            // a short sleep / barrier release under a loaded reactor).
             assertFalse(future.isDone(),
                     "executeAsync must NOT block the calling thread — spawn work offloaded "
                             + "to a dedicated executor (future initially incomplete)");
+            spawner.releaseStart();
 
             TeamTaskFlowResult result = future.get(30, TimeUnit.SECONDS);
 

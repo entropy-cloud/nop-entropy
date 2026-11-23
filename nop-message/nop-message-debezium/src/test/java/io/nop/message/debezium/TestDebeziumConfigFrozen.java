@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,7 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Freeze semantics: read-side view only (no lifecycle hook, no state flag) —「装配期专用」
  * is a documented-only contract; null values are skipped at the write entries + WARN because
- * {@code Map.copyOf} rejects null values; the backing field stays a serializable HashMap
+ * {@code Map.copyOf} rejects null values; the backing field stays a serializable concurrent
+ * map so a write racing a frozen snapshot cannot throw ConcurrentModificationException
  * (checkpoint persistence unaffected — see the round-trip below and
  * {@code TestDebeziumConfigSerializable}).
  */
@@ -95,6 +97,10 @@ public class TestDebeziumConfigFrozen {
         int total = readers * perRound;
         ExecutorService pool = Executors.newFixedThreadPool(readers + 1);
         CountDownLatch done = new CountDownLatch(readers + 1);
+        // Worker-thread exceptions are swallowed by the executor unless collected — pre-fix
+        // the CME from Map.copyOf(HashMap) surfaced only as stderr noise while the test stayed
+        // green. Capture them so the frozen-read contract is actually asserted.
+        ConcurrentLinkedQueue<Throwable> workerFailures = new ConcurrentLinkedQueue<>();
         try {
             // single assembly-time writer thread (装配期专用: setup is sequential by contract;
             // the anchor is the READ side — every snapshot is a coherent frozen copy)
@@ -103,6 +109,8 @@ public class TestDebeziumConfigFrozen {
                     for (int i = 0; i < total; i++) {
                         config.addExtraProperty("w." + i, "v");
                     }
+                } catch (Throwable e) {
+                    workerFailures.add(e);
                 } finally {
                     done.countDown();
                 }
@@ -117,6 +125,8 @@ public class TestDebeziumConfigFrozen {
                             assertEquals(snapshot.size(), nonNull,
                                     "a frozen snapshot never contains a torn entry");
                         }
+                    } catch (Throwable e) {
+                        workerFailures.add(e);
                     } finally {
                         done.countDown();
                     }
@@ -126,11 +136,13 @@ public class TestDebeziumConfigFrozen {
         } finally {
             pool.shutdownNow();
         }
+        assertTrue(workerFailures.isEmpty(),
+                "frozen reads must never fail while a write races: " + workerFailures);
         assertEquals(total, config.getExtraProperties().size(),
                 "all assembly writes land in the backing field");
     }
 
-    /** Serialization bless face: the backing field stays a serializable HashMap. */
+    /** Serialization bless face: the backing field stays a serializable concurrent map. */
     @Test
     void serializationRoundTripStillGreen() throws Exception {
         DebeziumConfig config = new DebeziumConfig();

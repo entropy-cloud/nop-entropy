@@ -133,10 +133,22 @@ public class TestLocalJobDetailConsistencyR406 {
         sampler.start();
 
         // writer: ≥200 REAL triggered rounds, each awaiting completion (fireCount++
-        // happens under the per-job monitor in handleResult)
+        // happens under the per-job monitor in handleResult).
+        // fireNow is rejected by design while the job is already running: under a
+        // loaded -T 1C reactor the initial immediately-scheduled fire can start
+        // between awaitIdle() and the first fireNow() call. Retry briefly rather
+        // than turning that scheduling race into a false failure; each round still
+        // performs exactly one accepted fire.
         for (int round = 0; round < 200; round++) {
-            assertTrue(scheduler.fireNow("snap-probe"),
-                    "fireNow must be accepted at round " + round);
+            boolean accepted = false;
+            for (int attempt = 0; attempt < 50 && !accepted; attempt++) {
+                accepted = scheduler.fireNow("snap-probe");
+                if (!accepted) {
+                    assertTrue(scheduler.awaitIdle("snap-probe", 1, TimeUnit.SECONDS),
+                            "job never settled while waiting to fire round " + round);
+                }
+            }
+            assertTrue(accepted, "fireNow must be accepted at round " + round);
             assertTrue(scheduler.awaitIdle("snap-probe", 10, TimeUnit.SECONDS),
                     "round " + round + " did not settle");
         }

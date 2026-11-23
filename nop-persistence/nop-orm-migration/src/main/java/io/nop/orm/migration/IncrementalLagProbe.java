@@ -99,7 +99,12 @@ public class IncrementalLagProbe {
         return true;
     }
 
-    private void sleep(long quiesceSeconds) {
+    /**
+     * Quiesce-window wait. Protected as a test seam: tests drive the window
+     * deterministically (advance state between the two snapshots) instead of
+     * racing a frozen clock read count against JDBC's own CoreMetrics reads.
+     */
+    protected void sleep(long quiesceSeconds) {
         long deadline = CoreMetrics.currentTimeMillis() + quiesceSeconds * 1000L;
         while (CoreMetrics.currentTimeMillis() < deadline) {
             try {

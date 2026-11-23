@@ -134,7 +134,15 @@ public abstract class AbstractPollingLeaderElector extends AbstractLeaderElector
             // execution leg — the executor completes the round future exceptionally with
             // zero re-scheduling. The alarm + one backoff re-arm here is the module-level
             // supervision the platform insulation design assigns to the caller side.
-            future.whenComplete((r, e) -> {
+            //
+            // The callback MUST be async: an executor is allowed to hand back an already
+            // failed future (e.g. a worker pool that rejects synchronously). A synchronous
+            // whenComplete would then run the re-arm inside this very schedule() call,
+            // which re-enters schedule() and recurses without bound — spinning the timer
+            // and flooding the alarm log until the host thread is exhausted. Deferring the
+            // observation to the common pool breaks that re-entrancy while keeping the
+            // alarm + backoff re-arm semantics unchanged.
+            future.whenCompleteAsync((r, e) -> {
                 if (e != null && !(e instanceof CancellationException)) {
                     reportLoopBroken("round-future-failed", "execution-leg-failed", e);
                     if (!isStopping()) {

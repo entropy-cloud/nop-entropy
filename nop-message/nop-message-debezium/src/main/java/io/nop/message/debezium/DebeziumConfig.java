@@ -9,8 +9,8 @@ package io.nop.message.debezium;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Debezium 嵌入式引擎配置
@@ -148,9 +148,12 @@ public class DebeziumConfig implements Serializable {
 
     /**
      * 额外的配置属性（装配期专用——读侧经 {@link #getExtraProperties()} 返回冻结视图，
-     * 见 C1-012 / plan 2558 裁定 G）
+     * 见 C1-012 / plan 2558 裁定 G）。ConcurrentHashMap backing makes the frozen read
+     * side safe even when a write races a snapshot: Map.copyOf iterates a weakly-consistent
+     * view instead of throwing ConcurrentModificationException. Null keys/values are still
+     * rejected before they reach the map (ConcurrentHashMap forbids both).
      */
-    private Map<String, String> extraProperties = new HashMap<>();
+    private Map<String, String> extraProperties = new ConcurrentHashMap<>();
 
     private static final org.slf4j.Logger LOG =
             org.slf4j.LoggerFactory.getLogger(DebeziumConfig.class);
@@ -367,13 +370,14 @@ public class DebeziumConfig implements Serializable {
     }
 
     public void setExtraProperties(Map<String, String> extraProperties) {
-        // copy into the internal HashMap (kept serializable for checkpoint persistence),
-        // skipping null values — the frozen getter view (Map.copyOf) rejects null values
+        // copy into the internal concurrent map (kept serializable for checkpoint
+        // persistence), skipping null values — the frozen getter view (Map.copyOf)
+        // rejects null values, and ConcurrentHashMap forbids them too
         if (extraProperties == null || extraProperties.isEmpty()) {
-            this.extraProperties = new HashMap<>();
+            this.extraProperties = new ConcurrentHashMap<>();
             return;
         }
-        Map<String, String> copied = new HashMap<>();
+        Map<String, String> copied = new ConcurrentHashMap<>();
         for (Map.Entry<String, String> entry : extraProperties.entrySet()) {
             if (entry.getKey() == null) {
                 LOG.warn("nop.message.debezium.config.extra-property-null-key - skipped");

@@ -13,6 +13,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
@@ -280,14 +281,19 @@ public class TestDebeziumMessageSource {
         source.subscribe(e -> {
         });
 
-        // started 翻转发生在专用 carrier 线程上——事件驱动等待，不读竞态快照
-        //（合并修订 2026-11-13：模块全量跑下后段测试的 GC/JIT 压力曾使立即断言假红）
-        awaitUntil("engine start must flip the started flag", source::isStarted);
+        // The started flip is performed synchronously on the subscribing thread, while
+        // the carrier blocks inside the injected engine body until this test releases it.
+        // Polling for a transient true snapshot used to miss the ~1ms window between the
+        // flip and the carrier's terminal death (a load-dependent flake under -T 1C).
+        // Gate the death instead so the started=true state is stable when observed.
+        assertTrue(source.isStarted(), "engine start must flip the started flag");
         assertNotNull(source.created, "the wrapper must come from createEngineWrapper");
-        // 载体线程异步执行注入引擎体——事件驱动等待（合并修订 2026-11-14：started 翻转
-        // 先于载体 run 落账,立即断言为竞态假红）
-        awaitUntil("the injected engine body must actually have run on the carrier",
+        awaitUntil("the injected engine body must actually have entered on the carrier",
                 () -> source.created.throwingEngine.ran.get());
+
+        // Release the gated engine body: its LinkageError now drives the real worker-death
+        // path (notifyTerminalFailure → started=false + static failure listener).
+        source.created.throwingEngine.triggerDeath();
 
         awaitUntil("a terminal engine death must flip source.isStarted() (MA-02 ③: no lying)",
                 () -> !source.isStarted());
@@ -344,14 +350,24 @@ public class TestDebeziumMessageSource {
         }
     }
 
-    /** Deterministic engine: run() throws once entered. */
+    /** Deterministic engine: run() enters, waits for the test's death signal, then throws. */
     static class ThrowingEngine implements DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> {
         final AtomicBoolean ran = new AtomicBoolean(false);
+        final CountDownLatch deathGate = new CountDownLatch(1);
 
         @Override
         public void run() {
             ran.set(true);
+            try {
+                deathGate.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             throw new LinkageError("injected engine Error");
+        }
+
+        void triggerDeath() {
+            deathGate.countDown();
         }
 
         @Override

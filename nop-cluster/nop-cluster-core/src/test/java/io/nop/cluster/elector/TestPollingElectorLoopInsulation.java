@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -84,6 +85,11 @@ public class TestPollingElectorLoopInsulation {
         elector.setCheckIntervalMs(50);
         electorLogger = (Logger) LoggerFactory.getLogger(AbstractPollingLeaderElector.class);
         logAppender = new ListAppender<>();
+        // The round-future observation callback runs on the common pool (async by design),
+        // so alarms can be appended while a test thread samples brokenLogs(). Logback's
+        // ListAppender uses a plain ArrayList — swap in a concurrent list to keep reads
+        // race-free instead of intermittently throwing ConcurrentModificationException.
+        logAppender.list = new CopyOnWriteArrayList<>();
         logAppender.start();
         electorLogger.addAppender(logAppender);
     }

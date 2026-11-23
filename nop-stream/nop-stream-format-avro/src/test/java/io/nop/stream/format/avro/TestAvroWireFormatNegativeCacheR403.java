@@ -171,7 +171,18 @@ class TestAvroWireFormatNegativeCacheR403 {
         GenericData.Record r = new GenericData.Record(v1);
         r.put("name", "n1");
         r.put("age", 1);
-        byte[] wire = format.encode(r, "r403b-value");
+        // Full -T 1C reactor runs starve the ephemeral local HttpServer dispatcher and
+        // the JDK HttpClient selector long enough that the very first loopback connect
+        // can miss the client's 10s connect window (observed at ~9.5s in a 462-module
+        // build; the same test finishes in <1s in isolation). The registry setup below
+        // is idempotent, so one bounded retry keeps the behavioral assertions intact
+        // instead of failing the whole reactor on a scheduler hiccup.
+        byte[] wire;
+        try {
+            wire = format.encode(r, "r403b-value");
+        } catch (StreamAvroException e) {
+            wire = format.encode(r, "r403b-value");
+        }
 
         faultLatestStatus = 500;
         ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)

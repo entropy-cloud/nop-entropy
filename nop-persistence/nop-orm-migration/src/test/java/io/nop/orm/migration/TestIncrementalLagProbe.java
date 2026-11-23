@@ -8,17 +8,18 @@
 package io.nop.orm.migration;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.time.CoreMetrics;
-import io.nop.commons.test.time.ManualClock;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.ChangeEventMetadata;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
+import io.nop.dao.jdbc.IJdbcTemplate;
 import org.junit.jupiter.api.AfterEach;
 import io.nop.orm.IOrmSessionFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.orm.migration.MigrationErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.migration.MigrationErrors.ARG_SOURCE_TABLE;
@@ -35,6 +36,36 @@ public class TestIncrementalLagProbe extends AbstractMigrationE2ETestCase {
 
     private static final String CONNECTOR = "lag-probe-cdc";
 
+    /**
+     * Deterministic quiesce window: {@code entered} is signalled the moment the probe
+     * reaches the wait between its two snapshots; the driver thread mutates the observed
+     * state, then {@code release} lets the probe take its after-snapshot. No wall-clock
+     * budget and no clock-read counting (JdbcTemplate itself reads CoreMetrics during
+     * snapshot(), which used to satisfy the read gate before the window even started).
+     */
+    static final class GatedProbe extends IncrementalLagProbe {
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        volatile boolean released;
+
+        GatedProbe(IJdbcTemplate jdbc, String ledgerTable) {
+            super(jdbc, "", ledgerTable);
+        }
+
+        @Override
+        protected void sleep(long quiesceSeconds) {
+            entered.countDown();
+            try {
+                if (!release.await(10, TimeUnit.SECONDS))
+                    throw new IllegalStateException("lag probe quiesce release timed out");
+                released = true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("lag probe quiesce interrupted", e);
+            }
+        }
+    }
+
     @AfterEach
     void cleanupConnector() {
         NopStreamOffsetBackingStore.clearConnector(CONNECTOR);
@@ -49,58 +80,50 @@ public class TestIncrementalLagProbe extends AbstractMigrationE2ETestCase {
     }
 
     @Test
-    public void testLagNonZeroWhenLedgerCommits() {
+    public void testLagNonZeroWhenLedgerCommits() throws Exception {
         insertLedgerRow("mig", 1L, 0);
-        IncrementalLagProbe probe = new IncrementalLagProbe(jdbcTemplate, "",
-                "stream_epoch_ledger_v2");
-        // 静默窗口走 CoreMetrics.currentTimeMillis：注册 ManualClock 虚拟化窗口时钟——
-        // 提交线程先追加 ledger 行再推进虚拟时间越过窗口截止，保证提交确定性地落在窗口内
-        ManualClock clock = new ManualClock(1_000_000L);
-        CoreMetrics.registerClock(clock);
-        try {
-            // 结构同步门：只统计探针线程（main）对时钟的读取次数（详见 CDC 测试内注释）
-            Thread probeThread = Thread.currentThread();
-            Thread committer = new Thread(() -> {
-                io.nop.api.core.util.FutureHelper.waitUntil(() -> clock.readsBy(probeThread) >= 2, 5000);
+        GatedProbe probe = new GatedProbe(jdbcTemplate, "stream_epoch_ledger_v2");
+        Thread committer = new Thread(() -> {
+            try {
+                if (!probe.entered.await(10, TimeUnit.SECONDS))
+                    throw new IllegalStateException("probe never reached the quiesce window");
                 insertLedgerRow("mig", 2L, 0);
-                clock.advance(1000);
-            });
-            committer.setDaemon(true);
-            committer.start();
-            assertFalse(probe.awaitLagZero(null, 1), "ledger committed within quiesce → lag != 0");
-        } finally {
-            CoreMetrics.registerClock(CoreMetrics.defaultClock());
-        }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("committer interrupted", e);
+            } finally {
+                probe.release.countDown();
+            }
+        });
+        committer.setDaemon(true);
+        committer.start();
+        assertFalse(probe.awaitLagZero(null, 1), "ledger committed within quiesce → lag != 0");
+        assertTrue(probe.released, "the committer must have run inside the quiesce window");
     }
 
     @Test
-    public void testLagNonZeroWhenCdcOffsetAdvances() {
+    public void testLagNonZeroWhenCdcOffsetAdvances() throws Exception {
         NopStreamOffsetBackingStore store = NopStreamOffsetBackingStore.forConnector(CONNECTOR);
-        IncrementalLagProbe probe = new IncrementalLagProbe(jdbcTemplate, "",
-                "stream_epoch_ledger_v2");
-        // 静默窗口走 CoreMetrics.currentTimeMillis：注册 ManualClock 虚拟化窗口时钟——
-        // 推进线程先推 CDC offset 再推进虚拟时间越过窗口截止，保证变更确定性地落在窗口内
-        ManualClock clock = new ManualClock(1_000_000L);
-        CoreMetrics.registerClock(clock);
-        try {
-            // 结构同步门：只统计探针线程（main）对时钟的读取次数——若用 totalReads，
-            // 本推进线程自身 waitUntil 的轮询读取会提前满足门条件（残窗 1ms 永不流逝的死锁根因）。
-            // 探针读到 2 次 = 已算出窗口截止并进入静默循环，此后变更+推进必然落在窗口内。
-            Thread probeThread = Thread.currentThread();
-            Thread advancer = new Thread(() -> {
-                io.nop.api.core.util.FutureHelper.waitUntil(() -> clock.readsBy(probeThread) >= 2, 5000);
+        GatedProbe probe = new GatedProbe(jdbcTemplate, "stream_epoch_ledger_v2");
+        Thread advancer = new Thread(() -> {
+            try {
+                if (!probe.entered.await(10, TimeUnit.SECONDS))
+                    throw new IllegalStateException("probe never reached the quiesce window");
                 Map<java.nio.ByteBuffer, java.nio.ByteBuffer> offsets = new LinkedHashMap<>();
                 offsets.put(java.nio.ByteBuffer.wrap("p".getBytes()),
                         java.nio.ByteBuffer.wrap("advanced".getBytes()));
                 store.setOffsets(offsets);
-                clock.advance(1000);
-            });
-            advancer.setDaemon(true);
-            advancer.start();
-            assertFalse(probe.awaitLagZero(CONNECTOR, 1), "CDC offset advanced within quiesce → lag != 0");
-        } finally {
-            CoreMetrics.registerClock(CoreMetrics.defaultClock());
-        }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("advancer interrupted", e);
+            } finally {
+                probe.release.countDown();
+            }
+        });
+        advancer.setDaemon(true);
+        advancer.start();
+        assertFalse(probe.awaitLagZero(CONNECTOR, 1), "CDC offset advanced within quiesce → lag != 0");
+        assertTrue(probe.released, "the advancer must have run inside the quiesce window");
     }
 
     @Test
